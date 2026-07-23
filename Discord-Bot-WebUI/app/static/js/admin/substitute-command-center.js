@@ -118,30 +118,46 @@ function filterNeeds(league) {
     });
 }
 
-function filterPool(status) {
-    document.querySelectorAll('.sct-pool-card').forEach(el => {
-        el.classList.toggle('hidden', !(status === 'all' || el.dataset.status === status));
-    });
-    document.querySelectorAll('.sct-pool-btn').forEach(b => {
-        const on = b.dataset.status === status;
+// Sub Pool filters are ANDed: status × league × search. A card shows only if it
+// matches the active status filter AND the active league filter AND the search.
+let _poolStatus = 'all';
+let _poolLeague = 'all';
+
+function _poolBtnActive(selector, key, value) {
+    document.querySelectorAll(selector).forEach(b => {
+        const on = b.dataset[key] === value;
         b.classList.toggle('bg-white', on);
         b.classList.toggle('text-gray-900', on);
         b.classList.toggle('shadow-sm', on);
         b.classList.toggle('dark:bg-gray-700', on);
         b.classList.toggle('dark:text-white', on);
     });
-    applyPoolSearch();
 }
 
-function applyPoolSearch() {
+function applyPoolFilters() {
     const q = (document.getElementById('sct-pool-search')?.value || '').trim().toLowerCase();
     document.querySelectorAll('.sct-pool-card').forEach(el => {
-        if (el.classList.contains('hidden') && !q) return;
-        const hay = el.dataset.search || '';
-        const hideForSearch = q && hay.indexOf(q) === -1;
-        if (q) el.classList.toggle('hidden', hideForSearch);
+        const okStatus = _poolStatus === 'all' || el.dataset.status === _poolStatus;
+        const okLeague = _poolLeague === 'all' || el.dataset.leagueType === _poolLeague;
+        const okSearch = !q || (el.dataset.search || '').indexOf(q) !== -1;
+        el.classList.toggle('hidden', !(okStatus && okLeague && okSearch));
     });
 }
+
+function filterPool(status) {
+    _poolStatus = status;
+    _poolBtnActive('.sct-pool-btn', 'status', status);
+    applyPoolFilters();
+}
+
+function filterPoolLeague(league) {
+    _poolLeague = league;
+    _poolBtnActive('.sct-pool-league-btn', 'league', league);
+    applyPoolFilters();
+}
+
+// Search input handler delegates into the combined filter.
+function applyPoolSearch() { applyPoolFilters(); }
 
 /* ------------------------------------------------ candidate slide-over */
 
@@ -994,6 +1010,7 @@ function registerHandlers() {
     ED.register('sct-tab', (el) => switchTab(el.dataset.tab));
     ED.register('sct-league-filter', (el) => filterNeeds(el.dataset.league));
     ED.register('sct-pool-filter', (el) => filterPool(el.dataset.status));
+    ED.register('sct-pool-league', (el) => filterPoolLeague(el.dataset.league));
     ED.register('sct-select-need', (el) => selectNeed(el.closest('.sct-need') || el));
     ED.register('sct-panel-close', () => closePanel());
     ED.register('sct-assign', (el) => assignCandidate(el));

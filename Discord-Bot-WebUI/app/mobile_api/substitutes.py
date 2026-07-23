@@ -1319,9 +1319,11 @@ def post_discord_availability_poll():
 # authenticates with the shared FLASK_TOKEN secret (X-Bot-Token header), and
 # every authorization decision is re-run server-side against the resolved human
 # coach. The bot never holds a per-user JWT; Flask stays the single source of
-# truth. Phase 1 is Pub League only (Premier/Classic) — ECS FC is deferred
-# until its backend converges, so coach resolution filters to the current
-# 'Pub League' season.
+# truth. Program-aware: coach resolution returns both current 'Pub League'
+# (Premier/Classic) teams AND ECS FC teams, each tagged with a program; the
+# upcoming + create endpoints resolve the program from team_id server-side and
+# write the matching record (SubstituteRequest vs EcsFcSubRequest). The bot
+# never labels the program.
 # ============================================================================
 
 def _bot_token_ok() -> bool:
@@ -1359,14 +1361,85 @@ def _current_pub_league_coach_teams(session, player):
     return scoped
 
 
+def _team_program(team) -> str:
+    """Resolve a Team to its program: 'ecs_fc' if its league is ECS FC, else 'pub_league'."""
+    league = getattr(team, 'league', None)
+    name = (getattr(league, 'name', '') or '')
+    return 'ecs_fc' if 'ECS FC' in name else 'pub_league'
+
+
+def _is_ecs_fc_coach_for_team(session, user_id: int, team_id: int) -> bool:
+    """
+    Re-run ECS FC coach authorization server-side for the acting user + team.
+
+    Mirrors app/mobile_api/ecs_fc_matches.is_coach_for_team: a user coaches an
+    ECS FC team if player_teams.is_coach is set for it, OR they hold the
+    'ECS FC Coach' role AND are on the team AND the team's league is ECS FC.
+    Unspoofable — the bot only supplies ids; the truth is read from the DB.
+    """
+    player = session.query(Player).filter_by(user_id=user_id).first()
+    if not player:
+        return False
+
+    # Program-agnostic per-team coach flag covers coaches carried on player_teams.
+    if is_coach_for_team(session, user_id, team_id):
+        return True
+
+    # 'ECS FC Coach' role holders coach any ECS FC team they are rostered on.
+    user = session.query(User).options(joinedload(User.roles)).filter(User.id == user_id).first()
+    if not (user and user.roles and any(r.name == 'ECS FC Coach' for r in user.roles)):
+        return False
+
+    membership = session.execute(
+        player_teams.select().where(
+            and_(
+                player_teams.c.player_id == player.id,
+                player_teams.c.team_id == team_id,
+            )
+        )
+    ).fetchone()
+    if not membership:
+        return False
+
+    team = session.query(Team).options(joinedload(Team.league)).filter(Team.id == team_id).first()
+    return bool(team and team.league and 'ECS FC' in team.league.name)
+
+
+def _current_ecs_fc_coach_teams(session, player):
+    """
+    ECS FC teams the player coaches (parity with mobile get_coach_ecs_fc_teams).
+
+    A team qualifies if it belongs to an ECS FC league AND the player either
+    holds the 'ECS FC Coach' role (all their ECS FC teams) or has the per-team
+    is_coach flag. Unlike Pub League there is no season scoping — ECS FC teams
+    are long-lived and matches are dated, so the upcoming picker does the
+    time filtering.
+    """
+    p = session.query(Player).options(
+        selectinload(Player.teams).joinedload(Team.league)
+    ).filter_by(id=player.id).first()
+    if not p:
+        return []
+    scoped = []
+    for team in p.teams:
+        if not team.league or 'ECS FC' not in team.league.name:
+            continue
+        if _is_ecs_fc_coach_for_team(session, player.user_id, team.id):
+            scoped.append(team)
+    return scoped
+
+
 @mobile_api_v2.route('/internal/subs/coach-context', methods=['GET'])
 def internal_subs_coach_context():
     """
-    Resolve a Discord user to the Pub League teams they coach this season.
+    Resolve a Discord user to the teams they coach across BOTH programs.
 
     Auth: X-Bot-Token == FLASK_TOKEN.
     Query: discord_id
-    Returns: {linked: bool, teams: [{team_id, team_name, league_name}]}
+    Returns: {linked: bool, teams: [{team_id, team_name, league_name, program}]}
+        program is 'pub_league' (Premier/Classic this season) or 'ecs_fc'. The
+        bot stays program-blind: it just lists these teams and passes team_id +
+        match_id back through; Flask re-resolves the program server-side.
         linked=False means no Player is linked to that Discord account, so the
         bot should tell the user to link their portal account rather than fail
         silently.
@@ -1383,19 +1456,38 @@ def internal_subs_coach_context():
         if not player:
             return jsonify({"linked": False, "teams": []}), 200
 
-        teams = _current_pub_league_coach_teams(session, player)
+        out = []
+        seen = set()
+
+        # Pub League (Premier/Classic, current season) — unchanged resolution.
+        for t in _current_pub_league_coach_teams(session, player):
+            if t.id in seen:
+                continue
+            seen.add(t.id)
+            out.append({
+                "team_id": t.id,
+                "team_name": t.name,
+                "league_name": t.league.name if t.league else None,
+                "program": "pub_league",
+            })
+
+        # ECS FC teams the same coach owns — additive; Pub League output unchanged.
+        for t in _current_ecs_fc_coach_teams(session, player):
+            if t.id in seen:
+                continue
+            seen.add(t.id)
+            out.append({
+                "team_id": t.id,
+                "team_name": t.name,
+                "league_name": t.league.name if t.league else None,
+                "program": "ecs_fc",
+            })
+
         return jsonify({
             "linked": True,
             "user_id": player.user_id,
             "player_name": player.name,
-            "teams": [
-                {
-                    "team_id": t.id,
-                    "team_name": t.name,
-                    "league_name": t.league.name if t.league else None,
-                }
-                for t in teams
-            ],
+            "teams": out,
         }), 200
 
 
@@ -1417,6 +1509,32 @@ def internal_subs_upcoming():
         return jsonify({"msg": "team_id must be a valid integer"}), 400
 
     with managed_session() as session:
+        team_obj = session.query(Team).options(joinedload(Team.league)).get(team_id)
+        if not team_obj:
+            return jsonify({"msg": "Team not found"}), 404
+
+        # ECS FC teams draw upcoming rows from EcsFcMatch, not the Pub League
+        # Match table. Same output shape so the bot's picker is program-blind.
+        if _team_program(team_obj) == 'ecs_fc':
+            from app.models.ecs_fc import EcsFcMatch
+            ecs_matches = session.query(EcsFcMatch).filter(
+                EcsFcMatch.team_id == team_id,
+                EcsFcMatch.match_date >= pacific_today(),
+                EcsFcMatch.status.notin_(['CANCELLED', 'BYE'])
+            ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).limit(10).all()
+
+            out = []
+            for m in ecs_matches:
+                out.append({
+                    "match_id": m.id,
+                    "date": m.match_date.isoformat() if m.match_date else None,
+                    "time": m.match_time.strftime('%H:%M') if m.match_time else None,
+                    "opponent_name": m.opponent_name or 'TBD',
+                    "is_home": bool(m.is_home_match),
+                    "location": m.location,
+                })
+            return jsonify({"matches": out}), 200
+
         matches = session.query(Match).filter(
             ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)) &
             (Match.date >= pacific_today()) &
@@ -1494,6 +1612,106 @@ def internal_create_subs_request():
     discord_message_id = (str(data.get('discord_message_id') or '').strip() or None)
 
     with managed_session() as session:
+        team_obj = session.query(Team).options(joinedload(Team.league)).get(team_id)
+        if not team_obj:
+            return jsonify({"msg": "Team not found"}), 404
+        program = _team_program(team_obj)
+
+        # ECS FC → create an EcsFcSubRequest and fire the ECS FC pool notify,
+        # exactly like the app does. Program resolved server-side from team_id;
+        # the bot never labels the program.
+        if program == 'ecs_fc':
+            # Re-run ECS FC coach authorization server-side against the acting user.
+            if not _is_ecs_fc_coach_for_team(session, acting_user_id, team_id):
+                return jsonify({"msg": "Acting user is not a coach for this team"}), 403
+
+            from app.models.ecs_fc import EcsFcMatch
+            from app.models.substitutes import EcsFcSubRequest
+
+            ecs_match = session.query(EcsFcMatch).get(match_id)
+            if not ecs_match:
+                return jsonify({"msg": "Match not found"}), 404
+            if ecs_match.team_id != team_id:
+                return jsonify({"msg": "Team is not participating in this match"}), 400
+
+            existing = session.query(EcsFcSubRequest).filter(
+                EcsFcSubRequest.match_id == match_id,
+                EcsFcSubRequest.team_id == team_id,
+                EcsFcSubRequest.status == 'OPEN'
+            ).first()
+            if existing:
+                return jsonify({
+                    "success": True,
+                    "duplicate": True,
+                    "message": "An open request already exists for this match/team",
+                    "request": {"id": existing.id, "status": existing.status},
+                    "board_url": _board_url(),
+                }), 200
+
+            sub_request = EcsFcSubRequest(
+                match_id=match_id,
+                team_id=team_id,
+                requested_by=acting_user_id,
+                positions_needed=positions_needed or None,
+                gender_preference=gender_preference,
+                substitutes_needed=substitutes_needed,
+                notes=notes or None,
+                status='OPEN',
+            )
+            session.add(sub_request)
+            try:
+                # Commit BEFORE notify: notify_ecs_fc_pool reads the request back
+                # and writes its own EcsFcSubResponse rows.
+                session.commit()
+            except IntegrityError:
+                session.rollback()
+                existing = session.query(EcsFcSubRequest).filter(
+                    EcsFcSubRequest.match_id == match_id,
+                    EcsFcSubRequest.team_id == team_id,
+                    EcsFcSubRequest.status == 'OPEN'
+                ).first()
+                return jsonify({
+                    "success": True,
+                    "duplicate": True,
+                    "message": "An open request already exists for this match/team",
+                    "request": {"id": existing.id, "status": existing.status} if existing else None,
+                    "board_url": _board_url(),
+                }), 200
+
+            new_id = sub_request.id
+            logger.info(
+                f"ECS FC substitute request created via Discord: {new_id} "
+                f"(team={team_id}, match={match_id}, coach_user={acting_user_id})"
+            )
+
+            # Fire the ECS FC pool notification the app uses (best-effort — the
+            # request already exists regardless of notify outcome).
+            try:
+                from app.services.substitute_notification_service import SubstituteNotificationService
+                SubstituteNotificationService().notify_ecs_fc_pool(
+                    request_id=new_id,
+                    custom_message=(notes or None),
+                    subs_needed=substitutes_needed,
+                )
+            except Exception:
+                logger.exception("Failed to notify ECS FC pool for request %s", new_id)
+
+            return jsonify({
+                "success": True,
+                "duplicate": False,
+                "message": "Substitute request created",
+                "request": {
+                    "id": new_id,
+                    "match_id": match_id,
+                    "team_id": team_id,
+                    "league_type": "ECS FC",
+                    "substitutes_needed": substitutes_needed,
+                    "status": "OPEN",
+                },
+                "board_url": _board_url(),
+            }), 201
+
+        # Pub League — unchanged path (lands OPEN, no auto-contact).
         # Re-run authorization server-side against the resolved coach.
         if not is_coach_for_team(session, acting_user_id, team_id):
             return jsonify({"msg": "Acting user is not a coach for this team"}), 403

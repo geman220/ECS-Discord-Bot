@@ -441,6 +441,13 @@
                      {% if opt == 'all' %}bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %}">{{ lbl }} <span class="font-mono opacity-70">{{ cnt }}</span></button>
       {% endfor %}
     </div>
+    <div role="group" aria-label="Filter by league" class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      {% for lopt, llbl in [('all','All leagues'), ('Classic','Classic'), ('Premier','Premier'), ('ECS FC','ECS FC')] %}
+      <button type="button" data-action="sct-pool-league" data-league="{{ lopt }}"
+              class="sct-pool-league-btn inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
+                     {% if lopt == 'all' %}bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %}">{{ llbl }}</button>
+      {% endfor %}
+    </div>
     <div class="relative ml-auto">
       <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
       <input id="sct-pool-search" type="text" placeholder="Search subs…" class="w-56 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-1.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">

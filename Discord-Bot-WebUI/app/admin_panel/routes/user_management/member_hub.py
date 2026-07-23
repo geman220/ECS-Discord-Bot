@@ -270,14 +270,34 @@ def members_worklist():
                       season_filter, lane_filter, sub_status_filter,
                       (qp_status and qp_status != 'pending')])
 
-    # --- per-tab KPI strip (contextual breakdown; each chip links to the matching filter) ---
+    # --- flow metrics (time / % / age) — informational, shown as non-filter stat chips ---
+    from sqlalchemy import func as _func
+
+    def _stat(label, value, tone='info', icon=None, hint=None):
+        return {'label': label, 'value': value, 'tone': tone, 'stat': True, 'icon': icon, 'hint': hint}
+
+    _appr_secs = (db.session.query(_func.avg(_func.extract('epoch', User.approved_at - User.created_at)))
+                  .filter(User.approved_at.isnot(None), User.approved_at >= now - timedelta(days=180),
+                          User.approved_at >= User.created_at).scalar())
+    avg_approve_days = round((_appr_secs or 0) / 86400.0, 1)
+    approved_30d = db.session.query(User).filter(User.approved_at.isnot(None),
+                                                 User.approved_at >= thirty_days_ago).count()
+    conversion_pct = round(stats['approved'] / stats['total_members'] * 100) if stats['total_members'] else 0
+
+    # --- per-tab KPI strip (filter chips = counts; stat chips = time/%/age) ---
     tab_kpis = []
     if tab == 'quick':
         qb = db.session.query(QuickProfile)
+        qp_counts = {}
         for lbl, st, tone in [('Pending', 'pending', 'warning'), ('Claimed', 'claimed', 'success'),
                               ('Linked', 'linked', 'info'), ('Expired', 'expired', 'danger')]:
-            tab_kpis.append({'label': lbl, 'value': qb.filter(QuickProfile.status == st).count(),
-                             'tone': tone, 'param': 'qp_status', 'val': st})
+            cnt = qb.filter(QuickProfile.status == st).count()
+            qp_counts[st] = cnt
+            tab_kpis.append({'label': lbl, 'value': cnt, 'tone': tone, 'param': 'qp_status', 'val': st})
+        _tot_qp = sum(qp_counts.values())
+        _claimed_rate = round((qp_counts.get('claimed', 0) + qp_counts.get('linked', 0)) / _tot_qp * 100) if _tot_qp else 0
+        tab_kpis.append(_stat('claimed', f'{_claimed_rate}%', 'success', 'ti-trending-up',
+                              'Claimed or linked, of all quick profiles'))
     elif tab == 'waitlist':
         for lbl, lane, tone in [('Classic', 'classic', 'info'), ('Premier', 'premier', 'gold'),
                                 ('ECS FC', 'ecs_fc', 'success')]:
@@ -287,6 +307,12 @@ def members_worklist():
         und = waitlist_q.filter(or_(User.waitlist_league.is_(None), User.waitlist_league == '',
                                     User.waitlist_league.ilike('%not_sure%'))).count()
         tab_kpis.append({'label': 'Undecided', 'value': und, 'tone': 'neutral', 'param': 'lane', 'val': 'undecided'})
+        _wl_dates = [d for (d,) in waitlist_q.with_entities(User.waitlist_joined_at).all() if d]
+        if _wl_dates:
+            tab_kpis.append(_stat('avg wait', f'{round(sum((now - d).days for d in _wl_dates) / len(_wl_dates), 1)}d',
+                                  'info', 'ti-hourglass', 'Avg days current waitlisters have waited'))
+            tab_kpis.append(_stat('oldest', f'{max((now - d).days for d in _wl_dates)}d',
+                                  'warning', 'ti-clock', 'Longest anyone has been waiting'))
     elif tab == 'subs':
         full = _sub_summary(db.session, sub_pids)
         active_ct = sum(1 for pid in full if any(r['status'] == 'active' for r in full[pid]))
@@ -310,12 +336,21 @@ def members_worklist():
                                    _lane_clause(User.preferred_league, lane)) if c is not None]
             tab_kpis.append({'label': lbl, 'value': (pending_q.filter(or_(*clauses)).count() if clauses else 0),
                              'tone': tone, 'param': 'lane', 'val': lane})
+        _op = pending_q.order_by(User.created_at.asc()).first()
+        if _op and _op.created_at:
+            tab_kpis.append(_stat('oldest waiting', f'{(now - _op.created_at).days}d', 'warning', 'ti-clock',
+                                  'How long the oldest pending application has waited'))
+        tab_kpis.append(_stat('avg approve', f'{avg_approve_days}d', 'info', 'ti-hourglass',
+                              'Avg days from signup to approval (last 180d)'))
     elif tab == 'all':
         tab_kpis = [
             {'label': 'Approved', 'value': stats['approved'], 'tone': 'success', 'param': 'approval', 'val': 'approved'},
             {'label': 'Playing now', 'value': stats['active_players'], 'tone': 'primary', 'param': 'season', 'val': 'active'},
             {'label': 'Pending', 'value': stats['pending'], 'tone': 'warning', 'param': 'approval', 'val': 'pending'},
-            {'label': 'New (30d)', 'value': stats['recent'], 'tone': 'info', 'param': '', 'val': ''},
+            _stat('conversion', f'{conversion_pct}%', 'success', 'ti-trending-up', 'Approved, of all members'),
+            _stat('avg approve', f'{avg_approve_days}d', 'info', 'ti-hourglass', 'Avg days signup → approval (last 180d)'),
+            _stat('approved 30d', approved_30d, 'primary', 'ti-user-check', 'Approved in the last 30 days'),
+            _stat('new 30d', stats['recent'], 'neutral', 'ti-sparkles', 'New sign-ups in the last 30 days'),
         ]
 
     return render_template('admin_panel/members/worklist_flowbite.html',

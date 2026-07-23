@@ -6,8 +6,11 @@ Discord slash commands for the substitute system.
 Phase 1: /subs request — a coach requests substitute(s) for their team's
 upcoming match(es). The bot is a thin front-end: it resolves the coach,
 shows pickers, and POSTs to the Flask internal endpoints, which own all
-authorization and write into the same SubstituteRequest backend the WebUI
-and Flutter app use. Pub League only for now (ECS FC is deferred).
+authorization and write into the same substitute backend the WebUI and
+Flutter app use. Program-blind: Flask resolves each team's program (Pub
+League Premier/Classic vs ECS FC) server-side and writes the right record
+(SubstituteRequest vs EcsFcSubRequest); the bot only passes team_id +
+match_id through.
 
 Auth to Flask: shared secret in the X-Bot-Token header (FLASK_TOKEN), the
 same trust boundary the poll-vote webhook uses. The bot never holds a JWT.
@@ -39,15 +42,20 @@ SUBS_CID_PREFIX = "subs:v1:"
 # How many upcoming matches a coach may flag in one request.
 MAX_MATCHES_PER_REQUEST = 5
 
-# Discord coach roles allowed to use /subs request. These are synced FROM the
-# backend player_teams.is_coach flag (see webui app/discord_utils.py), so a real
-# coach has them. This is a fast first-line gate; the Flask endpoint still
-# re-verifies is_coach_for_team(coach, team) before writing anything.
-COACH_ROLE_NAMES = {"ECS-FC-PL-PREMIER-COACH", "ECS-FC-PL-CLASSIC-COACH"}
+# Discord coach roles allowed to use /subs request, across both programs
+# (Pub League Premier/Classic + ECS FC). These are synced FROM the backend
+# player_teams.is_coach flag / coach roles (see webui app/discord_utils.py), so
+# a real coach has them. This is a fast first-line gate; the Flask endpoint
+# still re-verifies the coach owns the target team (per program) before writing.
+COACH_ROLE_NAMES = {
+    "ECS-FC-PL-PREMIER-COACH",
+    "ECS-FC-PL-CLASSIC-COACH",
+    "ECS-FC-PL-ECS-FC-COACH",
+}
 
 
 def _has_coach_role(member) -> bool:
-    """True if the member holds a Premier/Classic coach Discord role."""
+    """True if the member holds any team-coach Discord role (Pub League or ECS FC)."""
     roles = getattr(member, "roles", None)
     if not roles:
         return False
@@ -111,6 +119,13 @@ class SubsRequestModal(discord.ui.Modal):
             max_length=120,
             style=discord.TextStyle.short,
         )
+        self.gender = discord.ui.TextInput(
+            label="Gender preference (optional)",
+            placeholder="male, female, or blank for any (they/them fits both)",
+            required=False,
+            max_length=20,
+            style=discord.TextStyle.short,
+        )
         self.notes = discord.ui.TextInput(
             label="Notes (optional)",
             placeholder="e.g. regular keeper is out injured",
@@ -120,6 +135,7 @@ class SubsRequestModal(discord.ui.Modal):
         )
         self.add_item(self.count)
         self.add_item(self.positions)
+        self.add_item(self.gender)
         self.add_item(self.notes)
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -134,6 +150,15 @@ class SubsRequestModal(discord.ui.Modal):
 
         positions = str(self.positions.value or "").strip()
         notes = str(self.notes.value or "").strip()
+        # Gender is matched by PRONOUNS server-side (they/them counts for both), so we
+        # only send male/female/none. Check 'female' first — 'female' contains 'male'.
+        _g = str(self.gender.value or "").strip().lower()
+        if "female" in _g or _g in ("f", "she", "she/her"):
+            gender_pref = "female"
+        elif "male" in _g or _g in ("m", "he", "he/him"):
+            gender_pref = "male"
+        else:
+            gender_pref = None
 
         created, duplicates, failed = [], [], []
         board_url = None
@@ -144,6 +169,7 @@ class SubsRequestModal(discord.ui.Modal):
                 "match_id": m["match_id"],
                 "substitutes_needed": count,
                 "positions_needed": positions,
+                "gender_preference": gender_pref,
                 "notes": notes,
                 "discord_channel_id": str(interaction.channel_id) if interaction.channel_id else None,
                 "discord_message_id": None,
@@ -177,6 +203,8 @@ class SubsRequestModal(discord.ui.Modal):
                 embed.add_field(name="Needs", value=needs, inline=False)
                 if positions:
                     embed.add_field(name="Positions", value=positions, inline=True)
+                if gender_pref:
+                    embed.add_field(name="Gender", value=gender_pref.title(), inline=True)
                 if notes:
                     embed.add_field(name="Notes", value=notes, inline=False)
                 embed.set_footer(text="Sub coordinators can pick this up on the board")
@@ -351,11 +379,11 @@ class SubsCommands(commands.Cog):
     async def request(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
-        # Hard gate: must hold a Premier/Classic coach role before any backend call.
+        # Hard gate: must hold a coach role (Pub League or ECS FC) before any backend call.
         if not _has_coach_role(interaction.user):
             await interaction.followup.send(
-                "This one's for team coaches — you'll need the Premier or Classic coach role to "
-                "request subs. If you coach and you're seeing this, ping a sub coordinator so they "
+                "This one's for team coaches — you'll need a coach role to request subs. "
+                "If you coach and you're seeing this, ping a sub coordinator so they "
                 "can sort your roles out.",
                 ephemeral=True,
             )
@@ -380,7 +408,7 @@ class SubsCommands(commands.Cog):
         teams = ctx.get("teams") or []
         if not teams:
             await interaction.followup.send(
-                "You're not listed as a coach for a Pub League team this season, "
+                "You're not listed as a coach for any team this season, "
                 "so there's nothing to request subs for. Reach out to an admin if that's wrong.",
                 ephemeral=True,
             )

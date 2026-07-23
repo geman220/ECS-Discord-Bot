@@ -108,11 +108,21 @@
   {% set tonemap = {'primary':'text-ecs-green','success':'text-green-600 dark:text-green-400','warning':'text-amber-600 dark:text-amber-400','info':'text-blue-600 dark:text-blue-400','gold':'text-ecs-gold-500 dark:text-ecs-gold-400','danger':'text-red-600 dark:text-red-400','neutral':'text-gray-700 dark:text-gray-300'} %}
   <div class="flex flex-wrap gap-2">
     {% for k in tab_kpis %}
-    <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}{% if k.param %}?{{ k.param }}={{ k.val }}{% endif %}"
+    {% if k.stat %}
+    {# informational metric (time/%/date) — not a filter, so render as a plain chip #}
+    <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60" {% if k.hint %}title="{{ k.hint }}"{% endif %}>
+      {% if k.icon %}<i class="ti {{ k.icon }} text-sm {{ tonemap.get(k.tone, tonemap['neutral']) }}"></i>{% endif %}
+      <span class="font-mono text-sm font-bold {{ tonemap.get(k.tone, tonemap['neutral']) }}">{{ k.value }}</span>
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ k.label }}</span>
+    </div>
+    {% else %}
+    {# clickable filter chip (count) — build the query string with & since tab= is already ? #}
+    <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}{% if k.param %}&{{ k.param }}={{ k.val }}{% endif %}"
        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-ecs-green/40 hover:shadow-sm transition">
       <span class="font-mono text-base font-bold {{ tonemap.get(k.tone, tonemap['neutral']) }}">{{ k.value }}</span>
       <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ k.label }}</span>
     </a>
+    {% endif %}
     {% endfor %}
   </div>
   {% endif %}
