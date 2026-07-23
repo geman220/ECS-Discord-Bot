@@ -623,17 +623,6 @@ document.addEventListener('DOMContentLoaded', function () {
     postForm(denyBtn.getAttribute('data-url'), '', denyBtn, true);
   });
 
-  document.querySelectorAll('[data-action-sub]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      btn.disabled = true;
-      var payload = { player_id: parseInt(btn.getAttribute('data-player'), 10), is_active: btn.getAttribute('data-active') === 'true' };
-      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
-        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
-        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
-    });
-  });
-
   // Role add/remove (form-encoded to the shared assign-role endpoint)
   document.querySelectorAll('[data-action-role]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -678,20 +667,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Remove from sub pool (JSON player_id to the league's remove-player endpoint)
-  document.querySelectorAll('[data-action-subpool]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var spact = btn.getAttribute('data-subpool-action');
-      if (spact === 'remove' && !window.confirm('Remove this player from the sub pool?')) return;
-      if (spact === 'reject' && !window.confirm('Reject this sub-pool signup?')) return;
-      btn.disabled = true;
-      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ player_id: parseInt(btn.getAttribute('data-player'), 10) }) })
-        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
-        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
-        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
-    });
-  });
 
   // Reject a pending sub signup (delete the pending pool row + strip the sub role)
   document.querySelectorAll('[data-action-subreject]').forEach(function (btn) {

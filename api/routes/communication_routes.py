@@ -52,13 +52,18 @@ LEAGUE_EVENT_ICONS = {
 async def send_discord_dm(
     message: str = Body(..., embed=True, description="The message to send"),
     discord_id: str = Body(..., embed=True, description="The player's Discord ID"),
-    view_type: Optional[str] = Body(None, embed=True, description="Optional UI view (e.g. 'match_reminder')"),
+    view_type: Optional[str] = Body(None, embed=True, description="Optional UI view (e.g. 'match_reminder', 'subs_reachout')"),
+    reachout_recipient_id: Optional[int] = Body(None, embed=True, description="For view_type='subs_reachout': the Flask reach-out recipient row id embedded in the Yes/No button custom_ids"),
     bot: commands.Bot = Depends(get_bot)
 ):
     """Send a direct message to a Discord user.
 
     When `view_type='match_reminder'` is passed, attach the persistent
     "Don't remind me anymore" opt-out button.
+
+    When `view_type='subs_reachout'` is passed (with `reachout_recipient_id`),
+    attach the persistent "Can you sub? Yes/No" buttons. The team is never
+    revealed; the click writes availability back to Flask.
     """
     # Fetch the Discord user by their discord_id
     try:
@@ -69,7 +74,7 @@ async def send_discord_dm(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    view = _build_view(view_type)
+    view = _build_view(view_type, reachout_recipient_id=reachout_recipient_id)
 
     # Attempt to send a DM to the user
     try:
@@ -106,7 +111,7 @@ async def send_discord_dm(
         raise HTTPException(status_code=500, detail=f"Failed to send DM: {str(e)}")
 
 
-def _build_view(view_type):
+def _build_view(view_type, reachout_recipient_id=None):
     """Return a persistent discord.ui.View for a named view_type, or None."""
     if not view_type:
         return None
@@ -116,6 +121,16 @@ def _build_view(view_type):
             return MatchReminderView()
         except Exception as e:
             logger.warning(f"Failed to build MatchReminderView: {e}")
+            return None
+    if view_type == 'subs_reachout':
+        if reachout_recipient_id is None:
+            logger.warning("view_type='subs_reachout' requires reachout_recipient_id; sending DM without buttons")
+            return None
+        try:
+            from subs_reachout_views import SubsReachoutView
+            return SubsReachoutView(reachout_recipient_id)
+        except Exception as e:
+            logger.warning(f"Failed to build SubsReachoutView: {e}")
             return None
     logger.warning(f"Unknown view_type: {view_type}")
     return None

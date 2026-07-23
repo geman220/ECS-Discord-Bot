@@ -38,6 +38,7 @@ import '../custom_js/admin-ispy-management.js';
 import '../custom_js/admin-ecs-fc-match.js';
 import './admin/announcement-form.js';
 import './admin/classic-ratings-dashboard.js';
+import './admin/substitute-command-center.js';
 import './pass-studio.js';
 import './pass-studio-cropper.js';
 import './pass-studio-fields.js';

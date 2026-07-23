@@ -1304,9 +1304,11 @@ def ecs_fc_rsvp_status(match_id):
 
     # Get sub request data for this match
     from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment
+    # Show the most recent request for this match regardless of status, so a coach
+    # can see a CANCELLED / EXPIRED / PENDING request's history and responses — not
+    # just OPEN/FILLED (previously those states were invisible).
     sub_request = session.query(EcsFcSubRequest).filter(
         EcsFcSubRequest.match_id == match_id,
-        EcsFcSubRequest.status.in_(['OPEN', 'FILLED'])
     ).order_by(EcsFcSubRequest.created_at.desc()).first()
 
     sub_responses = []
@@ -1632,10 +1634,14 @@ def ecs_fc_contact_subs():
             return jsonify({'success': False, 'message': 'Select at least one notification channel'}), 400
 
         custom_message = (data.get('message') or '').strip()
+        # Default sub count comes from the admin setting when the caller omits it
+        # (Substitute Command Center → Settings: sub_default_needed; default 1).
+        from app.models.admin_config import AdminConfig
+        default_needed = AdminConfig.get_setting('sub_default_needed', 1)
         try:
-            subs_needed = int(data.get('subs_needed', 1))
+            subs_needed = int(data.get('subs_needed', default_needed))
         except (TypeError, ValueError):
-            subs_needed = 1
+            subs_needed = int(default_needed) if default_needed else 1
         subs_needed = max(1, min(subs_needed, 10))
 
         # Create the sub request record (same model/fields as create_sub_request)
@@ -1651,83 +1657,40 @@ def ecs_fc_contact_subs():
         session.add(sub_request)
         session.flush()
 
-        # Resolve eligible subs from the active ECS FC pool, applying the same
-        # filter rules as create_sub_request.
-        pool_members = session.query(EcsFcSubPool).options(
-            joinedload(EcsFcSubPool.player).joinedload(Player.user)
-        ).filter(EcsFcSubPool.is_active == True).all()
+        # DEPRECATED(phase3): the inline eligible-player loop +
+        # _send_sub_request_notification is replaced by the unified
+        # SubstituteNotificationService.notify_ecs_fc_pool, which owns filtering
+        # (incl. the shared word-boundary gender matcher — no 'he' in 'she/her'
+        # bug), response creation, and channel/consent/push resolution. Commit the
+        # new request first so the service (db.session) can see it, then delegate.
+        session.commit()
 
-        eligible_players = []
-        for pool_entry in pool_members:
-            player = pool_entry.player
-            if not player or not player.user or not player.user.is_approved:
-                continue
+        from app.services.substitute_notification_service import get_notification_service
+        service = get_notification_service()
+        svc_channels = [c.upper() for c in channels] if channels else None
+        result = service.notify_ecs_fc_pool(
+            request_id=sub_request.id,
+            custom_message=custom_message or None,
+            channels=svc_channels,
+            gender_filter=gender_filter if recipient_type == 'gender' else None,
+            position_filters=position_filters if recipient_type == 'position' else None,
+            player_ids=specific_player_ids if recipient_type == 'specific' else None,
+            subs_needed=subs_needed,
+        )
 
-            if recipient_type == 'specific':
-                if player.id not in specific_player_ids:
-                    continue
-            elif recipient_type == 'gender' and gender_filter:
-                pronouns = (player.pronouns or '').lower()
-                if gender_filter == 'male' and 'he' not in pronouns:
-                    continue
-                if gender_filter == 'female' and 'she' not in pronouns:
-                    continue
-            elif recipient_type == 'position' and position_filters:
-                player_positions = [p.strip() for p in (pool_entry.preferred_positions or '').upper().split(',')]
-                if not any(p in position_filters for p in player_positions):
-                    continue
+        total_subs = result.get('total_subs', 0)
+        notifications_sent = result.get('notifications_sent', 0)
 
-            eligible_players.append((player, pool_entry))
-
-        if not eligible_players:
-            session.rollback()
+        if total_subs == 0:
             return jsonify({
                 'success': False,
-                'message': 'No eligible subs found matching the selected criteria'
+                'message': 'No eligible subs found matching the selected criteria',
+                'request_id': sub_request.id
             }), 400
-
-        base_url = os.getenv('BASE_URL', 'https://portal.ecsfc.com')
-        notifications_sent = 0
-
-        for player, pool_entry in eligible_players:
-            response = EcsFcSubResponse(
-                request_id=sub_request.id,
-                player_id=player.id,
-                is_available=None,
-                notification_sent_at=datetime.utcnow(),
-                notification_methods=','.join(channels)
-            )
-            response.generate_token()
-            session.add(response)
-            session.flush()
-
-            rsvp_url = f"{base_url}/ecs-fc/sub-response/{response.rsvp_token}"
-
-            try:
-                send_result = _send_sub_request_notification(
-                    player=player,
-                    pool_entry=pool_entry,
-                    match=match,
-                    custom_message=custom_message,
-                    channels=channels,
-                    rsvp_url=rsvp_url,
-                    rsvp_token=response.rsvp_token,
-                    request_id=sub_request.id
-                )
-            except Exception as send_err:
-                logger.error(f"Contact subs: notification failed for player {player.id}: {send_err}", exc_info=True)
-                send_result = False
-
-            if send_result:
-                notifications_sent += 1
-                pool_entry.requests_received = (pool_entry.requests_received or 0) + 1
-                pool_entry.last_active_at = datetime.utcnow()
-
-        session.commit()
 
         logger.info(
             f"ECS FC board contact: sub request {sub_request.id} for match {match.id} "
-            f"by user {current_user.id}, {notifications_sent}/{len(eligible_players)} sent"
+            f"by user {current_user.id}, {notifications_sent}/{total_subs} sent"
         )
 
         return jsonify({
@@ -1735,7 +1698,7 @@ def ecs_fc_contact_subs():
             'message': f'Contacted {notifications_sent} sub{"s" if notifications_sent != 1 else ""} '
                        f'for {match.team.name if match.team else "ECS FC"} vs {match.opponent_name}',
             'request_id': sub_request.id,
-            'eligible_count': len(eligible_players),
+            'eligible_count': total_subs,
             'notifications_sent': notifications_sent
         })
 
@@ -1831,10 +1794,11 @@ def ecs_fc_contact_existing(request_id):
                 if player.id not in specific_player_ids:
                     continue
             elif recipient_type == 'gender' and gender_filter:
-                pronouns = (player.pronouns or '').lower()
-                if gender_filter == 'male' and 'he' not in pronouns:
-                    continue
-                if gender_filter == 'female' and 'she' not in pronouns:
+                # Shared inclusive matcher (they/them + blank included; no
+                # 'he' in 'she/her' false positive). Re-contact keeps its inline
+                # send because notify_ecs_fc_pool skips already-contacted players.
+                from app.services.substitute_notification_service import player_matches_gender_preference
+                if not player_matches_gender_preference(player.pronouns, gender_filter):
                     continue
             elif recipient_type == 'position' and position_filters:
                 player_positions = [p.strip() for p in (pool_entry.preferred_positions or '').upper().split(',')]

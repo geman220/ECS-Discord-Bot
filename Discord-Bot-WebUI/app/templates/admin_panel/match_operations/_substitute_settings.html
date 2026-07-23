@@ -1,0 +1,150 @@
+{# Substitute settings tab — every control binds an AdminConfig key via
+   data-setting / data-setting-type; substitute-command-center.js collects them
+   and POSTs to admin_panel.sub_settings_save. Rendered inside the hub's
+   Settings section (shares the parent `settings` + `discord_channels` context). #}
+{% set weekdays = [(0,'Monday'),(1,'Tuesday'),(2,'Wednesday'),(3,'Thursday'),(4,'Friday'),(5,'Saturday'),(6,'Sunday')] %}
+<div class="flex items-center justify-between gap-3 flex-wrap mb-4">
+  <div>
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Substitute settings</h2>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Tune the automated poll, reach-outs, lifecycle timings and notifications. Stored as admin config, editable per season.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+
+  {# ---- Automated availability poll ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <h4 class="text-sm font-semibold text-gray-900 dark:text-white px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 flex items-center gap-2"><i class="ti ti-send text-ecs-green"></i>Automated availability poll</h4>
+    <div class="px-4 divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Post the weekly poll<small class="block text-[11px] text-gray-400">Runs on a schedule to the subs channel</small></span>
+        <input type="checkbox" data-setting="sub_availability_poll_enabled" data-setting-type="boolean" {% if settings.sub_availability_poll_enabled %}checked{% endif %} class="w-5 h-5 rounded text-ecs-green focus:ring-ecs-green">
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Post day &amp; time<small class="block text-[11px] text-gray-400">Coaches owe sub needs before this</small></span>
+        <span class="flex items-center gap-2">
+          <select data-setting="sub_availability_poll_weekday" data-setting-type="integer" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+            {% for v, lbl in weekdays %}<option value="{{ v }}" {% if settings.sub_availability_poll_weekday == v %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+          </select>
+          <input type="number" min="0" max="23" data-setting="sub_availability_poll_hour" data-setting-type="integer" value="{{ settings.sub_availability_poll_hour }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
+          <span class="text-xs text-gray-400">:00h</span>
+        </span>
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Poll stays open<small class="block text-[11px] text-gray-400">Auto-closes before kickoff</small></span>
+        <span class="flex items-center gap-2"><input type="number" min="1" max="168" data-setting="sub_poll_open_hours" data-setting-type="integer" value="{{ settings.sub_poll_open_hours }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"><span class="text-xs text-gray-400">hours</span></span>
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Ask about<small class="block text-[11px] text-gray-400">All slots now → only slots needing subs later</small></span>
+        <select data-setting="sub_availability_poll_only_needed" data-setting-type="boolean" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+          <option value="false" {% if not settings.sub_availability_poll_only_needed %}selected{% endif %}>All league time-slots</option>
+          <option value="true" {% if settings.sub_availability_poll_only_needed %}selected{% endif %}>Only slots with open requests</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Post to channel<small class="block text-[11px] text-gray-400">Loaded from your Discord server</small></span>
+        <span class="flex items-center gap-1.5">
+          <select id="sct-poll-channel" data-setting="sub_poll_channel_id" data-setting-type="string" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+            {% for c in discord_channels %}<option value="{{ c.id }}" {% if settings.sub_poll_channel_id == c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+          </select>
+          <button type="button" data-action="sct-refresh-channels" title="Refresh channels from Discord" class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-refresh"></i></button>
+        </span>
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Ping role IDs<small class="block text-[11px] text-gray-400">Comma-separated Discord role IDs</small></span>
+        <input type="text" data-setting="sub_poll_role_ids" data-setting-type="string" value="{{ settings.sub_poll_role_ids }}" placeholder="e.g. 123,456" class="w-40 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+      </div>
+      <div class="py-3">
+        <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Poll question</label>
+        <textarea data-setting="sub_poll_question" data-setting-type="string" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_poll_question }}</textarea>
+        <div class="mt-1.5 flex gap-1.5 text-[11px] text-gray-400"><span>Tokens:</span><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{league}</code></div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Reach-out defaults ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <h4 class="text-sm font-semibold text-gray-900 dark:text-white px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 flex items-center gap-2"><i class="ti ti-message-2 text-ecs-green"></i>Reach-out defaults</h4>
+    <div class="px-4 divide-y divide-gray-200 dark:divide-gray-700">
+      {% set def_channels = (settings.sub_reachout_default_channels or '').upper() %}
+      <div class="py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Default channels</span>
+        <div class="flex flex-wrap gap-3">
+          {% for val, lbl in [('PUSH','Push'), ('DISCORD','Discord'), ('SMS','SMS'), ('EMAIL','Email')] %}
+          <label class="inline-flex items-center gap-2 cursor-pointer"><input type="checkbox" data-setting-channel value="{{ val }}" {% if val in def_channels %}checked{% endif %} class="rounded text-ecs-green focus:ring-ecs-green"><span class="text-sm text-gray-700 dark:text-gray-300">{{ lbl }}</span></label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="py-3">
+        <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">General ask — "can anyone sub?"</label>
+        <textarea data-setting="sub_reachout_msg_general" data-setting-type="string" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_reachout_msg_general }}</textarea>
+        <div class="mt-1.5 flex gap-1.5 text-[11px] text-gray-400"><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{league}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{slots}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code></div>
+      </div>
+      <div class="py-3">
+        <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Targeted ask — "can YOU sub for this time?"<small class="block text-[11px] text-gray-400 font-normal">Team is never revealed to the sub</small></label>
+        <textarea data-setting="sub_reachout_msg_targeted" data-setting-type="string" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_reachout_msg_targeted }}</textarea>
+        <div class="mt-1.5 flex gap-1.5 text-[11px] text-gray-400"><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{slot}</code></div>
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3">
+        <span class="text-sm text-gray-800 dark:text-gray-200">Allow SMS reach-outs<small class="block text-[11px] text-gray-400">Only to consented, verified numbers</small></span>
+        <input type="checkbox" data-setting="sub_reachout_allow_sms" data-setting-type="boolean" {% if settings.sub_reachout_allow_sms %}checked{% endif %} class="w-5 h-5 rounded text-ecs-green focus:ring-ecs-green">
+      </div>
+    </div>
+  </div>
+
+  {# ---- Requests & lifecycle ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <h4 class="text-sm font-semibold text-gray-900 dark:text-white px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 flex items-center gap-2"><i class="ti ti-clock text-ecs-green"></i>Requests &amp; lifecycle</h4>
+    <div class="px-4 divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Default subs needed<small class="block text-[11px] text-gray-400">Per new request</small></span><input type="number" min="1" max="10" data-setting="sub_default_needed" data-setting-type="integer" value="{{ settings.sub_default_needed }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"></div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Auto-expire after match<small class="block text-[11px] text-gray-400">Grace period past kickoff (days)</small></span><input type="number" min="0" max="30" data-setting="sub_auto_expire_days" data-setting-type="integer" value="{{ settings.sub_auto_expire_days }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"></div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Notify contacted subs on cancel<small class="block text-[11px] text-gray-400">Tell them the request is off</small></span><input type="checkbox" data-setting="sub_notify_on_cancel" data-setting-type="boolean" {% if settings.sub_notify_on_cancel %}checked{% endif %} class="w-5 h-5 rounded text-ecs-green focus:ring-ecs-green"></div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Mark pool member stale after<small class="block text-[11px] text-gray-400">No activity → On break (days)</small></span><input type="number" min="0" max="730" data-setting="sub_pool_stale_days" data-setting-type="integer" value="{{ settings.sub_pool_stale_days }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"></div>
+    </div>
+  </div>
+
+  {# ---- Assignment & balance ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <h4 class="text-sm font-semibold text-gray-900 dark:text-white px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 flex items-center gap-2"><i class="ti ti-scale text-ecs-green"></i>Assignment &amp; balance</h4>
+    <div class="px-4 divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Default max matches / week<small class="block text-[11px] text-gray-400">Per sub</small></span><input type="number" min="1" max="14" data-setting="sub_default_max_matches" data-setting-type="integer" value="{{ settings.sub_default_max_matches }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"></div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Weekly cap &amp; position fit<small class="block text-[11px] text-gray-400">Rank vs hard-limit candidates</small></span>
+        <select data-setting="sub_assignment_balance_mode" data-setting-type="string" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+          <option value="soft" {% if settings.sub_assignment_balance_mode == 'soft' %}selected{% endif %}>Soft ranking</option>
+          <option value="hard" {% if settings.sub_assignment_balance_mode == 'hard' %}selected{% endif %}>Hard limit</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Warn on conflicts<small class="block text-[11px] text-gray-400">Sub plays/coaches the requesting team</small></span><input type="checkbox" data-setting="sub_warn_on_conflict" data-setting-type="boolean" {% if settings.sub_warn_on_conflict %}checked{% endif %} class="w-5 h-5 rounded text-ecs-green focus:ring-ecs-green"></div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Pub League assignment<small class="block text-[11px] text-gray-400">Enforced invariant</small></span><span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">Admins only</span></div>
+      <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">ECS FC assignment</span><span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300">Coach or admin</span></div>
+    </div>
+  </div>
+
+  {# ---- Notifications & confirmations ---- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden lg:col-span-2">
+    <h4 class="text-sm font-semibold text-gray-900 dark:text-white px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 flex items-center gap-2"><i class="ti ti-bell text-ecs-green"></i>Notifications &amp; confirmations</h4>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 px-4">
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">A sub responds → notify<small class="block text-[11px] text-gray-400">Who hears about a yes/no</small></span>
+          <select data-setting="sub_notify_on_response" data-setting-type="string" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+            <option value="coach_admins" {% if settings.sub_notify_on_response == 'coach_admins' %}selected{% endif %}>Requesting coach + admins</option>
+            <option value="admins" {% if settings.sub_notify_on_response == 'admins' %}selected{% endif %}>Admins only</option>
+            <option value="coach" {% if settings.sub_notify_on_response == 'coach' %}selected{% endif %}>Requesting coach only</option>
+          </select>
+        </div>
+        <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Notify others "not selected"<small class="block text-[11px] text-gray-400">When a request fills</small></span><input type="checkbox" data-setting="sub_notify_not_selected" data-setting-type="boolean" {% if settings.sub_notify_not_selected %}checked{% endif %} class="w-5 h-5 rounded text-ecs-green focus:ring-ecs-green"></div>
+        <div class="flex items-center justify-between gap-4 py-3"><span class="text-sm text-gray-800 dark:text-gray-200">Arrive-early reminder<small class="block text-[11px] text-gray-400">In the confirmation message (min)</small></span><input type="number" min="0" max="120" data-setting="sub_arrive_early_min" data-setting-type="integer" value="{{ settings.sub_arrive_early_min }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white"></div>
+      </div>
+      <div class="py-3">
+        <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Assignment confirmation message</label>
+        <textarea data-setting="sub_confirmation_msg" data-setting-type="string" rows="4" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_confirmation_msg }}</textarea>
+        <div class="mt-1.5 flex flex-wrap gap-1.5 text-[11px] text-gray-400"><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{team}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{time}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{location}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{early}</code></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sticky bottom-0 mt-5 pt-4 flex justify-end gap-2 bg-gradient-to-t from-white dark:from-gray-900 to-transparent">
+  <button type="button" data-action="sct-settings-reset" class="h-9 px-4 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Reset</button>
+  <button type="button" data-action="sct-settings-save" class="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold"><i class="ti ti-device-floppy"></i>Save settings</button>
+</div>

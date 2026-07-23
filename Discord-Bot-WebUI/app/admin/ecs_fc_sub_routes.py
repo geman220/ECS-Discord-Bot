@@ -24,6 +24,7 @@ from app.models_ecs_subs import (
 from app.tasks.tasks_ecs_fc_subs import (
     notify_sub_pool_of_request, notify_assigned_substitute
 )
+from app.services.substitute_authority import can_assign, can_request, is_admin
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ ecs_fc_subs_bp = Blueprint('ecs_fc_subs', __name__)
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:match_id>', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def create_sub_request(match_id):
     """Create a substitute request for an ECS FC match."""
@@ -74,15 +75,19 @@ def create_sub_request(match_id):
         # Create the request
         notes = request.form.get('notes', '').strip()
         
-        # Get the number of substitutes needed (default to 1 if not provided)
+        # Get the number of substitutes needed. When the form omits it, fall back
+        # to the admin-configured default (Substitute Command Center → Settings:
+        # sub_default_needed; default 1 preserves current behavior).
+        from app.models.admin_config import AdminConfig
+        default_needed = AdminConfig.get_setting('sub_default_needed', 1)
         try:
-            substitutes_needed = int(request.form.get('substitutes_needed', 1))
+            substitutes_needed = int(request.form.get('substitutes_needed', default_needed))
             if substitutes_needed < 1:
                 substitutes_needed = 1
             elif substitutes_needed > 10:  # Reasonable upper limit
                 substitutes_needed = 10
         except (ValueError, TypeError):
-            substitutes_needed = 1
+            substitutes_needed = int(default_needed) if default_needed else 1
         
         # Check for existing open request
         existing = g.db_session.query(EcsFcSubRequest).filter(
@@ -135,12 +140,16 @@ def create_sub_request(match_id):
         
         # Send notifications using the appropriate task
         if slots_created:
-            # Use the new consolidated notification task
+            # Per-slot gender/position consolidation is not yet modeled by the
+            # unified service, so slot requests keep the dedicated slots task.
+            # TODO(phase3): fold per-slot gender into notify_ecs_fc_pool.
             from app.tasks.tasks_ecs_fc_subs import notify_sub_pool_with_slots
             notify_sub_pool_with_slots.delay(sub_request.id)
         else:
-            # Fall back to original notification method
-            notify_sub_pool_of_request.delay(sub_request.id)
+            # DEPRECATED(phase3): notify_sub_pool_of_request replaced by the
+            # unified SubstituteNotificationService.notify_ecs_fc_pool broadcast.
+            from app.tasks.tasks_ecs_fc_subs import notify_ecs_fc_sub_pool_unified
+            notify_ecs_fc_sub_pool_unified.delay(sub_request.id)
         
         subs_text = "substitute" if substitutes_needed == 1 else "substitutes"
         show_success(f"Substitute request created for {substitutes_needed} {subs_text}. Notifications are being sent to available substitutes.")
@@ -153,7 +162,7 @@ def create_sub_request(match_id):
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:request_id>/cancel', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def cancel_sub_request(request_id):
     """Cancel an open substitute request."""
@@ -161,13 +170,9 @@ def cancel_sub_request(request_id):
     if not sub_request:
         return jsonify({'success': False, 'message': 'Request not found'}), 404
 
-    # Check permissions
-    is_requester = sub_request.requested_by == current_user.id
-    is_admin = any(role.name in ['Global Admin', 'Pub League Admin', 'ECS FC Admin']
-                  for role in current_user.roles)
-
-    if not is_requester and not is_admin:
-        return jsonify({'success': False, 'message': 'Permission denied'}), 403
+    # Assignment-authority invariant: ECS FC coaches may manage only their own team.
+    if not can_assign(g.db_session, current_user.id, team_id=sub_request.team_id, program='ECS FC'):
+        return jsonify({'success': False, 'message': 'You can only manage subs for your own team.'}), 403
 
     if sub_request.status != 'OPEN':
         return jsonify({'success': False, 'message': 'Only open requests can be cancelled'}), 400
@@ -177,16 +182,31 @@ def cancel_sub_request(request_id):
 
     g.db_session.add(sub_request)
 
+    # Tell everyone still pending on this request it's cancelled. Dispatched via
+    # Celery so the DM/push sends don't run inside this open transaction.
+    try:
+        from app.tasks.tasks_substitute_pools import notify_substitute_request_cancelled
+        notify_substitute_request_cancelled.delay(request_id, 'ecs_fc')
+    except Exception as e:
+        logger.error(f"Failed to queue cancellation notification for request {request_id}: {e}")
+
     return jsonify({'success': True, 'message': 'Request cancelled successfully'})
 
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:request_id>/edit', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def edit_sub_request(request_id):
     """Edit an existing ECS FC substitute request."""
     from app.admin_helpers import edit_sub_request as _edit_sub_request
+
+    # Assignment-authority invariant: ECS FC coaches may manage only their own team.
+    sub_request = g.db_session.query(EcsFcSubRequest).get(request_id)
+    if not sub_request:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+    if not can_assign(g.db_session, current_user.id, team_id=sub_request.team_id, program='ECS FC'):
+        return jsonify({'success': False, 'message': 'You can only manage subs for your own team.'}), 403
 
     data = request.get_json() if request.is_json else {}
     if not data:
@@ -238,7 +258,9 @@ def edit_sub_request(request_id):
                     from app.tasks.tasks_ecs_fc_subs import notify_sub_pool_with_slots
                     notify_sub_pool_with_slots.delay(request_id)
                 else:
-                    notify_sub_pool_of_request.delay(request_id)
+                    # DEPRECATED(phase3): repointed to the unified broadcast.
+                    from app.tasks.tasks_ecs_fc_subs import notify_ecs_fc_sub_pool_unified
+                    notify_ecs_fc_sub_pool_unified.delay(request_id)
                 message += " Substitute pool has been re-notified."
         except Exception as e:
             logger.error(f"Error triggering ECS FC re-notification: {e}")
@@ -254,7 +276,7 @@ def edit_sub_request(request_id):
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:request_id>/available-subs')
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 def get_available_subs(request_id):
     """Get list of available substitutes for a request."""
     try:
@@ -265,7 +287,11 @@ def get_available_subs(request_id):
         
         if not sub_request:
             return jsonify({'success': False, 'message': 'Request not found'}), 404
-        
+
+        # Assignment-authority invariant: ECS FC coaches may view/manage only their own team.
+        if not can_assign(g.db_session, current_user.id, team_id=sub_request.team_id, program='ECS FC'):
+            return jsonify({'success': False, 'message': 'You can only manage subs for your own team.'}), 403
+
         # Get available subs (those who responded positively)
         assigned_ids = [a.player_id for a in (sub_request.assignments or [])]
         available_subs = []
@@ -294,7 +320,7 @@ def get_available_subs(request_id):
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:request_id>/assign', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def assign_substitute(request_id):
     """Assign a substitute from the available pool."""
@@ -308,6 +334,11 @@ def assign_substitute(request_id):
 
     if sub_request.status != 'OPEN':
         show_error("This request has already been handled")
+        return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{sub_request.match_id}'))
+
+    # Assignment-authority invariant: ECS FC coaches may assign only their own team.
+    if not can_assign(g.db_session, current_user.id, team_id=sub_request.team_id, program='ECS FC'):
+        show_error("You can only manage subs for your own team.")
         return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{sub_request.match_id}'))
 
     # Get the selected player
@@ -376,7 +407,7 @@ def assign_substitute(request_id):
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-pool')
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 def manage_sub_pool():
     """View and manage the ECS FC substitute pool."""
     try:
@@ -413,7 +444,7 @@ def manage_sub_pool():
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-pool/add', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def add_to_sub_pool():
     """Add a player to the ECS FC substitute pool. Just adds to pool, nothing else."""
@@ -448,6 +479,13 @@ def add_to_sub_pool():
             player_id=player_id,
             preferred_positions=preferred_positions
         )
+        # Seed max matches/week from the admin default when configured
+        # (Substitute Command Center → Settings: sub_default_max_matches).
+        # Unset => leave NULL (unlimited), the previous behavior.
+        from app.models.admin_config import AdminConfig
+        default_max = AdminConfig.get_setting('sub_default_max_matches', None)
+        if default_max is not None:
+            pool_entry.max_matches_per_week = int(default_max)
         g.db_session.add(pool_entry)
 
     return jsonify({'success': True, 'message': 'Player added to substitute pool'})
@@ -455,7 +493,7 @@ def add_to_sub_pool():
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-pool/<int:pool_id>/update', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def update_sub_pool_entry(pool_id):
     """Update a substitute pool entry."""
@@ -476,7 +514,7 @@ def update_sub_pool_entry(pool_id):
 
 @ecs_fc_subs_bp.route('/ecs-fc/sub-pool/<int:pool_id>/remove', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'ECS FC Coach'])
 @transactional
 def remove_from_sub_pool(pool_id):
     """Remove a player from the substitute pool. Does not affect anything else."""

@@ -10,13 +10,13 @@ This service handles:
 - Fetching available Discord roles for mapping
 """
 
-import asyncio
 import logging
 import os
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
-import aiohttp
+import requests
 
 from app.core import db
 from app.models.core import Role, User
@@ -30,28 +30,25 @@ class DiscordRoleSyncService:
     Service for bidirectional synchronization between Flask roles and Discord roles.
     """
 
+    # HTTP timeout (seconds) for calls to the bot REST API.
+    REQUEST_TIMEOUT = 15
+
     def __init__(self):
         self.bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
         self.guild_id = os.getenv('SERVER_ID')
-        self._session = None
-
-    async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session."""
-        if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=20)
-            self._session = aiohttp.ClientSession(timeout=timeout)
-        return self._session
-
-    async def close(self):
-        """Close the aiohttp session."""
-        if self._session and not self._session.closed:
-            await self._session.close()
 
     # -------------------------------------------------------------------------
     # Discord Role Fetching
     # -------------------------------------------------------------------------
+    #
+    # NOTE: These methods use the synchronous `requests` library, NOT aiohttp.
+    # The web app runs under gunicorn gevent workers (see wsgi.py monkey.patch_all);
+    # driving aiohttp/asyncio from a gevent greenlet fails instantly, whereas
+    # `requests` is transparently made cooperative by gevent's monkey-patch.
+    # Keep this path free of asyncio. (Celery workers, which are not
+    # monkey-patched, use aiohttp elsewhere via app/discord_utils.py — that's fine.)
 
-    async def fetch_discord_roles(self) -> List[Dict[str, Any]]:
+    def fetch_discord_roles(self) -> List[Dict[str, Any]]:
         """
         Fetch all Discord roles from the server via bot API.
 
@@ -63,25 +60,26 @@ class DiscordRoleSyncService:
             return []
 
         try:
-            session = await self._get_session()
             url = f"{self.bot_api_url}/api/discord/roles"
+            response = requests.get(url, timeout=self.REQUEST_TIMEOUT)
 
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    roles = data.get('roles', [])
-                    logger.info(f"Fetched {len(roles)} Discord roles from server")
-                    return roles
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to fetch Discord roles (status {response.status}): {error_text}")
-                    return []
+            if response.status_code == 200:
+                roles = response.json().get('roles', [])
+                logger.info(f"Fetched {len(roles)} Discord roles from server")
+                return roles
 
-        except Exception as e:
-            logger.error(f"Error fetching Discord roles: {e}")
+            logger.error(
+                f"Failed to fetch Discord roles (status {response.status_code}): {response.text}"
+            )
             return []
 
-    async def get_role_members(self, discord_role_id: str) -> List[Dict[str, Any]]:
+        except Exception as e:
+            # exc_info=True so a genuine failure surfaces a real traceback instead of
+            # being silently mislabeled as "bot offline" by the caller's empty-list check.
+            logger.error(f"Error fetching Discord roles: {e}", exc_info=True)
+            return []
+
+    def get_role_members(self, discord_role_id: str) -> List[Dict[str, Any]]:
         """
         Get all members who have a specific Discord role.
 
@@ -95,26 +93,24 @@ class DiscordRoleSyncService:
             return []
 
         try:
-            session = await self._get_session()
             url = f"{self.bot_api_url}/api/discord/roles/{discord_role_id}/members"
+            response = requests.get(url, timeout=self.REQUEST_TIMEOUT)
 
-            async with session.get(url) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get('members', [])
-                else:
-                    logger.error(f"Failed to get members for role {discord_role_id}")
-                    return []
+            if response.status_code == 200:
+                return response.json().get('members', [])
+
+            logger.error(f"Failed to get members for role {discord_role_id}")
+            return []
 
         except Exception as e:
-            logger.error(f"Error getting role members: {e}")
+            logger.error(f"Error getting role members: {e}", exc_info=True)
             return []
 
     # -------------------------------------------------------------------------
     # Individual User Sync
     # -------------------------------------------------------------------------
 
-    async def assign_discord_role_to_user(
+    def assign_discord_role_to_user(
         self,
         discord_user_id: str,
         discord_role_id: str
@@ -133,28 +129,22 @@ class DiscordRoleSyncService:
             return False, "Missing user or role ID"
 
         try:
-            session = await self._get_session()
             url = f"{self.bot_api_url}/api/discord/roles/assign"
+            payload = {'user_id': discord_user_id, 'role_id': discord_role_id}
+            response = requests.post(url, json=payload, timeout=self.REQUEST_TIMEOUT)
 
-            payload = {
-                'user_id': discord_user_id,
-                'role_id': discord_role_id
-            }
+            if response.status_code == 200:
+                logger.info(f"Assigned Discord role {discord_role_id} to user {discord_user_id}")
+                return True, "Role assigned successfully"
 
-            async with session.post(url, json=payload) as response:
-                if response.status == 200:
-                    logger.info(f"Assigned Discord role {discord_role_id} to user {discord_user_id}")
-                    return True, "Role assigned successfully"
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to assign role: {error_text}")
-                    return False, f"Failed to assign role: {error_text}"
+            logger.error(f"Failed to assign role: {response.text}")
+            return False, f"Failed to assign role: {response.text}"
 
         except Exception as e:
-            logger.error(f"Error assigning Discord role: {e}")
+            logger.error(f"Error assigning Discord role: {e}", exc_info=True)
             return False, str(e)
 
-    async def remove_discord_role_from_user(
+    def remove_discord_role_from_user(
         self,
         discord_user_id: str,
         discord_role_id: str
@@ -173,32 +163,26 @@ class DiscordRoleSyncService:
             return False, "Missing user or role ID"
 
         try:
-            session = await self._get_session()
             url = f"{self.bot_api_url}/api/discord/roles/remove"
+            payload = {'user_id': discord_user_id, 'role_id': discord_role_id}
+            response = requests.post(url, json=payload, timeout=self.REQUEST_TIMEOUT)
 
-            payload = {
-                'user_id': discord_user_id,
-                'role_id': discord_role_id
-            }
+            if response.status_code == 200:
+                logger.info(f"Removed Discord role {discord_role_id} from user {discord_user_id}")
+                return True, "Role removed successfully"
 
-            async with session.post(url, json=payload) as response:
-                if response.status == 200:
-                    logger.info(f"Removed Discord role {discord_role_id} from user {discord_user_id}")
-                    return True, "Role removed successfully"
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to remove role: {error_text}")
-                    return False, f"Failed to remove role: {error_text}"
+            logger.error(f"Failed to remove role: {response.text}")
+            return False, f"Failed to remove role: {response.text}"
 
         except Exception as e:
-            logger.error(f"Error removing Discord role: {e}")
+            logger.error(f"Error removing Discord role: {e}", exc_info=True)
             return False, str(e)
 
     # -------------------------------------------------------------------------
     # Flask Role Events - Sync on Role Assignment/Removal
     # -------------------------------------------------------------------------
 
-    async def on_flask_role_assigned(self, user: User, role: Role) -> bool:
+    def on_flask_role_assigned(self, user: User, role: Role) -> bool:
         """
         Called when a Flask role is assigned to a user.
         Syncs the corresponding Discord role if mapping exists.
@@ -222,7 +206,7 @@ class DiscordRoleSyncService:
             return True
 
         # Assign the Discord role
-        success, message = await self.assign_discord_role_to_user(discord_id, role.discord_role_id)
+        success, message = self.assign_discord_role_to_user(discord_id, role.discord_role_id)
 
         if success:
             logger.info(f"Synced Flask role '{role.name}' to Discord for user {user.username}")
@@ -231,7 +215,7 @@ class DiscordRoleSyncService:
 
         return success
 
-    async def on_flask_role_removed(self, user: User, role: Role) -> bool:
+    def on_flask_role_removed(self, user: User, role: Role) -> bool:
         """
         Called when a Flask role is removed from a user.
         Removes the corresponding Discord role if mapping exists.
@@ -255,7 +239,7 @@ class DiscordRoleSyncService:
             return True
 
         # Remove the Discord role
-        success, message = await self.remove_discord_role_from_user(discord_id, role.discord_role_id)
+        success, message = self.remove_discord_role_from_user(discord_id, role.discord_role_id)
 
         if success:
             logger.info(f"Removed Discord role for Flask role '{role.name}' from user {user.username}")
@@ -268,7 +252,7 @@ class DiscordRoleSyncService:
     # Bulk Sync Operations
     # -------------------------------------------------------------------------
 
-    async def sync_flask_role_to_discord(self, role: Role) -> Dict[str, Any]:
+    def sync_flask_role_to_discord(self, role: Role) -> Dict[str, Any]:
         """
         Sync all users with a Flask role to have the corresponding Discord role.
 
@@ -311,7 +295,7 @@ class DiscordRoleSyncService:
                     results['skipped'] += 1
                     continue
 
-                success, message = await self.assign_discord_role_to_user(
+                success, message = self.assign_discord_role_to_user(
                     discord_id,
                     role.discord_role_id
                 )
@@ -326,7 +310,7 @@ class DiscordRoleSyncService:
                     })
 
                 # Rate limiting - small delay between API calls
-                await asyncio.sleep(0.5)
+                time.sleep(0.5)
 
             # Update last synced timestamp
             role.last_synced_at = datetime.utcnow()
@@ -344,7 +328,7 @@ class DiscordRoleSyncService:
 
         return results
 
-    async def sync_all_mapped_roles(self) -> Dict[str, Any]:
+    def sync_all_mapped_roles(self) -> Dict[str, Any]:
         """
         Sync all Flask roles that have Discord mappings.
 
@@ -369,7 +353,7 @@ class DiscordRoleSyncService:
             results['roles_processed'] = len(mapped_roles)
 
             for role in mapped_roles:
-                role_result = await self.sync_flask_role_to_discord(role)
+                role_result = self.sync_flask_role_to_discord(role)
 
                 results['details'].append({
                     'role_name': role.name,
@@ -382,7 +366,7 @@ class DiscordRoleSyncService:
                     results['roles_failed'] += 1
 
                 # Rate limiting between roles
-                await asyncio.sleep(1)
+                time.sleep(1)
 
             logger.info(
                 f"Bulk role sync complete: {results['roles_synced']}/{results['roles_processed']} roles synced"
@@ -556,7 +540,7 @@ def get_discord_role_sync_service() -> DiscordRoleSyncService:
 
 def sync_role_assignment(user: User, role: Role) -> bool:
     """
-    Synchronous wrapper to sync a role assignment to Discord.
+    Sync a role assignment to Discord.
     Call this when assigning a Flask role to a user.
 
     Args:
@@ -566,19 +550,12 @@ def sync_role_assignment(user: User, role: Role) -> bool:
     Returns:
         True if sync successful
     """
-    service = get_discord_role_sync_service()
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    return loop.run_until_complete(service.on_flask_role_assigned(user, role))
+    return get_discord_role_sync_service().on_flask_role_assigned(user, role)
 
 
 def sync_role_removal(user: User, role: Role) -> bool:
     """
-    Synchronous wrapper to sync a role removal to Discord.
+    Sync a role removal to Discord.
     Call this when removing a Flask role from a user.
 
     Args:
@@ -588,42 +565,17 @@ def sync_role_removal(user: User, role: Role) -> bool:
     Returns:
         True if sync successful
     """
-    service = get_discord_role_sync_service()
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    return loop.run_until_complete(service.on_flask_role_removed(user, role))
-
-
-async def fetch_discord_roles_async() -> List[Dict[str, Any]]:
-    """
-    Async function to fetch Discord roles.
-
-    Returns:
-        List of Discord role dictionaries
-    """
-    service = get_discord_role_sync_service()
-    return await service.fetch_discord_roles()
+    return get_discord_role_sync_service().on_flask_role_removed(user, role)
 
 
 def fetch_discord_roles_sync() -> List[Dict[str, Any]]:
     """
-    Synchronous wrapper to fetch Discord roles.
+    Fetch Discord roles from the bot REST API.
 
     Returns:
         List of Discord role dictionaries
     """
-    service = get_discord_role_sync_service()
-    try:
-        loop = asyncio.get_event_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-    return loop.run_until_complete(service.fetch_discord_roles())
+    return get_discord_role_sync_service().fetch_discord_roles()
 
 
 # -----------------------------------------------------------------------------

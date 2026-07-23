@@ -103,20 +103,35 @@ def members_worklist():
     from app.models import User, Role, QuickProfile, Player, League, Season
     from app.models.quick_profile import QuickProfileStatus
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
+    from app.services.league_membership_sync import _norm_league_type
 
     tab = (request.args.get('tab') or 'all').strip()
     search = (request.args.get('search') or '').strip()
     role_filter = (request.args.get('role') or '').strip()
     league_filter = (request.args.get('league') or '').strip()
-    approved_filter = (request.args.get('approved') or '').strip()
-    active_filter = (request.args.get('active') or '').strip()
+    approval_filter = (request.args.get('approval') or '').strip()      # '' hides DENIED by default
+    active_filter = (request.args.get('active') or '').strip()          # account active/disabled
+    season_filter = (request.args.get('season') or '').strip()          # active this season y/n
+    lane_filter = (request.args.get('lane') or '').strip()              # classic/premier/ecs_fc/undecided
+    sub_status_filter = (request.args.get('sub_status') or '').strip()  # active/resting
+    qp_status = (request.args.get('qp_status') or 'pending').strip()    # pending/claimed/linked/expired/all
     page = request.args.get('page', 1, type=int)
     now = datetime.utcnow()
+
+    def _lane_clause(col, lane):
+        """ilike pattern so a lane matches stored variants ('Classic'/'pub_league_classic')."""
+        if lane == 'classic':
+            return col.ilike('%classic%')
+        if lane == 'premier':
+            return col.ilike('%premier%')
+        if lane == 'ecs_fc':
+            return col.ilike('%ecs%')
+        return None
 
     # --- shared queue criteria (identical to the legacy pages, so counts can't drift) ---
     pending_q = db.session.query(User).filter(*User.pending_approval_criteria())
     waitlist_q = db.session.query(User).join(User.roles).filter(Role.name == 'pl-waitlist')
-    quick_q = db.session.query(QuickProfile).filter(
+    quick_pending_q = db.session.query(QuickProfile).filter(
         QuickProfile.status == QuickProfileStatus.PENDING.value,
         or_(QuickProfile.expires_at.is_(None), QuickProfile.expires_at > now),
     )
@@ -135,7 +150,7 @@ def members_worklist():
         'pending': pending_q.count(),
         'waitlist': waitlist_q.count(),
         'subs': len(sub_pids),
-        'quick': quick_q.count(),
+        'quick': quick_pending_q.count(),
         'approved': db.session.query(User).filter(User.is_approved == True).count(),
         'recent': db.session.query(User).filter(User.created_at >= thirty_days_ago).count(),
     }
@@ -154,13 +169,22 @@ def members_worklist():
             like = f'%{search}%'
             wq = wq.outerjoin(Player, Player.user_id == User.id).filter(
                 or_(Player.name.ilike(like), User.username.ilike(like)))
+        if lane_filter == 'undecided':
+            wq = wq.filter(or_(User.waitlist_league.is_(None), User.waitlist_league == '',
+                               User.waitlist_league.ilike('%not_sure%')))
+        elif lane_filter:
+            c = _lane_clause(User.waitlist_league, lane_filter)
+            if c is not None:
+                wq = wq.filter(c)
         users = wq.order_by(User.waitlist_joined_at.asc().nullslast()).all()
 
     elif tab == 'quick':
-        pq = quick_q
+        pq = db.session.query(QuickProfile)
+        if qp_status and qp_status != 'all':
+            pq = pq.filter(QuickProfile.status == qp_status)
         if search:
             pq = pq.filter(QuickProfile.player_name.ilike(f'%{search}%'))
-        profiles = pq.order_by(QuickProfile.created_at.desc()).all()
+        profiles = pq.order_by(QuickProfile.created_at.desc()).limit(500).all()
 
     elif tab == 'subs':
         if sub_pids:
@@ -171,6 +195,15 @@ def members_worklist():
                 sq = sq.filter(or_(Player.name.ilike(like), User.username.ilike(like)))
             users = sq.order_by(Player.name).all()
             sub_summary = _sub_summary(db.session, sub_pids)
+            if lane_filter or sub_status_filter:
+                def _keep(u):
+                    for r in (sub_summary.get(u.player.id, []) if u.player else []):
+                        lane_ok = (not lane_filter) or (_norm_league_type(r['lane']) == lane_filter)
+                        stat_ok = (not sub_status_filter) or (r['status'] == sub_status_filter)
+                        if lane_ok and stat_ok:
+                            return True
+                    return False
+                users = [u for u in users if _keep(u)]
 
     elif tab == 'pending':
         pq = pending_q.options(joinedload(User.player), joinedload(User.roles))
@@ -178,6 +211,11 @@ def members_worklist():
             like = f'%{search}%'
             pq = pq.outerjoin(Player, Player.user_id == User.id).filter(
                 or_(Player.name.ilike(like), User.username.ilike(like)))
+        if lane_filter:
+            clauses = [c for c in (_lane_clause(User.approval_league, lane_filter),
+                                   _lane_clause(User.preferred_league, lane_filter)) if c is not None]
+            if clauses:
+                pq = pq.filter(or_(*clauses))
         users = pq.order_by(User.created_at.desc()).all()
 
     else:
@@ -194,14 +232,24 @@ def members_worklist():
                     or_(Player.name.ilike(like), User.username.ilike(like)))
         if role_filter:
             q = q.join(User.roles).filter(Role.name == role_filter)
-        if approved_filter == 'true':
+        # Approval: DENIED are hidden by default (empty filter); opt in to see them.
+        if approval_filter == 'approved':
             q = q.filter(User.is_approved == True)
-        elif approved_filter == 'false':
-            q = q.filter(or_(User.is_approved == False, User.is_approved == None))
+        elif approval_filter == 'pending':
+            q = q.filter(User.approval_status == 'pending')
+        elif approval_filter == 'denied':
+            q = q.filter(User.approval_status == 'denied')
+        elif approval_filter != 'all':
+            q = q.filter(or_(User.approval_status != 'denied', User.approval_status.is_(None)))
         if active_filter == 'true':
             q = q.filter(User.is_active == True)
         elif active_filter == 'false':
             q = q.filter(or_(User.is_active == False, User.is_active == None))
+        # Active THIS SEASON = the player is a current player.
+        if season_filter == 'active':
+            q = q.filter(User.player.has(Player.is_current_player == True))
+        elif season_filter == 'inactive':
+            q = q.filter(or_(~User.player.has(), User.player.has(Player.is_current_player == False)))
         if league_filter:
             try:
                 lid = int(league_filter)
@@ -212,12 +260,19 @@ def members_worklist():
         pagination = q.paginate(page=page, per_page=50, error_out=False)
         users = pagination.items
 
+    any_filter = any([search, role_filter, league_filter, approval_filter, active_filter,
+                      season_filter, lane_filter, sub_status_filter,
+                      (qp_status and qp_status != 'pending')])
+
     return render_template('admin_panel/members/worklist_flowbite.html',
                            tab=tab, search=search, counts=counts, stats=stats,
                            users=users, profiles=profiles, pagination=pagination,
                            sub_summary=sub_summary, roles=all_roles, leagues=all_leagues,
                            role_filter=role_filter, league_filter=league_filter,
-                           approved_filter=approved_filter, active_filter=active_filter)
+                           approval_filter=approval_filter, active_filter=active_filter,
+                           season_filter=season_filter, lane_filter=lane_filter,
+                           sub_status_filter=sub_status_filter, qp_status=qp_status,
+                           any_filter=any_filter)
 
 
 @admin_panel_bp.route('/members/<int:user_id>')
@@ -490,29 +545,135 @@ def member_delete_note(user_id, note_id):
     return jsonify({'success': True})
 
 
+@admin_panel_bp.route('/members/quick-profile/<int:profile_id>/detail')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def member_qp_detail(profile_id):
+    """Quick-profile detail + its admin-note thread (self-contained, for the Members quick tab).
+
+    PlayerAdminNote targets EITHER a player or a quick_profile; a walk-in has notes on the
+    quick_profile_id until it's claimed, at which point they migrate to the player (see
+    QuickProfile.mark_claimed). So a pending/expired profile's coach/admin notes live here."""
+    from app.core import db
+    from app.models import QuickProfile
+    from app.models.players import PlayerAdminNote
+    from sqlalchemy.orm import joinedload
+
+    profile = db.session.get(QuickProfile, profile_id)
+    if not profile:
+        return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
+    data = profile.to_dict()
+    if profile.claimed_by_player:
+        data['linked_player'] = {'id': profile.claimed_by_player.id,
+                                 'name': profile.claimed_by_player.name}
+    notes = (db.session.query(PlayerAdminNote).options(joinedload(PlayerAdminNote.author))
+             .filter(PlayerAdminNote.quick_profile_id == profile_id)
+             .order_by(PlayerAdminNote.created_at.desc()).all())
+    note_list = [{'id': n.id, 'content': n.content,
+                  'author': (n.author.username if getattr(n, 'author', None) else 'system'),
+                  'created_at': n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else ''}
+                 for n in notes]
+    return jsonify({'success': True, 'profile': data, 'notes': note_list})
+
+
+@admin_panel_bp.route('/members/quick-profile/<int:profile_id>/note', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def member_qp_note_add(profile_id):
+    """Add an admin/coach note to a quick profile (PlayerAdminNote targeting quick_profile_id).
+    Migrates to the player automatically if/when the profile is later claimed."""
+    from flask_login import current_user
+    from app.core import db
+    from app.models import QuickProfile
+    from app.models.players import PlayerAdminNote
+
+    profile = db.session.get(QuickProfile, profile_id)
+    if not profile:
+        return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
+    data = request.get_json(silent=True) or {}
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'success': False, 'message': 'Note cannot be empty'}), 400
+    note = PlayerAdminNote(quick_profile_id=profile_id,
+                           author_id=getattr(current_user, 'id', None), content=content)
+    db.session.add(note)
+    db.session.flush()
+    return jsonify({'success': True, 'note': {
+        'id': note.id, 'content': note.content,
+        'author': getattr(current_user, 'username', 'you'),
+        'created_at': note.created_at.strftime('%Y-%m-%d %H:%M') if note.created_at else 'just now'}})
+
+
+# lane_label -> canonical normalized lane -> sub Flask role name.
+_LANE_TO_SUBROLE = {'classic': 'Classic Sub', 'premier': 'Premier Sub', 'ecs_fc': 'ECS FC Sub'}
+_LABEL_TO_CANON = {'Classic': 'classic', 'Premier': 'premier', 'ECS FC': 'ecs_fc'}
+
+
+def _player_sub_lanes(session, player_id):
+    """The normalized lanes this player is actually a sub in, read from BOTH pool tables.
+
+    This app stores ECS FC subs in TWO places: the approval path writes an EcsFcSubPool row
+    AND a SubstitutePool row with league_type='ECS FC' (the spine reads the SubstitutePool
+    twin FIRST). SubstitutePool.player_id is UNIQUE, so there is at most one SubstitutePool
+    row. Returns a set like {'classic'} or {'premier','ecs_fc'}."""
+    from app.models.substitutes import SubstitutePool, EcsFcSubPool
+    from app.services.league_membership_sync import _norm_league_type
+    lanes = set()
+    sp = session.query(SubstitutePool).filter_by(player_id=player_id).first()
+    # A PENDING (unapproved) SubstitutePool signup grants no sub role — only an approved row
+    # counts, matching the spine's pending-vs-active distinction. EcsFcSubPool has no
+    # approval concept (is_active only), so its presence always counts.
+    if sp and sp.approved_at is not None:
+        n = _norm_league_type(sp.league_type)
+        if n:
+            lanes.add(n)
+    if session.query(EcsFcSubPool).filter_by(player_id=player_id).first():
+        lanes.add('ecs_fc')
+    return lanes
+
+
+def _reconcile_sub_roles(session, user, player):
+    """Add/remove the three sub Flask roles to MATCH the player's actual pool memberships,
+    and refresh player.is_sub. Idempotent; robust to non-canonical stored league_type
+    because it goes through _norm_league_type. Replaces fragile manual add/strip logic."""
+    from app.models import Role
+    lanes = _player_sub_lanes(session, player.id)
+    for lane, rname in _LANE_TO_SUBROLE.items():
+        role = session.query(Role).filter_by(name=rname).first()
+        if not role:
+            continue
+        want, has = (lane in lanes), (role in user.roles)
+        if want and not has:
+            user.roles.append(role)
+        elif has and not want:
+            user.roles.remove(role)
+    player.is_sub = bool(lanes)
+
+
 @admin_panel_bp.route('/members/<int:user_id>/sub-assign', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def member_sub_assign(user_id):
     """Assign this person to a substitute pool (Classic/Premier/ECS FC) and optionally make
-    them active — self-contained (creates/reactivates the pool row, grants the sub role,
-    re-syncs the spine, defers a Discord sync). Subs never pay, so no payment is involved.
+    them active — self-contained. Writes the right pool table(s), reconciles the sub roles to
+    actual membership, re-syncs the spine, defers a Discord sync. Subs never pay.
     Body: {league_type: 'Classic'|'Premier'|'ECS FC', active: bool}.
     """
     from flask_login import current_user
     from datetime import datetime
     from app.core import db
-    from app.models import User, Role, League, Season
+    from app.models import User, League, Season
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
     from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships
+    from app.services.league_membership_sync import resync_player_memberships, _norm_league_type
 
     data = request.get_json(silent=True) or {}
     league_type = (data.get('league_type') or '').strip()
     make_active = bool(data.get('active', True))
-    role_map = {'Classic': 'Classic Sub', 'Premier': 'Premier Sub', 'ECS FC': 'ECS FC Sub'}
-    if league_type not in role_map:
+    target = _LABEL_TO_CANON.get(league_type)
+    if target is None:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
 
     user = db.session.get(User, user_id)
@@ -520,39 +681,43 @@ def member_sub_assign(user_id):
         return jsonify({'success': False, 'message': 'This person has no player record'}), 400
     player = user.player
     now = datetime.utcnow()
+    aid = getattr(current_user, 'id', None)
 
-    if league_type == 'ECS FC':
-        row = db.session.query(EcsFcSubPool).filter_by(player_id=player.id).first()
-        if row:
-            row.is_active = make_active
+    if target == 'ecs_fc':
+        ep = db.session.query(EcsFcSubPool).filter_by(player_id=player.id).first()
+        if ep:
+            ep.is_active = make_active
         else:
             db.session.add(EcsFcSubPool(player_id=player.id, is_active=make_active))
+        # Keep the approval-created SubstitutePool('ECS FC') twin in sync — the spine reads
+        # it FIRST, so approving/activating must update it too (never create/clobber a Pub row).
+        sp = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
+        if sp and _norm_league_type(sp.league_type) == 'ecs_fc':
+            sp.is_active = make_active
+            sp.approved_at = sp.approved_at or now
+            sp.approved_by = sp.approved_by or aid
     else:
-        row = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
-        if row:
-            # SubstitutePool.player_id is UNIQUE — a Pub sub lives in exactly ONE lane. If this
-            # reassigns them to a different lane, strip the OLD lane's sub role so no stale
-            # Discord/Flask role lingers (the row itself is moved, not duplicated).
-            if row.league_type and row.league_type != league_type:
-                old_role = db.session.query(Role).filter_by(name=role_map.get(row.league_type, '')).first()
-                if old_role and old_role in user.roles:
-                    user.roles.remove(old_role)
-            row.league_type = league_type
-            row.is_active = make_active
-            row.approved_at = row.approved_at or now
-            row.approved_by = row.approved_by or getattr(current_user, 'id', None)
+        canonical = 'Classic' if target == 'classic' else 'Premier'
+        sp = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
+        if sp:
+            # SubstitutePool.player_id is UNIQUE (one Pub row per player), so this claims the
+            # row for the chosen lane. ECS FC membership (if any) survives via EcsFcSubPool;
+            # role reconciliation below fixes up every sub role from actual membership.
+            sp.league_type = canonical
+            sp.is_active = make_active
+            sp.approved_at = sp.approved_at or now
+            sp.approved_by = sp.approved_by or aid
         else:
             db.session.add(SubstitutePool(
-                player_id=player.id, league_type=league_type, is_active=make_active,
-                approved_at=now, approved_by=getattr(current_user, 'id', None)))
+                player_id=player.id, league_type=canonical, is_active=make_active,
+                approved_at=now, approved_by=aid))
 
-    role = db.session.query(Role).filter_by(name=role_map[league_type]).first()
-    if role and role not in user.roles:
-        user.roles.append(role)
+    db.session.flush()
+    _reconcile_sub_roles(db.session, user, player)
 
     # Ensure the player has a league so dispatch + Discord roles resolve (best-effort).
     if not player.league_id and not player.primary_league_id:
-        s_type = 'ECS FC' if league_type == 'ECS FC' else 'Pub League'
+        s_type = 'ECS FC' if target == 'ecs_fc' else 'Pub League'
         lg = (db.session.query(League).join(Season)
               .filter(Season.league_type == s_type, Season.is_current == True).first())
         if lg:
@@ -562,7 +727,10 @@ def member_sub_assign(user_id):
     db.session.flush()
     resync_player_memberships(db.session, player.id)
     if player.discord_id:
-        defer_discord_sync(player.id, only_add=True)  # additive: grants the -SUB role
+        # Full allowlist-protected reconcile (the batching layer runs enforce_allowlist=True):
+        # get_expected_roles now includes the -SUB role we reconciled, so it's granted, while
+        # team/division/coach roles are protected from removal.
+        defer_discord_sync(player.id, only_add=True)
     return jsonify({'success': True,
                     'message': f'Added to {league_type} subs ({"active" if make_active else "resting"})'})
 
@@ -572,32 +740,39 @@ def member_sub_assign(user_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def member_sub_set_active(user_id):
-    """Rest/Wake a sub for one lane — self-contained AND handles BOTH pool tables (Pub League
-    SubstitutePool + ECS FC EcsFcSubPool), so ECS FC subs are manageable from the Hub (the
-    legacy set_pool_member_active only knows SubstitutePool). Body: {league_type, active}."""
+    """Rest/Wake a sub for one lane — self-contained AND both-pool-aware. For ECS FC it updates
+    BOTH the EcsFcSubPool row and the SubstitutePool('ECS FC') twin the spine reads first; the
+    Pub match is by NORMALIZED lane (robust to non-canonical stored values). Body: {league_type, active}."""
     from app.core import db
     from app.models import User
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
     from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships
+    from app.services.league_membership_sync import resync_player_memberships, _norm_league_type
 
     data = request.get_json(silent=True) or {}
     league_type = (data.get('league_type') or '').strip()
     make_active = bool(data.get('active', True))
-    if league_type not in ('Classic', 'Premier', 'ECS FC'):
+    target = _LABEL_TO_CANON.get(league_type)
+    if target is None:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
     user = db.session.get(User, user_id)
     if not user or not user.player:
         return jsonify({'success': False, 'message': 'No player record'}), 400
     pid = user.player.id
 
-    if league_type == 'ECS FC':
-        row = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
-    else:
-        row = db.session.query(SubstitutePool).filter_by(player_id=pid, league_type=league_type).first()
-    if not row:
+    touched = False
+    sp = db.session.query(SubstitutePool).filter_by(player_id=pid).first()
+    if sp and _norm_league_type(sp.league_type) == target:
+        sp.is_active = make_active
+        touched = True
+    if target == 'ecs_fc':
+        ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
+        if ep:
+            ep.is_active = make_active
+            touched = True
+    if not touched:
         return jsonify({'success': False, 'message': f'Not in the {league_type} sub pool'}), 404
-    row.is_active = make_active
+
     db.session.flush()
     resync_player_memberships(db.session, pid)
     if user.player.discord_id:
@@ -611,37 +786,41 @@ def member_sub_set_active(user_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def member_sub_remove(user_id):
-    """Remove a sub from one lane's pool — self-contained AND both-pool-aware. Deletes the pool
-    row + strips the lane's sub role (the allowlist permits -SUB removal). Body: {league_type}."""
+    """Remove a sub from one lane — self-contained AND both-pool-aware. Deletes the matching
+    row(s) in BOTH tables for ECS FC (incl. the SubstitutePool twin), then reconciles the sub
+    roles to actual membership (strips only the removed lane's role). Body: {league_type}."""
     from app.core import db
-    from app.models import User, Role
+    from app.models import User
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
     from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships
+    from app.services.league_membership_sync import resync_player_memberships, _norm_league_type
 
     data = request.get_json(silent=True) or {}
     league_type = (data.get('league_type') or '').strip()
-    role_map = {'Classic': 'Classic Sub', 'Premier': 'Premier Sub', 'ECS FC': 'ECS FC Sub'}
-    if league_type not in role_map:
+    target = _LABEL_TO_CANON.get(league_type)
+    if target is None:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
     user = db.session.get(User, user_id)
     if not user or not user.player:
         return jsonify({'success': False, 'message': 'No player record'}), 400
     pid = user.player.id
 
-    if league_type == 'ECS FC':
-        row = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
-    else:
-        row = db.session.query(SubstitutePool).filter_by(player_id=pid, league_type=league_type).first()
-    if row:
-        db.session.delete(row)
-    role = db.session.query(Role).filter_by(name=role_map[league_type]).first()
-    if role and role in user.roles:
-        user.roles.remove(role)
+    sp = db.session.query(SubstitutePool).filter_by(player_id=pid).first()
+    if sp and _norm_league_type(sp.league_type) == target:
+        db.session.delete(sp)
+    if target == 'ecs_fc':
+        ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
+        if ep:
+            db.session.delete(ep)
+    db.session.flush()
+    _reconcile_sub_roles(db.session, user, player=user.player)
     db.session.flush()
     resync_player_memberships(db.session, pid)
     if user.player.discord_id:
-        defer_discord_sync(pid, only_add=False)  # allow the -SUB strip (allowlist permits it)
+        # Full allowlist-protected reconcile: the now-removed lane's -SUB role is no longer in
+        # get_expected_roles and the allowlist permits stripping -SUB, so it's removed; team,
+        # division and coach roles are protected and preserved.
+        defer_discord_sync(pid, only_add=False)
     return jsonify({'success': True, 'message': f'Removed from {league_type} subs'})
 
 

@@ -105,7 +105,7 @@ def cleanup_old_sub_assignments(self, session):
 
 
 @celery_task
-def expire_stale_substitute_pools(self, session, inactive_days=120):
+def expire_stale_substitute_pools(self, session, inactive_days=None):
     """Deactivate substitute-pool memberships that have gone stale.
 
     Keeps the "active sub pool" from filling up with people who signed up once and
@@ -124,6 +124,14 @@ def expire_stale_substitute_pools(self, session, inactive_days=120):
     from sqlalchemy import func as sqlfunc
     from app.models.substitutes import SubstitutePool, EcsFcSubPool, log_pool_action
     from app.models import Player
+
+    # When no explicit override is passed (the celery-beat default), read the
+    # admin-configured staleness window (Substitute Command Center → Settings:
+    # sub_pool_stale_days; default 120 preserves the previous hardcoded value).
+    if inactive_days is None:
+        from app.models.admin_config import AdminConfig
+        inactive_days = AdminConfig.get_setting('sub_pool_stale_days', 120)
+    inactive_days = int(inactive_days)
 
     cutoff = datetime.utcnow() - timedelta(days=inactive_days)
     affected_player_ids = set()

@@ -84,28 +84,22 @@ def notify_substitute_pool_of_request(self, session, request_id: int, league_typ
 
 
 def _resolve_eligible_player_ids(session, league_type: str, gender_filter: Optional[str]) -> List[int]:
-    """Pick eligible substitute player_ids. When a gender filter is set,
-    also include players whose pronouns are 'they/them' or unset so broader
-    sub broadcasts don't exclude them."""
-    if not gender_filter:
-        return [s.player_id for s in get_active_substitutes(league_type, session, None) if s.player_id]
+    """Pick eligible substitute player_ids using the ONE shared inclusive gender
+    matcher (they/them + blank always included). No gender filter -> everyone.
+    Replaces the prior bespoke merge that leaned on get_active_substitutes'
+    divergent gender handling."""
+    from app.services.substitute_notification_service import player_matches_gender_preference
 
-    gender_specific = get_active_substitutes(league_type, session, gender_filter)
     all_subs = get_active_substitutes(league_type, session, None)
-
-    inclusive = []
-    for sub in all_subs:
-        if not sub.player:
-            continue
-        prons = (sub.player.pronouns or '').lower().strip()
-        if 'they/them' in prons or not prons:
-            inclusive.append(sub)
 
     seen = set()
     out = []
-    for sub in list(gender_specific) + inclusive:
+    for sub in all_subs:
         pid = sub.player_id
-        if pid and pid not in seen:
+        if not pid or pid in seen:
+            continue
+        pronouns = getattr(sub.player, 'pronouns', None) if sub.player else None
+        if player_matches_gender_preference(pronouns, gender_filter):
             out.append(pid)
             seen.add(pid)
     return out
@@ -248,6 +242,25 @@ def process_substitute_response(self, session, player_id: int, response_text: st
 
     except Exception as e:
         logger.error(f"Error processing substitute response: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+
+@celery_task(name='app.tasks.tasks_substitute_pools.notify_substitute_request_cancelled')
+def notify_substitute_request_cancelled(self, session, request_id: int, league_type: str = 'pub_league') -> Dict[str, Any]:
+    """
+    Async wrapper so web cancel routes can tell pending responders a request was
+    cancelled WITHOUT doing synchronous Discord/push sends inside their open DB
+    transaction. Delegates to the unified SubstituteNotificationService.
+
+    Args:
+        request_id: SubstituteRequest / EcsFcSubRequest ID
+        league_type: 'pub_league' or 'ecs_fc'
+    """
+    try:
+        from app.services.substitute_notification_service import SubstituteNotificationService
+        return SubstituteNotificationService().notify_request_cancelled(request_id, league_type)
+    except Exception as e:
+        logger.error(f"Error in notify_substitute_request_cancelled: {e}", exc_info=True)
         return {'success': False, 'error': str(e)}
 
 

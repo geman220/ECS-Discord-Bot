@@ -1855,6 +1855,13 @@ def delete_ecs_fc_substitute_request(request_id: int):
         sub_request.status = 'CANCELLED'
         session.commit()
 
+        # Notify pending responders the request is cancelled (async).
+        try:
+            from app.tasks.tasks_substitute_pools import notify_substitute_request_cancelled
+            notify_substitute_request_cancelled.delay(request_id, 'ecs_fc')
+        except Exception as e:
+            logger.error(f"Failed to queue cancellation notification for request {request_id}: {e}")
+
         return jsonify({
             "success": True,
             "message": "Request cancelled"

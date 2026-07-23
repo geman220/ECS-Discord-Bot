@@ -488,7 +488,11 @@ def get_sub_pool_info(match_id: int):
             joinedload(EcsFcSubPool.player).joinedload(Player.user)
         ).filter(EcsFcSubPool.is_active == True).all()
 
-        # Count by gender (based on pronouns)
+        # Count by gender (based on pronouns). Uses the shared word-boundary
+        # classifier so 'she/her' is female, not male (the old 'he' in pronouns
+        # substring test matched 'she'/'her').
+        from app.services.substitute_notification_service import classify_pronoun_gender
+
         gender_counts = {'male': 0, 'female': 0, 'other': 0}
         position_counts = {'GK': 0, 'DEF': 0, 'MID': 0, 'FWD': 0}
 
@@ -499,16 +503,8 @@ def get_sub_pool_info(match_id: int):
                 continue
 
             # Determine gender from pronouns
-            pronouns = (player.pronouns or '').lower()
-            if 'he' in pronouns:
-                gender_counts['male'] += 1
-                gender = 'male'
-            elif 'she' in pronouns:
-                gender_counts['female'] += 1
-                gender = 'female'
-            else:
-                gender_counts['other'] += 1
-                gender = 'other'
+            gender = classify_pronoun_gender(player.pronouns)
+            gender_counts[gender] += 1
 
             # Count positions
             positions = (pool_entry.preferred_positions or '').upper().split(',')
@@ -570,7 +566,10 @@ def create_sub_request(match_id: int):
         specific_player_ids = data.get('player_ids', [])
         channels = data.get('channels', ['email', 'discord'])  # sms, email, push, discord
         custom_message = data.get('message', '')
-        subs_needed = data.get('subs_needed', 1)
+        # Default sub count comes from the admin setting when the caller omits it
+        # (Substitute Command Center → Settings: sub_default_needed; default 1).
+        from app.models.admin_config import AdminConfig
+        subs_needed = data.get('subs_needed', AdminConfig.get_setting('sub_default_needed', 1))
 
         # Create the sub request record
         sub_request = EcsFcSubRequest(
@@ -585,89 +584,45 @@ def create_sub_request(match_id: int):
         session.add(sub_request)
         session.flush()
 
-        # Get eligible subs based on filters
-        pool_members = session.query(EcsFcSubPool).options(
-            joinedload(EcsFcSubPool.player).joinedload(Player.user)
-        ).filter(EcsFcSubPool.is_active == True).all()
-
-        eligible_players = []
-        for pool_entry in pool_members:
-            player = pool_entry.player
-            if not player or not player.user or not player.user.is_approved:
-                continue
-
-            # Apply filters
-            if recipient_type == 'specific':
-                if player.id not in specific_player_ids:
-                    continue
-            elif recipient_type == 'gender' and gender_filter:
-                pronouns = (player.pronouns or '').lower()
-                if gender_filter == 'male' and 'he' not in pronouns:
-                    continue
-                if gender_filter == 'female' and 'she' not in pronouns:
-                    continue
-            elif recipient_type == 'position' and position_filters:
-                player_positions = (pool_entry.preferred_positions or '').upper().split(',')
-                player_positions = [p.strip() for p in player_positions]
-                if not any(p in position_filters for p in player_positions):
-                    continue
-
-            eligible_players.append((player, pool_entry))
-
-        if not eligible_players:
-            session.rollback()
-            return jsonify({
-                'success': False,
-                'message': 'No eligible subs found matching criteria'
-            }), 400
-
-        # Create response records and send notifications
-        notifications_sent = 0
-        base_url = os.getenv('BASE_URL', 'https://portal.ecsfc.com')
-
-        for player, pool_entry in eligible_players:
-            # Create response record
-            response = EcsFcSubResponse(
-                request_id=sub_request.id,
-                player_id=player.id,
-                is_available=None,
-                notification_sent_at=datetime.utcnow(),
-                notification_methods=','.join(channels)
-            )
-            response.generate_token()
-            session.add(response)
-            session.flush()
-
-            # Build RSVP URL
-            rsvp_url = f"{base_url}/ecs-fc/sub-response/{response.rsvp_token}"
-
-            # Send notifications via enabled channels
-            send_result = _send_sub_request_notification(
-                player=player,
-                pool_entry=pool_entry,
-                match=match,
-                custom_message=custom_message,
-                channels=channels,
-                rsvp_url=rsvp_url,
-                rsvp_token=response.rsvp_token,
-                request_id=sub_request.id
-            )
-
-            if send_result:
-                notifications_sent += 1
-                pool_entry.requests_received = (pool_entry.requests_received or 0) + 1
-                pool_entry.last_active_at = datetime.utcnow()
-
+        # DEPRECATED(phase3): the former inline eligible-player loop + per-player
+        # _send_sub_request_notification is replaced by the unified
+        # SubstituteNotificationService.notify_ecs_fc_pool, which owns filtering
+        # (incl. the shared word-boundary gender matcher — no more 'he' in
+        # 'she/her' bug), response creation, and channel/consent/push resolution.
+        # Commit the request first so the service (which uses db.session) sees it.
         session.commit()
 
+        from app.services.substitute_notification_service import get_notification_service
+        service = get_notification_service()
+        svc_channels = [c.upper() for c in channels] if channels else None
+        result = service.notify_ecs_fc_pool(
+            request_id=sub_request.id,
+            custom_message=custom_message or None,
+            channels=svc_channels,
+            gender_filter=gender_filter if recipient_type == 'gender' else None,
+            position_filters=position_filters if recipient_type == 'position' else None,
+            player_ids=specific_player_ids if recipient_type == 'specific' else None,
+            subs_needed=subs_needed,
+        )
+
+        total_subs = result.get('total_subs', 0)
+        notifications_sent = result.get('notifications_sent', 0)
+
+        if total_subs == 0:
+            return jsonify({
+                'success': False,
+                'message': 'No eligible subs found matching criteria',
+                'request_id': sub_request.id
+            }), 400
+
         logger.info(f"ECS FC sub request {sub_request.id} created by user {current_user.id}, "
-                   f"{notifications_sent}/{len(eligible_players)} notifications sent")
+                   f"{notifications_sent}/{total_subs} notifications sent")
 
         return jsonify({
             'success': True,
             'message': f'Sub request sent to {notifications_sent} subs',
             'request_id': sub_request.id,
-            'eligible_count': len(eligible_players),
+            'eligible_count': total_subs,
             'notifications_sent': notifications_sent
         })
 
@@ -679,6 +634,11 @@ def create_sub_request(match_id: int):
 
 def _send_sub_request_notification(player, pool_entry, match, custom_message, channels, rsvp_url, rsvp_token=None, request_id=None):
     """
+    DEPRECATED(phase3): superseded by SubstituteNotificationService.notify_ecs_fc_pool
+    for fresh-request broadcasts (create_sub_request, ecs_fc_contact_subs). Still
+    called by ecs_fc_contact_existing (re-contact) until that path is converged in
+    a later verified follow-up. Do not add new callers.
+
     Send sub request notification via enabled channels.
     Returns True if at least one channel succeeded.
 
@@ -1004,44 +964,25 @@ def submit_sub_response(token: str):
         if pool_entry and is_available:
             pool_entry.requests_accepted = (pool_entry.requests_accepted or 0) + 1
 
-        # Capture coach notification data before commit
-        coach_user_id = response.request.requested_by if response.request else None
-        player_name = response.player.name if response.player else 'Unknown'
-        match_info_text = ""
-        if response.request and response.request.match:
-            m = response.request.match
-            opponent = m.opponent_name or 'TBD'
-            match_date = m.match_date.strftime('%A, %B %d') if m.match_date else 'TBD'
-            match_info_text = f" for the match vs {opponent} on {match_date}"
+        # Capture notification data before commit.
         request_id_val = response.request_id
+        player_id_val = response.player_id
 
         session.commit()
 
-        # Notify the coach who created the request
-        if coach_user_id:
-            try:
-                from app.services.notification_orchestrator import (
-                    orchestrator, NotificationType, NotificationPayload
-                )
-                availability_text = "is available" if is_available else "is NOT available"
-                orchestrator.send_async(NotificationPayload(
-                    notification_type=NotificationType.SUB_REQUEST,
-                    title="Sub Response Received",
-                    message=f"{player_name} {availability_text}{match_info_text}",
-                    user_ids=[coach_user_id],
-                    data={
-                        'type': 'sub_response',
-                        'request_id': str(request_id_val),
-                        'player_name': player_name,
-                        'is_available': str(is_available).lower(),
-                        'league_type': 'ecs_fc',
-                        'response_method': 'web',
-                        'deep_link': f'ecs-fc-scheme://sub-request/{request_id_val}',
-                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-                    },
-                ))
-            except Exception as e:
-                logger.error(f"Failed to notify coach of web sub response: {e}")
+        # Phase 3: fan out through the ONE unified notifier (requesting coach +
+        # admins) instead of the prior coach-only inline push.
+        try:
+            from app.services.substitute_notification_service import get_notification_service
+            get_notification_service().notify_response_received(
+                request_id=request_id_val,
+                player_id=player_id_val,
+                is_available=is_available,
+                response_method='web',
+                league_type='ecs_fc',
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify of web sub response: {e}")
 
         flash('Response submitted successfully!', 'success')
         return redirect(url_for('ecs_fc.sub_response_page', token=token))
@@ -1196,6 +1137,14 @@ def assign_sub(match_id: int):
         )
         session.add(assignment)
 
+        # Mark FILLED when the needed count is reached (partial fills stay OPEN), so
+        # SUB_FILLED / "not selected" fires and it leaves the open lists — parity with
+        # the other assign paths which set this.
+        prior = session.query(EcsFcSubAssignment).filter_by(request_id=request_id).count()
+        if sub_request and (prior + 1) >= (sub_request.substitutes_needed or 1):
+            sub_request.status = 'FILLED'
+            sub_request.filled_at = datetime.utcnow()
+
         # Create TemporarySubAssignment (makes sub appear on team for this match)
         # Note: For ECS FC matches, we create a special temp assignment
         # We don't have a regular Match object, so we use a convention
@@ -1208,17 +1157,22 @@ def assign_sub(match_id: int):
         )
         session.add(temp_assignment)
 
-        # Send confirmation notification
+        # Load player for the response message.
         player = session.query(Player).options(
             joinedload(Player.user)
         ).get(player_id)
 
-        _send_assignment_confirmation(player, match, assignment, response.notification_methods)
-
-        assignment.notification_sent = True
-        assignment.notification_sent_at = datetime.utcnow()
-
+        # DEPRECATED(phase3): synchronous _send_assignment_confirmation replaced by
+        # the async ECS FC assignment task, which delegates to
+        # SubstituteNotificationService.send_confirmation (ECS-FC-aware) and stamps
+        # notification_sent/at itself — keeping the send out of this transaction.
         session.commit()
+
+        from app.tasks.tasks_ecs_fc_subs import notify_assigned_substitute
+        try:
+            notify_assigned_substitute.delay(assignment.id)
+        except Exception as notify_err:
+            logger.error(f"Failed to queue ECS FC assignment confirmation: {notify_err}")
 
         logger.info(f"Sub {player_id} assigned to ECS FC match {match_id} by user {current_user.id}")
 
@@ -1282,7 +1236,11 @@ def unassign_sub(match_id: int, player_id: int):
 
 
 def _send_assignment_confirmation(player, match, assignment, channels_str):
-    """Send confirmation notification to assigned sub."""
+    """DEPRECATED(phase3): superseded by SubstituteNotificationService.send_confirmation
+    (dispatched via tasks_ecs_fc_subs.notify_assigned_substitute). No longer called;
+    retained for burn-in reference only.
+
+    Send confirmation notification to assigned sub."""
     # Normalize channels to lowercase for comparison
     channels = [c.strip().lower() for c in (channels_str or '').split(',')]
     match_date = match.match_date.strftime('%A, %B %d') if match.match_date else 'TBD'

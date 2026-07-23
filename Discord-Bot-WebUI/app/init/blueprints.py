@@ -156,6 +156,7 @@ def _import_blueprints():
     from app.routes.admin_live_reporting import admin_live_bp
     from app.routes.calendar import calendar_bp as calendar_api_bp
     from app.routes.substitute_rsvp import substitute_rsvp_bp
+    from app.routes.substitute_reachout import substitute_reachout_bp
     from app.legal_routes import legal_bp
     from app.pub_league import pub_league_bp
     from app.routes.app_links import app_links_bp
@@ -222,6 +223,7 @@ def _import_blueprints():
         'admin_live_bp': admin_live_bp,
         'calendar_api_bp': calendar_api_bp,
         'substitute_rsvp_bp': substitute_rsvp_bp,
+        'substitute_reachout_bp': substitute_reachout_bp,
         'legal_bp': legal_bp,
         'pub_league_bp': pub_league_bp,
         'app_links_bp': app_links_bp,
@@ -430,6 +432,10 @@ def _register_additional_blueprints(app, bp, csrf):
     """Register any additional blueprints not covered elsewhere."""
     # Substitute RSVP (public-facing RSVP pages for subs)
     app.register_blueprint(bp['substitute_rsvp_bp'])
+
+    # Substitute reach-out response pages (secure per-recipient token; login-gated,
+    # CSRF token rendered in the form — no exemption, mirrors substitute_rsvp_bp)
+    app.register_blueprint(bp['substitute_reachout_bp'])
 
     # Legal pages (Privacy Policy, Terms of Service) - public routes
     app.register_blueprint(bp['legal_bp'])

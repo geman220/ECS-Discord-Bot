@@ -36,7 +36,10 @@ class DiscordPoll(db.Model):
     slot_map = db.Column(JSONB, nullable=True)
     duration_hours = db.Column(db.Integer, nullable=False)
     allow_multiselect = db.Column(db.Boolean, nullable=False, default=False)
-    created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    # Nullable: automated availability polls (weekly Celery beat) have no acting
+    # admin. A NOT NULL here silently failed the persist and orphaned the poll,
+    # so every vote came back 'untracked'. See sql_create_substitute_availability.sql.
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, nullable=False)
     discord_message_url = db.Column(db.Text, nullable=True)

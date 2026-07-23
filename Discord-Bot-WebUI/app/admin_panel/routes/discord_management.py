@@ -1098,7 +1098,6 @@ def sync_role_to_discord():
     """Sync a Flask role to Discord - assign/remove Discord role for all users with this role."""
     from app.models import Role
     from app.services.discord_role_sync_service import get_discord_role_sync_service
-    import asyncio
 
     session = g.db_session
     data = request.json
@@ -1113,17 +1112,10 @@ def sync_role_to_discord():
         if not role.discord_role_id:
             return jsonify({'success': False, 'error': 'No Discord role mapped'}), 400
 
-        # Use the sync service for the operation
+        # Use the sync service for the operation (synchronous; gevent-safe)
         service = get_discord_role_sync_service()
 
-        # Run the async sync operation
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-
-        result = loop.run_until_complete(service.sync_flask_role_to_discord(role))
+        result = service.sync_flask_role_to_discord(role)
 
         # Log the action
         AdminAuditLog.log_action(

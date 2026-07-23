@@ -12,6 +12,7 @@ Unified service for all substitute-related notifications including:
 
 import logging
 import os
+import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional, Tuple
 
@@ -22,6 +23,68 @@ from app.email import send_email
 from app.sms_helpers import send_sms
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Shared gender / pronoun matching (Phase 3 convergence)
+#
+# Historically each sub-notification surface reimplemented gender filtering with
+# a naive `'he' in pronouns` substring test — which is ALSO true for 'she/her'
+# ('she' contains 'he', 'her' contains 'he'), silently sending male-only
+# requests to female players. These helpers are the ONE implementation every
+# site now calls. Matching is done on word-boundary tokens, never substrings.
+# ---------------------------------------------------------------------------
+
+_PRONOUN_SPLIT_RE = re.compile(r'[^a-z]+')
+
+
+def _pronoun_tokens(pronouns: Optional[str]) -> set:
+    """Split a pronoun string into lowercase word tokens (e.g. 'she/her' -> {'she','her'})."""
+    if not pronouns:
+        return set()
+    return {t for t in _PRONOUN_SPLIT_RE.split(str(pronouns).lower()) if t}
+
+
+def player_matches_gender_preference(pronouns: Optional[str], gender_preference: Optional[str]) -> bool:
+    """
+    Inclusive gender-preference match for substitute broadcasts.
+
+    Rules (locked): male -> {he/him, they/them, blank}, female -> {she/her,
+    they/them, blank}. A blank preference matches everyone. 'they/them' and
+    unset pronouns always match so non-binary / unspecified subs are never
+    excluded from a broader broadcast.
+    """
+    if not gender_preference:
+        return True
+    pref = str(gender_preference).strip().lower()
+    tokens = _pronoun_tokens(pronouns)
+    # Inclusive: blank or they/them always match either preference.
+    if not tokens or 'they' in tokens or 'them' in tokens:
+        return True
+    if pref == 'male':
+        return 'he' in tokens or 'him' in tokens
+    if pref == 'female':
+        return 'she' in tokens or 'her' in tokens
+    # Unknown preference -> don't exclude.
+    return True
+
+
+def classify_pronoun_gender(pronouns: Optional[str]) -> str:
+    """
+    Exclusive classification for counts/previews: 'male' | 'female' | 'other'.
+
+    Unlike player_matches_gender_preference (inclusive), this buckets each
+    player into exactly one group. 'she/her' classifies as female (NOT male,
+    fixing the old substring bug); mixed / they/them / blank -> 'other'.
+    """
+    tokens = _pronoun_tokens(pronouns)
+    has_male = 'he' in tokens or 'him' in tokens
+    has_female = 'she' in tokens or 'her' in tokens
+    if has_male and not has_female:
+        return 'male'
+    if has_female and not has_male:
+        return 'female'
+    return 'other'
 
 
 class SubstituteNotificationService:
@@ -72,11 +135,23 @@ class SubstituteNotificationService:
             elif player.user.email_notifications:
                 channels[self.CHANNEL_EMAIL] = True
 
-        # Check SMS availability
-        if player.phone or (hasattr(player, 'encrypted_phone') and player.encrypted_phone):
+        # Check SMS availability. Consent gate is centralized here (Phase 3):
+        # SMS is NEVER a candidate channel unless the player has a phone AND has
+        # verified it AND has given SMS consent. Previously only the ECS FC
+        # inline paths enforced this; the unified pump did not, so a pool
+        # preference alone could text an unconsented number.
+        has_phone = bool(
+            getattr(player, 'phone', None)
+            or (hasattr(player, 'encrypted_phone') and player.encrypted_phone)
+        )
+        sms_consented = bool(
+            getattr(player, 'is_phone_verified', False)
+            and getattr(player, 'sms_consent_given', False)
+        )
+        if has_phone and sms_consented:
             # Check pool-specific preference if available
             if pool_entry and hasattr(pool_entry, 'sms_for_sub_requests'):
-                channels[self.CHANNEL_SMS] = pool_entry.sms_for_sub_requests
+                channels[self.CHANNEL_SMS] = bool(pool_entry.sms_for_sub_requests)
             elif player.user and player.user.sms_notifications:
                 channels[self.CHANNEL_SMS] = True
 
@@ -88,12 +163,17 @@ class SubstituteNotificationService:
             elif player.user and player.user.discord_notifications:
                 channels[self.CHANNEL_DISCORD] = True
 
-        # Check push notification availability
+        # Check push notification availability. Honor the pool's push preference
+        # when the pool model carries one (EcsFcSubPool.push_for_sub_requests);
+        # SubstitutePool has no such column, so default True when absent.
         if player.user:
+            push_pref = True
+            if pool_entry is not None and hasattr(pool_entry, 'push_for_sub_requests'):
+                push_pref = bool(getattr(pool_entry, 'push_for_sub_requests', True))
             # Check if user has push notifications enabled and has registered devices
-            if hasattr(player.user, 'push_notifications') and player.user.push_notifications:
+            if push_pref and getattr(player.user, 'push_notifications', False):
                 # Check for FCM tokens
-                if hasattr(player.user, 'fcm_tokens') and player.user.fcm_tokens:
+                if getattr(player.user, 'fcm_tokens', None):
                     channels[self.CHANNEL_PUSH] = True
 
         return channels
@@ -442,17 +522,16 @@ class SubstituteNotificationService:
 
             active_subs = query.all()
 
-            # Apply gender filter (matches pronoun-based approach in tasks_ecs_fc_subs)
+            # Apply gender filter via the ONE shared inclusive matcher
+            # (they/them + blank always included; no 'he' in 'she/her' bug).
             if gender_filter:
-                gender_lower = gender_filter.lower()
-                filtered_subs = []
-                for pool_entry in active_subs:
-                    pronouns = (pool_entry.player.pronouns or '').lower()
-                    if gender_lower == 'male' and pronouns in ('he/him', 'they/them', ''):
-                        filtered_subs.append(pool_entry)
-                    elif gender_lower == 'female' and pronouns in ('she/her', 'they/them', ''):
-                        filtered_subs.append(pool_entry)
-                active_subs = filtered_subs
+                active_subs = [
+                    pe for pe in active_subs
+                    if player_matches_gender_preference(
+                        getattr(pe.player, 'pronouns', None) if pe.player else None,
+                        gender_filter,
+                    )
+                ]
 
             # Apply position filter
             if position_filters:
@@ -686,8 +765,10 @@ class SubstituteNotificationService:
         """
         Notify the appropriate audience when a sub has responded with availability.
 
-        For Pub League, fans out to every Global Admin and Pub League Admin.
-        For ECS FC, notifies only the coach who made the original request.
+        One recipient rule for BOTH leagues (Phase 3 convergence): fan out to the
+        requesting coach AND every relevant admin (Global Admin + Pub League
+        Admin). Previously Pub League notified admins-only and ECS FC notified
+        the coach-only, so each league's other audience was silently blind.
 
         The push payload follows the contract in docs/SUB_SYSTEM_ALIGNMENT.md §5.2:
             data.type = 'sub_response'
@@ -726,7 +807,6 @@ class SubstituteNotificationService:
                 match_blurb = ''
                 if sub_request.match and sub_request.match.match_date:
                     match_blurb = f" on {sub_request.match.match_date.strftime('%A, %B %d')}"
-                user_ids = [sub_request.requested_by] if sub_request.requested_by else []
             else:
                 sub_request = db.session.query(SubstituteRequest).get(request_id)
                 if not sub_request:
@@ -736,10 +816,28 @@ class SubstituteNotificationService:
                 match_blurb = ''
                 if sub_request.match and sub_request.match.date:
                     match_blurb = f" on {sub_request.match.date.strftime('%A, %B %d')}"
+
+            # Recipient rule is admin-configurable (Substitute Command Center →
+            # Settings) via sub_notify_on_response:
+            #   'coach_and_admins' (default) — requesting coach + admins (the
+            #       historical converged behavior for both leagues),
+            #   'admins_only' — admins only,
+            #   'coach_only' — requesting coach only.
+            from app.models.admin_config import AdminConfig
+            notify_mode = AdminConfig.get_setting('sub_notify_on_response', 'coach_and_admins')
+
+            recipient_ids = set()
+            if notify_mode in ('coach_and_admins', 'coach_only'):
+                if getattr(sub_request, 'requested_by', None):
+                    recipient_ids.add(sub_request.requested_by)
+            if notify_mode in ('coach_and_admins', 'admins_only'):
                 admin_roles = db.session.query(Role).filter(
                     Role.name.in_(['Global Admin', 'Pub League Admin'])
                 ).all()
-                user_ids = list({u.id for role in admin_roles for u in role.users})
+                for role in admin_roles:
+                    for u in role.users:
+                        recipient_ids.add(u.id)
+            user_ids = list(recipient_ids)
 
             if not user_ids:
                 result['errors'].append('No recipients to notify')
@@ -791,7 +889,19 @@ class SubstituteNotificationService:
         Returns:
             Dict with confirmation results
         """
-        from app.models.substitutes import SubstituteAssignment, SubstituteResponse
+        # league_type selects the correct model family. Passing an ECS FC
+        # assignment id with the Pub League models (the old hard-coded behavior)
+        # either found nothing or mis-looked-up a colliding Pub League row.
+        if league_type == 'ecs_fc':
+            from app.models.substitutes import (
+                EcsFcSubAssignment as AssignmentModel,
+                EcsFcSubResponse as ResponseModel,
+            )
+        else:
+            from app.models.substitutes import (
+                SubstituteAssignment as AssignmentModel,
+                SubstituteResponse as ResponseModel,
+            )
 
         results = {
             'success': False,
@@ -801,7 +911,7 @@ class SubstituteNotificationService:
 
         try:
             # Get the assignment
-            assignment = db.session.query(SubstituteAssignment).get(assignment_id)
+            assignment = db.session.query(AssignmentModel).get(assignment_id)
             if not assignment:
                 results['errors'].append(f'Assignment {assignment_id} not found')
                 return results
@@ -811,7 +921,7 @@ class SubstituteNotificationService:
             match = sub_request.match
 
             # Get the original response to find channels used for outreach
-            response = db.session.query(SubstituteResponse).filter_by(
+            response = db.session.query(ResponseModel).filter_by(
                 request_id=sub_request.id,
                 player_id=player.id
             ).first()
@@ -830,8 +940,12 @@ class SubstituteNotificationService:
                 results['errors'].append('No channels available for confirmation')
                 return results
 
-            # Build confirmation message
-            match_details = self._format_match_details(match, sub_request)
+            # Build confirmation message (ECS FC and Pub League format match
+            # details from different relationships/columns).
+            if league_type == 'ecs_fc':
+                match_details = self._format_ecs_fc_match_details(match, sub_request)
+            else:
+                match_details = self._format_match_details(match, sub_request)
             confirmation_message = self._build_confirmation_message(player, match_details, assignment)
 
             # Convert channel list to dict format. For assignment confirmations
@@ -869,12 +983,185 @@ class SubstituteNotificationService:
                 assignment.notification_methods = ','.join(send_results['channels_sent'])
                 db.session.commit()
 
+            # When this assignment completes the request, tell the other pending
+            # responders they weren't selected (SUB_FILLED). Isolated so a failure
+            # here never rolls back the confirmation we just committed.
+            if getattr(sub_request, 'status', None) == 'FILLED':
+                try:
+                    notified = self._notify_not_selected(sub_request, league_type)
+                    if notified:
+                        results['not_selected_notified'] = notified
+                except Exception as ns_err:
+                    logger.error(f"Error notifying not-selected subs: {ns_err}")
+
         except Exception as e:
             logger.error(f"Error in send_confirmation: {e}")
             db.session.rollback()
             results['errors'].append(str(e))
 
         return results
+
+    def _notify_not_selected(self, sub_request, league_type: str = 'pub_league') -> int:
+        """
+        Notify everyone who offered/was pending for a now-FILLED request that
+        they weren't selected (NotificationType.SUB_FILLED). Excludes players who
+        explicitly declined and anyone actually assigned.
+
+        Returns the number of users notified.
+        """
+        from app.models.admin_config import AdminConfig
+        # Admin toggle (Substitute Command Center → Settings). Default True keeps
+        # the current behavior of telling not-selected subs the spot was filled.
+        if not AdminConfig.get_setting('sub_notify_not_selected', True):
+            return 0
+
+        from app.services.notification_orchestrator import (
+            orchestrator, NotificationType, NotificationPayload,
+        )
+
+        if league_type == 'ecs_fc':
+            from app.models.substitutes import (
+                EcsFcSubResponse as ResponseModel,
+                EcsFcSubAssignment as AssignmentModel,
+            )
+        else:
+            from app.models.substitutes import (
+                SubstituteResponse as ResponseModel,
+                SubstituteAssignment as AssignmentModel,
+            )
+
+        assigned_ids = {
+            a.player_id
+            for a in db.session.query(AssignmentModel).filter_by(request_id=sub_request.id).all()
+        }
+
+        # is_available is not False -> available (True) or still pending (None).
+        responses = db.session.query(ResponseModel).filter(
+            ResponseModel.request_id == sub_request.id,
+            ResponseModel.is_available.isnot(False),
+        ).all()
+
+        user_ids = set()
+        for r in responses:
+            if r.player_id in assigned_ids:
+                continue
+            player = r.player
+            if player and getattr(player, 'user_id', None):
+                user_ids.add(player.user_id)
+
+        if not user_ids:
+            return 0
+
+        team_name = sub_request.team.name if getattr(sub_request, 'team', None) else 'the team'
+        orchestrator.send(NotificationPayload(
+            notification_type=NotificationType.SUB_FILLED,
+            title='Substitute Spot Filled',
+            message=f"The sub spot for {team_name} has been filled. Thanks for offering to help!",
+            user_ids=list(user_ids),
+            data={
+                'type': 'sub_filled',
+                'request_id': str(sub_request.id),
+                'league_type': league_type,
+                'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            },
+        ))
+        logger.info(
+            f"Notified {len(user_ids)} not-selected {league_type} subs for request {sub_request.id}"
+        )
+        return len(user_ids)
+
+    def notify_request_cancelled(
+        self,
+        request_id: int,
+        league_type: str = 'pub_league',
+    ) -> Dict[str, Any]:
+        """
+        Notify everyone with a still-pending response for a request that it has
+        been cancelled. Sends a Discord DM (where connected) plus a push
+        (NotificationType.SUB_REQUEST, data.type='sub_cancelled'). Players who
+        already declined are skipped.
+
+        This performs synchronous outbound sends, so callers on the web request
+        path should dispatch it via Celery (see
+        tasks_substitute_pools.notify_substitute_request_cancelled) rather than
+        invoking it inside an open DB transaction.
+
+        Returns {success, recipients, errors}.
+        """
+        from app.services.notification_orchestrator import (
+            orchestrator, NotificationType, NotificationPayload,
+        )
+
+        result = {'success': False, 'recipients': 0, 'errors': []}
+
+        try:
+            if league_type == 'ecs_fc':
+                from app.models.substitutes import (
+                    EcsFcSubRequest as RequestModel,
+                    EcsFcSubResponse as ResponseModel,
+                )
+            else:
+                from app.models.substitutes import (
+                    SubstituteRequest as RequestModel,
+                    SubstituteResponse as ResponseModel,
+                )
+
+            sub_request = db.session.query(RequestModel).get(request_id)
+            if not sub_request:
+                result['errors'].append(f'Request {request_id} not found')
+                return result
+
+            # is_available is not False -> pending (None) or previously available.
+            responses = db.session.query(ResponseModel).filter(
+                ResponseModel.request_id == request_id,
+                ResponseModel.is_available.isnot(False),
+            ).all()
+
+            team_name = sub_request.team.name if getattr(sub_request, 'team', None) else 'your team'
+            message = (
+                f"The substitute request for {team_name} has been cancelled. "
+                f"No action needed — thanks for your help!"
+            )
+
+            user_ids = set()
+            for r in responses:
+                player = r.player
+                if not player:
+                    continue
+                if getattr(player, 'user_id', None):
+                    user_ids.add(player.user_id)
+                if getattr(player, 'discord_id', None):
+                    try:
+                        self._send_discord_dm(player.discord_id, message)
+                    except Exception as dm_err:
+                        result['errors'].append(f"Discord DM: {dm_err}")
+
+            if user_ids:
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title='Substitute Request Cancelled',
+                    message=message,
+                    user_ids=list(user_ids),
+                    data={
+                        'type': 'sub_cancelled',
+                        'request_id': str(request_id),
+                        'league_type': league_type,
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                    },
+                ))
+
+            result['success'] = True
+            result['recipients'] = len(user_ids)
+            logger.info(
+                f"Notified {len(user_ids)} pending {league_type} responders that "
+                f"request {request_id} was cancelled"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in notify_request_cancelled: {e}")
+            result['errors'].append(str(e))
+
+        return result
 
     def _format_match_details(self, match, sub_request) -> Dict[str, Any]:
         """Format match details for messages."""
@@ -925,7 +1212,36 @@ class SubstituteNotificationService:
         match_details: Dict[str, Any],
         assignment
     ) -> str:
-        """Build the confirmation message for an assigned sub."""
+        """Build the confirmation message for an assigned sub.
+
+        Admin-configurable (Substitute Command Center → Settings):
+          - sub_arrive_early_min: minutes-before lead time (default 15, the
+            historical wording).
+          - sub_confirmation_msg: optional custom body with {team}{date}{time}
+            {location}{early} token substitution; unset => the structured
+            default below (current behavior).
+        """
+        from app.models.admin_config import AdminConfig
+
+        early = AdminConfig.get_setting('sub_arrive_early_min', 15)
+        template = AdminConfig.get_setting('sub_confirmation_msg', None)
+
+        if template and str(template).strip():
+            body = (
+                str(template)
+                .replace('{team}', str(match_details.get('team_name', '')))
+                .replace('{date}', str(match_details.get('date', '')))
+                .replace('{time}', str(match_details.get('time', '')))
+                .replace('{location}', str(match_details.get('location', '')))
+                .replace('{early}', str(early))
+            )
+            message_parts = [f"Hi {player.name},", "", body]
+            if assignment.position_assigned:
+                message_parts.append(f"Position: {assignment.position_assigned}")
+            if assignment.notes:
+                message_parts.append(f"Notes: {assignment.notes}")
+            return "\n".join(message_parts)
+
         message_parts = [
             f"Hi {player.name},",
             "",
@@ -945,7 +1261,7 @@ class SubstituteNotificationService:
 
         message_parts.extend([
             "",
-            "Please arrive 15 minutes before the match. Thanks for stepping up!"
+            f"Please arrive {early} minutes before the match. Thanks for stepping up!"
         ])
 
         return "\n".join(message_parts)
@@ -1208,6 +1524,186 @@ class SubstituteNotificationService:
 
         return None
 
+    # ------------------------------------------------------------------
+    # Ad-hoc reach-outs (closed-loop sub availability)
+    # ------------------------------------------------------------------
+
+    def send_reachout(self, reachout, recipients, session=None) -> Dict[str, Any]:
+        """Send a SubstituteReachout to each recipient over their channels.
+
+        The reach-out asks "can you sub this week?" for a date + time slot(s) and
+        feeds the SAME availability pool as the Discord poll. For TARGETED reach-outs
+        the message NEVER reveals the team (no team name / opponent) — only the date,
+        time slot(s) and the ask. General reach-outs are identically team-agnostic.
+
+        Stamps `channels_sent` + `notification_sent_at` on each
+        SubstituteReachoutRecipient and includes a secure response link/token.
+        Reuses the shared `_send_notifications` channel plumbing (push/discord/sms/
+        email) — this is NOT a divergent 4th notifier.
+
+        Args:
+            reachout: SubstituteReachout row (kind/league_type/match_date/time_slots/
+                channels/message/request_id).
+            recipients: iterable of SubstituteReachoutRecipient rows (already persisted
+                with a player_id; tokens are generated here if missing).
+            session: optional SQLAlchemy session the recipients live in (defaults to
+                db.session). The caller is responsible for committing.
+
+        Returns:
+            {total, sent, per_channel_counts: {CHANNEL: n}, errors: [...]}
+        """
+        sess = session or db.session
+
+        results = {
+            'total': 0,
+            'sent': 0,
+            'per_channel_counts': {},
+            'errors': [],
+        }
+
+        # Channel allow-list from the reach-out (uppercased). Empty/None = all channels.
+        requested_channels = None
+        if reachout.channels:
+            requested_channels = {
+                c.strip().upper() for c in reachout.channels.split(',') if c.strip()
+            }
+
+        date_str = (
+            reachout.match_date.strftime('%A, %B %d, %Y')
+            if reachout.match_date else 'this week'
+        )
+        short_date = reachout.match_date.strftime('%b %d') if reachout.match_date else 'soon'
+        slots = reachout.time_slots or []
+        slot_str = (
+            ', '.join(self._format_reachout_slot(s) for s in slots) if slots else 'any time'
+        )
+
+        # When the admin left the reach-out message blank, fall back to the
+        # configurable default body (Substitute Command Center → Settings):
+        # sub_reachout_msg_general for kind='general', sub_reachout_msg_targeted
+        # for kind='targeted'. Both stay team-agnostic — NO {team} token.
+        # Tokens: {league}{slots}{date}{slot}. Unset => None => _build_reachout_message
+        # uses its hardcoded wording (current behavior).
+        default_note = reachout.message
+        if not (default_note and str(default_note).strip()):
+            from app.models.admin_config import AdminConfig
+            if getattr(reachout, 'kind', 'general') == 'targeted':
+                tmpl = AdminConfig.get_setting('sub_reachout_msg_targeted', None)
+            else:
+                tmpl = AdminConfig.get_setting('sub_reachout_msg_general', None)
+            if tmpl and str(tmpl).strip():
+                default_note = (
+                    str(tmpl)
+                    .replace('{league}', str(reachout.league_type or ''))
+                    .replace('{slots}', str(len(slots)))
+                    .replace('{date}', date_str)
+                    .replace('{slot}', slot_str)
+                )
+            else:
+                default_note = None
+
+        for recipient in recipients:
+            results['total'] += 1
+            try:
+                player = recipient.player
+                if player is None:
+                    from app.models import Player
+                    player = sess.query(Player).get(recipient.player_id)
+                if player is None:
+                    results['errors'].append(f"Recipient {recipient.id}: player not found")
+                    continue
+
+                available_channels = self.get_player_channels(player)
+
+                # Restrict to the reach-out's requested channels if specified.
+                if requested_channels is not None:
+                    for ch in list(available_channels.keys()):
+                        if ch not in requested_channels:
+                            available_channels[ch] = False
+
+                if not any(available_channels.values()):
+                    continue
+
+                # Ensure the recipient has a secure response token for the web link.
+                if not recipient.response_token:
+                    recipient.generate_token()
+
+                web_url = self._build_reachout_url(recipient.response_token)
+                message = self._build_reachout_message(
+                    default_note, date_str, slot_str, web_url
+                )
+                subject = f"Can you sub on {short_date}?"
+
+                # Discord reach-outs get native Yes/No buttons that write back to
+                # /internal/subs/reachout-response. The generic _send_discord_dm
+                # attaches NO view, so send Discord ourselves with view_type +
+                # recipient id, then disable it so the generic sender doesn't
+                # double-send a button-less DM.
+                extra_sent = []
+                if available_channels.get(self.CHANNEL_DISCORD) and player.discord_id:
+                    if self._send_reachout_discord_dm(player.discord_id, message, recipient.id):
+                        extra_sent.append(self.CHANNEL_DISCORD)
+                    available_channels[self.CHANNEL_DISCORD] = False
+
+                send_results = self._send_notifications(
+                    player=player,
+                    channels=available_channels,
+                    subject=subject,
+                    message=message,
+                    rsvp_url=web_url,
+                    rsvp_token=recipient.response_token,
+                    league_type=reachout.league_type,
+                    request_id=reachout.request_id,
+                    match_id=None,
+                    purpose='request',
+                )
+
+                combined_sent = list(send_results.get('channels_sent', [])) + extra_sent
+                if combined_sent:
+                    results['sent'] += 1
+                    recipient.channels_sent = ','.join(combined_sent)
+                    recipient.notification_sent_at = datetime.utcnow()
+                    for ch in combined_sent:
+                        results['per_channel_counts'][ch] = (
+                            results['per_channel_counts'].get(ch, 0) + 1
+                        )
+
+            except Exception as e:
+                logger.error(f"Error sending reach-out to recipient {getattr(recipient, 'id', '?')}: {e}")
+                results['errors'].append(str(e))
+
+        return results
+
+    def _format_reachout_slot(self, slot) -> str:
+        """'08:20' -> '8:20am'. Falls back to the raw value on any parse error."""
+        try:
+            hh, mm = str(slot).split(':')
+            h, m = int(hh), int(mm)
+            ampm = 'am' if h < 12 else 'pm'
+            h12 = h % 12 or 12
+            return f"{h12}:{m:02d}{ampm}"
+        except Exception:
+            return str(slot)
+
+    def _build_reachout_message(self, admin_note, date_str, slot_str, web_url) -> str:
+        """Build the team-agnostic reach-out body (never names a team/opponent)."""
+        parts = []
+        if admin_note:
+            parts.extend([admin_note.strip(), ""])
+        parts.extend([
+            "Can you sub this week?",
+            f"Date: {date_str}",
+            f"Time(s): {slot_str}",
+            "",
+            f"Click here to respond: {web_url}",
+        ])
+        return "\n".join(parts)
+
+    def _build_reachout_url(self, token: str) -> str:
+        """Secure web response link for a reach-out recipient token."""
+        base_url = os.getenv('BASE_URL', 'https://ecsdev.cvillehome.space')
+        return f"{base_url}/sub-reachout/{token}"
+
     def _send_discord_dm(self, discord_id: str, message: str) -> bool:
         """Send a Discord DM via the bot API."""
         import requests
@@ -1224,6 +1720,29 @@ class SubstituteNotificationService:
 
         except Exception as e:
             logger.error(f"Discord DM failed: {e}")
+            return False
+
+    def _send_reachout_discord_dm(self, discord_id: str, message: str,
+                                  reachout_recipient_id: int) -> bool:
+        """Send a reach-out Discord DM WITH the Yes/No availability buttons.
+
+        Passes view_type='subs_reachout' + reachout_recipient_id so the bot attaches
+        SubsReachoutView; the sub's click posts back to /internal/subs/reachout-response.
+        """
+        import requests
+
+        try:
+            url = f"{self.bot_api_url}/send_discord_dm"
+            payload = {
+                'discord_id': discord_id,
+                'message': message,
+                'view_type': 'subs_reachout',
+                'reachout_recipient_id': int(reachout_recipient_id),
+            }
+            response = requests.post(url, json=payload, timeout=10)
+            return response.status_code == 200
+        except Exception as e:
+            logger.error(f"Reach-out Discord DM failed: {e}")
             return False
 
 

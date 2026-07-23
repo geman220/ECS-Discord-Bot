@@ -251,6 +251,17 @@ def _status_matches(item_status, match_date, status_filter, today):
     return item_status == status_filter.upper()
 
 
+def _apply_status_sql(query, model, status_filter):
+    """Push the status filter into SQL so we don't load whole request tables just to
+    show 25 rows (EXPIRED/FILLED/CANCELLED accumulate all season). The date part of
+    'active' is still applied in Python by _status_matches on the reduced set."""
+    if status_filter == 'all':
+        return query
+    if status_filter == 'active':
+        return query.filter(model.status.in_(list(ACTIVE_STATUSES)))
+    return query.filter(model.status == status_filter.upper())
+
+
 def get_unified_requests(session, *, league='all', status='active', page=1, per_page=25):
     """Return normalized substitute requests from BOTH leagues.
 
@@ -288,13 +299,14 @@ def get_unified_requests(session, *, league='all', status='active', page=1, per_
     # --- Pub League ---
     if league in ('all', 'pub_league'):
         try:
-            pl_reqs = session.query(SubstituteRequest).options(
+            pl_q = session.query(SubstituteRequest).options(
                 joinedload(SubstituteRequest.match).joinedload(Match.home_team),
                 joinedload(SubstituteRequest.match).joinedload(Match.away_team),
                 joinedload(SubstituteRequest.team),
                 selectinload(SubstituteRequest.assignments),
                 selectinload(SubstituteRequest.responses),
-            ).all()
+            )
+            pl_reqs = _apply_status_sql(pl_q, SubstituteRequest, status).all()
             for req in pl_reqs:
                 norm = _normalize_pub_league(req)
                 if _status_matches(norm['status'], norm['match_date'], status, today):
@@ -306,12 +318,13 @@ def get_unified_requests(session, *, league='all', status='active', page=1, per_
     if league in ('all', 'ecs_fc'):
         try:
             from app.models.ecs_fc import EcsFcMatch
-            ecs_reqs = session.query(EcsFcSubRequest).options(
+            ecs_q = session.query(EcsFcSubRequest).options(
                 joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
                 joinedload(EcsFcSubRequest.team),
                 selectinload(EcsFcSubRequest.assignments),
                 selectinload(EcsFcSubRequest.responses),
-            ).all()
+            )
+            ecs_reqs = _apply_status_sql(ecs_q, EcsFcSubRequest, status).all()
             for req in ecs_reqs:
                 norm = _normalize_ecs_fc(req)
                 if _status_matches(norm['status'], norm['match_date'], status, today):
@@ -334,51 +347,340 @@ def get_unified_requests(session, *, league='all', status='active', page=1, per_
     return items[start:end], total, page, pages
 
 
-def get_unified_pool(session):
-    """Return both substitute pools' members normalized for the side panel.
+def _initials(name):
+    """Two-letter initials for the photo fallback, e.g. 'Marcus Bell' -> 'MB'."""
+    parts = [p for p in (name or '').split() if p]
+    if not parts:
+        return '?'
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
 
-    Each member: {league, name, positions, player_id}.
-    Pub League uses SubstitutePool (active rows); ECS FC uses EcsFcSubPool (active rows).
+
+def _pub_pool_status(entry):
+    """Tri-state membership status for a SubstitutePool row.
+
+    pending -> in the pool but not yet approved (approved_at is None)
+    break   -> approved once, now toggled inactive
+    active  -> approved and active
+    """
+    if entry.approved_at is None:
+        return 'pending'
+    if not entry.is_active:
+        return 'break'
+    return 'active'
+
+
+def get_unified_pool(session, season_id=None, include_inactive=False):
+    """Return both substitute pools' members, enriched for the hub.
+
+    Each member: {league, player_id, name, positions, avatar_url, initials,
+    status, acceptance_rate, matches_played, subbed_this_season}.
+
+    Pub League uses SubstitutePool; ECS FC uses EcsFcSubPool.
+
+    By default (``include_inactive=False``) only active pool rows are returned —
+    this preserves the behavior the reach-out "specific people" picker relies on.
+    Pass ``include_inactive=True`` for the Sub Pool tab, which needs the full
+    tri-state roster (Active / On break / Pending).
     """
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
+    from app.services.substitute_availability_service import player_sub_stats_bulk
 
     members = []
 
     # --- Pub League pool ---
     try:
-        pl_entries = session.query(SubstitutePool).options(
-            joinedload(SubstitutePool.player)
-        ).filter(SubstitutePool.is_active == True).all()  # noqa: E712
-        for entry in pl_entries:
+        q = session.query(SubstitutePool).options(joinedload(SubstitutePool.player))
+        if not include_inactive:
+            q = q.filter(SubstitutePool.is_active == True)  # noqa: E712
+        pub_entries = [e for e in q.all() if e.player]
+        # Batch the per-member stats (subbed-this-season) in a fixed # of queries
+        # instead of 2 per member — avoids N+1 across the full ~150-member pool.
+        stats_map = player_sub_stats_bulk(session, [e.player_id for e in pub_entries], season_id)
+        for entry in pub_entries:
             player = entry.player
-            if not player:
-                continue
+            stats = stats_map.get(entry.player_id, {
+                'response_rate': round(entry.acceptance_rate, 1),
+                'matches_played': entry.matches_played or 0,
+                'subbed_this_season': 0,
+            })
             members.append({
                 'league': 'pub_league',
                 'player_id': entry.player_id,
                 'name': player.name or 'Unknown',
                 'positions': entry.preferred_positions or player.favorite_position or '',
+                'league_type': entry.league_type or 'Pub League',
+                'avatar_url': player.avatar_image_url if player else None,
+                'initials': _initials(player.name),
+                'status': _pub_pool_status(entry),
+                'acceptance_rate': stats['response_rate'],
+                'matches_played': stats['matches_played'],
+                'subbed_this_season': stats['subbed_this_season'],
             })
     except Exception as e:
         logger.error(f"Error loading Pub League sub pool: {e}", exc_info=True)
 
     # --- ECS FC pool ---
     try:
-        ecs_entries = session.query(EcsFcSubPool).options(
-            joinedload(EcsFcSubPool.player)
-        ).filter(EcsFcSubPool.is_active == True).all()  # noqa: E712
-        for entry in ecs_entries:
+        q = session.query(EcsFcSubPool).options(joinedload(EcsFcSubPool.player))
+        if not include_inactive:
+            q = q.filter(EcsFcSubPool.is_active == True)  # noqa: E712
+        for entry in q.all():
             player = entry.player
             if not player:
                 continue
+            # ECS FC keeps its own counters (no separate approval step); acceptance
+            # is derived from the EcsFcSubPool row directly.
+            received = entry.requests_received or 0
+            accepted = entry.requests_accepted or 0
+            acc_rate = round((accepted / received) * 100, 1) if received else 0.0
             members.append({
                 'league': 'ecs_fc',
                 'player_id': entry.player_id,
                 'name': player.name or 'Unknown',
                 'positions': entry.preferred_positions or player.favorite_position or '',
+                'league_type': 'ECS FC',
+                'avatar_url': player.avatar_image_url if player else None,
+                'initials': _initials(player.name),
+                'status': 'active' if entry.is_active else 'break',
+                'acceptance_rate': acc_rate,
+                'matches_played': entry.matches_played or 0,
+                'subbed_this_season': 0,
             })
     except Exception as e:
         logger.error(f"Error loading ECS FC sub pool: {e}", exc_info=True)
 
     members.sort(key=lambda m: (m['name'] or '').lower())
     return members
+
+
+def get_hub_insights(session, season_id=None):
+    """Command-center insight metrics for the This Week strip.
+
+    Returns:
+        {
+          avg_time_to_fill_hours: float | None,   # created_at -> first assignment
+          fill_rate_pct: float | None,            # filled / actionable this season
+          filled_count, actionable_count: int,
+          channel_effectiveness: [ {channel, rate_pct, replies, contacted}, ... ],
+        }
+
+    Time-to-fill and fill-rate are Pub-League-scoped (the availability pool is Pub
+    League), joined to Match.season_id. Channel effectiveness reads reply rate by
+    channel from BOTH SubstituteResponse.response_method and
+    SubstituteReachoutRecipient (channels_sent + response_method).
+    """
+    from app.models.substitutes import (
+        SubstituteRequest, SubstituteResponse, SubstituteAssignment,
+        SubstituteReachoutRecipient, SubstituteReachout,
+    )
+    from app.models.matches import Match
+
+    out = {
+        'avg_time_to_fill_hours': None,
+        'fill_rate_pct': None,
+        'filled_count': 0,
+        'actionable_count': 0,
+        'channel_effectiveness': [],
+    }
+
+    # --- Avg time-to-fill: created_at -> earliest assignment, per request ---
+    try:
+        aq = (
+            session.query(SubstituteRequest.created_at, SubstituteAssignment.assigned_at)
+            .join(SubstituteAssignment, SubstituteAssignment.request_id == SubstituteRequest.id)
+        )
+        if season_id:
+            aq = aq.join(Match, SubstituteRequest.match_id == Match.id).filter(
+                Match.season_id == season_id
+            )
+        # Keep the smallest fill delay per request (earliest assignment wins),
+        # keyed by the request's created_at timestamp.
+        first_by_req = {}
+        for created_at, assigned_at in aq.all():
+            if not created_at or not assigned_at:
+                continue
+            delta_h = (assigned_at - created_at).total_seconds() / 3600.0
+            if delta_h < 0:
+                continue
+            k = created_at.isoformat()
+            if k not in first_by_req or delta_h < first_by_req[k]:
+                first_by_req[k] = delta_h
+        if first_by_req:
+            out['avg_time_to_fill_hours'] = round(sum(first_by_req.values()) / len(first_by_req), 1)
+    except Exception as e:
+        logger.error(f"Error computing time-to-fill: {e}", exc_info=True)
+
+    # --- Fill rate this season: FILLED / (all non-cancelled) ---
+    try:
+        rq = session.query(SubstituteRequest.status)
+        if season_id:
+            rq = rq.join(Match, SubstituteRequest.match_id == Match.id).filter(
+                Match.season_id == season_id
+            )
+        statuses = [s for (s,) in rq.all()]
+        actionable = [s for s in statuses if s != 'CANCELLED']
+        filled = [s for s in actionable if s == 'FILLED']
+        out['actionable_count'] = len(actionable)
+        out['filled_count'] = len(filled)
+        if actionable:
+            out['fill_rate_pct'] = round(len(filled) / len(actionable) * 100, 0)
+    except Exception as e:
+        logger.error(f"Error computing fill rate: {e}", exc_info=True)
+
+    # --- Channel effectiveness: replies / contacted per channel ---
+    try:
+        contacted = {}  # channel -> count contacted
+        replied = {}    # channel -> count replied
+
+        # Reach-out recipients: channels_sent is a CSV of channels the DM went to.
+        rq = session.query(SubstituteReachoutRecipient.channels_sent,
+                           SubstituteReachoutRecipient.responded_at,
+                           SubstituteReachoutRecipient.response_method)
+        if season_id:
+            rq = rq.join(SubstituteReachout,
+                         SubstituteReachoutRecipient.reachout_id == SubstituteReachout.id).filter(
+                SubstituteReachout.season_id == season_id
+            )
+        for channels_sent, responded_at, method in rq.all():
+            chans = [c.strip().lower() for c in (channels_sent or '').split(',') if c.strip()]
+            for c in chans:
+                contacted[c] = contacted.get(c, 0) + 1
+            if responded_at is not None:
+                # Attribute the reply to the method they used if known, else all sent.
+                if method:
+                    m = method.strip().lower()
+                    replied[m] = replied.get(m, 0) + 1
+                else:
+                    for c in chans:
+                        replied[c] = replied.get(c, 0) + 1
+
+        # SubstituteResponse: notification_methods sent + responded_at.
+        sq = session.query(SubstituteResponse.notification_methods,
+                           SubstituteResponse.responded_at,
+                           SubstituteResponse.response_method)
+        if season_id:
+            sq = sq.join(SubstituteRequest,
+                         SubstituteResponse.request_id == SubstituteRequest.id).join(
+                Match, SubstituteRequest.match_id == Match.id).filter(
+                Match.season_id == season_id
+            )
+        for methods, responded_at, resp_method in sq.all():
+            chans = [c.strip().lower() for c in (methods or '').split(',') if c.strip()]
+            for c in chans:
+                contacted[c] = contacted.get(c, 0) + 1
+            if responded_at is not None:
+                if resp_method:
+                    m = resp_method.strip().lower()
+                    replied[m] = replied.get(m, 0) + 1
+                else:
+                    for c in chans:
+                        replied[c] = replied.get(c, 0) + 1
+
+        # Normalize common channel aliases into display buckets.
+        alias = {'push': 'Push', 'discord': 'Discord', 'sms': 'SMS', 'email': 'Email',
+                 'mobile': 'Push', 'web': 'Discord'}
+        buckets = {}
+        for c, n in contacted.items():
+            label = alias.get(c, c.title())
+            b = buckets.setdefault(label, {'contacted': 0, 'replies': 0})
+            b['contacted'] += n
+        for c, n in replied.items():
+            label = alias.get(c, c.title())
+            b = buckets.setdefault(label, {'contacted': 0, 'replies': 0})
+            b['replies'] += n
+
+        eff = []
+        for label, b in buckets.items():
+            rate = round(b['replies'] / b['contacted'] * 100, 0) if b['contacted'] else 0
+            eff.append({'channel': label, 'rate_pct': rate,
+                        'replies': b['replies'], 'contacted': b['contacted']})
+        eff.sort(key=lambda d: -d['rate_pct'])
+        out['channel_effectiveness'] = eff
+    except Exception as e:
+        logger.error(f"Error computing channel effectiveness: {e}", exc_info=True)
+
+    return out
+
+
+def get_week_needs(session, match_date, season_id=None):
+    """Open requests for one match_date across BOTH leagues, joined to candidates.
+
+    For Pub League requests, candidate counts come from the canonical availability
+    pool via get_candidates_for_request. ECS FC has a divergent backend (its own
+    EcsFcSubResponse availability), so ECS FC needs are returned with candidate
+    counts of 0 here — the slide-over loads ECS FC candidates on demand from the
+    candidates-for-request JSON route.
+
+    Returns a list of normalized request dicts (same shape as get_unified_requests)
+    with extra keys: candidate_count, available_now (subs available for this slot).
+    """
+    from app.models.substitutes import (
+        SubstituteRequest, EcsFcSubRequest,
+    )
+    from app.models import Match
+    from app.services.substitute_availability_service import get_candidates_for_request
+
+    needs = []
+
+    # --- Pub League open requests on this date ---
+    try:
+        pl_reqs = (
+            session.query(SubstituteRequest)
+            .join(Match, SubstituteRequest.match_id == Match.id)
+            .options(
+                joinedload(SubstituteRequest.match).joinedload(Match.home_team),
+                joinedload(SubstituteRequest.match).joinedload(Match.away_team),
+                joinedload(SubstituteRequest.team),
+                selectinload(SubstituteRequest.assignments),
+                selectinload(SubstituteRequest.responses),
+            )
+            .filter(Match.date == match_date, SubstituteRequest.status == 'OPEN')
+            .all()
+        )
+        for req in pl_reqs:
+            norm = _normalize_pub_league(req)
+            mt = req.match.time if req.match else None
+            norm['time_slot'] = mt.strftime('%H:%M') if mt else None
+            norm['time_label'] = _fmt_time(mt) if mt else None
+            try:
+                cands = get_candidates_for_request(session, req, season_id)
+            except Exception:
+                cands = []
+            norm['candidate_count'] = len(cands)
+            norm['available_now'] = sum(1 for c in cands if c.get('is_available'))
+            needs.append(norm)
+    except Exception as e:
+        logger.error(f"Error loading Pub League week needs: {e}", exc_info=True)
+
+    # --- ECS FC open requests on this date ---
+    try:
+        from app.models.ecs_fc import EcsFcMatch
+        ecs_reqs = (
+            session.query(EcsFcSubRequest)
+            .join(EcsFcMatch, EcsFcSubRequest.match_id == EcsFcMatch.id)
+            .options(
+                joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
+                joinedload(EcsFcSubRequest.team),
+                selectinload(EcsFcSubRequest.assignments),
+                selectinload(EcsFcSubRequest.responses),
+            )
+            .filter(EcsFcMatch.match_date == match_date, EcsFcSubRequest.status == 'OPEN')
+            .all()
+        )
+        for req in ecs_reqs:
+            norm = _normalize_ecs_fc(req)
+            mt = req.match.match_time if req.match else None
+            norm['time_slot'] = mt.strftime('%H:%M') if mt else None
+            norm['time_label'] = _fmt_time(mt) if mt else None
+            norm['candidate_count'] = norm['tally']['available']
+            norm['available_now'] = norm['tally']['available']
+            needs.append(norm)
+    except Exception as e:
+        logger.error(f"Error loading ECS FC week needs: {e}", exc_info=True)
+
+    def _sort_key(it):
+        return (it['candidate_count'] == 0, -(it['needed'] - it['assigned']))
+    needs.sort(key=_sort_key)
+    return needs

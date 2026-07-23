@@ -77,6 +77,7 @@ class CeleryConfig:
         'app.tasks.tasks_waitlist',  # Waitlist confirmation email
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
+        'app.tasks.tasks_substitute_availability',  # Friday weekly sub availability poll
         'app.tasks.tasks_onboarding_notifications',  # Approval-queue Discord channel notify + stale reminder
         'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop
         'app.tasks.check_in_tasks',  # Match check-in: nightly venue token backfill
@@ -241,6 +242,7 @@ class CeleryConfig:
         'app.tasks.tasks_quick_profiles.*': {'queue': 'celery'},
         'app.tasks.tasks_audit.*': {'queue': 'celery'},
         'app.tasks.tasks_rsvp_dm_reminders.*': {'queue': 'discord'},
+        'app.tasks.tasks_substitute_availability.*': {'queue': 'discord'},
     }
 
     # Beat Configuration
@@ -742,6 +744,24 @@ class CeleryConfig:
         'send-rsvp-dm-reminders-thursday': {
             'task': 'app.tasks.tasks_rsvp_dm_reminders.send_rsvp_dm_reminders',
             'schedule': crontab(day_of_week='4', hour=12, minute=0),  # Thursday noon PST
+            'options': {
+                'queue': 'discord',
+                'expires': 3600,
+                'time_limit': 600,
+                'soft_time_limit': 540
+            }
+        },
+
+        # =====================================================================
+        # WEEKLY SUB AVAILABILITY POLL (Friday 2 PM PST)
+        # =====================================================================
+        # Automated "can you sub?" availability poll to #pl-subs — the scheduled
+        # trigger for the closed-loop substitute system. Posts for the upcoming
+        # Sunday. Enable flag + options live in AdminConfig
+        # (sub_availability_poll_*). Idempotent: one live poll per Sunday.
+        'send-weekly-sub-availability-poll': {
+            'task': 'app.tasks.tasks_substitute_availability.send_weekly_sub_availability_poll',
+            'schedule': crontab(day_of_week='5', hour=14, minute=0),  # Friday 2 PM PST
             'options': {
                 'queue': 'discord',
                 'expires': 3600,

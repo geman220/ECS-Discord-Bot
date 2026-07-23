@@ -316,6 +316,13 @@ def add_player_to_pool(league_type):
                     email_for_sub_requests=request.json.get('email_notifications', True),
                     is_active=True
                 )
+                # Seed max matches/week from the admin default when configured
+                # (Substitute Command Center → Settings: sub_default_max_matches).
+                # Unset => leave the model default (3), the previous behavior.
+                from app.models.admin_config import AdminConfig
+                default_max = AdminConfig.get_setting('sub_default_max_matches', None)
+                if default_max is not None:
+                    pool_entry.max_matches_per_week = int(default_max)
                 db.session.add(pool_entry)
                 message = f"{player.name} has been added to the {league_type} substitute pool"
 

@@ -343,6 +343,138 @@ class SubstituteAssignment(db.Model):
     )
 
 
+class SubstituteAvailability(db.Model):
+    """Canonical weekly substitute availability surface (Pub League: Classic/Premier).
+
+    ONE row per (player, match_date, league_type). This is the single assignable
+    "who can sub this week" pool. It is fed by BOTH:
+      - Discord availability poll votes (source='discord_poll'), recomputed from the
+        player's current active DiscordPollVote rows for that poll, and
+      - Admin reach-out responses (source='reachout_push'/'reachout_dm'/'reachout_web'),
+        whether a general "can anyone sub at these times?" blast or a targeted
+        "can you sub for this specific time?" ask (the team is never revealed to the sub).
+
+    It is time-slot scoped, NOT tied to one SubstituteRequest or team, so admins can
+    assign any available sub to any matching OPEN request and keep teams balanced.
+    Classic subs only ever populate Classic rows; Premier only Premier (a dual-role
+    sub can have one row per league_type on the same date).
+    """
+    __tablename__ = 'substitute_availability'
+    __table_args__ = (
+        # Segregated by source bucket ('discord_poll' vs 'reachout') so the two
+        # independent doors never clobber each other's slots; reads aggregate the
+        # (<=2) rows per player/date/league.
+        db.UniqueConstraint('player_id', 'match_date', 'league_type', 'source',
+                            name='uq_sub_availability_player_date_league_source'),
+        db.Index('idx_sub_availability_date_league', 'match_date', 'league_type'),
+        db.Index('idx_sub_availability_season', 'season_id'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    # The Sunday (match day) this availability is for.
+    match_date = db.Column(db.Date, nullable=False)
+    # 'Classic' | 'Premier' (canonical human strings, matching SubstitutePool.league_type).
+    league_type = db.Column(db.String(20), nullable=False)
+    # True = can sub, False = explicitly declined (keeps a record so we don't re-ask).
+    is_available = db.Column(db.Boolean, nullable=False, default=True)
+    # Union of time-slot strings the player said yes to, e.g. ["08:20", "09:30"].
+    time_slots = db.Column(db.JSON, nullable=True)
+    # Resolved match ids for those slots (exact join to SubstituteRequest.match_id).
+    match_ids = db.Column(db.JSON, nullable=True)
+    # 'discord_poll' | 'reachout_push' | 'reachout_dm' | 'reachout_web' | 'mobile' | 'web'
+    source = db.Column(db.String(20), nullable=False, default='discord_poll')
+    # Provenance back to the originating availability poll (for discord_poll source).
+    poll_id = db.Column(db.Integer, db.ForeignKey('discord_polls.id', ondelete='SET NULL'), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    responded_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    player = db.relationship('Player', backref='substitute_availability')
+    season = db.relationship('Season')
+    poll = db.relationship('DiscordPoll')
+
+
+class SubstituteReachout(db.Model):
+    """An admin ad-hoc reach-out asking subs if they can play — beyond the weekly poll.
+
+    Two kinds:
+      - kind='general'  : "can anyone sub at these times?" blasted to a whole league pool.
+      - kind='targeted' : "can you (this person / this group) sub for THIS specific time?"
+        The originating request/team is NEVER disclosed to the contacted subs.
+
+    Recipients respond via push (mobile), Discord DM buttons, or a secure web link; every
+    yes upserts a SubstituteAvailability row via substitute_availability_service, so the
+    reach-out feeds the same assignable pool as the poll. Optionally anchored to a
+    SubstituteRequest (request_id) for coordinator context, but a 'yes' is pool-wide.
+    """
+    __tablename__ = 'substitute_reachouts'
+    __table_args__ = (
+        db.Index('idx_sub_reachout_date_league', 'match_date', 'league_type'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(20), nullable=False, default='general')  # 'general' | 'targeted'
+    league_type = db.Column(db.String(20), nullable=False)  # 'Classic' | 'Premier'
+    match_date = db.Column(db.Date, nullable=False)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)
+    # Time slots the reach-out asks about, e.g. ["08:20", "09:30"] (subset for targeted).
+    time_slots = db.Column(db.JSON, nullable=True)
+    match_ids = db.Column(db.JSON, nullable=True)
+    # Optional coordinator context; never shown to recipients.
+    request_id = db.Column(db.Integer, db.ForeignKey('substitute_requests.id', ondelete='SET NULL'), nullable=True)
+    message = db.Column(db.Text, nullable=True)
+    channels = db.Column(db.String(100), nullable=True)  # e.g. "push,discord"
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    recipients_count = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    creator = db.relationship('User')
+    recipients = db.relationship('SubstituteReachoutRecipient', back_populates='reachout',
+                                 cascade='all, delete-orphan')
+
+
+class SubstituteReachoutRecipient(db.Model):
+    """One contacted sub for a SubstituteReachout, with their response state.
+
+    Lets targeted asks track "did we hear back from this specific person/group" and
+    lets a secure web/push response be tied to a recipient without revealing the team.
+    """
+    __tablename__ = 'substitute_reachout_recipients'
+    __table_args__ = (
+        db.UniqueConstraint('reachout_id', 'player_id', name='uq_sub_reachout_recipient'),
+        db.Index('idx_sub_reachout_recipient_player', 'player_id'),
+        db.Index('idx_sub_reachout_recipient_token', 'response_token'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    reachout_id = db.Column(db.Integer, db.ForeignKey('substitute_reachouts.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
+    is_available = db.Column(db.Boolean, nullable=True)  # None = not yet responded
+    responded_at = db.Column(db.DateTime, nullable=True)
+    response_method = db.Column(db.String(20), nullable=True)
+    channels_sent = db.Column(db.String(100), nullable=True)
+    notification_sent_at = db.Column(db.DateTime, nullable=True)
+    response_token = db.Column(db.String(64), unique=True, nullable=True, index=True)
+    token_expires_at = db.Column(db.DateTime, nullable=True)
+
+    reachout = db.relationship('SubstituteReachout', back_populates='recipients')
+    player = db.relationship('Player', backref='substitute_reachout_recipients')
+
+    def generate_token(self, expiry_hours=72):
+        self.response_token = secrets.token_urlsafe(32)
+        self.token_expires_at = datetime.utcnow() + timedelta(hours=expiry_hours)
+        return self.response_token
+
+    def is_token_valid(self):
+        if not self.response_token or not self.token_expires_at:
+            return False
+        return datetime.utcnow() < self.token_expires_at
+
+
 def get_eligible_players(league_type, positions=None, gender=None, session=None):
     """Get eligible players for substitute requests by league type."""
     if session is None:
@@ -372,11 +504,14 @@ def get_eligible_players(league_type, positions=None, gender=None, session=None)
         User.is_approved == True  # Must be approved
     ).all()
 
-    # Apply gender filter if specified
+    # Apply gender filter via the ONE shared inclusive matcher (they/them + blank
+    # always included; 'she/her' never matches a 'male' preference). The old
+    # `gender in pronouns` substring test had the 'he' in 'she/her' false-positive.
     if gender:
+        from app.services.substitute_notification_service import player_matches_gender_preference
         players_with_role = [
             p for p in players_with_role
-            if p.pronouns and gender.lower() in p.pronouns.lower()
+            if player_matches_gender_preference(p.pronouns, gender)
         ]
 
     return players_with_role
@@ -465,11 +600,15 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
             pass
         _log.warning("Sub active-set spine read failed; using legacy pool query", exc_info=True)
 
-    # Apply gender filter if specified
+    # Apply gender filter via the ONE shared inclusive matcher. The old
+    # `pronouns ILIKE '%male%'` matched ZERO rows (pronouns are stored 'he/him' /
+    # 'she/her' / 'they/them'), silently muting gender-filtered pool broadcasts.
     if gender_filter:
-        existing_pools = existing_pools.filter(
-            Player.pronouns.ilike(f'%{gender_filter}%')
-        )
+        from app.services.substitute_notification_service import player_matches_gender_preference
+        return [
+            pe for pe in existing_pools.all()
+            if player_matches_gender_preference(pe.player.pronouns if pe.player else None, gender_filter)
+        ]
 
     return existing_pools.all()
 

@@ -107,6 +107,8 @@ from .substitutes import (
     # Unified substitute models
     SubstitutePool, SubstitutePoolHistory, SubstituteRequest,
     SubstituteResponse, SubstituteAssignment,
+    # Closed-loop availability + reach-out
+    SubstituteAvailability, SubstituteReachout, SubstituteReachoutRecipient,
     # Helper functions
     get_eligible_players, get_active_substitutes, log_pool_action
 )
@@ -296,6 +298,7 @@ __all__ = [
     'EcsFcSubRequest', 'EcsFcSubResponse', 'EcsFcSubAssignment', 'EcsFcSubPool',
     'SubstitutePool', 'SubstitutePoolHistory', 'SubstituteRequest',
     'SubstituteResponse', 'SubstituteAssignment',
+    'SubstituteAvailability', 'SubstituteReachout', 'SubstituteReachoutRecipient',
     'get_eligible_players', 'get_active_substitutes', 'log_pool_action',
     
     # Prediction models

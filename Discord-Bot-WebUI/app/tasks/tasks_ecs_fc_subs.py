@@ -25,14 +25,33 @@ from app.tasks.tasks_ecs_fc_rsvp_helpers import send_ecs_fc_dm_sync
 logger = logging.getLogger(__name__)
 
 
+@celery_task(name='app.tasks.tasks_ecs_fc_subs.notify_ecs_fc_sub_pool_unified')
+def notify_ecs_fc_sub_pool_unified(self, session, request_id: int) -> Dict[str, Any]:
+    """
+    Phase 3 convergence: broadcast an ECS FC sub request to the active pool via
+    the ONE unified SubstituteNotificationService (shared channel/consent/push/
+    gender logic), instead of the divergent inline sender in
+    notify_sub_pool_of_request. Used for non-slot requests.
+    """
+    try:
+        from app.services.substitute_notification_service import SubstituteNotificationService
+        return SubstituteNotificationService().notify_ecs_fc_pool(request_id=request_id)
+    except Exception as e:
+        logger.error(f"Error in notify_ecs_fc_sub_pool_unified: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+
+# DEPRECATED(phase3): replaced by notify_ecs_fc_sub_pool_unified /
+# SubstituteNotificationService.notify_ecs_fc_pool. Retained (not deleted) as a
+# burn-in fallback; new call sites use the unified task.
 @celery_task(name='notify_sub_pool_of_request')
 def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]:
     """
     Send notifications to all active substitutes in the pool about a new request.
-    
+
     Args:
         request_id: ID of the EcsFcSubRequest
-        
+
     Returns:
         Dictionary with notification results
     """
@@ -305,7 +324,34 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
         if not assignment:
             logger.error(f"Assignment {assignment_id} not found")
             return {'success': False, 'error': 'Assignment not found'}
-        
+
+        # DEPRECATED(phase3): the inline SMS/Discord/email/push confirmation body
+        # below is superseded by SubstituteNotificationService.send_confirmation,
+        # which is now ECS-FC-aware (league_type='ecs_fc') and shares the unified
+        # channel/consent/push logic. We bump the pool counter here (the service
+        # does not) and delegate the actual send. The legacy body is retained,
+        # unreachable, for burn-in reference only.
+        pool_entry = session.query(EcsFcSubPool).filter_by(
+            player_id=assignment.player_id,
+            is_active=True,
+        ).first()
+        if pool_entry:
+            pool_entry.matches_played = (pool_entry.matches_played or 0) + 1
+
+        from app.services.substitute_notification_service import SubstituteNotificationService
+        _svc_result = SubstituteNotificationService().send_confirmation(
+            assignment_id=assignment_id, league_type='ecs_fc'
+        )
+        _pname = assignment.player.name if assignment.player else 'unknown'
+        _channels = _svc_result.get('channels_used', [])
+        _svc_result['player_name'] = _pname
+        _svc_result['message'] = (
+            f"Notified {_pname} via {', '.join(_channels)}"
+            if _channels else f"Failed to notify {_pname}"
+        )
+        logger.info(f"ECS FC assignment {assignment_id} confirmation results: {_svc_result}")
+        return _svc_result
+
         player = assignment.player
         user = player.user if player else None
         
@@ -562,32 +608,21 @@ def process_sub_response(self, session, player_id: int, response_text: str, resp
 
         request_id_val = response.request_id
 
-        # Notify the coach who created the request
-        if coach_user_id:
-            try:
-                from app.services.notification_orchestrator import (
-                    orchestrator, NotificationType, NotificationPayload
-                )
-                availability_text = "is available" if is_available else "is NOT available"
-                orchestrator.send(NotificationPayload(
-                    notification_type=NotificationType.SUB_REQUEST,
-                    title="Sub Response Received",
-                    message=f"{player_name} {availability_text}{match_info_text}",
-                    user_ids=[coach_user_id],
-                    data={
-                        'type': 'sub_response',
-                        'request_id': str(request_id_val),
-                        'player_name': player_name,
-                        'is_available': str(is_available).lower(),
-                        'league_type': 'ecs_fc',
-                        'response_method': response_method,
-                        'deep_link': f'ecs-fc-scheme://sub-request/{request_id_val}',
-                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-                    },
-                ))
-                logger.info(f"Notified coach (user {coach_user_id}) of {response_method} sub response from {player_name}")
-            except Exception as e:
-                logger.error(f"Failed to notify coach of sub response: {e}")
+        # Phase 3: fan out through the ONE unified notifier (requesting coach +
+        # admins, per notify_response_received) instead of the prior coach-only
+        # inline push, so SMS/Discord ECS FC responses reach the same audience as
+        # web/app responses.
+        try:
+            from app.services.substitute_notification_service import SubstituteNotificationService
+            SubstituteNotificationService().notify_response_received(
+                request_id=request_id_val,
+                player_id=player_id,
+                is_available=is_available,
+                response_method=response_method,
+                league_type='ecs_fc',
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify of ECS FC sub response: {e}")
 
         # Session will be committed by decorator
 
@@ -673,13 +708,11 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
             if not player or not player.user:
                 continue
             
-            pronouns = player.pronouns or ''
-            if pronouns.lower() == 'he/him':
-                subs_by_gender['male'].append(pool_entry)
-            elif pronouns.lower() == 'she/her':
-                subs_by_gender['female'].append(pool_entry)
-            else:  # they/them or no pronouns
-                subs_by_gender['any'].append(pool_entry)
+            # Use the ONE shared classifier (word-boundary tokens) instead of an
+            # exact-string match that dropped 'he/him/his', 'he/they', casing, etc.
+            from app.services.substitute_notification_service import classify_pronoun_gender
+            g = classify_pronoun_gender(player.pronouns)
+            subs_by_gender[g if g in ('male', 'female') else 'any'].append(pool_entry)
         
         # Prepare match details
         match_date = match.match_date.strftime('%A, %B %d')

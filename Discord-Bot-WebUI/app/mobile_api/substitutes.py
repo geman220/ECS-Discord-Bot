@@ -33,7 +33,9 @@ from app.models.admin_config import AdminAuditLog
 from app.models.discord_polls import DiscordPoll, DiscordPollVote
 from app.models.substitutes import (
     SubstituteRequest, SubstituteResponse, SubstituteAssignment,
-    SubstitutePool, SubstitutePoolHistory
+    SubstitutePool, SubstitutePoolHistory,
+    SubstituteReachout, SubstituteReachoutRecipient,
+    get_active_substitutes
 )
 from app.utils.pacific_time import pacific_today, pacific_now, pacific_datetime
 
@@ -549,9 +551,17 @@ def cancel_substitute_request(request_id: int):
             return jsonify({"msg": f"Cannot cancel request with status: {sub_request.status}"}), 400
 
         sub_request.status = 'CANCELLED'
+        sub_request.cancelled_at = datetime.utcnow()
         session.commit()
 
         logger.info(f"Substitute request {request_id} cancelled by user {current_user_id}")
+
+        # Tell everyone still pending on this request it's off (Phase 3 convergence).
+        try:
+            from app.tasks.tasks_substitute_pools import notify_substitute_request_cancelled
+            notify_substitute_request_cancelled.delay(request_id, 'pub_league')
+        except Exception:
+            logger.exception("Failed to queue cancellation notification for request %s", request_id)
 
         return jsonify({
             "success": True,
@@ -744,9 +754,13 @@ def assign_substitute(request_id: int):
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
 
-        if not (is_admin_user(session, current_user_id)
-                or is_coach_for_team(session, current_user_id, sub_request.team_id)):
-            return jsonify({"msg": "You can only assign subs for teams you coach"}), 403
+        # Pub League assignment is ADMINS-ONLY (the locked invariant). A Pub League
+        # Coach may REQUEST subs but never ASSIGN them — can_assign() enforces this
+        # for program='Pub League' (admin only), regardless of the coach's team.
+        from app.services.substitute_authority import can_assign
+        if not can_assign(session, current_user_id,
+                          team_id=sub_request.team_id, program='Pub League'):
+            return jsonify({"msg": "Only admins can assign Pub League substitutes"}), 403
 
         if sub_request.status not in ['OPEN', 'PENDING']:
             return jsonify({"msg": f"Cannot assign to request with status: {sub_request.status}"}), 400
@@ -1634,184 +1648,229 @@ def _build_availability_buckets(session, target_date):
     return buckets, season
 
 
-@mobile_api_v2.route('/internal/subs/poll', methods=['POST'])
-def internal_create_subs_poll():
+def _open_request_match_ids(session, target_date):
+    """Match ids on `target_date` that currently have an OPEN/PENDING Pub League
+    SubstituteRequest — used by the poll 'bridge' mode to ask only about slots
+    that actually need subs once coaches submit their needs."""
+    from app.utils.substitute_helpers import ACTIVE_SUB_STATUSES
+    rows = session.query(SubstituteRequest.match_id).join(
+        Match, SubstituteRequest.match_id == Match.id
+    ).filter(
+        Match.date == target_date,
+        SubstituteRequest.status.in_(list(ACTIVE_SUB_STATUSES)),
+        SubstituteRequest.match_id.isnot(None),
+    ).all()
+    return {mid for (mid,) in rows if mid}
+
+
+def post_availability_poll(session, *, target_date=None, user_id=None,
+                           channel_key='pl_subs', duration_hours=None,
+                           only_slots_needing_subs=False):
     """
-    Post a schedule-generated availability poll to #pl-subs from the bot.
+    Build and post a schedule-generated availability poll to #pl-subs, persist the
+    DiscordPoll (with slot_map for exact reconcile joins), and return a result dict.
 
-    Auth: X-Bot-Token. The acting user is resolved from discord_id and must
-    hold an admin role server-side (same gate as the WebUI poll endpoint).
-    The poll options are BUILT FROM the schedule for the target Sunday, so each
-    answer maps to real match_ids (persisted in DiscordPoll.slot_map), making
-    the later reconcile step an exact join instead of fuzzy time matching.
+    Shared by the internal `/internal/subs/poll` endpoint (admin, ad-hoc) AND the
+    automated weekly Celery beat task — so there is one poll-building path.
 
-    Body: {discord_id, match_date?, channel_key?='pl_subs', duration_hours?}
+    Args:
+      target_date: the Sunday to poll for; defaults to the upcoming Sunday.
+      user_id: acting admin (for created_by/audit); None for the automated system run.
+      only_slots_needing_subs: BRIDGE mode. False (default, today) = ask about ALL
+        league time-slots. True = narrow to only slots that have an OPEN coach
+        request — the eventual state once coaches submit sub needs.
+
+    Returns (payload_dict, http_status). Callers that don't care about status
+    (the Celery task) just read payload_dict['success'].
     """
-    if not _bot_token_ok():
-        return jsonify({"msg": "unauthorized"}), 401
-
-    data = request.get_json(silent=True) or {}
-    discord_id = str(data.get('discord_id') or '').strip()
-    if not discord_id:
-        return jsonify({"msg": "discord_id required"}), 400
-
-    channel_key = data.get('channel_key', 'pl_subs')
     if channel_key not in DISCORD_POLL_CHANNELS:
         allowed = ', '.join(sorted(DISCORD_POLL_CHANNELS.keys()))
-        return jsonify({"msg": f"channel_key must be one of: {allowed}"}), 400
+        return {"msg": f"channel_key must be one of: {allowed}"}, 400
 
-    with managed_session() as session:
-        player = session.query(Player).filter_by(discord_id=discord_id).first()
-        if not player:
-            return jsonify({"success": False, "reason": "not_linked"}), 200
-        user_id = player.user_id
-        if not is_admin_user(session, user_id):
-            return jsonify({"success": False, "reason": "not_authorized"}), 200
+    if target_date is None:
+        target_date = _upcoming_sunday(pacific_today())
 
-        # Resolve target date (default: the upcoming Sunday)
-        match_date_raw = data.get('match_date')
-        if match_date_raw:
-            try:
-                target_date = datetime.strptime(str(match_date_raw), '%Y-%m-%d').date()
-            except ValueError:
-                return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
-        else:
-            target_date = _upcoming_sunday(pacific_today())
+    # Idempotency: one live availability poll per Sunday. A retry after a
+    # timed-out first attempt (or two admins racing, or the beat re-firing) must
+    # not post a second real poll to #pl-subs. Expired polls don't block a re-post.
+    existing_poll = session.query(DiscordPoll).filter(
+        DiscordPoll.poll_kind == 'availability',
+        DiscordPoll.match_date == target_date,
+        DiscordPoll.expires_at > datetime.utcnow(),
+    ).order_by(DiscordPoll.created_at.desc()).first()
+    if existing_poll:
+        return {
+            "success": False,
+            "reason": "duplicate",
+            "match_date": target_date.isoformat(),
+            "discord_message_url": existing_poll.discord_message_url,
+        }, 200
 
-        # Idempotency: one live availability poll per Sunday. A retry after a
-        # timed-out first attempt (or two admins racing) must not post a second
-        # real poll to #pl-subs. Expired polls don't block a re-post.
-        existing_poll = session.query(DiscordPoll).filter(
-            DiscordPoll.poll_kind == 'availability',
-            DiscordPoll.match_date == target_date,
-            DiscordPoll.expires_at > datetime.utcnow(),
-        ).order_by(DiscordPoll.created_at.desc()).first()
-        if existing_poll:
-            return jsonify({
-                "success": False,
-                "reason": "duplicate",
-                "match_date": target_date.isoformat(),
-                "discord_message_url": existing_poll.discord_message_url,
-            }), 200
+    buckets, season = _build_availability_buckets(session, target_date)
 
-        buckets, season = _build_availability_buckets(session, target_date)
-        if not buckets:
-            return jsonify({
-                "success": False,
-                "reason": "no_matches",
-                "match_date": target_date.isoformat(),
-            }), 200
-        buckets = buckets[:10]  # Discord poll cap
+    # Bridge mode: keep only buckets covering a match that actually needs a sub.
+    if only_slots_needing_subs and buckets:
+        needed = _open_request_match_ids(session, target_date)
+        buckets = [b for b in buckets if needed & set(b.get('match_ids') or [])]
 
-        normalized_options = [{"text": b['label'], "emoji": None} for b in buckets]
-        title = (
-            f"Sub availability for Sunday {target_date.strftime('%b %d')} — "
-            f"which slot(s) can you play?"
-        )[:300]
+    if not buckets:
+        return {
+            "success": False,
+            "reason": "no_slots_needed" if only_slots_needing_subs else "no_matches",
+            "match_date": target_date.isoformat(),
+        }, 200
+    buckets = buckets[:10]  # Discord poll cap
 
-        # Duration: from now through end of the target day, clamped 1..168h.
-        # Both sides Pacific-aware — naive datetime.now() is UTC in the
-        # containers, which would close the poll hours before Sunday ends.
-        from datetime import timedelta as _td
-        hours_until = int((pacific_datetime(target_date, datetime.max.time())
-                           - pacific_now()).total_seconds() // 3600)
-        duration_hours = data.get('duration_hours')
-        if not isinstance(duration_hours, int) or isinstance(duration_hours, bool):
-            duration_hours = hours_until
-        duration_hours = max(1, min(duration_hours, 168))
+    normalized_options = [{"text": b['label'], "emoji": None} for b in buckets]
 
-        # --- Resolve channel + mention roles (same registry as the web path) ---
-        cfg = DISCORD_POLL_CHANNELS[channel_key]
-        channel_id = os.getenv(cfg['channel_env_var']) or cfg.get('channel_id_default')
-        if not channel_id:
-            return jsonify({"msg": "Discord channel not configured"}), 500
+    # Admin-configurable poll question (Settings tab). {date} is substituted; falls
+    # back to the built-in wording. Nothing hardcoded.
+    from app.models.admin_config import AdminConfig
+    q_template = AdminConfig.get_setting(
+        'sub_poll_question',
+        "Sub availability for Sunday {date} — which slot(s) can you play?",
+    ) or "Sub availability for Sunday {date} — which slot(s) can you play?"
+    try:
+        title = q_template.replace('{date}', target_date.strftime('%b %d'))[:300]
+    except Exception:
+        title = f"Sub availability for Sunday {target_date.strftime('%b %d')} — which slot(s) can you play?"[:300]
+
+    # Duration: from now through end of the target day, clamped 1..168h.
+    # Both sides Pacific-aware — naive datetime.now() is UTC in the
+    # containers, which would close the poll hours before Sunday ends.
+    from datetime import timedelta as _td
+    hours_until = int((pacific_datetime(target_date, datetime.max.time())
+                       - pacific_now()).total_seconds() // 3600)
+    # Admin-configurable "poll stays open" hours (Settings) when the caller didn't
+    # pass an explicit duration; else default to end-of-target-day.
+    if duration_hours is None:
+        cfg_hours = AdminConfig.get_setting('sub_poll_open_hours', None)
+        try:
+            if cfg_hours not in (None, ''):
+                duration_hours = int(cfg_hours)
+        except (TypeError, ValueError):
+            pass
+    if not isinstance(duration_hours, int) or isinstance(duration_hours, bool):
+        duration_hours = hours_until
+    duration_hours = max(1, min(duration_hours, 168))
+
+    # --- Resolve channel + mention roles (same registry as the web path) ---
+    cfg = DISCORD_POLL_CHANNELS[channel_key]
+    # Admin-selected channel (Settings, live-picked from the bot) wins over the env var.
+    channel_id = (AdminConfig.get_setting('sub_poll_channel_id', '') or '').strip() \
+        or os.getenv(cfg['channel_env_var']) or cfg.get('channel_id_default')
+    if not channel_id:
+        return {"msg": "Discord channel not configured"}, 500
+    # Admin-selected ping roles (Settings, live-picked from the bot) override the
+    # role-name registry when set.
+    cfg_role_ids = (AdminConfig.get_setting('sub_poll_role_ids', '') or '').strip()
+    if cfg_role_ids:
+        tag_role_ids = [r.strip() for r in cfg_role_ids.split(',') if r.strip()]
+    else:
         role_rows = session.query(Role).filter(Role.name.in_(cfg['tag_role_names'])).all()
         tag_role_ids = [str(r.discord_role_id) for r in role_rows if r.discord_role_id]
-        if not tag_role_ids:
-            found_names = {r.name for r in role_rows if r.discord_role_id}
-            missing = [n for n in cfg['tag_role_names'] if n not in found_names]
-            return jsonify({
-                "msg": f"Mention roles missing or lacking a discord_role_id: {', '.join(missing)}"
-            }), 500
+    if not tag_role_ids:
+        role_rows = session.query(Role).filter(Role.name.in_(cfg['tag_role_names'])).all()
+        found_names = {r.name for r in role_rows if r.discord_role_id}
+        missing = [n for n in cfg['tag_role_names'] if n not in found_names]
+        return {
+            "msg": f"Mention roles missing or lacking a discord_role_id: {', '.join(missing)}"
+        }, 500
 
-        # --- Call the bot to post the native poll ---
-        bot_payload = {
-            "channel_id": str(channel_id),
-            "tag_role_ids": tag_role_ids,
-            "question": title,
-            "answers": normalized_options,
-            "duration_hours": duration_hours,
-            "allow_multiselect": True,
-        }
-        bot_url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/post-poll"
+    # --- Call the bot to post the native poll ---
+    bot_payload = {
+        "channel_id": str(channel_id),
+        "tag_role_ids": tag_role_ids,
+        "question": title,
+        "answers": normalized_options,
+        "duration_hours": duration_hours,
+        "allow_multiselect": True,
+    }
+    bot_url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/post-poll"
+    try:
+        resp = requests.post(bot_url, json=bot_payload, timeout=15)
+    except requests.RequestException:
+        logger.exception("Discord bot unreachable at %s", bot_url)
+        return {"msg": "Discord bot unreachable"}, 502
+    if resp.status_code >= 400:
         try:
-            resp = requests.post(bot_url, json=bot_payload, timeout=15)
-        except requests.RequestException:
-            logger.exception("Discord bot unreachable at %s", bot_url)
-            return jsonify({"msg": "Discord bot unreachable"}), 502
-        if resp.status_code >= 400:
-            try:
-                detail = resp.json().get('detail') or resp.text[:200]
-            except ValueError:
-                detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
-            return jsonify({"msg": f"Discord rejected poll: {detail}"}), 502
-        try:
-            bot_resp = resp.json()
+            detail = resp.json().get('detail') or resp.text[:200]
         except ValueError:
-            return jsonify({"msg": "Internal error posting poll"}), 500
-        if not bot_resp.get('success'):
-            return jsonify({"msg": "Discord rejected poll"}), 502
+            detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
+        return {"msg": f"Discord rejected poll: {detail}"}, 502
+    try:
+        bot_resp = resp.json()
+    except ValueError:
+        return {"msg": "Internal error posting poll"}, 500
+    if not bot_resp.get('success'):
+        return {"msg": "Discord rejected poll"}, 502
 
-        discord_message_id = str(bot_resp.get('message_id', ''))
-        bot_channel_id = str(bot_resp.get('channel_id', channel_id))
-        guild_id = bot_resp.get('guild_id') or None
-        message_url = bot_resp.get('message_url', '')
-        bot_answers = bot_resp.get('answers') or [
-            {"answer_id": i + 1, "text": o['text'], "emoji": o.get('emoji')}
-            for i, o in enumerate(normalized_options)
-        ]
+    discord_message_id = str(bot_resp.get('message_id', ''))
+    bot_channel_id = str(bot_resp.get('channel_id', channel_id))
+    guild_id = bot_resp.get('guild_id') or None
+    message_url = bot_resp.get('message_url', '')
+    bot_answers = bot_resp.get('answers') or [
+        {"answer_id": i + 1, "text": o['text'], "emoji": o.get('emoji')}
+        for i, o in enumerate(normalized_options)
+    ]
 
-        # slot_map: answer_id (as STRING key) -> bucket meaning. Bot assigns
-        # answer_ids in option order starting at 1, so bucket index = id - 1.
-        slot_map = {}
-        for ans in bot_answers:
-            aid = int(ans['answer_id'])
-            if 1 <= aid <= len(buckets):
-                slot_map[str(aid)] = buckets[aid - 1]
+    # slot_map: answer_id (as STRING key) -> bucket meaning. Bot assigns
+    # answer_ids in option order starting at 1, so bucket index = id - 1.
+    slot_map = {}
+    for ans in bot_answers:
+        aid = int(ans['answer_id'])
+        if 1 <= aid <= len(buckets):
+            slot_map[str(aid)] = buckets[aid - 1]
 
-        expires_dt = bot_resp.get('expires_at', '')
+    expires_dt = bot_resp.get('expires_at', '')
+    try:
+        expires_parsed = datetime.fromisoformat(expires_dt.replace('Z', '+00:00')) if expires_dt else None
+        if expires_parsed is not None and expires_parsed.tzinfo is not None:
+            expires_parsed = expires_parsed.astimezone(tz=None).replace(tzinfo=None)
+    except (ValueError, TypeError, AttributeError):
+        expires_parsed = None
+    if expires_parsed is None:
+        expires_parsed = datetime.utcnow() + _td(hours=duration_hours)
+
+    try:
+        poll_row = DiscordPoll(
+            discord_message_id=discord_message_id,
+            channel_id=bot_channel_id,
+            channel_key=channel_key,
+            guild_id=guild_id,
+            title=title,
+            match_date=target_date,
+            options=bot_answers,
+            poll_kind='availability',
+            season_id=season.id if season else None,
+            slot_map=slot_map,
+            duration_hours=duration_hours,
+            allow_multiselect=True,
+            created_by_user_id=user_id,
+            expires_at=expires_parsed,
+            discord_message_url=message_url,
+        )
+        session.add(poll_row)
+        session.commit()
+    except Exception:
+        # The poll is already live in Discord but we failed to store it — every
+        # vote will come back 'untracked' and availability is lost. Surface this
+        # as a failure so the Celery task can alert/retry instead of logging success.
+        logger.exception("Failed to persist availability DiscordPoll row (poll is live but untracked!)")
         try:
-            expires_parsed = datetime.fromisoformat(expires_dt.replace('Z', '+00:00')) if expires_dt else None
-            if expires_parsed is not None and expires_parsed.tzinfo is not None:
-                expires_parsed = expires_parsed.astimezone(tz=None).replace(tzinfo=None)
-        except (ValueError, TypeError, AttributeError):
-            expires_parsed = None
-        if expires_parsed is None:
-            expires_parsed = datetime.utcnow() + _td(hours=duration_hours)
-
-        try:
-            poll_row = DiscordPoll(
-                discord_message_id=discord_message_id,
-                channel_id=bot_channel_id,
-                channel_key=channel_key,
-                guild_id=guild_id,
-                title=title,
-                match_date=target_date,
-                options=bot_answers,
-                poll_kind='availability',
-                season_id=season.id if season else None,
-                slot_map=slot_map,
-                duration_hours=duration_hours,
-                allow_multiselect=True,
-                created_by_user_id=user_id,
-                expires_at=expires_parsed,
-                discord_message_url=message_url,
-            )
-            session.add(poll_row)
-            session.commit()
+            session.rollback()
         except Exception:
-            logger.exception("Failed to persist availability DiscordPoll row")
+            pass
+        return {
+            "success": False,
+            "reason": "persist_failed",
+            "discord_message_id": discord_message_id,
+            "discord_message_url": message_url,
+            "match_date": target_date.isoformat(),
+        }, 500
 
+    # Audit only when a real admin triggered it (automated beat has no user).
+    if user_id:
         try:
             AdminAuditLog.log_action(
                 user_id=user_id,
@@ -1823,6 +1882,7 @@ def internal_create_subs_poll():
                     'poll_kind': 'availability',
                     'match_date': target_date.isoformat(),
                     'buckets': [b['label'] for b in buckets],
+                    'only_slots_needing_subs': only_slots_needing_subs,
                     'source': 'discord_subs_command',
                 }),
                 deferred=True,
@@ -1830,13 +1890,61 @@ def internal_create_subs_poll():
         except Exception:
             logger.exception("Failed to write discord_poll_posted audit log")
 
-        return jsonify({
-            "success": True,
-            "discord_message_id": discord_message_id,
-            "discord_message_url": message_url,
-            "match_date": target_date.isoformat(),
-            "buckets": [b['label'] for b in buckets],
-        }), 200
+    return {
+        "success": True,
+        "discord_message_id": discord_message_id,
+        "discord_message_url": message_url,
+        "match_date": target_date.isoformat(),
+        "buckets": [b['label'] for b in buckets],
+    }, 200
+
+
+@mobile_api_v2.route('/internal/subs/poll', methods=['POST'])
+def internal_create_subs_poll():
+    """
+    Post a schedule-generated availability poll to #pl-subs from the bot.
+
+    Auth: X-Bot-Token. The acting user is resolved from discord_id and must
+    hold an admin role server-side. Thin wrapper over post_availability_poll()
+    (shared with the automated weekly Celery task).
+
+    Body: {discord_id, match_date?, channel_key?='pl_subs', duration_hours?, only_slots_needing_subs?}
+    """
+    if not _bot_token_ok():
+        return jsonify({"msg": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    discord_id = str(data.get('discord_id') or '').strip()
+    if not discord_id:
+        return jsonify({"msg": "discord_id required"}), 400
+
+    channel_key = data.get('channel_key', 'pl_subs')
+
+    match_date_raw = data.get('match_date')
+    target_date = None
+    if match_date_raw:
+        try:
+            target_date = datetime.strptime(str(match_date_raw), '%Y-%m-%d').date()
+        except ValueError:
+            return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
+
+    with managed_session() as session:
+        player = session.query(Player).filter_by(discord_id=discord_id).first()
+        if not player:
+            return jsonify({"success": False, "reason": "not_linked"}), 200
+        user_id = player.user_id
+        if not is_admin_user(session, user_id):
+            return jsonify({"success": False, "reason": "not_authorized"}), 200
+
+        payload, status = post_availability_poll(
+            session,
+            target_date=target_date,
+            user_id=user_id,
+            channel_key=channel_key,
+            duration_hours=data.get('duration_hours'),
+            only_slots_needing_subs=bool(data.get('only_slots_needing_subs', False)),
+        )
+        return jsonify(payload), status
 
 
 # ============================================================================
@@ -1915,6 +2023,105 @@ def receive_discord_poll_vote():
         ).order_by(DiscordPollVote.voted_at.desc()).first()
         if existing:
             existing.removed_at = datetime.utcnow()
+
+    # Close the loop: fold this vote into the canonical weekly availability pool
+    # (only for availability polls; generic polls have no slot_map and are skipped).
+    # session.flush() so the just-added/removed vote is visible to the recompute.
+    if poll.poll_kind == 'availability' and poll.slot_map:
+        try:
+            session.flush()
+            from app.services.substitute_availability_service import sync_availability_from_poll_vote
+            sync_availability_from_poll_vote(session, poll, discord_user_id)
+        except Exception:
+            # Availability is a projection of the votes; never fail the vote webhook
+            # over it. The reconcile view + a re-vote will re-drive it.
+            logger.exception("Failed to sync availability from poll vote (poll %s, user %s)",
+                             poll.id, discord_user_id)
+
+    return jsonify({"success": True, "tracked": True}), 200
+
+
+@mobile_api_v2.route('/internal/subs/reachout-response', methods=['POST'])
+def internal_reachout_response():
+    """
+    Receive a reach-out response from the Discord bot (DM buttons).
+
+    Auth: X-Bot-Token == FLASK_TOKEN (mirrors receive_discord_poll_vote). The bot
+    calls this back when a sub taps Yes/No on a reach-out DM.
+
+    Body: {
+        reachout_recipient_id?, response_token?, discord_user_id, is_available
+    }
+    Resolution order: recipient id -> response_token -> the player's most recent
+    un-answered recipient (by discord_user_id). Unknown/untracked targets are a
+    silent no-op ({"success": true, "tracked": false}) so the bot never errors.
+
+    On a match, sets recipient response state and folds the answer into the
+    canonical availability pool via record_reachout_response (source='reachout_dm').
+    """
+    if not _bot_token_ok():
+        return jsonify({"msg": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    recipient_id = data.get('reachout_recipient_id')
+    response_token = (str(data.get('response_token') or '').strip() or None)
+    discord_user_id = str(data.get('discord_user_id') or '').strip()
+    is_available = data.get('is_available')
+
+    if is_available is None:
+        return jsonify({"msg": "is_available is required"}), 400
+    is_available = bool(is_available)
+
+    session = getattr(g, 'db_session', None)
+    if session is None:
+        return jsonify({"msg": "Database session not available"}), 500
+
+    recipient = None
+    if recipient_id is not None:
+        try:
+            recipient = session.query(SubstituteReachoutRecipient).get(int(recipient_id))
+        except (TypeError, ValueError):
+            recipient = None
+    if recipient is None and response_token:
+        recipient = session.query(SubstituteReachoutRecipient).filter_by(
+            response_token=response_token
+        ).first()
+    if recipient is None and discord_user_id:
+        player = session.query(Player).filter_by(discord_id=discord_user_id).first()
+        if player:
+            recipient = session.query(SubstituteReachoutRecipient).filter_by(
+                player_id=player.id, responded_at=None
+            ).order_by(SubstituteReachoutRecipient.id.desc()).first()
+
+    if recipient is None:
+        # Untracked/unknown target — silent no-op.
+        return jsonify({"success": True, "tracked": False}), 200
+
+    reachout = session.query(SubstituteReachout).get(recipient.reachout_id)
+    if reachout is None:
+        return jsonify({"success": True, "tracked": False}), 200
+
+    recipient.is_available = is_available
+    recipient.responded_at = datetime.utcnow()
+    recipient.response_method = 'discord'
+
+    try:
+        from app.services.substitute_availability_service import record_reachout_response
+        record_reachout_response(
+            session,
+            player_id=recipient.player_id,
+            match_date=reachout.match_date,
+            league_type=reachout.league_type,
+            is_available=is_available,
+            time_slots=reachout.time_slots,
+            match_ids=reachout.match_ids,
+            source='reachout_dm',
+            season_id=reachout.season_id,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to record reach-out DM response (recipient %s)", recipient.id
+        )
 
     return jsonify({"success": True, "tracked": True}), 200
 
@@ -2327,6 +2534,267 @@ def respond_to_request(request_id: int):
                 "responded_at": response.responded_at.isoformat() if response.responded_at else None
             }
         }), 201
+
+
+# ============================================================================
+# Admin/Coach Endpoints - Ad-hoc reach-outs (closed-loop availability)
+#
+# A reach-out asks subs "can you sub this week?" for a date + time slot(s) and
+# feeds the SAME SubstituteAvailability pool as the Discord availability poll
+# (via substitute_availability_service.record_reachout_response). Two kinds:
+#   general  -> blasted to the whole league sub pool.
+#   targeted -> a specific set of players; the team is NEVER revealed to them.
+# ============================================================================
+
+PUB_LEAGUE_TYPES = ('Classic', 'Premier')
+
+
+def _current_pub_league_season_id(session):
+    """Current Pub League season id (for stamping reach-out/availability rows)."""
+    from app.models.core import Season
+    row = session.query(Season.id).filter_by(
+        league_type='Pub League', is_current=True
+    ).order_by(Season.id.desc()).first()
+    return row[0] if row else None
+
+
+@mobile_api_v2.route('/substitutes/reachout', methods=['POST'])
+@jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def create_substitute_reachout():
+    """
+    Create an admin/coach reach-out to the substitute pool and send it.
+
+    A reach-out feeds the SAME availability pool as the Discord poll. For a
+    'targeted' reach-out the message NEVER reveals the team.
+
+    Gate: caller must be an admin. A coach may only create a reach-out anchored
+    to one of their own team's requests (request_id required in that case).
+
+    Expected JSON:
+        kind: 'general' | 'targeted'
+        league_type: 'Classic' | 'Premier'
+        match_date: 'YYYY-MM-DD'
+        time_slots: ['08:20', ...]
+        match_ids: [int, ...]        (optional)
+        request_id: int              (optional; coordinator context, never shown)
+        recipient_player_ids: [int]  (required for kind='targeted')
+        channels: ['PUSH','DISCORD','SMS','EMAIL']  (optional; default all)
+        message: str                 (optional admin note; team must not be named)
+
+    Returns:
+        {success, reachout_id, recipients_count, per_channel_counts}
+    """
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+
+    kind = (data.get('kind') or 'general').strip().lower()
+    if kind not in ('general', 'targeted'):
+        return jsonify({"msg": "kind must be 'general' or 'targeted'"}), 400
+
+    league_type = (data.get('league_type') or '').strip()
+    if league_type not in PUB_LEAGUE_TYPES:
+        return jsonify({"msg": f"league_type must be one of: {', '.join(PUB_LEAGUE_TYPES)}"}), 400
+
+    match_date_raw = data.get('match_date')
+    if not isinstance(match_date_raw, str):
+        return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
+    try:
+        match_date = datetime.strptime(match_date_raw, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
+
+    time_slots = data.get('time_slots') or []
+    if not isinstance(time_slots, list):
+        return jsonify({"msg": "time_slots must be a list"}), 400
+    time_slots = [str(s) for s in time_slots]
+
+    match_ids = data.get('match_ids') or []
+    if not isinstance(match_ids, list):
+        return jsonify({"msg": "match_ids must be a list"}), 400
+    try:
+        match_ids = [int(m) for m in match_ids]
+    except (TypeError, ValueError):
+        return jsonify({"msg": "match_ids must be integers"}), 400
+
+    request_id = data.get('request_id')
+    if request_id is not None:
+        try:
+            request_id = int(request_id)
+        except (TypeError, ValueError):
+            return jsonify({"msg": "request_id must be an integer"}), 400
+
+    recipient_player_ids = data.get('recipient_player_ids') or []
+    if kind == 'targeted':
+        if not isinstance(recipient_player_ids, list) or not recipient_player_ids:
+            return jsonify({"msg": "recipient_player_ids is required for a targeted reach-out"}), 400
+        try:
+            recipient_player_ids = [int(p) for p in recipient_player_ids]
+        except (TypeError, ValueError):
+            return jsonify({"msg": "recipient_player_ids must be integers"}), 400
+
+    channels = data.get('channels')
+    channels_str = None
+    if channels:
+        if not isinstance(channels, list):
+            return jsonify({"msg": "channels must be a list"}), 400
+        picked = [str(c).strip().upper() for c in channels if str(c).strip()]
+        # Org-wide "Allow SMS reach-outs" master switch (Settings). Default False to
+        # match the UI; per-recipient consent is still enforced in get_player_channels.
+        from app.models.admin_config import AdminConfig
+        allow_sms = str(AdminConfig.get_setting('sub_reachout_allow_sms', False)).lower() \
+            in ('true', '1', 'yes', 'on')
+        if not allow_sms:
+            picked = [c for c in picked if c != 'SMS']
+        channels_str = ','.join(picked) or None
+
+    message = (data.get('message') or '').strip() or None
+
+    with managed_session() as session:
+        from app.services.substitute_authority import is_admin, can_request
+
+        # Gate: admins always; a coach only when anchored to their own request.
+        authorized = is_admin(session, current_user_id, program='Pub League')
+        if not authorized:
+            if request_id is None:
+                return jsonify({"msg": "Only admins can create a pool-wide reach-out"}), 403
+            anchor = session.query(SubstituteRequest).get(request_id)
+            if not anchor:
+                return jsonify({"msg": "Request not found"}), 404
+            if not can_request(session, current_user_id,
+                               team_id=anchor.team_id, program='Pub League'):
+                return jsonify({"msg": "You can only reach out for your own team's requests"}), 403
+
+        # Resolve recipient player ids. league_type is authoritative: even a targeted
+        # pick is constrained to subs eligible for THAT league (parity with the web
+        # twin), so a "Premier" ask can't ping Classic-only subs.
+        eligible_ids = {pe.player_id for pe in get_active_substitutes(league_type, session)}
+        if kind == 'general':
+            target_player_ids = list(eligible_ids)
+        else:
+            found = session.query(Player.id).filter(Player.id.in_(recipient_player_ids)).all()
+            found_ids = {pid for (pid,) in found}
+            target_player_ids = [pid for pid in recipient_player_ids
+                                 if pid in found_ids and pid in eligible_ids]
+
+        # De-dupe while preserving order.
+        seen = set()
+        target_player_ids = [
+            pid for pid in target_player_ids if not (pid in seen or seen.add(pid))
+        ]
+
+        if not target_player_ids:
+            return jsonify({"msg": "No recipients resolved for this reach-out"}), 400
+
+        reachout = SubstituteReachout(
+            kind=kind,
+            league_type=league_type,
+            match_date=match_date,
+            season_id=_current_pub_league_season_id(session),
+            time_slots=time_slots,
+            match_ids=match_ids,
+            request_id=request_id,
+            message=message,
+            channels=channels_str,
+            created_by=current_user_id,
+            recipients_count=len(target_player_ids),
+        )
+        session.add(reachout)
+        session.flush()  # assign reachout.id
+
+        recipients = []
+        for pid in target_player_ids:
+            rec = SubstituteReachoutRecipient(
+                reachout_id=reachout.id,
+                player_id=pid,
+            )
+            rec.generate_token()
+            session.add(rec)
+            recipients.append(rec)
+        session.flush()
+
+        from app.services.substitute_notification_service import get_notification_service
+        send_results = get_notification_service().send_reachout(
+            reachout, recipients, session=session
+        )
+
+        session.commit()
+
+        logger.info(
+            f"Reach-out {reachout.id} ({kind}/{league_type}) created by user "
+            f"{current_user_id}: {len(recipients)} recipients, {send_results['sent']} notified"
+        )
+
+        return jsonify({
+            "success": True,
+            "reachout_id": reachout.id,
+            "recipients_count": len(recipients),
+            "notifications_sent": send_results['sent'],
+            "per_channel_counts": send_results['per_channel_counts'],
+            "errors": send_results['errors'],
+        }), 201
+
+
+@mobile_api_v2.route('/substitutes/reachout/<int:reachout_id>/respond', methods=['POST'])
+@jwt_required()
+def respond_to_reachout(reachout_id: int):
+    """
+    Respond to a reach-out from the mobile app.
+
+    Sets the caller's recipient state and folds the answer into the canonical
+    availability pool via record_reachout_response (source='reachout_push').
+
+    Expected JSON:
+        is_available: bool (required)
+        time_slots: ['08:20', ...] (optional; defaults to the reach-out's slots)
+    """
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+
+    is_available = data.get('is_available')
+    if is_available is None:
+        return jsonify({"msg": "is_available is required"}), 400
+    is_available = bool(is_available)
+
+    time_slots = data.get('time_slots')
+    if time_slots is not None and not isinstance(time_slots, list):
+        return jsonify({"msg": "time_slots must be a list"}), 400
+
+    with managed_session() as session:
+        player = get_player_from_user(session, current_user_id)
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        reachout = session.query(SubstituteReachout).get(reachout_id)
+        if not reachout:
+            return jsonify({"msg": "Reach-out not found"}), 404
+
+        recipient = session.query(SubstituteReachoutRecipient).filter_by(
+            reachout_id=reachout_id, player_id=player.id
+        ).first()
+        if not recipient:
+            return jsonify({"msg": "You were not contacted for this reach-out"}), 403
+
+        recipient.is_available = is_available
+        recipient.responded_at = datetime.utcnow()
+        recipient.response_method = 'mobile'
+
+        from app.services.substitute_availability_service import record_reachout_response
+        record_reachout_response(
+            session,
+            player_id=player.id,
+            match_date=reachout.match_date,
+            league_type=reachout.league_type,
+            is_available=is_available,
+            time_slots=(time_slots if time_slots is not None else reachout.time_slots),
+            match_ids=reachout.match_ids,
+            source='reachout_push',
+            season_id=reachout.season_id,
+        )
+
+        session.commit()
+
+        return jsonify({"success": True}), 200
 
 
 @mobile_api_v2.route('/substitutes/my-targeted-requests', methods=['GET'])

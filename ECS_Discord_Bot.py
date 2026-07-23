@@ -2430,6 +2430,8 @@ async def on_interaction(interaction: discord.Interaction):
         await _handle_rsvp_reminder_interaction(interaction, custom_id)
     elif custom_id.startswith('match_reminder:'):
         await _handle_match_reminder_interaction(interaction, custom_id)
+    elif custom_id.startswith('subs:v1:reachout:'):
+        await _handle_subs_reachout_interaction(interaction, custom_id)
 
 
 async def _handle_rsvp_reminder_interaction(interaction: discord.Interaction, custom_id: str):
@@ -2652,6 +2654,108 @@ async def _handle_match_reminder_interaction(interaction: discord.Interaction, c
                 content="Something went wrong. Try again later.",
                 embed=None, view=None
             )
+        except Exception:
+            pass
+
+
+async def _handle_subs_reachout_interaction(interaction: discord.Interaction, custom_id: str):
+    """
+    Process Yes/No button clicks from substitute reach-out DMs.
+
+    Custom ID grammar (frozen): subs:v1:reachout:{reachout_recipient_id}:{yes|no}
+
+    Writes the availability answer back to Flask, which owns the reach-out
+    recipient record and any downstream placement. The team is never revealed.
+    """
+    parts = custom_id.split(':')
+    # subs : v1 : reachout : <recipient_id> : <yes|no>
+    if len(parts) != 5:
+        return
+
+    recipient_id_str = parts[3]
+    answer = parts[4]
+
+    if answer not in ('yes', 'no'):
+        return
+
+    try:
+        recipient_id = int(recipient_id_str)
+    except ValueError:
+        return
+
+    # Defer immediately to avoid the 3-second interaction timeout.
+    await interaction.response.defer()
+
+    is_available = (answer == 'yes')
+    discord_id = str(interaction.user.id)
+
+    token = os.getenv("FLASK_TOKEN", "")
+    if not token:
+        logger.warning("FLASK_TOKEN not set; cannot write back subs reach-out response for recipient %s", recipient_id)
+        try:
+            error_embed = discord.Embed(
+                title="Something went wrong",
+                description="We couldn't record your response right now. Please reach out to an admin directly.",
+                color=0xf44336  # Red
+            )
+            await interaction.edit_original_response(embed=error_embed, view=None)
+        except Exception:
+            pass
+        return
+
+    url = f"{WEBUI_API_URL}/v1/internal/subs/reachout-response"
+    body = {
+        "reachout_recipient_id": recipient_id,
+        "discord_user_id": discord_id,
+        "is_available": is_available,
+    }
+
+    try:
+        # PERFORMANCE: Reuse bot's persistent session instead of creating new ones.
+        session = getattr(bot, 'session', None)
+        if not session or session.closed:
+            session = aiohttp.ClientSession()
+            bot.session = session
+
+        async with session.post(
+            url,
+            json=body,
+            headers={"X-Bot-Token": token},
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as resp:
+            if resp.status == 200:
+                if is_available:
+                    confirm_embed = discord.Embed(
+                        title="Thanks — you're on the list! ✅",
+                        description="We've noted you're **available** to sub. We'll reach out if we need you.",
+                        color=0x4caf50  # Green
+                    )
+                else:
+                    confirm_embed = discord.Embed(
+                        title="No problem ❌",
+                        description="We've noted you're **unavailable** this time. Thanks for letting us know!",
+                        color=0x2196f3  # Blue
+                    )
+                await interaction.edit_original_response(embed=confirm_embed, view=None)
+            else:
+                resp_text = await resp.text()
+                logger.error(f"Subs reach-out response API error: {resp.status} - {resp_text}")
+                error_embed = discord.Embed(
+                    title="Couldn't save that",
+                    description="We couldn't record your response right now. Please try again later or contact an admin.",
+                    color=0xf44336  # Red
+                )
+                await interaction.edit_original_response(embed=error_embed, view=None)
+
+    except Exception as e:
+        logger.error(f"Error processing subs reach-out button click: {e}", exc_info=True)
+        try:
+            error_embed = discord.Embed(
+                title="Something went wrong",
+                description="We couldn't record your response. Please try again later or contact an admin.",
+                color=0xf44336  # Red
+            )
+            await interaction.edit_original_response(embed=error_embed, view=None)
         except Exception:
             pass
 

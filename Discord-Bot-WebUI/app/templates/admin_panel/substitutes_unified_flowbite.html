@@ -1,790 +1,534 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
 
-{% block admin_title %}Substitutes (Unified){% endblock %}
-{% block panel_description %}Unified substitute requests across Pub League and ECS FC{% endblock %}
+{% block admin_title %}Substitute Command Center{% endblock %}
+{% block panel_description %}One hub for substitute needs, availability, pool and settings across Pub League and ECS FC{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
-    <div class="flex items-center">
-        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
-    </div>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+  </div>
 </li>
 <li>
-    <div class="flex items-center">
-        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Substitutes</span>
-    </div>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Substitute Command Center</span>
+  </div>
 </li>
 {% endblock %}
 
 {% block panel_content %}
-{# Unified board — league-agnostic, driven entirely off the normalized `items` dicts
-   from app/services/unified_substitute_service.py. Every action posts/links to the
-   EXISTING per-league endpoints carried on item.action_urls. #}
-
 {% set csrf_token_value = csrf_token() if csrf_token is defined else '' %}
 
-{# Reusable action cluster macro — drives buttons entirely off item.action_urls + league.
-   Defined first so it is available everywhere below (Jinja macros are not hoisted). #}
-{% macro item_actions(item, mobile=false) %}
-{% set btn_base = 'inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors' %}
-{% set btn_mh = ('min-h-[44px] ' if mobile else '') %}
-<div class="flex items-center {{ 'justify-start flex-wrap gap-1.5' if mobile else 'justify-end gap-1.5 flex-wrap' }}">
-  {% if item.ready_to_assign and item.action_urls.assign and item.action_urls.available %}
-  <button type="button"
-          data-assign-open
-          data-league="{{ item.league }}"
-          data-assign-url="{{ item.action_urls.assign }}"
-          data-available-url="{{ item.action_urls.available }}"
-          data-request-id="{{ item.id }}"
-          data-match-id="{{ item.match_id if item.match_id is not none else '' }}"
-          data-team-id="{{ item.team_id if item.team_id is not none else '' }}"
-          data-match-label="{{ item.match_label|e }}"
-          class="{{ btn_mh }}inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
-    <i class="ti ti-user-check" aria-hidden="true"></i>Assign
-  </button>
-  {% endif %}
+{# =====================================================================
+   Substitute Command Center — tabbed hub. Server-renders every tab from
+   the unified adapter + availability service; substitute-command-center.js
+   (bundled via admin-entry.js) drives tab switching, candidate slide-over,
+   assign, reach-out and settings save via window.EventDelegation data-action.
+   Old pages (substitute_management, ecs_fc_sub_requests) remain as fallback.
+   ===================================================================== #}
+<div id="substitute-command-center-root"
+     data-week="{{ week_date }}"
+     data-candidates-url="{{ url_for('admin_panel.sub_candidates_for_request') }}"
+     data-week-availability-url="{{ url_for('admin_panel.sub_week_availability') }}"
+     data-settings-save-url="{{ url_for('admin_panel.sub_settings_save') }}"
+     data-discord-channels-url="{{ url_for('admin_panel.sub_discord_channels') }}"
+     data-reachout-url="{{ url_for('admin_panel.sub_reachout_web') }}"
+     data-assign-url="{{ url_for('admin_panel.sub_assign_json') }}"
+     data-csrf="{{ csrf_token_value }}">
 
-  {% if item.status == 'OPEN' and item.action_urls.contact %}
-  {# Unified Contact: opens the league-aware modal (recipient targeting + per-league
-     framing). Dispatches to the item's contact endpoint (Pub League notify-pool /
-     ECS FC contact-existing) — both reuse existing send paths. #}
-  <button type="button"
-          data-contact-open
-          data-league="{{ item.league }}"
-          data-contact-url="{{ item.action_urls.contact }}"
-          data-request-id="{{ item.id }}"
-          data-league-type="{{ item.league_type|e }}"
-          data-needed="{{ item.needed }}"
-          data-match-label="{{ item.match_label|e }}"
-          data-positions="{{ item.positions|e }}"
-          data-default-message="{{ item.default_contact_message|e }}"
-          class="{{ btn_mh }}{{ btn_base }} text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 dark:bg-ecs-green/15 dark:hover:bg-ecs-green/25">
-    <i class="ti ti-send" aria-hidden="true"></i>Contact
-  </button>
-  {% endif %}
-
-  {% if item.action_urls.view %}
-  <a href="{{ item.action_urls.view }}" title="View / manage"
-     class="{{ btn_mh }}{{ btn_base }} text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25">
-    <i class="ti ti-eye" aria-hidden="true"></i>View
-  </a>
-  {% else %}
-  <span class="{{ btn_base }} text-gray-400 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed" title="No match linked — view unavailable">
-    <i class="ti ti-eye-off" aria-hidden="true"></i>View
-  </span>
-  {% endif %}
-
-  {% if item.status == 'OPEN' and item.action_urls.cancel %}
-  <form method="POST" action="{{ item.action_urls.cancel }}"
-        onsubmit="return confirm('Cancel this substitute request?');" class="inline">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token_value }}">
-    <input type="hidden" name="request_id" value="{{ item.id }}">
-    <button type="submit" class="{{ btn_mh }}{{ btn_base }} text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25">
-      <i class="ti ti-x" aria-hidden="true"></i>Cancel
-    </button>
-  </form>
-  {% endif %}
-</div>
-{% endmacro %}
-
-{{ page_header("Substitutes", subtitle="Unified board · Pub League + ECS FC") }}
-
-{# ---- Command banner: ready-to-assign summary ---- #}
-<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-5 sm:mb-6">
-  <div class="flex items-center gap-3 min-w-0">
-    <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl
-                 {% if ready_count %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">
-      <i class="ti ti-user-check text-xl" aria-hidden="true"></i>
-    </span>
-    <div class="min-w-0">
-      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Ready to assign</p>
-      {% if ready_count %}
-      <p class="text-sm font-semibold text-gray-900 dark:text-white">
-        <span class="font-mono text-ecs-green">{{ ready_count }}</span>
-        request{{ 's' if ready_count != 1 else '' }} on this page have an available sub waiting on you
-      </p>
-      {% else %}
-      <p class="text-sm font-semibold text-gray-900 dark:text-white">No requests on this page are waiting on an assignment</p>
-      {% endif %}
-    </div>
+{# ---- Header + top reach-out CTA + week nav ---- #}
+{% call page_header("Substitute Command Center", subtitle="ECS Soccer League · Match Operations", icon="ti-users-group") %}
+  <div class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-0.5">
+    <a href="{{ url_for('admin_panel.unified_substitutes', week=prev_week, league=league_filter, status=status_filter) }}"
+       class="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Previous week"><i class="ti ti-chevron-left"></i></a>
+    <span class="px-2 text-xs font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">{{ week_label }}</span>
+    <a href="{{ url_for('admin_panel.unified_substitutes', week=next_week, league=league_filter, status=status_filter) }}"
+       class="h-8 w-8 inline-flex items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Next week"><i class="ti ti-chevron-right"></i></a>
   </div>
-</div>
-
-{# ---- KPI band ---- #}
-<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
-  {% call stat_card("ti-clipboard-list", "Showing", items|length, tone="info") %}of {{ total }} matching request{{ 's' if total != 1 else '' }}{% endcall %}
-  {% call stat_card("ti-user-check", "Ready to Assign", ready_count, tone="success") %}available sub waiting{% endcall %}
-  {% call stat_card("ti-users", "Sub Pool", pool_members|length, tone="primary") %}across both leagues{% endcall %}
-</div>
-
-{# ---- Filter bar: league + status (server-side GET, submit-on-change) ---- #}
-<form method="get" class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6">
-  <div role="group" aria-label="Filter by league"
-       class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-    {% for opt, lbl in [('all','All Leagues'), ('pub_league','Pub League'), ('ecs_fc','ECS FC')] %}
-    <label class="cursor-pointer">
-      <input type="radio" name="league" value="{{ opt }}" onchange="this.form.submit()"
-             class="sr-only peer" {% if league_filter == opt %}checked{% endif %}>
-      <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
-                   text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white
-                   peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm
-                   dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
-    </label>
-    {% endfor %}
-  </div>
-  <div role="group" aria-label="Filter by status"
-       class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-    {% for opt, lbl in [('active','Active'), ('open','Open'), ('filled','Filled'), ('cancelled','Cancelled'), ('expired','Expired'), ('all','All')] %}
-    <label class="cursor-pointer">
-      <input type="radio" name="status" value="{{ opt }}" onchange="this.form.submit()"
-             class="sr-only peer" {% if status_filter == opt %}checked{% endif %}>
-      <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
-                   text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white
-                   peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm
-                   dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
-    </label>
-    {% endfor %}
-  </div>
-  <button type="submit"
+  <button type="button" data-action="sct-reachout-open" data-kind="general"
           class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
-    <i class="ti ti-search" aria-hidden="true"></i>Apply
+    <i class="ti ti-send" aria-hidden="true"></i>Reach out to subs
   </button>
-  {% if league_filter != 'all' or status_filter != 'active' %}
-  <a href="{{ url_for('admin_panel.unified_substitutes') }}"
-     class="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium transition-colors">
-    <i class="ti ti-x" aria-hidden="true"></i>Clear
-  </a>
-  {% endif %}
-</form>
-
-{# ===== Board: requests (left, 2 cols) ↔ unified sub pool (right) ===== #}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 mb-5 sm:mb-6">
-
-{# LEFT: unified requests board #}
-<div class="lg:col-span-2">
-{% if items %}
-{% call data_table("Substitute Requests", icon="ti-clipboard-list", count=total, filters=false) %}
-  {# md+ table — status accent rail + fill meter + tally chips #}
-  <table class="hidden md:table w-full text-sm text-left">
-    <thead class="bg-gray-50 dark:bg-gray-700/40">
-      <tr>
-        {{ data_table_th("League",    sortable=false) }}
-        {{ data_table_th("Match",     sortable=false) }}
-        {{ data_table_th("Team",      sortable=false, hide='md') }}
-        {{ data_table_th("Status",    sortable=false) }}
-        {{ data_table_th("Fill",      sortable=false) }}
-        {{ data_table_th("Responses", sortable=false, hide='sm') }}
-        {{ data_table_th("Actions",   sortable=false, align='right') }}
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-      {% for item in items %}
-      {% set needed = item.needed or 1 %}
-      {% set complete = item.assigned >= needed %}
-      {% set rail = 'bg-amber-400 dark:bg-amber-500' if item.status == 'OPEN' else ('bg-green-500' if item.status == 'FILLED' else ('bg-red-400 dark:bg-red-500' if item.status == 'CANCELLED' else 'bg-gray-300 dark:bg-gray-600')) %}
-      <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-        <td class="px-3 py-3 align-top">
-          {% if item.league == 'ecs_fc' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
-          {% else %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
-          {% endif %}
-        </td>
-        <td class="px-3 py-3 align-top">
-          <div class="flex gap-3">
-            <span class="mt-0.5 w-1 self-stretch rounded-full shrink-0 {{ rail }}" aria-hidden="true"></span>
-            <div class="min-w-0">
-              <div class="font-semibold text-gray-900 dark:text-white truncate">{{ item.match_label }}</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.match_date.strftime('%b %d, %Y') if item.match_date else 'No date' }}</div>
-              {% if item.positions %}<div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"><span class="font-medium">Positions:</span> {{ item.positions }}</div>{% endif %}
-              {% if item.notes %}<div class="mt-0.5 text-xs text-gray-400 dark:text-gray-500 line-clamp-2"><i class="ti ti-note text-[11px]" aria-hidden="true"></i> {{ item.notes }}</div>{% endif %}
-            </div>
-          </div>
-        </td>
-        <td class="px-3 py-3 align-top hidden lg:table-cell">
-          <span class="font-medium text-gray-900 dark:text-white">{{ item.team_name }}</span>
-        </td>
-        <td class="px-3 py-3 align-top">
-          {% if item.status == 'OPEN' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
-          {% elif item.status == 'FILLED' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]" aria-hidden="true"></i>Filled</span>
-          {% elif item.status == 'CANCELLED' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
-          {% elif item.status == 'EXPIRED' %}
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-clock-off text-[12px]" aria-hidden="true"></i>Expired</span>
-          {% else %}
-          <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.status }}</span>
-          {% endif %}
-        </td>
-        <td class="px-3 py-3 align-top">
-          <div class="font-mono text-sm font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
-            {{ item.assigned }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span>
-          </div>
-          <div class="mt-1 h-1.5 w-20 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="presentation">
-            <div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}"
-                 style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div>
-          </div>
-        </td>
-        <td class="px-3 py-3 align-top hidden md:table-cell">
-          <div class="flex items-center gap-1.5 flex-wrap">
-            {% if item.tally.available > 0 %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Available"><i class="ti ti-check text-xs" aria-hidden="true"></i>{{ item.tally.available }}</span>
-            {% endif %}
-            {% if item.tally.unavailable > 0 %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300" title="Unavailable"><i class="ti ti-x text-xs" aria-hidden="true"></i>{{ item.tally.unavailable }}</span>
-            {% endif %}
-            {% if item.tally.pending > 0 %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" title="Awaiting response"><i class="ti ti-clock text-xs" aria-hidden="true"></i>{{ item.tally.pending }}</span>
-            {% endif %}
-            {% if item.total_contacted == 0 %}
-            <span class="text-xs text-gray-400 dark:text-gray-500">No contacts</span>
-            {% endif %}
-          </div>
-          {% if item.ready_to_assign %}
-          <div class="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ item.tally.available }} ready to assign</div>
-          {% endif %}
-        </td>
-        <td class="px-3 py-3 align-top text-right">
-          {{ item_actions(item) }}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  {# mobile stacked cards #}
-  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-    {% for item in items %}
-    {% set needed = item.needed or 1 %}
-    {% set complete = item.assigned >= needed %}
-    {% set rail = 'bg-amber-400 dark:bg-amber-500' if item.status == 'OPEN' else ('bg-green-500' if item.status == 'FILLED' else ('bg-red-400 dark:bg-red-500' if item.status == 'CANCELLED' else 'bg-gray-300 dark:bg-gray-600')) %}
-    <div class="px-4 py-3.5 flex gap-3">
-      <span class="w-1 self-stretch rounded-full shrink-0 {{ rail }}" aria-hidden="true"></span>
-      <div class="min-w-0 flex-1">
-      <div class="flex items-start justify-between gap-2">
-        <div class="min-w-0">
-          <div class="flex items-center gap-1.5">
-            {% if item.league == 'ecs_fc' %}
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
-            {% else %}
-            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
-            {% endif %}
-            <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.match_label }}</div>
-          </div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.match_date.strftime('%b %d, %Y') if item.match_date else 'No date' }}</div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ item.team_name }}</div>
-        </div>
-        {% if item.status == 'OPEN' %}
-        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
-        {% elif item.status == 'FILLED' %}
-        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]" aria-hidden="true"></i>Filled</span>
-        {% elif item.status == 'CANCELLED' %}
-        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
-        {% elif item.status == 'EXPIRED' %}
-        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-clock-off text-[12px]" aria-hidden="true"></i>Expired</span>
-        {% else %}
-        <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.status }}</span>
-        {% endif %}
-      </div>
-      {% if item.positions or item.ready_to_assign %}
-      <div class="mt-2 flex flex-wrap items-center gap-1.5">
-        {% if item.positions %}
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ item.positions }}</span>
-        {% endif %}
-        {% if item.ready_to_assign %}
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ item.tally.available }} ready to assign</span>
-        {% endif %}
-      </div>
-      {% endif %}
-      <div class="mt-2 flex items-center gap-2">
-        <span class="font-mono text-xs font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.assigned }}<span class="text-gray-400 dark:text-gray-500">/{{ needed }}</span></span>
-        <div class="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-          <div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}" style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div>
-        </div>
-      </div>
-      {% if item.total_contacted > 0 %}
-      <div class="mt-2 grid grid-cols-3 gap-1.5">
-        <div class="rounded-lg bg-green-100 dark:bg-green-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-green-700 dark:text-green-300">{{ item.tally.available }}</span><span class="block text-[10px] uppercase tracking-wide text-green-600/80 dark:text-green-400/80">Available</span></div>
-        <div class="rounded-lg bg-amber-100 dark:bg-amber-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-amber-700 dark:text-amber-300">{{ item.tally.pending }}</span><span class="block text-[10px] uppercase tracking-wide text-amber-600/80 dark:text-amber-400/80">Pending</span></div>
-        <div class="rounded-lg bg-red-100 dark:bg-red-500/15 px-2 py-1.5 text-center"><span class="block font-mono text-base font-bold text-red-700 dark:text-red-300">{{ item.tally.unavailable }}</span><span class="block text-[10px] uppercase tracking-wide text-red-600/80 dark:text-red-400/80">Unavail.</span></div>
-      </div>
-      {% endif %}
-      <div class="mt-3 flex items-center gap-1.5 flex-wrap">
-        {{ item_actions(item, mobile=true) }}
-      </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
 {% endcall %}
 
-{# ---- Server-side pagination (prev / numbers / next, preserving league+status) ---- #}
-{% if pages > 1 %}
-<nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
-  <span class="text-xs text-gray-500 dark:text-gray-400">Page <span class="font-mono">{{ page }}</span> of <span class="font-mono">{{ pages }}</span> · <span class="font-mono">{{ total }}</span> total</span>
-  <div class="inline-flex items-center gap-1">
-    {% if page > 1 %}
-    <a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, page=page-1) }}"
-       class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"><i class="ti ti-chevron-left" aria-hidden="true"></i>Prev</a>
-    {% else %}
-    <span class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-300 dark:text-gray-600 cursor-not-allowed"><i class="ti ti-chevron-left" aria-hidden="true"></i>Prev</span>
-    {% endif %}
-    {% for p in range(1, pages + 1) %}
-    {% if p == page %}
-    <span aria-current="page" class="inline-flex items-center justify-center h-9 min-w-[2.25rem] px-2 rounded-lg bg-ecs-green text-white text-sm font-semibold font-mono">{{ p }}</span>
-    {% else %}
-    <a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, page=p) }}"
-       class="inline-flex items-center justify-center h-9 min-w-[2.25rem] px-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium font-mono text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">{{ p }}</a>
-    {% endif %}
-    {% endfor %}
-    {% if page < pages %}
-    <a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, page=page+1) }}"
-       class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">Next<i class="ti ti-chevron-right" aria-hidden="true"></i></a>
-    {% else %}
-    <span class="inline-flex items-center gap-1 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-300 dark:text-gray-600 cursor-not-allowed">Next<i class="ti ti-chevron-right" aria-hidden="true"></i></span>
-    {% endif %}
-  </div>
-</nav>
-{% endif %}
-{% else %}
-{{ empty_state("ti-clipboard-off", "No substitute requests found", "Adjust the league or status filters above. Active hides expired and past-match requests.") }}
-{% endif %}
-</div>{# /left column #}
+{# ---- Tab bar ---- #}
+<div class="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-5 overflow-x-auto" role="tablist" aria-label="Substitute hub sections">
+  {% set tabs = [
+    ('week', 'This Week', 'ti-calendar-event', kpis.open_requests),
+    ('requests', 'All Requests', 'ti-list-details', total),
+    ('grid', 'Availability Grid', 'ti-layout-grid', None),
+    ('pool', 'Sub Pool', 'ti-users', pool_counts.active + pool_counts.break + pool_counts.pending),
+    ('reconcile', 'Poll Reconcile', 'ti-checklist', None),
+    ('settings', 'Settings', 'ti-settings', None),
+  ] %}
+  {% for key, label, icon, badge in tabs %}
+  <button type="button" role="tab" data-action="sct-tab" data-tab="{{ key }}"
+          class="sct-tab shrink-0 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors
+                 {% if key == 'week' %}text-ecs-green border-ecs-green{% else %}text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-900 dark:hover:text-white{% endif %}">
+    <i class="ti {{ icon }}" aria-hidden="true"></i>{{ label }}
+    {% if badge is not none %}<span class="sct-tab-badge text-[11px] font-mono px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ badge }}</span>{% endif %}
+  </button>
+  {% endfor %}
+</div>
 
-{# RIGHT: unified Sub Pool panel — both leagues' active pool members #}
-<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col overflow-hidden">
-  <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
-    <i class="ti ti-user-check text-blue-500" aria-hidden="true"></i>
-    <h2 class="font-semibold text-gray-900 dark:text-white">Sub Pool</h2>
-    <span class="ml-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ pool_members | length }}</span>
+{# ================= THIS WEEK ================= #}
+<section data-tab-panel="week">
+  {# KPI band #}
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-5">
+    {% call stat_card("ti-clock", "Open requests", kpis.open_requests, tone="primary") %}across both leagues{% endcall %}
+    {% call stat_card("ti-target", "Slots to fill", kpis.slots_to_fill, tone="warning") %}of {{ kpis.slots_needed }} needed{% endcall %}
+    {% call stat_card("ti-user-check", "Ready now", kpis.ready_now, tone="success") %}have a candidate{% endcall %}
+    {% call stat_card("ti-users", "Available subs", kpis.available_subs, tone="info") %}responded this week{% endcall %}
+    {% call stat_card("ti-list-check", "Active pool", kpis.active_pool, tone="neutral") %}assignable members{% endcall %}
+    {% call stat_card("ti-percentage", "Fill rate", (insights.fill_rate_pct | int ~ '%') if insights.fill_rate_pct is not none else '—', tone="primary") %}this season{% endcall %}
   </div>
-  {% if pool_members %}
-  <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-    <label for="poolSearch" class="sr-only">Search sub pool</label>
-    <div class="relative">
-      <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
-      <input id="poolSearch" type="text" placeholder="Search subs by name or position…"
-             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+
+  {# Insights strip #}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-hourglass-low"></i>Avg time to fill</p>
+      <p class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white">
+        {% if insights.avg_time_to_fill_hours is not none %}{{ insights.avg_time_to_fill_hours }}<span class="text-sm text-gray-400 font-sans font-normal ml-1">hrs</span>{% else %}<span class="text-gray-300 dark:text-gray-600">—</span>{% endif %}
+      </p>
+      <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">request opened → sub assigned</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5"><i class="ti ti-checkbox"></i>Fill rate this season</p>
+      <p class="mt-2 font-mono text-2xl font-bold text-gray-900 dark:text-white">
+        {% if insights.fill_rate_pct is not none %}{{ insights.fill_rate_pct | int }}%{% else %}<span class="text-gray-300 dark:text-gray-600">—</span>{% endif %}
+      </p>
+      <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ insights.filled_count }} filled of {{ insights.actionable_count }} requests</p>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+      <p class="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-2"><i class="ti ti-antenna"></i>Channel effectiveness</p>
+      {% if insights.channel_effectiveness %}
+      <div class="space-y-1.5">
+        {% for ch in insights.channel_effectiveness[:4] %}
+        <div class="flex items-center gap-2 text-xs">
+          <span class="w-14 text-gray-500 dark:text-gray-400 shrink-0">{{ ch.channel }}</span>
+          <span class="flex-1 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><span class="block h-full rounded-full bg-ecs-green" style="width: {{ ch.rate_pct | int }}%"></span></span>
+          <span class="font-mono text-gray-500 dark:text-gray-400 w-8 text-right">{{ ch.rate_pct | int }}%</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-xs text-gray-400 dark:text-gray-500">No reach-out replies recorded yet.</p>
+      {% endif %}
     </div>
   </div>
-  <ul class="divide-y divide-gray-200 dark:divide-gray-700 max-h-[28rem] overflow-y-auto" data-pool-list>
-    {% for m in pool_members %}
-    {% set initials = (m.name.split()|map('first')|join)[:2]|upper if m.name else '?' %}
-    <li class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-        data-pool-member data-pool-search="{{ (m.name ~ ' ' ~ m.positions)|lower }}">
-      <span class="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700 text-xs font-mono font-bold text-gray-500 dark:text-gray-300">{{ initials }}</span>
-      <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ m.name }}<span class="ml-1.5 text-[10px] font-mono text-gray-400 dark:text-gray-500" title="Player ID">#{{ m.player_id }}</span></p>
-        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{% if m.positions %}{{ m.positions }}{% else %}No position set{% endif %}</p>
-      </div>
-      {% if m.league == 'ecs_fc' %}
-      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
-      {% else %}
-      <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
-      {% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <div class="px-4 py-8 text-center">
-    <i class="ti ti-users-off text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
-    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No active subs in either pool yet</p>
+
+  {# League filter #}
+  <div class="flex flex-wrap items-center gap-2 mb-4">
+    <div role="group" aria-label="Filter by league" class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      {% for opt, lbl in [('all','All leagues'), ('Premier','Premier'), ('Classic','Classic'), ('ECS FC','ECS FC')] %}
+      <button type="button" data-action="sct-league-filter" data-league="{{ opt }}"
+              class="sct-league-btn inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold transition-colors
+                     {% if opt == 'all' %}bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %}">{{ lbl }}</button>
+      {% endfor %}
+    </div>
+    <span class="ml-auto text-xs text-gray-400 dark:text-gray-500 font-mono"><span id="sct-needs-count">{{ week_needs|length }}</span> shown</span>
   </div>
+
+  {# Needs list ↔ slide-over #}
+  <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_28rem] gap-4">
+    <div>
+      <div class="space-y-2.5" id="sct-needs-list">
+        {% if week_needs %}
+        {% for n in week_needs %}
+        {% set remaining = n.needed - n.assigned %}
+        {% set rail = 'bg-red-500' if n.candidate_count == 0 else ('bg-amber-400' if remaining > 0 else 'bg-green-500') %}
+        <div class="sct-need group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+             data-action="sct-select-need"
+             data-request-id="{{ n.id }}"
+             data-league="{{ n.league }}"
+             data-league-type="{{ n.league_type|e }}"
+             data-team-id="{{ n.team_id if n.team_id is not none else '' }}"
+             data-match-id="{{ n.match_id if n.match_id is not none else '' }}"
+             data-match-label="{{ n.match_label|e }}"
+             data-team-name="{{ n.team_name|e }}"
+             data-positions="{{ n.positions|e }}"
+             data-needed="{{ n.needed }}"
+             data-assigned="{{ n.assigned }}"
+             data-candidate-count="{{ n.candidate_count }}"
+             data-can-assign="{{ '1' if n.can_assign else '0' }}"
+             data-match-date="{{ n.match_date.isoformat() if n.match_date else '' }}"
+             data-time-slot="{{ n.time_slot or '' }}"
+             data-time-label="{{ n.time_label or '' }}"
+             data-assign-url="{{ n.action_urls.assign }}">
+          <span class="w-1.5 shrink-0 {{ rail }}" aria-hidden="true"></span>
+          <div class="p-3.5 flex-1 min-w-0">
+            <div class="flex items-start gap-2.5">
+              {% if n.league == 'ecs_fc' %}
+              <span class="mt-0.5 shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-ecs-green/15 text-ecs-green">ECS FC</span>
+              {% else %}
+              <span class="mt-0.5 shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ n.league_type|upper }}</span>
+              {% endif %}
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ n.match_label }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                  {{ n.match_date.strftime('%a %b %d') if n.match_date else 'No date' }}{% if n.time_label %} · {{ n.time_label }}{% endif %}
+                </p>
+              </div>
+              <span class="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full
+                           {% if n.candidate_count == 0 %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300{% elif remaining > 0 %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300{% else %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300{% endif %}">
+                {{ remaining }} to fill
+              </span>
+            </div>
+            <div class="mt-2.5 flex items-center gap-3 flex-wrap">
+              {% if n.positions %}
+              <div class="flex gap-1">
+                {% for p in n.positions.split(',') if p.strip() %}
+                <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ p.strip() }}</span>
+                {% endfor %}
+              </div>
+              {% endif %}
+              <div class="flex items-center gap-1.5">
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ n.assigned }}/{{ n.needed }} filled</span>
+                <span class="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><span class="block h-full rounded-full bg-ecs-green" style="width: {{ ((n.assigned / n.needed * 100) if n.needed else 0) | round | int }}%"></span></span>
+              </div>
+              {% if n.candidate_count > 0 %}
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-700 dark:text-green-300"><i class="ti ti-check"></i>{{ n.candidate_count }} available</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 dark:text-red-400"><i class="ti ti-alert-circle"></i>no subs yet</span>
+              {% endif %}
+              {% if n.league != 'ecs_fc' %}
+              <button type="button" data-action="sct-reachout-open" data-kind="targeted"
+                      data-request-id="{{ n.id }}" data-league-type="{{ n.league_type|e }}"
+                      data-team-name="{{ n.team_name|e }}" data-time-label="{{ n.time_label or '' }}"
+                      data-time-slot="{{ n.time_slot or '' }}" data-match-date="{{ n.match_date.isoformat() if n.match_date else '' }}"
+                      data-match-id="{{ n.match_id if n.match_id is not none else '' }}"
+                      class="ml-auto inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-semibold text-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20">
+                <i class="ti ti-send"></i>Reach out
+              </button>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        {{ empty_state("ti-calendar-off", "No open sub needs this week", "Nothing to fill for " ~ week_label ~ ". Use the week arrows to look ahead or back.") }}
+        {% endif %}
+      </div>
+    </div>
+
+    {# Slide-over panel #}
+    <aside class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 self-start lg:sticky lg:top-4 overflow-hidden">
+      <div id="sct-panel-empty" class="px-6 py-12 text-center">
+        <div class="w-14 h-14 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-3"><i class="ti ti-user-search text-2xl text-gray-400"></i></div>
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Pick a request to fill</h3>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 max-w-[15rem] mx-auto">Select a match on the left to see ranked, available subs and assign one in place.</p>
+      </div>
+      <div id="sct-panel-content" class="hidden"></div>
+    </aside>
+  </div>
+</section>
+
+{# ================= ALL REQUESTS ================= #}
+<section data-tab-panel="requests" class="hidden">
+  <form method="get" class="flex flex-wrap items-center gap-2 mb-4">
+    <input type="hidden" name="week" value="{{ week_date }}">
+    <div role="group" class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      {% for opt, lbl in [('all','All'), ('pub_league','Pub League'), ('ecs_fc','ECS FC')] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="league" value="{{ opt }}" onchange="this.form.submit()" class="sr-only peer" {% if league_filter == opt %}checked{% endif %}>
+        <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold text-gray-500 dark:text-gray-400 peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div role="group" class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      {% for opt, lbl in [('active','Active'), ('open','Open'), ('filled','Filled'), ('cancelled','Cancelled'), ('expired','Expired'), ('all','All')] %}
+      <label class="cursor-pointer">
+        <input type="radio" name="status" value="{{ opt }}" onchange="this.form.submit()" class="sr-only peer" {% if status_filter == opt %}checked{% endif %}>
+        <span class="inline-flex items-center h-8 px-3 rounded-md text-xs font-semibold text-gray-500 dark:text-gray-400 peer-checked:bg-white peer-checked:text-gray-900 peer-checked:shadow-sm dark:peer-checked:bg-gray-700 dark:peer-checked:text-white">{{ lbl }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </form>
+
+  {% if items %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left min-w-[640px]">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 text-xs uppercase text-gray-500 dark:text-gray-400">
+          <tr>
+            <th class="px-3 py-2.5 font-semibold">League</th>
+            <th class="px-3 py-2.5 font-semibold">Match</th>
+            <th class="px-3 py-2.5 font-semibold hidden md:table-cell">Team</th>
+            <th class="px-3 py-2.5 font-semibold">Status</th>
+            <th class="px-3 py-2.5 font-semibold">Fill</th>
+            <th class="px-3 py-2.5 font-semibold hidden lg:table-cell">Responses</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for item in items %}
+          {% set needed = item.needed or 1 %}
+          {% set complete = item.assigned >= needed %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <td class="px-3 py-3 align-top">
+              {% if item.league == 'ecs_fc' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-ecs-green/15 text-ecs-green">FC</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">PUB</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 align-top">
+              <div class="font-semibold text-gray-900 dark:text-white truncate">{{ item.match_label }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.match_date.strftime('%b %d, %Y') if item.match_date else 'No date' }}</div>
+              {% if item.positions %}<div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ item.positions }}</div>{% endif %}
+            </td>
+            <td class="px-3 py-3 align-top hidden md:table-cell text-gray-900 dark:text-white">{{ item.team_name }}</td>
+            <td class="px-3 py-3 align-top">
+              {% if item.status == 'OPEN' %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]"></i>Open</span>
+              {% elif item.status == 'FILLED' %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]"></i>Filled</span>
+              {% elif item.status == 'CANCELLED' %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]"></i>Cancelled</span>
+              {% elif item.status == 'EXPIRED' %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-clock-off text-[12px]"></i>Expired</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ item.status|capitalize }}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 align-top">
+              <span class="font-mono text-sm font-semibold {% if complete %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.assigned }}<span class="text-gray-400">/{{ needed }}</span></span>
+              <div class="mt-1 h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden"><div class="h-full rounded-full {% if complete %}bg-green-500{% else %}bg-ecs-green{% endif %}" style="width: {{ ((item.assigned / needed * 100) if needed else 0) | round | int }}%"></div></div>
+            </td>
+            <td class="px-3 py-3 align-top hidden lg:table-cell">
+              <div class="flex items-center gap-1.5 flex-wrap text-xs">
+                {% if item.tally.available > 0 %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check"></i>{{ item.tally.available }}</span>{% endif %}
+                {% if item.tally.pending > 0 %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock"></i>{{ item.tally.pending }}</span>{% endif %}
+                {% if item.total_contacted == 0 %}<span class="text-gray-400">No contacts</span>{% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% if pages > 1 %}
+  <nav class="mt-4 flex items-center justify-between" aria-label="Pagination">
+    <span class="text-xs text-gray-500 dark:text-gray-400">Page <span class="font-mono">{{ page }}</span> of <span class="font-mono">{{ pages }}</span> · <span class="font-mono">{{ total }}</span> total</span>
+    <div class="inline-flex items-center gap-1">
+      {% if page > 1 %}<a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, week=week_date, page=page-1) }}" class="h-9 px-3 inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-chevron-left"></i>Prev</a>{% endif %}
+      {% if page < pages %}<a href="{{ url_for('admin_panel.unified_substitutes', league=league_filter, status=status_filter, week=week_date, page=page+1) }}" class="h-9 px-3 inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Next<i class="ti ti-chevron-right"></i></a>{% endif %}
+    </div>
+  </nav>
+  {% endif %}
+  {% else %}
+  {{ empty_state("ti-clipboard-off", "No substitute requests found", "Adjust the league or status filters above.") }}
   {% endif %}
 </section>
-</div>{# /board grid #}
 
-{# Client-side pool search (no fetch). #}
-<script>
-(function () {
-  var ps = document.getElementById('poolSearch');
-  if (ps) ps.addEventListener('input', function () {
-    var q = this.value.trim().toLowerCase();
-    document.querySelectorAll('[data-pool-member]').forEach(function (li) {
-      li.classList.toggle('hidden', q && li.getAttribute('data-pool-search').indexOf(q) === -1);
-    });
-  });
-})();
-</script>
-
-{# ===== Assign modal — fetches available subs from item.action_urls.available,
-   then POSTs a chosen player to item.action_urls.assign. League-agnostic:
-   ECS FC carries request_id in the URL; Pub League needs match_id/team_id/request_id
-   in the body. The hidden fields below carry whatever the selected row provides. ===== #}
-<div id="assignModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 dark:bg-gray-900/80 p-4">
-  <div class="w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
-    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
-      <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i>
-      <h2 class="font-semibold text-gray-900 dark:text-white">Assign Substitute</h2>
-      <button type="button" data-assign-close aria-label="Close" class="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x text-xl"></i></button>
-    </div>
-    <form id="assignForm" method="POST" action="">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token_value }}">
-      <input type="hidden" name="request_id" id="assignRequestId" value="">
-      <input type="hidden" name="match_id" id="assignMatchId" value="">
-      <input type="hidden" name="team_id" id="assignTeamId" value="">
-      <div class="p-4 space-y-3">
-        <p id="assignContext" class="text-sm text-gray-600 dark:text-gray-300"></p>
-        <div>
-          <label for="assignPlayer" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Available substitute</label>
-          <select name="player_id" id="assignPlayer" required
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-            <option value="">Loading…</option>
-          </select>
-        </div>
-        <p id="assignError" class="hidden text-sm text-red-600 dark:text-red-400"></p>
-      </div>
-      <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-        <button type="button" data-assign-close class="h-9 px-3 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
-        <button type="submit" id="assignSubmit" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-user-check" aria-hidden="true"></i>Assign</button>
-      </div>
-    </form>
+{# ================= AVAILABILITY GRID ================= #}
+<section data-tab-panel="grid" class="hidden">
+  <div class="flex gap-3 p-3 rounded-lg bg-ecs-green/10 text-ecs-green text-xs mb-4">
+    <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
+    <span>Who is free at which kickoff — fed by the Discord availability poll <b>and</b> admin reach-out responses, unified into one grid for {{ week_label }}.</span>
   </div>
-</div>
+  {% if week_availability %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-x-auto">
+    <table class="w-full text-sm min-w-[560px]">
+      <thead class="bg-gray-50 dark:bg-gray-700/40 text-xs uppercase text-gray-500 dark:text-gray-400">
+        <tr>
+          <th class="px-3 py-2.5 text-left font-semibold sticky left-0 bg-gray-50 dark:bg-gray-700/40">Sub</th>
+          <th class="px-3 py-2.5 text-left font-semibold">League</th>
+          <th class="px-3 py-2.5 text-left font-semibold">Available slots</th>
+          <th class="px-3 py-2.5 text-center font-semibold">This season</th>
+          <th class="px-3 py-2.5 text-center font-semibold hidden sm:table-cell">Response</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for a in week_availability %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <td class="px-3 py-2.5 sticky left-0 bg-white dark:bg-gray-800">
+            <div class="flex items-center gap-2.5">
+              {% if a.avatar_url %}
+              <img src="{{ a.avatar_url }}" alt="" class="h-8 w-8 rounded-full object-cover shrink-0">
+              {% else %}
+              <span class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-700 inline-flex items-center justify-center text-[11px] font-bold text-gray-500 dark:text-gray-300 shrink-0">{{ (a.name.split()|map('first')|join)[:2]|upper if a.name else '?' }}</span>
+              {% endif %}
+              <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate">{{ a.name }}</div>
+                {% if a.preferred_position %}<div class="text-[11px] text-gray-400">{{ a.preferred_position }}</div>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-2.5 text-gray-600 dark:text-gray-300">{{ a.league_type }}</td>
+          <td class="px-3 py-2.5">
+            {% if a.is_available and a.time_slots %}
+            <div class="flex flex-wrap gap-1">{% for s in a.time_slots %}<span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300">{{ s }}</span>{% endfor %}</div>
+            {% elif a.is_available %}<span class="text-[11px] text-green-600 dark:text-green-400">Available</span>
+            {% else %}<span class="text-[11px] text-gray-400">Declined</span>{% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-center font-mono text-gray-500 dark:text-gray-400">{{ a.subbed_this_season }}</td>
+          <td class="px-3 py-2.5 text-center font-mono text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ a.response_rate | int }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  {{ empty_state("ti-layout-grid", "No availability recorded", "No subs have responded to the poll or a reach-out for " ~ week_label ~ " yet.") }}
+  {% endif %}
+</section>
 
-<script>
-(function () {
-  var modal = document.getElementById('assignModal');
-  if (!modal) return;
-  var form = document.getElementById('assignForm');
-  var sel = document.getElementById('assignPlayer');
-  var ctx = document.getElementById('assignContext');
-  var err = document.getElementById('assignError');
-  var rId = document.getElementById('assignRequestId');
-  var mId = document.getElementById('assignMatchId');
-  var tId = document.getElementById('assignTeamId');
-
-  function show() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-  function hide() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-  function setErr(m) { if (m) { err.textContent = m; err.classList.remove('hidden'); } else { err.textContent = ''; err.classList.add('hidden'); } }
-
-  modal.querySelectorAll('[data-assign-close]').forEach(function (b) { b.addEventListener('click', hide); });
-  modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
-
-  document.querySelectorAll('[data-assign-open]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      setErr('');
-      form.action = btn.getAttribute('data-assign-url') || '';
-      rId.value = btn.getAttribute('data-request-id') || '';
-      mId.value = btn.getAttribute('data-match-id') || '';
-      tId.value = btn.getAttribute('data-team-id') || '';
-      ctx.textContent = btn.getAttribute('data-match-label') || '';
-      var league = btn.getAttribute('data-league');
-      sel.innerHTML = '<option value="">Loading…</option>';
-      show();
-
-      var availUrl = btn.getAttribute('data-available-url');
-      fetch(availUrl, {credentials: 'same-origin', headers: {'X-Requested-With': 'XMLHttpRequest'}})
-        .then(function (r) { return r.json(); })
-        .then(function (j) {
-          // Pub League returns {players:[{id,name,positions}]}; ECS FC returns {available_subs:[{player_id,player_name}]}.
-          var list = [];
-          if (j && j.players) {
-            list = j.players.map(function (p) { return {id: p.id, name: p.name + (p.positions ? ' (' + p.positions + ')' : '')}; });
-          } else if (j && j.available_subs) {
-            list = j.available_subs.map(function (p) { return {id: p.player_id, name: p.player_name}; });
-          }
-          if (!list.length) {
-            sel.innerHTML = '<option value="">No available subs</option>';
-            setErr('No substitutes have marked themselves available yet.');
-            return;
-          }
-          sel.innerHTML = list.map(function (p) { return '<option value="' + p.id + '">' + p.name + '</option>'; }).join('');
-        })
-        .catch(function () { sel.innerHTML = '<option value="">Error</option>'; setErr('Could not load available substitutes.'); });
-    });
-  });
-})();
-</script>
-
-{# Sub pool members keyed by league — feeds the "Specific players" multi-select. #}
-<script id="poolMembersData" type="application/json">
-{{ {'pub_league': pool_members | selectattr('league', 'equalto', 'pub_league') | list,
-    'ecs_fc':     pool_members | selectattr('league', 'equalto', 'ecs_fc')     | list} | tojson }}
-</script>
-
-{# ===== Contact subs modal — works for BOTH leagues.
-   Recipient targeting (all / by position / by gender / specific players) +
-   channel checkboxes + editable per-league default message + subs-needed.
-   Dispatches to the item's contact endpoint:
-     Pub League -> admin_panel.notify_substitute_pool   (notify-pool JSON shape)
-     ECS FC     -> admin_panel.ecs_fc_contact_existing   (request_id in URL)
-   Both reuse existing send paths; no new message logic here. ===== #}
-<div id="contactModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/50 dark:bg-gray-900/80 p-4">
-  <div class="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl max-h-[90vh] overflow-y-auto">
-    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2 sticky top-0 bg-white dark:bg-gray-800">
-      <i class="ti ti-send text-ecs-green" aria-hidden="true"></i>
-      <h2 class="font-semibold text-gray-900 dark:text-white">Contact Subs</h2>
-      <button type="button" data-contact-close aria-label="Close" class="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x text-xl"></i></button>
+{# ================= SUB POOL ================= #}
+<section data-tab-panel="pool" class="hidden">
+  <div class="flex flex-wrap items-center gap-2 mb-4">
+    <div role="group" class="inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      {% for opt, lbl, cnt in [('all','All', pool_members|length), ('active','Active', pool_counts.active), ('break','On break', pool_counts.break), ('pending','Pending', pool_counts.pending)] %}
+      <button type="button" data-action="sct-pool-filter" data-status="{{ opt }}"
+              class="sct-pool-btn inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-semibold transition-colors
+                     {% if opt == 'all' %}bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white{% else %}text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %}">{{ lbl }} <span class="font-mono opacity-70">{{ cnt }}</span></button>
+      {% endfor %}
     </div>
-    <div class="p-4 space-y-4">
-      <p id="contactContext" class="text-sm text-gray-600 dark:text-gray-300"></p>
-
-      {# Recipient targeting #}
-      <fieldset>
-        <legend class="block text-sm font-medium text-gray-900 dark:text-white mb-1.5">Who to contact</legend>
-        <div class="grid grid-cols-2 gap-2">
-          {% for val, lbl in [('all','All sub pool'), ('position','By position'), ('gender','By gender'), ('specific','Specific players')] %}
-          <label class="flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
-            <input type="radio" name="contactRecipient" value="{{ val }}" {% if val == 'all' %}checked{% endif %}
-                   class="text-ecs-green focus:ring-ecs-green">
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{ lbl }}</span>
-          </label>
-          {% endfor %}
+    <div class="relative ml-auto">
+      <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+      <input id="sct-pool-search" type="text" placeholder="Search subs…" class="w-56 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-1.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+  </div>
+  {% if pool_members %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" id="sct-pool-grid">
+    {% for m in pool_members %}
+    <div class="sct-pool-card rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3.5 flex gap-3"
+         data-status="{{ m.status }}" data-search="{{ (m.name ~ ' ' ~ m.positions ~ ' ' ~ m.league_type)|lower }}">
+      {% if m.avatar_url %}
+      <img src="{{ m.avatar_url }}" alt="" class="h-11 w-11 rounded-full object-cover shrink-0">
+      {% else %}
+      <span class="h-11 w-11 rounded-full bg-gray-100 dark:bg-gray-700 inline-flex items-center justify-center text-sm font-bold text-gray-500 dark:text-gray-300 shrink-0">{{ m.initials }}</span>
+      {% endif %}
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ m.name }}</p>
+          {% if m.status == 'active' %}
+          <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300">Active</span>
+          {% elif m.status == 'break' %}
+          <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">On break</span>
+          {% else %}
+          <span class="shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">Pending</span>
+          {% endif %}
         </div>
-      </fieldset>
-
-      {# Conditional: positions (multi-select from the request's needed positions) #}
-      <div data-recipient-panel="position" class="hidden">
-        <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Positions</label>
-        <div id="contactPositions" class="flex flex-wrap gap-1.5"></div>
-        <p id="contactPositionsEmpty" class="hidden text-xs text-gray-400 dark:text-gray-500">This request has no specific positions; contacting by position is unavailable.</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ m.league_type }} sub{% if m.positions %} · {{ m.positions }}{% endif %}</p>
+        <div class="mt-2 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+          <div><b class="block font-mono text-sm text-gray-900 dark:text-white">{{ m.subbed_this_season }}</b>season</div>
+          <div><b class="block font-mono text-sm text-gray-900 dark:text-white">{{ m.acceptance_rate | int }}%</b>response</div>
+          <div><b class="block font-mono text-sm text-gray-900 dark:text-white">{{ m.matches_played }}</b>all-time</div>
+        </div>
       </div>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="mt-4 text-xs text-gray-400 dark:text-gray-500">Pool membership changes (add / approve / set active / on-break) are managed on the
+    <a href="{{ url_for('admin_panel.substitute_management') }}" class="text-ecs-green hover:underline">pool management pages</a>. This roster is the unified read view across both programs.</p>
+  {% else %}
+  {{ empty_state("ti-users-off", "No pool members", "Neither the Pub League nor ECS FC pool has members yet.") }}
+  {% endif %}
+</section>
 
-      {# Conditional: gender #}
-      <div data-recipient-panel="gender" class="hidden">
-        <label for="contactGender" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Gender</label>
-        <select id="contactGender"
-                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-          <option value="male">Men</option>
-          <option value="female">Women</option>
+{# ================= POLL RECONCILE ================= #}
+<section data-tab-panel="reconcile" class="hidden">
+  <div class="flex gap-3 p-3 rounded-lg bg-ecs-green/10 text-ecs-green text-xs mb-4">
+    <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
+    <span>Discord availability polls matched to open requests — who voted, eligibility, conflicts, and unlinked voters to connect. The coordinator cross-check before assigning.</span>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 text-center">
+    <i class="ti ti-checklist text-3xl text-gray-300 dark:text-gray-600"></i>
+    <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">The reconcile view carries over from the existing build.</p>
+    <a href="{{ url_for('admin_panel.substitute_reconcile_list') }}" class="mt-4 inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold">
+      <i class="ti ti-external-link"></i>Open Poll Reconcile
+    </a>
+  </div>
+</section>
+
+{# ================= SETTINGS ================= #}
+<section data-tab-panel="settings" class="hidden">
+  {% include 'admin_panel/match_operations/_substitute_settings.html' %}
+</section>
+
+{# ---- Data payloads for the JS module ---- #}
+<script id="sct-pool-data" type="application/json">{{ active_pool | tojson }}</script>
+<script id="sct-settings-data" type="application/json">{{ settings | tojson }}</script>
+
+</div>{# /root #}
+{% endblock %}
+
+{% block modals %}
+{% set csrf_token_value = csrf_token() if csrf_token is defined else '' %}
+{# ===== Reach-out modal (built once, driven by the JS module) ===== #}
+<div id="sct-reach-modal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-gray-900/60 dark:bg-gray-900/80 p-4">
+  <div class="w-full max-w-lg rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl max-h-[92vh] overflow-y-auto">
+    <div class="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-start justify-between sticky top-0 bg-white dark:bg-gray-800">
+      <div>
+        <h3 id="sct-reach-title" class="font-semibold text-gray-900 dark:text-white">Reach out to subs</h3>
+        <p id="sct-reach-sub" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ask a league pool who can play this week</p>
+      </div>
+      <button type="button" data-action="sct-reach-close" aria-label="Close" class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-x text-xl"></i></button>
+    </div>
+    <div class="p-5 space-y-4">
+      {# League (targeted locks this) #}
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">League</label>
+        <select id="sct-reach-league" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <option value="Premier">Premier</option>
+          <option value="Classic">Classic</option>
         </select>
       </div>
-
-      {# Conditional: specific players (searchable multi-select of this league's pool) #}
-      <div data-recipient-panel="specific" class="hidden">
-        <label for="contactPlayerSearch" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Specific players</label>
-        <div class="relative mb-1.5">
-          <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
-          <input id="contactPlayerSearch" type="text" placeholder="Search this league's pool…"
-                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      {# Who to ask #}
+      <div>
+        <span class="block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Who to ask</span>
+        <div class="flex flex-wrap gap-2" id="sct-reach-who">
+          <button type="button" data-action="sct-reach-who" data-who="pool" class="sct-who px-3 py-1.5 rounded-lg text-xs font-semibold border border-ecs-green bg-ecs-green/10 text-ecs-green">Whole pool</button>
+          <button type="button" data-action="sct-reach-who" data-who="specific" class="sct-who px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">Specific people</button>
         </div>
-        <div id="contactPlayers" class="max-h-44 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700"></div>
-        <p id="contactPlayersEmpty" class="hidden mt-1 text-xs text-gray-400 dark:text-gray-500">No subs in this league's pool.</p>
+        <div id="sct-reach-picker" class="hidden mt-2">
+          <div class="relative mb-2">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+            <input id="sct-reach-search" type="text" placeholder="Search subs to add…" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          </div>
+          <div id="sct-reach-list" class="max-h-44 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700"></div>
+        </div>
       </div>
-
       {# Channels #}
-      <fieldset>
-        <legend class="block text-sm font-medium text-gray-900 dark:text-white mb-1.5">Send via</legend>
-        <div class="flex flex-wrap gap-3">
-          {% for val, lbl in [('sms','SMS'), ('discord','Discord'), ('email','Email')] %}
-          <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" name="contactChannel" value="{{ val }}" {% if val != 'sms' %}checked{% endif %}
-                   class="rounded text-ecs-green focus:ring-ecs-green">
+      <div>
+        <span class="block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Channels</span>
+        <div class="flex flex-wrap gap-3" id="sct-reach-channels">
+          {% for val, lbl in [('PUSH','Push'), ('DISCORD','Discord'), ('SMS','SMS'), ('EMAIL','Email')] %}
+          <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="sct-channel" value="{{ val }}" class="rounded text-ecs-green focus:ring-ecs-green">
             <span class="text-sm text-gray-700 dark:text-gray-300">{{ lbl }}</span>
           </label>
           {% endfor %}
         </div>
-        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">SMS only reaches subs who explicitly opted in.</p>
-      </fieldset>
-
-      {# Subs needed #}
-      <div>
-        <label for="contactSubsNeeded" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Subs needed</label>
-        <input id="contactSubsNeeded" type="number" min="1" max="10" value="1"
-               class="w-24 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <p class="mt-1 text-[11px] text-gray-400">SMS only reaches consented, verified numbers.</p>
       </div>
-
-      {# Editable message (pre-filled with the per-league default) #}
+      {# Message + live preview #}
       <div>
-        <label for="contactMessage" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Message</label>
-        <textarea id="contactMessage" rows="3"
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+        <label class="block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Message</label>
+        <textarea id="sct-reach-msg" rows="3" data-action="sct-reach-preview" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+        <p class="mt-1.5 text-[11px] text-gray-400 flex gap-1.5"><i class="ti ti-info-circle mt-0.5"></i>Targeted asks never reveal which team needs the sub — replies flow straight into the availability pool.</p>
+        <div class="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="px-3 py-1.5 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 flex items-center gap-1.5"><i class="ti ti-eye text-ecs-green"></i>Preview — what each sub receives</div>
+          <div class="p-3 flex gap-2.5">
+            <span class="h-8 w-8 rounded-full bg-ecs-green text-white inline-flex items-center justify-center text-[10px] font-bold shrink-0">ECS</span>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">ECS Sub Bot <span class="text-[8px] font-bold bg-indigo-500 text-white px-1 rounded">BOT</span></p>
+              <p id="sct-reach-preview" class="text-xs text-gray-700 dark:text-gray-200 mt-1 leading-relaxed"></p>
+              <div class="flex gap-1.5 mt-2"><span class="text-[11px] font-semibold px-2.5 py-1 rounded bg-green-600 text-white">I can sub</span><span class="text-[11px] font-semibold px-2.5 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300">Can't this week</span></div>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <p id="contactError" class="hidden text-sm text-red-600 dark:text-red-400"></p>
+      <p id="sct-reach-error" class="hidden text-sm text-red-600 dark:text-red-400"></p>
     </div>
-    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2 sticky bottom-0 bg-white dark:bg-gray-800">
-      <button type="button" data-contact-close class="h-9 px-3 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
-      <button type="button" id="contactSend" class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-send" aria-hidden="true"></i>Send</button>
+    <div class="px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2 sticky bottom-0 bg-white dark:bg-gray-800">
+      <span id="sct-reach-summary" class="mr-auto self-center text-xs text-gray-500 dark:text-gray-400"></span>
+      <button type="button" data-action="sct-reach-close" class="h-9 px-3.5 inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Cancel</button>
+      <button type="button" data-action="sct-reach-send" class="h-9 px-4 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700"><i class="ti ti-send"></i>Send reach-out</button>
     </div>
   </div>
 </div>
-
-<script>
-(function () {
-  var modal = document.getElementById('contactModal');
-  if (!modal) return;
-  var csrf = document.querySelector('meta[name=csrf-token]');
-
-  var pool = {pub_league: [], ecs_fc: []};
-  try { pool = JSON.parse(document.getElementById('poolMembersData').textContent) || pool; } catch (e) {}
-
-  var ctx = document.getElementById('contactContext');
-  var posWrap = document.getElementById('contactPositions');
-  var posEmpty = document.getElementById('contactPositionsEmpty');
-  var genderSel = document.getElementById('contactGender');
-  var playerSearch = document.getElementById('contactPlayerSearch');
-  var playersWrap = document.getElementById('contactPlayers');
-  var playersEmpty = document.getElementById('contactPlayersEmpty');
-  var subsNeeded = document.getElementById('contactSubsNeeded');
-  var msg = document.getElementById('contactMessage');
-  var err = document.getElementById('contactError');
-  var sendBtn = document.getElementById('contactSend');
-
-  var state = {league: '', url: '', requestId: null, leagueType: ''};
-
-  function show() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-  function hide() { modal.classList.add('hidden'); modal.classList.remove('flex'); }
-  function setErr(m) { if (m) { err.textContent = m; err.classList.remove('hidden'); } else { err.textContent = ''; err.classList.add('hidden'); } }
-
-  function escAttr(s) { return (s || '').replace(/"/g, '&quot;'); }
-  function escHtml(s) {
-    var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML;
-  }
-
-  function recipientMode() {
-    var r = modal.querySelector('input[name="contactRecipient"]:checked');
-    return r ? r.value : 'all';
-  }
-  function syncPanels() {
-    var mode = recipientMode();
-    modal.querySelectorAll('[data-recipient-panel]').forEach(function (p) {
-      p.classList.toggle('hidden', p.getAttribute('data-recipient-panel') !== mode);
-    });
-  }
-  modal.querySelectorAll('input[name="contactRecipient"]').forEach(function (r) {
-    r.addEventListener('change', syncPanels);
-  });
-
-  function renderPositions(positionsStr) {
-    posWrap.innerHTML = '';
-    var list = (positionsStr || '').split(',').map(function (p) { return p.trim(); }).filter(Boolean);
-    if (!list.length) { posEmpty.classList.remove('hidden'); return; }
-    posEmpty.classList.add('hidden');
-    list.forEach(function (p) {
-      var label = document.createElement('label');
-      label.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-gray-200 dark:border-gray-700 cursor-pointer text-sm text-gray-700 dark:text-gray-300';
-      label.innerHTML = '<input type="checkbox" name="contactPosition" value="' + escAttr(p) + '" class="rounded text-ecs-green focus:ring-ecs-green">' + escHtml(p);
-      posWrap.appendChild(label);
-    });
-  }
-
-  function renderPlayers() {
-    var members = pool[state.league] || [];
-    playersWrap.innerHTML = '';
-    if (!members.length) { playersEmpty.classList.remove('hidden'); return; }
-    playersEmpty.classList.add('hidden');
-    var q = (playerSearch.value || '').trim().toLowerCase();
-    members.forEach(function (m) {
-      var hay = ((m.name || '') + ' ' + (m.positions || '')).toLowerCase();
-      if (q && hay.indexOf(q) === -1) return;
-      var row = document.createElement('label');
-      row.className = 'flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50';
-      row.innerHTML =
-        '<input type="checkbox" name="contactPlayer" value="' + m.player_id + '" class="rounded text-ecs-green focus:ring-ecs-green">' +
-        '<span class="text-sm text-gray-700 dark:text-gray-300">' + escHtml(m.name) +
-        (m.positions ? ' <span class="text-xs text-gray-400">(' + escHtml(m.positions) + ')</span>' : '') + '</span>';
-      playersWrap.appendChild(row);
-    });
-  }
-  playerSearch.addEventListener('input', renderPlayers);
-
-  modal.querySelectorAll('[data-contact-close]').forEach(function (b) { b.addEventListener('click', hide); });
-  modal.addEventListener('click', function (e) { if (e.target === modal) hide(); });
-
-  document.querySelectorAll('[data-contact-open]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      setErr('');
-      state.league = btn.getAttribute('data-league') || '';
-      state.url = btn.getAttribute('data-contact-url') || '';
-      state.requestId = parseInt(btn.getAttribute('data-request-id'), 10);
-      state.leagueType = btn.getAttribute('data-league-type') || '';
-
-      ctx.textContent = btn.getAttribute('data-match-label') || '';
-      msg.value = btn.getAttribute('data-default-message') || '';
-      subsNeeded.value = parseInt(btn.getAttribute('data-needed'), 10) || 1;
-
-      // Reset recipient to "all"
-      var allRadio = modal.querySelector('input[name="contactRecipient"][value="all"]');
-      if (allRadio) allRadio.checked = true;
-      genderSel.value = 'male';
-      playerSearch.value = '';
-
-      renderPositions(btn.getAttribute('data-positions') || '');
-      renderPlayers();
-      syncPanels();
-      show();
-    });
-  });
-
-  function checkedValues(name) {
-    return Array.prototype.slice.call(modal.querySelectorAll('input[name="' + name + '"]:checked'))
-      .map(function (el) { return el.value; });
-  }
-
-  sendBtn.addEventListener('click', function () {
-    setErr('');
-    var mode = recipientMode();
-    var channels = checkedValues('contactChannel');
-    if (!channels.length) { setErr('Select at least one channel.'); return; }
-
-    var positionFilters = checkedValues('contactPosition');
-    var playerIds = checkedValues('contactPlayer').map(function (v) { return parseInt(v, 10); });
-
-    if (mode === 'position' && !positionFilters.length) { setErr('Pick at least one position.'); return; }
-    if (mode === 'specific' && !playerIds.length) { setErr('Pick at least one player.'); return; }
-
-    var subs = parseInt(subsNeeded.value, 10) || 1;
-    var message = (msg.value || '').trim();
-
-    var payload;
-    if (state.league === 'pub_league') {
-      // notify_substitute_pool JSON shape (uppercase channels).
-      payload = {
-        request_id: state.requestId,
-        league_type: state.leagueType,
-        custom_message: message,
-        channels: channels.map(function (c) { return c.toUpperCase(); }),
-        recipient_type: mode,
-        gender_filter: mode === 'gender' ? genderSel.value : null,
-        position_filters: mode === 'position' ? positionFilters : [],
-        player_ids: mode === 'specific' ? playerIds : [],
-        subs_needed: subs
-      };
-    } else {
-      // ecs_fc_contact_existing shape (request_id is in the URL; lowercase channels).
-      payload = {
-        recipient_type: mode,
-        gender: mode === 'gender' ? genderSel.value : null,
-        positions: mode === 'position' ? positionFilters : [],
-        player_ids: mode === 'specific' ? playerIds : [],
-        channels: channels,
-        message: message,
-        subs_needed: subs
-      };
-    }
-
-    var headers = {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'};
-    if (csrf) headers['X-CSRFToken'] = csrf.content;
-    var orig = sendBtn.innerHTML;
-    sendBtn.disabled = true;
-    sendBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i>Sending…';
-
-    fetch(state.url, {method: 'POST', headers: headers, body: JSON.stringify(payload), credentials: 'same-origin'})
-      .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, body: j}; }); })
-      .then(function (res) {
-        var ok = res.ok && res.body && res.body.success !== false;
-        if (ok) hide();
-        if (window.Swal) {
-          var isDark = document.documentElement.classList.contains('dark');
-          window.Swal.fire({
-            icon: ok ? 'success' : 'error',
-            title: ok ? 'Subs contacted' : 'Could not contact subs',
-            text: (res.body && (res.body.message || res.body.error)) || '',
-            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
-          });
-        } else if (!ok) {
-          setErr((res.body && (res.body.message || res.body.error)) || 'Could not contact subs.');
-        }
-      })
-      .catch(function () { setErr('Network error.'); })
-      .finally(function () { sendBtn.disabled = false; sendBtn.innerHTML = orig; });
-  });
-})();
-</script>
 {% endblock %}

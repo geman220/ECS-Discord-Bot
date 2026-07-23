@@ -29,6 +29,9 @@ from app.models_substitute_pools import (
     get_eligible_players, get_active_substitutes, log_pool_action
 )
 from app.utils.user_helpers import safe_current_user
+from app.services.substitute_authority import (
+    can_assign, can_request, is_admin, program_for_league_type
+)
 
 logger = logging.getLogger(__name__)
 
@@ -335,6 +338,13 @@ def add_player_to_pool(league_type: str):
                     email_for_sub_requests=request.json.get('email_notifications', True),
                     is_active=True
                 )
+                # Seed max matches/week from the admin default when configured
+                # (Substitute Command Center → Settings: sub_default_max_matches).
+                # Unset => leave the model default (3), the previous behavior.
+                from app.models.admin_config import AdminConfig
+                default_max = AdminConfig.get_setting('sub_default_max_matches', None)
+                if default_max is not None:
+                    pool_entry.max_matches_per_week = int(default_max)
                 session.add(pool_entry)
                 session.flush()
 
@@ -847,6 +857,13 @@ def cancel_substitute_request(league_type: str, request_id: int):
     if not request:
         return jsonify({'success': False, 'message': 'Request not found'}), 404
 
+    # Assignment-authority invariant: Pub League requests are admin-only; ECS FC
+    # requests may be managed by an admin or the owning team's coach.
+    if not can_assign(session, safe_current_user.id,
+                      team_id=request.team_id,
+                      program=program_for_league_type(league_type)):
+        return jsonify({'success': False, 'message': 'You can only manage subs for your own team.'}), 403
+
     if request.status != 'OPEN':
         return jsonify({'success': False, 'message': 'Can only cancel open requests'}), 400
 
@@ -854,6 +871,16 @@ def cancel_substitute_request(league_type: str, request_id: int):
     request.status = 'CANCELLED'
     request.cancelled_at = datetime.utcnow()
     request.updated_at = datetime.utcnow()
+
+    # Tell pending responders it's cancelled (async so sends stay out of this txn).
+    # These rows are unified SubstituteRequest/SubstituteResponse models for every
+    # league_type value, so the notifier uses the 'pub_league' MODEL family (not
+    # the EcsFc* legacy tables) even when league_type == 'ECS FC'.
+    try:
+        from app.tasks.tasks_substitute_pools import notify_substitute_request_cancelled
+        notify_substitute_request_cancelled.delay(request_id, 'pub_league')
+    except Exception as e:
+        logger.error(f"Failed to queue cancellation notification for request {request_id}: {e}")
 
     return jsonify({
         'success': True,
@@ -891,6 +918,13 @@ def resend_substitute_request(league_type: str, request_id: int):
 
     if not request:
         return jsonify({'success': False, 'message': 'Request not found'}), 404
+
+    # Assignment-authority invariant: Pub League requests are admin-only; ECS FC
+    # requests may be managed by an admin or the owning team's coach.
+    if not can_assign(session, safe_current_user.id,
+                      team_id=request.team_id,
+                      program=program_for_league_type(league_type)):
+        return jsonify({'success': False, 'message': 'You can only manage subs for your own team.'}), 403
 
     if request.status != 'OPEN':
         return jsonify({'success': False, 'message': 'Can only resend for open requests'}), 400
@@ -1204,6 +1238,13 @@ def assign_substitute_from_pool():
     if sub_request.status != 'OPEN':
         return jsonify({'success': False, 'error': 'Substitute request is not open'}), 400
 
+    # Assignment-authority invariant: Pub League requests are admin-only; ECS FC
+    # requests may be assigned by an admin or the owning team's coach.
+    if not can_assign(session, safe_current_user.id,
+                      team_id=sub_request.team_id,
+                      program=program_for_league_type(getattr(sub_request, 'league_type', None))):
+        return jsonify({'success': False, 'error': 'You can only assign subs for your own team.'}), 403
+
     # Get the player
     player = session.query(Player).get(player_id)
     if not player:
@@ -1232,14 +1273,13 @@ def assign_substitute_from_pool():
     sub_request.status = 'FILLED'
     sub_request.filled_at = datetime.utcnow()
 
-    # Send notification to the assigned substitute (async - after transaction commits via @transactional)
-    # Use the appropriate notification task based on league type
-    if sub_request.team.league.name == 'ECS FC':
-        from app.tasks.tasks_ecs_fc_subs import notify_assigned_substitute as notify_ecs_fc_substitute
-        notify_ecs_fc_substitute.delay(assignment.id)
-    else:
-        from app.tasks.tasks_substitute_pools import notify_assigned_substitute
-        notify_assigned_substitute.delay(assignment.id)
+    # Send notification to the assigned substitute (async - after transaction commits).
+    # This route ALWAYS creates a unified SubstituteAssignment (substitute_assignments),
+    # so ALWAYS dispatch the pub_league/unified task. Dispatching the ECS FC task here
+    # would hand a substitute_assignments id to EcsFcSubAssignment.get() — a cross-model
+    # id collision (wrong row) or "not found" (sub never confirmed).
+    from app.tasks.tasks_substitute_pools import notify_assigned_substitute
+    notify_assigned_substitute.delay(assignment.id)
 
     return jsonify({
         'success': True,
@@ -1460,6 +1500,13 @@ def assign_substitute(league_type: str, request_id: int):
 
     if not sub_request:
         return jsonify({'success': False, 'message': 'Request not found or not open'}), 404
+
+    # Assignment-authority invariant: Pub League requests are admin-only; ECS FC
+    # requests may be assigned by an admin or the owning team's coach.
+    if not can_assign(session, safe_current_user.id,
+                      team_id=sub_request.team_id,
+                      program=program_for_league_type(league_type)):
+        return jsonify({'success': False, 'message': 'You can only assign subs for your own team.'}), 403
 
     # Verify the player exists and responded positively
     response = session.query(SubstituteResponse).filter_by(

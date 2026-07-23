@@ -130,7 +130,9 @@ class SubstituteRSVPService:
             Dict with processing results
         """
         from app.models import User
-        from app.models.substitutes import SubstitutePool
+        from app.models.substitutes import (
+            SubstitutePool, EcsFcSubPool, EcsFcSubResponse,
+        )
 
         results = {
             'success': False,
@@ -145,6 +147,11 @@ class SubstituteRSVPService:
             if not is_valid:
                 results['message'] = error
                 return results
+
+            # The token resolver returns either a Pub League SubstituteResponse
+            # or an ECS FC EcsFcSubResponse; branch downstream logic on it.
+            is_ecs_fc = isinstance(response, EcsFcSubResponse)
+            league_type = 'ecs_fc' if is_ecs_fc else 'pub_league'
 
             # Verify the user matches the player
             user = db.session.query(User).get(user_id)
@@ -169,9 +176,10 @@ class SubstituteRSVPService:
             response.response_method = 'WEB'
             response.mark_token_used()
 
-            # Update pool statistics if they accepted
+            # Update pool statistics if they accepted (correct pool model per league)
             if is_available:
-                pool_entry = db.session.query(SubstitutePool).filter_by(
+                PoolModel = EcsFcSubPool if is_ecs_fc else SubstitutePool
+                pool_entry = db.session.query(PoolModel).filter_by(
                     player_id=response.player_id,
                     is_active=True
                 ).first()
@@ -180,10 +188,31 @@ class SubstituteRSVPService:
                     pool_entry.requests_accepted = (pool_entry.requests_accepted or 0) + 1
                     pool_entry.last_active_at = datetime.utcnow()
 
+            request_id = response.request_id
+            player_id = response.player_id
+            response_id = response.id
             db.session.commit()
 
+            # Web RSVP was previously SILENT — the coach/admins learned nothing
+            # about a yes/no submitted on the web. Fan out through the ONE unified
+            # notifier (coach + admins, both leagues). Isolated so a notify
+            # failure never masks the recorded response.
+            try:
+                from app.services.substitute_notification_service import (
+                    get_notification_service,
+                )
+                get_notification_service().notify_response_received(
+                    request_id=request_id,
+                    player_id=player_id,
+                    is_available=is_available,
+                    response_method='web',
+                    league_type=league_type,
+                )
+            except Exception as notify_err:
+                logger.error(f"Failed to notify of web sub response: {notify_err}")
+
             results['success'] = True
-            results['response_id'] = response.id
+            results['response_id'] = response_id
             results['message'] = 'Thank you! Your response has been recorded.'
 
             if is_available:

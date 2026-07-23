@@ -81,8 +81,20 @@ def actionable_sub_cutoff_date():
 
     Requests for matches before this date are treated as resolved-by-default
     (the match is over and the grace window for retroactive assignment lapsed).
+
+    The grace window is admin-configurable (Substitute Command Center → Settings:
+    sub_auto_expire_days); default = SUB_REQUEST_GRACE_DAYS preserves the ~24h
+    retroactive-assignment window.
     """
-    return datetime.utcnow().date() - timedelta(days=SUB_REQUEST_GRACE_DAYS)
+    grace = SUB_REQUEST_GRACE_DAYS
+    try:
+        from app.models.admin_config import AdminConfig
+        setting = AdminConfig.get_setting('sub_auto_expire_days', SUB_REQUEST_GRACE_DAYS)
+        if setting is not None:
+            grace = int(setting)
+    except Exception:
+        grace = SUB_REQUEST_GRACE_DAYS
+    return datetime.utcnow().date() - timedelta(days=grace)
 
 
 def resolve_league_type_from_match(match, session) -> str:

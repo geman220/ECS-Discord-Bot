@@ -1,0 +1,129 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Can you sub? - ECS Soccer League{% endblock %}
+
+{% block main_content %}
+{% import "macros/_modern_kit.html" as kit %}
+<div class="mx-auto px-4 py-6 sm:py-8 max-w-2xl">
+
+    {% if error %}
+    {{ kit.page_header("Substitute Reach-out", subtitle="ECS Soccer League") }}
+    {{ kit.empty_state('ti-alert-circle', 'Unable to load reach-out', error) }}
+
+    {% else %}
+    {# ---- Page header: eyebrow + status pill ---- #}
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 sm:mb-6">
+        <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Sub Availability</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">
+                {% if already_responded %}Your Response{% else %}Can you sub?{% endif %}
+            </h1>
+        </div>
+        <div class="shrink-0">
+            {% if already_responded %}
+                {% if recipient.is_available %}
+                <span class="inline-flex items-center gap-1.5 px-3 min-h-[28px] rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/10 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30">
+                    <i class="ti ti-circle-check" aria-hidden="true"></i> Available
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 min-h-[28px] rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                    <i class="ti ti-circle-x" aria-hidden="true"></i> Declined
+                </span>
+                {% endif %}
+            {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 min-h-[28px] rounded-full text-xs font-semibold bg-ecs-gold-100 dark:bg-ecs-gold-500/10 text-ecs-gold-600 dark:text-ecs-gold-400 border border-ecs-gold-200 dark:border-ecs-gold-500/30">
+                    <i class="ti ti-clock-hour-4" aria-hidden="true"></i> Awaiting reply
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if details %}
+    {# ============ The ask: date + time slot(s). Team is intentionally hidden. ============ #}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="flex items-center gap-2 px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+            <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i>
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300 truncate">{{ details.league_type }} Substitute</span>
+            <span class="ml-auto text-xs text-gray-400 dark:text-gray-500">availability check</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 border-t border-gray-200 dark:border-gray-700 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
+            <div class="px-4 sm:px-5 py-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</span>
+                    <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <p class="mt-2 font-mono text-sm font-bold text-gray-900 dark:text-white">{{ details.date }}</p>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Time slot(s)</span>
+                    <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>
+                </div>
+                <p class="mt-2 text-sm font-bold text-gray-900 dark:text-white">
+                    {% if details.time_slots %}{{ details.time_slots | join(', ') }}{% else %}Any time{% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if details.message %}
+        <div class="flex items-start gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-500/10">
+            <i class="ti ti-info-circle text-blue-500 dark:text-blue-400 shrink-0 mt-0.5" aria-hidden="true"></i>
+            <p class="text-sm text-blue-800 dark:text-blue-300">{{ details.message }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if already_responded %}
+    {# ---- Confirmation of an existing response ---- #}
+    <div class="mt-5 rounded-xl border bg-white dark:bg-gray-800 px-4 sm:px-5 py-6 text-center {% if recipient.is_available %}border-green-200 dark:border-green-500/30{% else %}border-gray-200 dark:border-gray-700{% endif %}">
+        {% if recipient.is_available %}
+        <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mb-4">
+            <i class="ti ti-check text-3xl text-green-600 dark:text-green-400" aria-hidden="true"></i>
+        </div>
+        <h2 class="text-xl font-bold text-green-600 dark:text-green-400 mb-2">You're Available!</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Thanks for letting us know. We'll be in touch if you're needed.</p>
+        {% else %}
+        <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+            <i class="ti ti-x text-3xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+        </div>
+        <h2 class="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">Not Available</h2>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Thanks for letting us know. Maybe next time!</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if not already_responded %}
+    {# ============ Availability decision ============ #}
+    <form action="{{ url_for('substitute_reachout.submit_reachout', token=token) }}" method="POST" class="mt-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="flex items-center gap-2 px-4 sm:px-5 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+                <i class="ti ti-question-mark text-ecs-green" aria-hidden="true"></i>
+                <span class="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Are you available to sub?</span>
+            </div>
+            {# Command toolbar: decisive primary CTA + secondary decline #}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 sm:px-5 py-4 bg-gray-50 dark:bg-gray-800/60">
+                <button type="submit" name="is_available" value="yes"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-check" aria-hidden="true"></i>
+                    Yes, I Can Sub!
+                </button>
+                <button type="submit" name="is_available" value="no"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-x" aria-hidden="true"></i>
+                    No, Not This Week
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+    {% endif %}
+
+    <p class="mt-5 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1">
+        <i class="ti ti-shield-check" aria-hidden="true"></i>
+        ECS Soccer League - Substitute Management
+    </p>
+</div>
+{% endblock %}
