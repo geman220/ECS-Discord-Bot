@@ -274,7 +274,7 @@
             </div>
 
             {# Users #}
-            {% set users_active = request.endpoint and request.endpoint in ['admin_panel.users_comprehensive', 'admin_panel.user_approvals', 'admin_panel.user_waitlist', 'admin_panel.roles_comprehensive', 'admin_panel.roles_comprehensive_details', 'admin_panel.role_comprehensive_users', 'admin_panel.quick_profiles_management', 'admin_panel.user_analytics', 'admin_panel.duplicate_registrations', 'admin_panel.members_worklist', 'admin_panel.member_hub'] %}
+            {% set users_active = request.endpoint and request.endpoint in ['admin_panel.users_comprehensive', 'admin_panel.user_approvals', 'admin_panel.user_waitlist', 'admin_panel.roles_comprehensive', 'admin_panel.roles_comprehensive_details', 'admin_panel.role_comprehensive_users', 'admin_panel.access_control', 'admin_panel.quick_profiles_management', 'admin_panel.user_analytics', 'admin_panel.duplicate_registrations', 'admin_panel.members_worklist', 'admin_panel.member_hub'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -294,9 +294,8 @@
                         {% if nav_waitlist_count > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-yellow-500 rounded-full">{{ nav_waitlist_count }}</span>{% endif %}
                     </a>
                     <div class="border-t border-gray-200 dark:border-gray-600 my-1"></div>
-                    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shield text-gray-400 text-xs"></i>Roles</a>
+                    <a href="{{ url_for('admin_panel.access_control') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shield-lock text-gray-400 text-xs"></i>Access Control</a>
                     <div class="border-t border-gray-200 dark:border-gray-600 my-1"></div>
-                    <a href="{{ url_for('admin_panel.members_worklist', tab='analytics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-line text-gray-400 text-xs"></i>Analytics</a>
                     <a href="{{ url_for('admin_panel.coach_engagement') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-whistle text-gray-400 text-xs"></i>Coach Engagement</a>
                     <a href="{{ url_for('admin_panel.duplicate_registrations') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-copy text-gray-400 text-xs"></i>Duplicates</a>
                     <a href="{{ url_for('admin_panel.quick_profiles_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-id-badge text-gray-400 text-xs"></i>Quick Profiles</a>
@@ -710,9 +709,6 @@
                             <i class="ti ti-shield text-gray-400"></i>Roles
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <a href="{{ url_for('admin_panel.members_worklist', tab='analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-chart-line text-gray-400"></i>Analytics
-                        </a>
                         <a href="{{ url_for('admin_panel.coach_engagement') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-whistle text-gray-400"></i>Coach Engagement
                         </a>

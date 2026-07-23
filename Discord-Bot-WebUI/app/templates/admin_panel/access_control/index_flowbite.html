@@ -1,0 +1,539 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
+{% from 'admin_panel/reports/_preview.html' import info_dot %}
+
+{% block admin_title %}Access Control{% endblock %}
+{% block panel_description %}Roles, permissions and Discord role-mapping in one place — they all edit the same Role.{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ms-1 text-sm text-gray-500 dark:text-gray-400">Users</span></div></li>
+<li aria-current="page"><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ms-1 text-sm font-medium text-gray-700 dark:text-gray-300">Access Control</span></div></li>
+{% endblock %}
+
+{# ---- local helpers ---- #}
+{% macro tab_link(key, label, count, icon) %}
+<a href="{{ url_for('admin_panel.access_control', tab=key) }}"
+   class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
+   {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
+  <i class="ti {{ icon }}"></i>{{ label }}
+  {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+</a>
+{% endmacro %}
+
+{% macro kind_badge(kind) %}
+{% set m = {'admin': ['bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300', 'Admin'],
+            'coach': ['bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300', 'Coach'],
+            'league': ['bg-ecs-green/10 text-ecs-green', 'League'],
+            'sub': ['bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', 'Sub'],
+            'referee': ['bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300', 'Referee'],
+            'other': ['bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'Other']} %}
+{% set c = m.get(kind, m['other']) %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ c[0] }}">{{ c[1] }}</span>
+{% endmacro %}
+
+{% macro role_avatar(kind, label) %}
+{% set bg = {'admin': '#b91c1c', 'coach': '#b45309', 'league': '#1a472a', 'sub': '#2563eb', 'referee': '#4f46e5', 'other': '#6b7280'} %}
+<span class="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0" style="background: {{ bg.get(kind, '#6b7280') }}">{{ label[:2]|upper }}</span>
+{% endmacro %}
+
+{% block panel_content %}
+<div class="space-y-5 sm:space-y-6">
+
+  {% call page_header('Access Control', subtitle='Roles · Permissions · Discord mapping') %}
+    <a href="#ac-guide" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"><i class="ti ti-help-circle"></i>Guide</a>
+  {% endcall %}
+
+  <div class="rounded-lg border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 px-3.5 py-2.5 flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+    <i class="ti ti-info-circle text-ecs-green text-[16px] mt-0.5 shrink-0"></i>
+    <p>One home for the three things that all describe a <strong>Role</strong>: who holds it (<em>Roles</em>), what it can do (<em>Permissions</em>), and how it maps to your Discord server (<em>Discord mapping</em>). Assigning a role to a specific <strong>person</strong> still happens in their <a href="{{ url_for('admin_panel.members_worklist') }}" class="text-ecs-green font-medium hover:underline">Member Hub</a>.</p>
+  </div>
+
+  {# ===== tabs ===== #}
+  <div class="border-b border-gray-200 dark:border-gray-700 flex items-center gap-1 overflow-x-auto">
+    {{ tab_link('roles', 'Roles', counts.roles, 'ti-shield') }}
+    {{ tab_link('permissions', 'Permissions', counts.permissions, 'ti-key') }}
+    {{ tab_link('discord', 'Discord mapping', counts.discord, 'ti-brand-discord') }}
+  </div>
+
+  {# ============================================================= ROLES ============================================================= #}
+  {% if tab == 'roles' %}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-shield', 'Total roles', stats.total_roles, tone='primary') }}
+    {{ stat_card('ti-users', 'Assignments', stats.assignments, sublabel='~' ~ stats.avg_per_role ~ ' / role', tone='neutral') }}
+    {{ stat_card('ti-brand-discord', 'Mapped to Discord', stats.mapped, tone='info') }}
+    {{ stat_card('ti-key', 'Editable perms', enforced_count, tone='gold') }}
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <div class="flex-1 min-w-[180px] flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
+      <i class="ti ti-search text-gray-400"></i>
+      <input id="roleFilter" type="search" placeholder="Filter roles by name…" class="w-full bg-transparent border-0 p-0 text-sm focus:ring-0 text-gray-900 dark:text-white">
+    </div>
+    <button type="button" data-ac="role-create" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold"><i class="ti ti-plus"></i>New role</button>
+    <button type="button" data-ac="role-export" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"><i class="ti ti-download"></i>Export</button>
+  </div>
+
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 text-xs uppercase text-gray-500 dark:text-gray-400">
+          <tr>
+            <th class="px-4 py-2.5 text-left font-medium">Role {{ info_dot('The friendly name is shown first; the raw system name (e.g. pl-premier) is the small mono text under it — that’s what the code and Discord sync use.') }}</th>
+            <th class="px-4 py-2.5 text-left font-medium hidden md:table-cell">What it is</th>
+            <th class="px-4 py-2.5 text-left font-medium">Users</th>
+            <th class="px-4 py-2.5 text-left font-medium hidden sm:table-cell">Type</th>
+            <th class="px-4 py-2.5 text-left font-medium hidden lg:table-cell">Discord {{ info_dot('“Mapped” = linked to a Discord role. “App-only” = intentionally has no Discord counterpart (admin/waitlist roles). “Needs mapping” = expected to map but isn’t yet.') }}</th>
+            <th class="px-4 py-2.5 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          {% for r in roles %}
+          <tr class="ac-role-row hover:bg-gray-50 dark:hover:bg-gray-700/30" data-role-name="{{ r.name|lower }}" data-role-label="{{ r.label|lower }}">
+            <td class="px-4 py-2.5">
+              <div class="flex items-center gap-3">
+                {{ role_avatar(r.kind, r.label) }}
+                <div class="min-w-0">
+                  <div class="font-semibold text-gray-900 dark:text-white truncate">{{ r.label }}</div>
+                  <div class="text-[11px] font-mono text-gray-400 truncate">{{ r.name }} · ID {{ r.id }}{% if r.is_system %} · <i class="ti ti-lock" title="System role — can’t be deleted"></i> system{% endif %}</div>
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-2.5 hidden md:table-cell text-gray-500 dark:text-gray-400">{{ r.what or r.description or '—' }}</td>
+            <td class="px-4 py-2.5">
+              <span class="font-mono tabular-nums text-gray-700 dark:text-gray-300">{{ r.user_count }}</span>
+              <span class="inline-block w-16 h-1.5 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden align-middle ml-1"><span class="block h-full bg-ecs-green" style="width: {{ r.user_pct }}%"></span></span>
+            </td>
+            <td class="px-4 py-2.5 hidden sm:table-cell">{{ kind_badge(r.kind) }}</td>
+            <td class="px-4 py-2.5 hidden lg:table-cell">
+              {% if r.discord_role_id %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300"><i class="ti ti-brand-discord"></i>{{ r.discord_role_name or 'Mapped' }}</span>
+              {% elif r.discord_expected %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Needs mapping</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-shield-lock"></i>App-only</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 text-right whitespace-nowrap">
+              <button type="button" data-ac="role-edit" data-role-id="{{ r.id }}" data-role-name="{{ r.name }}" data-role-desc="{{ r.description or '' }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-edit"></i>Edit</button>
+              <a href="{{ url_for('admin_panel.role_comprehensive_users', role_id=r.id) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-users"></i>Members</a>
+              {% if not r.is_system %}
+              <button type="button" data-ac="role-delete" data-role-id="{{ r.id }}" data-role-label="{{ r.label }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-trash"></i></button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+      <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#b91c1c"></span> System roles can’t be deleted</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#4f46e5"></span> Mapped to a Discord role</span>
+      <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#8a978f"></span> App-only (no Discord role by design)</span>
+    </div>
+  </div>
+
+  <div id="ac-guide" class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
+    <p class="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5"><i class="ti ti-book"></i>How roles work here</p>
+    <p><strong>Creating a role:</strong> “New role” makes a Flask (app) role. You can also tick <em>“also create a matching Discord role”</em> to make both at once and link them. Need <em>only</em> a Discord role? Use “Create Discord role” on the Discord mapping tab.</p>
+    <p><strong>System roles</strong> (Global Admin, Pub League Admin, Discord Admin) are protected from deletion. A role that’s assigned to anyone can’t be deleted until it’s empty.</p>
+    <p><strong>Assigning to people</strong> happens in each person’s Member Hub — assign/remove here only opens that flow. Role changes queue a Discord sync automatically.</p>
+  </div>
+  {% endif %}
+
+  {# ============================================================= PERMISSIONS ============================================================= #}
+  {% if tab == 'permissions' %}
+  {% if seeded_count < enforced_count %}
+  <div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 flex items-start gap-3 text-sm text-gray-800 dark:text-gray-100">
+    <i class="ti ti-alert-triangle text-amber-500 text-lg mt-0.5 shrink-0"></i>
+    <div>
+      <p class="font-semibold">The permissions table isn’t fully seeded ({{ seeded_count }} of {{ enforced_count }} present).</p>
+      <p class="mt-0.5 text-gray-600 dark:text-gray-300">These permissions are enforced in code, but a permission only <em>works</em> once its row exists. Run <code class="font-mono text-xs bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">sql_seed_permissions.sql</code> in pgAdmin, then reload — toggles below only grant real access for seeded rows.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-key', 'Permissions', matrix.counts.permissions, tone='primary') }}
+    {{ stat_card('ti-shield-check', 'Enforced', matrix.counts.enforced, sublabel='gate real behavior', tone='success') }}
+    {{ stat_card('ti-ghost', 'Decorative', matrix.counts.decorative, sublabel='gate nothing', tone='warning') }}
+    {{ stat_card('ti-shield', 'Roles', matrix.counts.roles, tone='neutral') }}
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2">
+    <div class="flex-1 min-w-[180px] flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
+      <i class="ti ti-search text-gray-400"></i>
+      <input id="permFilter" type="search" placeholder="Filter permissions… e.g. “notes”, “match”, “edit”" class="w-full bg-transparent border-0 p-0 text-sm focus:ring-0 text-gray-900 dark:text-white">
+    </div>
+    <span class="text-xs text-gray-500 dark:text-gray-400">Toggle a cell to grant/revoke for that role. Changes save immediately.</span>
+  </div>
+
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-x-auto">
+    <table class="w-full text-sm border-collapse" style="min-width: 720px">
+      <thead>
+        <tr>
+          <th class="sticky left-0 z-20 bg-gray-50 dark:bg-gray-700/60 border-b border-r border-gray-200 dark:border-gray-700 text-left px-4 py-2.5 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold" style="min-width:260px">Permission · what it impacts</th>
+          {% for role in matrix.roles %}
+          <th class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/60 text-center px-2 py-2.5 text-[11px] text-gray-600 dark:text-gray-300 font-semibold whitespace-nowrap" title="{{ role.name }}">{{ role.label }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% set ns = namespace(cat=None) %}
+        {% for row in matrix.rows %}
+        {% if row.category != ns.cat %}{% set ns.cat = row.category %}
+        <tr class="ac-cat"><td colspan="{{ matrix.roles|length + 1 }}" class="sticky left-0 bg-gray-100 dark:bg-gray-700/80 text-[11px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400 px-4 py-1.5">{{ row.category }}</td></tr>
+        {% endif %}
+        <tr class="ac-perm-row hover:bg-gray-50 dark:hover:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700" data-perm="{{ row.name|lower }} {{ row.label|lower }} {{ row.impacts|lower }}">
+          <td class="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 px-4 py-2.5" style="min-width:260px">
+            <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+              {% if row.enforced %}<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Enforced — really gates behavior"></span>
+              {% else %}<span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Decorative — exists but gates nothing in code"></span>{% endif %}
+              {{ row.label }}
+              {% if not row.enforced %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">gates nothing</span>{% endif %}
+            </div>
+            <div class="text-[11.5px] text-gray-500 dark:text-gray-400 mt-0.5">{{ row.impacts }}</div>
+            <div class="text-[10px] font-mono text-gray-400 mt-0.5">{{ row.name }}</div>
+          </td>
+          {% for role in matrix.roles %}
+          {% set locked = (role.name == 'Global Admin') %}
+          <td class="text-center border-b border-gray-100 dark:border-gray-700 px-2 py-2.5">
+            <label class="ac-switch relative inline-block w-[38px] h-[21px] align-middle {{ 'opacity-50 cursor-not-allowed' if locked else 'cursor-pointer' }}">
+              <input type="checkbox" class="ac-perm-toggle sr-only peer" {{ 'checked' if (locked or row.granted[role.id]) else '' }} {{ 'disabled' if locked else '' }}
+                     data-role-id="{{ role.id }}" data-perm="{{ row.name }}" {{ 'data-seeded=1' if row.enforced else '' }}>
+              <span class="absolute inset-0 rounded-full bg-gray-200 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 peer-checked:bg-ecs-green peer-checked:border-ecs-green transition"></span>
+              <span class="absolute top-[2.5px] left-[2.5px] w-[15px] h-[15px] rounded-full bg-white shadow peer-checked:translate-x-[16px] transition"></span>
+            </label>
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 dark:text-gray-400 px-1">
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Enforced — really gates behavior</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Decorative — exists but gates nothing</span>
+    <span class="inline-flex items-center gap-1.5"><i class="ti ti-lock text-gray-400"></i> Global Admin is always allowed (locked)</span>
+  </div>
+  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
+    <p class="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5"><i class="ti ti-info-circle"></i>What this matrix controls</p>
+    <p>A permission gates fine-grained <strong>content</strong> (e.g. seeing a player’s admin notes, editing stats, reporting a match) — not whether someone can open an admin page (that’s role-based). Granting is per-role and applies to everyone with that role.</p>
+    <p><strong>Heads-up:</strong> a Redis-cached fast-auth path treats every permission as “admin-only,” so for a brief window after a change, cached sessions may not reflect a new grant until they refresh.</p>
+  </div>
+  {% endif %}
+
+  {# ============================================================= DISCORD MAPPING ============================================================= #}
+  {% if tab == 'discord' %}
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+    <div class="flex flex-wrap items-center gap-3 px-4 py-3">
+      {% if bot_status == 'online' %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Bot online</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">{{ guild_name }} · <span class="font-mono tabular-nums">{{ dstats.discord_roles }}</span> Discord roles visible</span>
+      {% else %}
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"><span class="w-2 h-2 rounded-full bg-red-500"></span>Bot offline</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">Can’t reach the Discord bot — mappings show but sync/create are unavailable.</span>
+      {% endif %}
+      <div class="ml-auto flex flex-wrap gap-2">
+        <button type="button" data-ac="refresh" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold"><i class="ti ti-refresh"></i>Refresh</button>
+        <button type="button" data-ac="discord-create" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold"><i class="ti ti-plus"></i>Create Discord role</button>
+        <button type="button" data-ac="auto-map" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold"><i class="ti ti-wand"></i>Auto-map</button>
+        <button type="button" data-ac="sync-all" class="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-xs font-semibold"><i class="ti ti-refresh-dot"></i>Sync all mapped</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+    {{ stat_card('ti-shield', 'Flask roles', dstats.flask_roles, tone='neutral') }}
+    {{ stat_card('ti-link', 'Mapped', dstats.mapped, tone='success') }}
+    {{ stat_card('ti-alert-triangle', 'Needs mapping', dstats.needs, tone='warning') }}
+    {{ stat_card('ti-shield-lock', 'App-only', dstats.app_only, tone='neutral') }}
+    {{ stat_card('ti-brand-discord', 'Discord roles', dstats.discord_roles, tone='info') }}
+  </div>
+
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-link text-ecs-green"></i><h2 class="text-sm font-semibold text-gray-900 dark:text-white">Role mappings</h2>
+      <span class="ml-auto text-xs text-gray-400">Each Flask role maps to one Discord role {{ info_dot('Auto-map matches by name using the canonical map and never touches app-only/admin roles. App-only roles are meant to have no Discord counterpart.') }}</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 text-xs uppercase text-gray-500 dark:text-gray-400">
+          <tr>
+            <th class="px-4 py-2.5 text-left font-medium">Flask role</th>
+            <th class="px-4 py-2.5 text-left font-medium">Discord role</th>
+            <th class="px-4 py-2.5 text-left font-medium hidden sm:table-cell">Status</th>
+            <th class="px-4 py-2.5 text-left font-medium hidden md:table-cell">Last synced</th>
+            <th class="px-4 py-2.5 text-right font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          {% for m in mappings %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 {{ 'opacity-70' if not m.discord_expected else '' }}" data-role-id="{{ m.id }}">
+            <td class="px-4 py-2.5">
+              <div class="font-semibold text-gray-900 dark:text-white">{{ m.label }}</div>
+              <div class="text-[11px] font-mono text-gray-400">{{ m.name }}</div>
+            </td>
+            <td class="px-4 py-2.5">
+              {% if m.discord_expected %}
+              <select class="ac-map-select text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white py-1.5 px-2 min-w-[190px] focus:ring-ecs-green focus:border-ecs-green" data-role-id="{{ m.id }}" data-current="{{ m.discord_role_id or '' }}">
+                <option value="">— unmapped —</option>
+                {% for dr in discord_roles %}
+                <option value="{{ dr.id }}" data-name="{{ dr.name }}" {{ 'selected' if dr.id|string == (m.discord_role_id or '')|string else '' }}>{{ dr.name }}{% if dr.member_count is defined %} ({{ dr.member_count }}){% endif %}</option>
+                {% endfor %}
+              </select>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-shield-lock"></i>App-only — not mappable</span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-2.5 hidden sm:table-cell">
+              {% if m.discord_role_id %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><i class="ti ti-check"></i>Mapped</span>
+              {% elif m.discord_expected %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Needs mapping</span>
+              {% else %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-lock"></i>Protected</span>{% endif %}
+            </td>
+            <td class="px-4 py-2.5 hidden md:table-cell font-mono text-xs text-gray-400">{{ m.last_synced_at.strftime('%Y-%m-%d %H:%M') if m.last_synced_at else '—' }}</td>
+            <td class="px-4 py-2.5 text-right whitespace-nowrap">
+              {% if m.discord_expected %}
+              <button type="button" data-ac="preview" data-role-id="{{ m.id }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-eye"></i></button>
+              <button type="button" data-ac="save-map" data-role-id="{{ m.id }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-device-floppy"></i>Save</button>
+              <button type="button" data-ac="sync-role" data-role-id="{{ m.id }}" {{ 'disabled' if not m.discord_role_id else '' }} class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"><i class="ti ti-refresh"></i>Sync</button>
+              {% else %}<span class="text-[11px] text-gray-400">auto-map skips this</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 flex items-start gap-3 text-sm text-gray-800 dark:text-gray-100">
+    <i class="ti ti-alert-triangle text-amber-500 text-lg mt-0.5 shrink-0"></i>
+    <div>
+      <p class="font-semibold">A mapping toggle here is not a global sync kill-switch.</p>
+      <p class="mt-0.5 text-gray-600 dark:text-gray-300">Per-role sync (and <code class="font-mono text-xs bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded">sync_enabled</code>) only controls this <strong>direct mapping</strong>. League / coach / sub / referee Discord roles are <strong>also</strong> recomputed and pushed automatically whenever a player’s membership changes — that path runs regardless of what’s set here.</p>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block modals %}
+{# Role create/edit modal #}
+<div id="acRoleModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
+    <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
+      <h3 id="acRoleModalTitle" class="font-semibold text-gray-900 dark:text-white">Create role</h3>
+      <button type="button" data-ac="modal-close" class="text-gray-400 hover:text-gray-600"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="acRoleForm" class="p-5 space-y-4">
+      <input type="hidden" id="acRoleId">
+      <div>
+        <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+        <input id="acRoleName" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green" placeholder="e.g. Premier Coach">
+        <p class="text-xs text-gray-400 mt-1">This is the system name used by code and Discord sync. Keep it stable once set.</p>
+      </div>
+      <div>
+        <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+        <textarea id="acRoleDesc" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green" placeholder="What is this role for?"></textarea>
+      </div>
+      <div id="acRoleDiscordOpt" class="rounded-lg border border-gray-200 dark:border-gray-600 p-3 bg-gray-50 dark:bg-gray-700/40">
+        <label class="flex items-start gap-2.5 cursor-pointer">
+          <input type="checkbox" id="acAlsoDiscord" class="mt-0.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+          <span class="text-sm text-gray-700 dark:text-gray-200">Also create a matching <strong>Discord role</strong> and link it
+            <span class="block text-xs text-gray-400 mt-0.5">Makes a Discord role with the same name and maps it automatically. Leave unchecked for an app-only role (admin/waitlist style). Requires the bot to be online.</span>
+          </span>
+        </label>
+      </div>
+      <div class="flex justify-end gap-2 pt-1">
+        <button type="button" data-ac="modal-close" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+        <button type="submit" class="px-4 py-2 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold">Save role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Discord user-preview modal #}
+<div id="acPreviewModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
+      <h3 class="font-semibold text-gray-900 dark:text-white">Who will sync</h3>
+      <button type="button" data-ac="modal-close" class="text-gray-400 hover:text-gray-600"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="acPreviewBody" class="p-5 max-h-[60vh] overflow-y-auto text-sm"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const TAB = {{ tab|tojson }};
+  const csrf = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+  const j = (url, body) => fetch(url, {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrf}, body: JSON.stringify(body||{})}).then(r=>r.json());
+  const form = (url, fd) => fetch(url, {method:'POST', headers:{'X-CSRFToken':csrf}, body: fd}).then(r=>r.json());
+  const toast = (icon, title, text) => { if (window.Swal) window.Swal.fire({icon,title,text,toast:true,position:'top-end',showConfirmButton:false,timer:2600}); };
+  const showModal = id => document.getElementById(id).classList.remove('hidden');
+  const hideModal = id => document.getElementById(id).classList.add('hidden');
+  document.querySelectorAll('[data-ac="modal-close"]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('#acRoleModal,#acPreviewModal').forEach(m => m.classList.add('hidden'));
+  }));
+
+  // ---------- client-side filters ----------
+  const rf = document.getElementById('roleFilter');
+  if (rf) rf.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.ac-role-row').forEach(row => {
+      const hit = row.dataset.roleName.includes(q) || row.dataset.roleLabel.includes(q);
+      row.style.display = hit ? '' : 'none';
+    });
+  });
+  const pf = document.getElementById('permFilter');
+  if (pf) pf.addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.ac-perm-row').forEach(row => {
+      row.style.display = row.dataset.perm.includes(q) ? '' : 'none';
+    });
+  });
+
+  // ---------- PERMISSIONS: toggle grant/revoke ----------
+  document.querySelectorAll('.ac-perm-toggle').forEach(cb => {
+    cb.addEventListener('change', function () {
+      if (this.disabled) return;
+      const grant = this.checked;
+      const roleId = this.dataset.roleId, perm = this.dataset.perm;
+      if (!this.dataset.seeded) {
+        this.checked = !grant;
+        toast('warning', 'Not seeded yet', 'Run sql_seed_permissions.sql first, then reload.');
+        return;
+      }
+      this.disabled = true;
+      j('{{ url_for("admin_panel.toggle_role_permission") }}', {role_id: parseInt(roleId), permission_name: perm, grant})
+        .then(d => { if (!d.success) { this.checked = !grant; toast('error','Could not save', d.message||''); } })
+        .catch(() => { this.checked = !grant; toast('error','Network error',''); })
+        .finally(() => { this.disabled = false; });
+    });
+  });
+
+  // ---------- ROLES ----------
+  const roleUrls = {
+    create: '{{ url_for("admin_panel.create_role_comprehensive") }}',
+    edit: '{{ url_for("admin_panel.edit_role_comprehensive", role_id=0) }}',
+    del: '{{ url_for("admin_panel.delete_role_comprehensive", role_id=0) }}'
+  };
+  document.querySelectorAll('[data-ac="role-create"]').forEach(b => b.addEventListener('click', () => {
+    document.getElementById('acRoleModalTitle').textContent = 'Create role';
+    document.getElementById('acRoleForm').reset();
+    document.getElementById('acRoleId').value = '';
+    document.getElementById('acRoleDiscordOpt').classList.remove('hidden');
+    document.getElementById('acRoleForm').dataset.mode = 'create';
+    showModal('acRoleModal');
+  }));
+  document.querySelectorAll('[data-ac="role-edit"]').forEach(b => b.addEventListener('click', function () {
+    document.getElementById('acRoleModalTitle').textContent = 'Edit role';
+    document.getElementById('acRoleId').value = this.dataset.roleId;
+    document.getElementById('acRoleName').value = this.dataset.roleName;
+    document.getElementById('acRoleDesc').value = this.dataset.roleDesc || '';
+    document.getElementById('acRoleDiscordOpt').classList.add('hidden');   // create-only option
+    document.getElementById('acRoleForm').dataset.mode = 'edit';
+    showModal('acRoleModal');
+  }));
+  const roleForm = document.getElementById('acRoleForm');
+  if (roleForm) roleForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const mode = this.dataset.mode, id = document.getElementById('acRoleId').value;
+    const fd = new FormData();
+    fd.append('name', document.getElementById('acRoleName').value.trim());
+    fd.append('description', document.getElementById('acRoleDesc').value.trim());
+    const url = (mode === 'edit') ? roleUrls.edit.replace('/0/', '/'+id+'/') : roleUrls.create;
+    const alsoDiscord = mode === 'create' && document.getElementById('acAlsoDiscord').checked;
+    form(url, fd).then(d => {
+      if (!d.success) { toast('error','Failed', d.message||''); return; }
+      if (alsoDiscord) {
+        return j('{{ url_for("admin_panel.create_discord_role") }}', {name: document.getElementById('acRoleName').value.trim()})
+          .then(dr => {
+            if (dr.success && d.role_id) {
+              return j('{{ url_for("admin_panel.update_role_mapping") }}', {role_id: d.role_id, discord_role_id: dr.role_id, discord_role_name: dr.role_name, sync_enabled: true});
+            }
+          }).then(() => { toast('success','Role + Discord role created',''); setTimeout(()=>location.reload(), 700); });
+      }
+      toast('success','Saved',''); setTimeout(()=>location.reload(), 600);
+    }).catch(() => toast('error','Network error',''));
+  });
+  document.querySelectorAll('[data-ac="role-delete"]').forEach(b => b.addEventListener('click', function () {
+    const id = this.dataset.roleId, label = this.dataset.roleLabel;
+    const go = () => j(roleUrls.del.replace('/0/', '/'+id+'/')).then(d => {
+      if (d.success) { toast('success','Deleted',''); setTimeout(()=>location.reload(), 500); }
+      else toast('error','Cannot delete', d.message||'');
+    });
+    if (window.Swal) window.Swal.fire({icon:'warning', title:'Delete “'+label+'”?', text:'Only empty, non-system roles can be deleted.', showCancelButton:true, confirmButtonText:'Delete', confirmButtonColor:'#dc2626'}).then(r=>{if(r.isConfirmed) go();});
+    else if (confirm('Delete '+label+'?')) go();
+  }));
+  document.querySelectorAll('[data-ac="role-export"]').forEach(b => b.addEventListener('click', () => {
+    const fd = new FormData();
+    form('{{ url_for("admin_panel.export_roles") }}', fd).then(d => {
+      if (!d.success) { toast('error','Export failed', d.message||''); return; }
+      const blob = new Blob([JSON.stringify(d.export_data, null, 2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = d.filename || 'roles_export.json';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+      toast('success','Export ready','');
+    }).catch(() => toast('error','Network error',''));
+  }));
+
+  // ---------- DISCORD ----------
+  document.querySelectorAll('[data-ac="refresh"]').forEach(b => b.addEventListener('click', () => location.reload()));
+  document.querySelectorAll('[data-ac="save-map"]').forEach(b => b.addEventListener('click', function () {
+    const id = this.dataset.roleId;
+    const sel = document.querySelector('.ac-map-select[data-role-id="'+id+'"]');
+    const opt = sel.options[sel.selectedIndex];
+    j('{{ url_for("admin_panel.update_role_mapping") }}', {role_id: parseInt(id), discord_role_id: sel.value || null, discord_role_name: opt ? opt.dataset.name : null, sync_enabled: true})
+      .then(d => { if (d.success) { toast('success','Mapping saved',''); setTimeout(()=>location.reload(), 500); } else toast('error','Failed', d.error||d.message||''); });
+  }));
+  document.querySelectorAll('[data-ac="sync-role"]').forEach(b => b.addEventListener('click', function () {
+    if (this.disabled) return;
+    const id = this.dataset.roleId;
+    const go = () => j('{{ url_for("admin_panel.sync_role_to_discord") }}', {role_id: parseInt(id)})
+      .then(d => { if (d.success) toast('success','Synced', d.message||''); else toast('error','Sync failed', d.error||d.message||''); });
+    if (window.Swal) window.Swal.fire({icon:'question', title:'Sync this role to Discord?', text:'Assigns the mapped Discord role to everyone who holds it.', showCancelButton:true, confirmButtonText:'Sync'}).then(r=>{if(r.isConfirmed) go();});
+    else go();
+  }));
+  document.querySelectorAll('[data-ac="preview"]').forEach(b => b.addEventListener('click', function () {
+    const id = this.dataset.roleId;
+    const body = document.getElementById('acPreviewBody');
+    body.innerHTML = '<p class="text-gray-400">Loading…</p>';
+    showModal('acPreviewModal');
+    fetch('{{ url_for("admin_panel.preview_role_sync", role_id=0) }}'.replace('/0', '/'+id)).then(r=>r.json()).then(d => {
+      if (!d.success) { body.innerHTML = '<p class="text-red-500">'+(d.error||'Failed')+'</p>'; return; }
+      let h = '<p class="mb-2 text-gray-600 dark:text-gray-300"><strong>'+d.total_users+'</strong> hold this role · <strong>'+d.users_with_discord+'</strong> linked to Discord</p><ul class="divide-y divide-gray-100 dark:divide-gray-700">';
+      (d.users||[]).forEach(u => { h += '<li class="py-1.5 flex items-center justify-between"><span>'+(u.username||'')+'</span>'+(u.has_discord?'<span class="text-emerald-500 text-xs">✓ Discord</span>':'<span class="text-gray-400 text-xs">no Discord</span>')+'</li>'; });
+      body.innerHTML = h + '</ul>';
+    });
+  }));
+  document.querySelectorAll('[data-ac="sync-all"]').forEach(b => b.addEventListener('click', function () {
+    const go = () => { const btns = document.querySelectorAll('[data-ac="sync-role"]:not([disabled])'); let i=0; const step=()=>{ if(i>=btns.length){toast('success','Sync complete','');return;} btns[i].click(); i++; setTimeout(step, 1000); }; step(); };
+    if (window.Swal) window.Swal.fire({icon:'question', title:'Sync all mapped roles?', text:'Runs each mapped role sync in turn.', showCancelButton:true, confirmButtonText:'Sync all'}).then(r=>{if(r.isConfirmed) go();});
+    else go();
+  }));
+  document.querySelectorAll('[data-ac="auto-map"]').forEach(b => b.addEventListener('click', function () {
+    j('{{ url_for("admin_panel.auto_map_role_mapping") }}', {apply: false}).then(d => {
+      if (!d.success) { toast('error','Auto-map failed', d.error||''); return; }
+      const changes = (d.proposals||[]).filter(p => p.matched && p.changed).length;
+      const proceed = () => j('{{ url_for("admin_panel.auto_map_role_mapping") }}', {apply: true}).then(()=>{ toast('success','Auto-mapped',''); setTimeout(()=>location.reload(), 700); });
+      if (window.Swal) window.Swal.fire({icon:'info', title:'Auto-map preview', text: changes+' role(s) will be linked by name. App-only/admin roles are never touched.', showCancelButton:true, confirmButtonText: changes? 'Apply' : 'Nothing to apply'}).then(r=>{ if(r.isConfirmed && changes) proceed(); });
+      else if (changes && confirm(changes+' will be mapped. Apply?')) proceed();
+    });
+  }));
+  document.querySelectorAll('[data-ac="discord-create"]').forEach(b => b.addEventListener('click', function () {
+    if (!window.Swal) return;
+    window.Swal.fire({title:'Create Discord role', input:'text', inputLabel:'Role name', inputPlaceholder:'e.g. ECS-FC-PL-PREMIER', showCancelButton:true, confirmButtonText:'Create'}).then(r => {
+      if (!r.isConfirmed || !r.value) return;
+      j('{{ url_for("admin_panel.create_discord_role") }}', {name: r.value}).then(d => {
+        if (d.success) { toast('success','Discord role created', d.role_name||''); setTimeout(()=>location.reload(), 800); }
+        else toast('error','Failed', d.error||'');
+      });
+    });
+  }));
+});
+</script>
+{% endblock %}

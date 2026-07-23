@@ -43,6 +43,7 @@ def register_all_routes(admin_panel_bp):
     register_user_management_routes()
 
     from . import roles  # New role management
+    from . import access_control  # Unified Roles + Permissions + Discord-mapping center
     from . import monitoring
     from . import integrity  # Data-integrity conflict dashboard
 

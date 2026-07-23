@@ -197,7 +197,18 @@ def members_worklist():
     users, profiles, pagination, sub_summary = [], [], None, {}
 
     if tab == 'waitlist':
-        wq = waitlist_q.options(joinedload(User.player))
+        # The tab-bar badge (counts.waitlist) stays the DEFAULT non-denied count — the
+        # standing "how many are actively waiting" signal. The list itself honors an
+        # approval filter so denied-but-waitlisted people are hidden by default but
+        # reachable ('denied' = just them, 'all' = everyone). Waitlist and approval are
+        # independent axes, so the list is built fresh here rather than off waitlist_q.
+        wq = (db.session.query(User).join(User.roles)
+              .filter(Role.name == 'pl-waitlist')
+              .options(joinedload(User.player)))
+        if approval_filter == 'denied':
+            wq = wq.filter(User.approval_status == 'denied')
+        elif approval_filter != 'all':
+            wq = wq.filter(not_denied)   # default view: hide denied
         if search:
             like = f'%{search}%'
             wq = wq.outerjoin(Player, Player.user_id == User.id).filter(

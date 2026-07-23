@@ -32,6 +32,36 @@
 
 {% macro lane_label(val) %}{% set v = (val or '') | lower %}{% if 'classic' in v %}Classic{% elif 'premier' in v %}Premier{% elif 'ecs' in v %}ECS FC{% else %}Undecided{% endif %}{% endmacro %}
 
+{#- Waitlist row signals — a SUPERSET of what the legacy waitlist page showed, so the
+   new surface loses nothing: the admin-decided lane, the player's OWN preferred league
+   (incl. the "needs guidance" flag for "not sure"), whether they're open to subbing,
+   and Discord-linked state. Used in both the desktop table and the mobile card. -#}
+{% macro waitlist_signals(u) %}
+{% set pref = (u.preferred_league or '') | lower %}
+<div class="flex flex-wrap items-center gap-1">
+  {% if u.waitlist_league %}
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-ecs-green/10 text-ecs-green ring-1 ring-ecs-green/30" title="Waitlist lane chosen by an admin (the decided lane, vs the player's own preference)"><i class="ti ti-list-check text-[11px]"></i>{{ lane_label(u.waitlist_league) }} lane</span>
+  {% endif %}
+  {% if pref in ('not_sure', 'not sure', '') and not u.waitlist_league %}
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player hasn’t picked a league — an admin should help them choose"><i class="ti ti-help-circle text-[11px]"></i>Needs guidance</span>
+  {% elif 'classic' in pref %}
+  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" title="Player’s own preferred league">Prefers Classic</span>
+  {% elif 'premier' in pref %}
+  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" title="Player’s own preferred league">Prefers Premier</span>
+  {% elif 'ecs' in pref %}
+  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" title="Player’s own preferred league">Prefers ECS FC</span>
+  {% endif %}
+  {% if u.player and u.player.interested_in_sub %}
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" title="Flagged as willing to substitute while they wait"><i class="ti ti-replace text-[11px]"></i>Open to subbing</span>
+  {% endif %}
+  {% if u.player and u.player.discord_id %}
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300" title="Discord account linked — can be DM’d and role-synced"><i class="ti ti-brand-discord text-[11px]"></i>Discord</span>
+  {% else %}
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No Discord linked — can’t be DM’d or role-synced yet"><i class="ti ti-unlink text-[11px]"></i>No Discord</span>
+  {% endif %}
+</div>
+{% endmacro %}
+
 {% macro role_chip(name) %}
 <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium {% if 'admin' in name|lower %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'waitlist' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'sub' in name|lower %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
 {% endmacro %}
@@ -80,7 +110,7 @@
   {% set tips = {
     'all': 'Every row opens that person’s Hub. Search or filter to reach <strong>anyone</strong> — the green <em>Playing</em> badge means they’re on the roster this season. Denied people are hidden until you filter them in.',
     'pending': 'Approve straight into a league (or onto the waitlist) from the row, or open the Hub for the full set of options. Approval and waitlist are <strong>independent</strong> — approving here doesn’t touch the waitlist.',
-    'waitlist': 'The waitlist is a <strong>point-in-time, per-season</strong> list that clears at each season boundary. People here may be approved or not — approval is a separate axis. Filter by league or “Undecided”.',
+    'waitlist': 'The waitlist is a <strong>point-in-time, per-season</strong> list that clears at each season boundary. People here may be approved or not — approval is a separate axis. Denied people are <strong>hidden by default</strong>; use the <em>Approval</em> filter to reveal them (“Denied only” / “All”). Also filter by league or “Undecided”.',
     'subs': 'Subs <strong>play free</strong> and aren’t season “active” members — they help where/when needed. Set a sub Active/Resting here, or assign someone to a pool from their Hub. A sub can also sit on the waitlist for a permanent spot.',
     'quick': 'Field-created walk-ins with a claim code. When someone registers with their code the profile becomes <strong>Claimed</strong> and they move to <strong>Pending Approval</strong> (not approved yet) — their notes follow them. Actions <strong>adapt to status</strong>: pending → link / message / extend / delete; claimed or linked → mint an account; claimed can’t be deleted. Open <em>Details</em> for the claim code, contact info, and admin notes.'
   } %}
@@ -165,6 +195,14 @@
           <option value="ecs_fc" {% if lane_filter == 'ecs_fc' %}selected{% endif %}>ECS FC</option>
           {% if tab == 'waitlist' %}<option value="undecided" {% if lane_filter == 'undecided' %}selected{% endif %}>Undecided</option>{% endif %}
         </select></div>
+      {% if tab == 'waitlist' %}
+      <div class="w-full sm:w-auto"><label class="{{ lblcls }}">Approval</label>
+        <select name="approval" class="{{ selcls }}">
+          <option value="" {% if not approval_filter %}selected{% endif %}>Not denied</option>
+          <option value="denied" {% if approval_filter == 'denied' %}selected{% endif %}>Denied only</option>
+          <option value="all" {% if approval_filter == 'all' %}selected{% endif %}>All (incl. denied)</option>
+        </select></div>
+      {% endif %}
 
       {% elif tab == 'subs' %}
       <div class="w-full sm:w-auto"><label class="{{ lblcls }}">League</label>
@@ -353,7 +391,7 @@
               </td>
               <td class="px-4 py-2.5 hidden lg:table-cell">
                 {% if tab == 'waitlist' %}
-                  <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{{ lane_label(u.waitlist_league) }}</span>
+                  {{ waitlist_signals(u) }}
                 {% else %}
                   <div class="flex flex-wrap gap-1">{% for r in u.roles[:3] %}{{ role_chip(r.name) }}{% endfor %}{% if u.roles|length > 3 %}<span class="text-[11px] text-gray-400">+{{ u.roles|length - 3 }}</span>{% endif %}</div>
                 {% endif %}
@@ -409,7 +447,7 @@
             {{ hub_btn(u.id) }}
           </div>
           <div class="mt-2 flex flex-wrap gap-1">
-            {% if tab == 'waitlist' %}<span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{{ lane_label(u.waitlist_league) }}</span>{% endif %}
+            {% if tab == 'waitlist' %}{{ waitlist_signals(u) }}{% endif %}
             {{ status_pills(u) }}
           </div>
         </div>
