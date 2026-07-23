@@ -75,17 +75,9 @@
                 </a>
             </li>
 
-            {# Sub Pool #}
-            <li>
-                <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}"
-                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
-                   {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.substitute_pools' and request.args.get('context') == 'ecs-fc' else 'border-transparent' }}">
-                    <i class="ti ti-user-plus"></i>
-                    <span>Sub Pool</span>
-                </a>
-            </li>
-
-            {# Substitutes (Unified) — the combined sub board, pre-filtered to ECS FC #}
+            {# Substitutes (Unified) — the combined sub board, pre-filtered to ECS FC.
+               Pool management + reconcile now live inside this hub, so the standalone
+               Sub Pool tab was removed (the substitute_pools route stays as fallback). #}
             <li>
                 <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}"
                    class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
@@ -156,9 +148,7 @@
                     <a href="{{ url_for('admin_panel.view_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>Matches</a>
                     <a href="{{ url_for('admin_panel.playoff_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-trophy text-gray-400 text-xs"></i>Playoff Management</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Substitutes</div>
-                    <a href="{{ url_for('admin_panel.unified_substitutes') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-layout-grid text-gray-400 text-xs"></i>Substitutes (Unified)</a>
-                    <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Manage Substitutes</a>
-                    <a href="{{ url_for('admin_panel.substitute_pools', context='pub-league') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Substitute Pools</a>
+                    <a href="{{ url_for('admin_panel.unified_substitutes') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-layout-grid text-gray-400 text-xs"></i>Substitutes</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Draft</div>
                     <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-history text-gray-400 text-xs"></i>Draft History</a>
                     <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-dots text-gray-400 text-xs"></i>Draft Predictions</a>
@@ -204,7 +194,6 @@
                     <a href="{{ url_for('admin_panel.ecs_fc_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>All Matches</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>Opponents Library</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-import text-gray-400 text-xs"></i>Import Schedule</a>
-                    <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Substitute Pool</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Sub Requests</a>
                 </div>
             </div>
@@ -442,13 +431,7 @@
                         <div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Substitutes</div>
                             <a href="{{ url_for('admin_panel.unified_substitutes') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-layout-grid text-gray-400"></i>Substitutes (Unified)
-                            </a>
-                            <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-user-plus text-gray-400"></i>Manage Substitutes
-                            </a>
-                            <a href="{{ url_for('admin_panel.substitute_pools', context='pub-league') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <i class="ti ti-users text-gray-400"></i>Substitute Pools
+                                <i class="ti ti-layout-grid text-gray-400"></i>Substitutes
                             </a>
                             <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                             <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Draft</div>
@@ -526,9 +509,6 @@
                             <i class="ti ti-file-import text-gray-400"></i>Import Schedule
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-user-plus text-gray-400"></i>Substitute Pool
-                        </a>
                         <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-clipboard-list text-gray-400"></i>Sub Requests
                         </a>

@@ -257,6 +257,19 @@ def notify_substitute_request_cancelled(self, session, request_id: int, league_t
         league_type: 'pub_league' or 'ecs_fc'
     """
     try:
+        # Org-wide kill switch (Settings tab). When an admin turns cancellation
+        # notices off, cancelling a request stays silent — no pending-responder DMs
+        # /pushes go out. Default True preserves the prior always-notify behavior.
+        from app.models.admin_config import AdminConfig
+        notify_on_cancel = AdminConfig.get_setting('sub_notify_on_cancel', True)
+        if not (str(notify_on_cancel).strip().lower() in ('true', '1', 'yes', 'on')
+                if not isinstance(notify_on_cancel, bool) else notify_on_cancel):
+            logger.info(
+                "sub_notify_on_cancel is off; skipping cancellation notice for %s request %s",
+                league_type, request_id,
+            )
+            return {'success': True, 'skipped': True, 'reason': 'sub_notify_on_cancel disabled'}
+
         from app.services.substitute_notification_service import SubstituteNotificationService
         return SubstituteNotificationService().notify_request_cancelled(request_id, league_type)
     except Exception as e:

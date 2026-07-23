@@ -2,7 +2,14 @@
    data-setting / data-setting-type; substitute-command-center.js collects them
    and POSTs to admin_panel.sub_settings_save. Rendered inside the hub's
    Settings section (shares the parent `settings` + `discord_channels` context). #}
+{# Weekday convention MATCHES the beat task: Python weekday() Mon=0..Sun=6 (Friday=4). #}
 {% set weekdays = [(0,'Monday'),(1,'Tuesday'),(2,'Wednesday'),(3,'Thursday'),(4,'Friday'),(5,'Saturday'),(6,'Sunday')] %}
+{% set _poll_wd = settings.sub_availability_poll_weekday if settings.sub_availability_poll_weekday is not none else 4 %}
+{% set _poll_hr = settings.sub_availability_poll_hour if settings.sub_availability_poll_hour is not none else 14 %}
+{% set _poll_wd_name = weekdays[_poll_wd][1] if (_poll_wd is number and _poll_wd >= 0 and _poll_wd <= 6) else 'Friday' %}
+{% set _poll_h12 = (_poll_hr % 12) if _poll_hr is number else 2 %}
+{% set _poll_h12 = 12 if _poll_h12 == 0 else _poll_h12 %}
+{% set _poll_ampm = 'PM' if (_poll_hr is number and _poll_hr >= 12) else 'AM' %}
 <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
   <div>
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Substitute settings</h2>
@@ -20,15 +27,23 @@
         <span class="text-sm text-gray-800 dark:text-gray-200">Post the weekly poll<small class="block text-[11px] text-gray-400">Runs on a schedule to the subs channel</small></span>
         <input type="checkbox" data-setting="sub_availability_poll_enabled" data-setting-type="boolean" {% if settings.sub_availability_poll_enabled %}checked{% endif %} class="w-5 h-5 rounded text-ecs-green focus:ring-ecs-green">
       </div>
-      <div class="flex items-center justify-between gap-4 py-3">
-        <span class="text-sm text-gray-800 dark:text-gray-200">Post day &amp; time<small class="block text-[11px] text-gray-400">Coaches owe sub needs before this</small></span>
-        <span class="flex items-center gap-2">
-          <select data-setting="sub_availability_poll_weekday" data-setting-type="integer" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
-            {% for v, lbl in weekdays %}<option value="{{ v }}" {% if settings.sub_availability_poll_weekday == v %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
-          </select>
-          <input type="number" min="0" max="23" data-setting="sub_availability_poll_hour" data-setting-type="integer" value="{{ settings.sub_availability_poll_hour }}" class="w-16 text-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5 text-sm text-gray-900 dark:text-white">
-          <span class="text-xs text-gray-400">:00h</span>
-        </span>
+      <div class="py-3">
+        <div class="flex items-start justify-between gap-4">
+          <span class="text-sm text-gray-800 dark:text-gray-200">Post day &amp; time<small class="block text-[11px] text-gray-400">Coaches owe sub needs before this</small></span>
+          <span class="flex items-center gap-2 shrink-0">
+            <select data-setting="sub_availability_poll_weekday" data-setting-type="integer" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+              {% for v, lbl in weekdays %}<option value="{{ v }}" {% if _poll_wd == v %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+            </select>
+            <span class="inline-flex items-center rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 pr-2">
+              <input type="number" min="0" max="23" data-setting="sub_availability_poll_hour" data-setting-type="integer" value="{{ _poll_hr }}" class="w-14 text-center bg-transparent border-0 px-2 py-1.5 text-sm text-gray-900 dark:text-white focus:ring-0">
+              <span class="text-xs text-gray-400">:00</span>
+            </span>
+          </span>
+        </div>
+        <p class="mt-2 flex items-center gap-1.5 text-xs text-ecs-green bg-ecs-green/10 rounded-lg px-2.5 py-1.5">
+          <i class="ti ti-clock-hour-2 shrink-0"></i>
+          <span>Posts <b>{{ _poll_wd_name }}s at {{ _poll_h12 }}:00 {{ _poll_ampm }} Pacific</b> · hour is 24-hour (0–23)</span>
+        </p>
       </div>
       <div class="flex items-center justify-between gap-4 py-3">
         <span class="text-sm text-gray-800 dark:text-gray-200">Poll stays open<small class="block text-[11px] text-gray-400">Auto-closes before kickoff</small></span>
@@ -50,9 +65,12 @@
           <button type="button" data-action="sct-refresh-channels" title="Refresh channels from Discord" class="h-8 w-8 inline-flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"><i class="ti ti-refresh"></i></button>
         </span>
       </div>
-      <div class="flex items-center justify-between gap-4 py-3">
-        <span class="text-sm text-gray-800 dark:text-gray-200">Ping role IDs<small class="block text-[11px] text-gray-400">Comma-separated Discord role IDs</small></span>
-        <input type="text" data-setting="sub_poll_role_ids" data-setting-type="string" value="{{ settings.sub_poll_role_ids }}" placeholder="e.g. 123,456" class="w-40 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white">
+      <div class="py-3">
+        <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Ping roles<small class="block text-[11px] text-gray-400">Pick one or more roles to @mention when the poll posts — loaded live from your Discord server</small></label>
+        <div id="sct-poll-roles" data-selected="{{ settings.sub_poll_role_ids }}"
+             class="max-h-44 overflow-y-auto rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2 grid grid-cols-1 sm:grid-cols-2 gap-1">
+          <p class="text-xs text-gray-400 col-span-full py-1.5 px-1">Loading roles…</p>
+        </div>
       </div>
       <div class="py-3">
         <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Poll question</label>

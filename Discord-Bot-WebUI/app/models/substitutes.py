@@ -37,6 +37,9 @@ class EcsFcSubRequest(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     positions_needed = db.Column(db.String(255), nullable=True)
+    # 'male' | 'female' | None. Parity with SubstituteRequest.gender_preference so
+    # ECS FC coach/admin requests can carry an M/F preference into the pool filter.
+    gender_preference = db.Column(db.String(255), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='OPEN')
     substitutes_needed = db.Column(db.Integer, nullable=False, default=1)

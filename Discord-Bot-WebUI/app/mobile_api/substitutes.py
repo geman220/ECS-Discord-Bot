@@ -172,7 +172,13 @@ def create_substitute_request():
     team_id = data.get('team_id')
     league_type = data.get('league_type', '')
     positions_needed = data.get('positions_needed', '')
-    substitutes_needed = data.get('substitutes_needed', 1)
+    # Default the count from the org-wide 'sub_default_needed' Setting when the body
+    # omits it (parity with the hub create), instead of a hardcoded 1.
+    if 'substitutes_needed' in data and data.get('substitutes_needed') is not None:
+        substitutes_needed = data.get('substitutes_needed')
+    else:
+        from app.models.admin_config import AdminConfig
+        substitutes_needed = AdminConfig.get_setting('sub_default_needed', 1)
     gender_preference = data.get('gender_preference')
     notes = (data.get('notes') or '').strip()
 

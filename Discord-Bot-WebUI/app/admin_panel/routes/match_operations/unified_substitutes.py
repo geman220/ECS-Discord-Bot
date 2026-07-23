@@ -40,6 +40,10 @@ logger = logging.getLogger(__name__)
 
 PER_PAGE = 25
 ADMIN_ROLES = ['Global Admin', 'Pub League Admin', 'ECS FC Coach', 'ECS FC Admin']
+# Who can OPEN the hub and REQUEST/EDIT/CANCEL (Pub League coaches request-only, so
+# they get in here) — but NOT the admin-only actions (assign / reach-out / pool mgmt /
+# settings keep their stricter lists + can_assign, so a coach is still denied there).
+HUB_ROLES = ADMIN_ROLES + ['Pub League Coach']
 
 # ---------------------------------------------------------------------------
 # Settings schema — every tunable the Settings tab binds. Nothing is hardcoded;
@@ -100,11 +104,76 @@ _FALLBACK_DISCORD_CHANNELS = [
 ]
 
 
+def _coerce_setting(value, dtype, default):
+    """Coerce a stored AdminConfig value to its declared type for the template.
+
+    parsed_value returns None for an integer whose stored string is empty/bad
+    (see AdminConfig._parse_value) — which rendered the Settings tab's poll
+    day/time as blank. Coercing here guarantees weekday/hour are real ints so
+    the <select>/<input> bind, and every value round-trips as its schema type.
+    """
+    if value is None:
+        return default
+    try:
+        if dtype == 'boolean':
+            if isinstance(value, bool):
+                return value
+            return str(value).strip().lower() in ('true', '1', 'yes', 'on')
+        if dtype == 'integer':
+            return int(value)
+        return str(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _load_settings():
-    """Read every schema key into a plain dict for the template."""
+    """Read every schema key into a typed plain dict for the template."""
     out = {}
-    for key, _dtype, default in SETTINGS_SCHEMA:
-        out[key] = AdminConfig.get_setting(key, default)
+    for key, dtype, default in SETTINGS_SCHEMA:
+        out[key] = _coerce_setting(AdminConfig.get_setting(key, default), dtype, default)
+    return out
+
+
+def _reconcile_poll_summaries(session, limit=20):
+    """Lightweight recent availability-poll list for the in-hub Reconcile tab.
+
+    Summary only (date, leagues, distinct voter count) — the heavy per-poll
+    voter↔request cross-check stays behind the drill-in to substitute_reconcile.
+    """
+    from app.models.discord_polls import DiscordPoll, DiscordPollVote
+    from sqlalchemy import func
+    polls = (
+        session.query(DiscordPoll)
+        .filter(DiscordPoll.poll_kind == 'availability')
+        .order_by(DiscordPoll.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    if not polls:
+        return []
+    ids = [p.id for p in polls]
+    counts = dict(
+        session.query(
+            DiscordPollVote.poll_id,
+            func.count(func.distinct(DiscordPollVote.discord_user_id)),
+        )
+        .filter(DiscordPollVote.poll_id.in_(ids), DiscordPollVote.removed_at.is_(None))
+        .group_by(DiscordPollVote.poll_id)
+        .all()
+    )
+    out = []
+    for p in polls:
+        slot_map = p.slot_map or {}
+        leagues = sorted({b.get('league_type') for b in slot_map.values() if b.get('league_type')})
+        out.append({
+            'id': p.id,
+            'title': p.title,
+            'match_date': p.match_date,
+            'created_at': p.created_at,
+            'voters': counts.get(p.id, 0),
+            'leagues': leagues,
+            'message_url': p.discord_message_url,
+        })
     return out
 
 
@@ -130,7 +199,7 @@ def _resolve_week(arg):
 
 @admin_panel_bp.route('/substitutes')
 @login_required
-@role_required(ADMIN_ROLES)
+@role_required(HUB_ROLES)
 def unified_substitutes():
     """Substitute Command Center — tabbed hub across Pub League + ECS FC."""
     try:
@@ -173,6 +242,7 @@ def unified_substitutes():
 
         insights = get_hub_insights(db.session, season_id)
         settings = _load_settings()
+        reconcile_polls = _reconcile_poll_summaries(db.session)
 
         # KPI band.
         open_needs = [n for n in week_needs if n['status'] == 'OPEN']
@@ -225,6 +295,7 @@ def unified_substitutes():
             week_availability=week_availability,
             insights=insights,
             settings=settings,
+            reconcile_polls=reconcile_polls,
             kpis=kpis,
             league_filter=league,
             status_filter=status,
@@ -412,8 +483,7 @@ def sub_assign_json():
         if session.query(EcsFcSubAssignment).filter_by(request_id=request_id, player_id=player_id).first():
             return jsonify({'success': False, 'error': 'That player is already assigned'}), 409
         current = len(req.assignments or [])
-        if current >= req.substitutes_needed:
-            return jsonify({'success': False, 'error': 'This request is already fully staffed'}), 409
+        # Admins may over-assign (more than requested) — no hard cap on count.
         assignment = EcsFcSubAssignment(
             request_id=request_id, player_id=player_id, assigned_by=current_user.id,
             position_assigned=position, notes=notes)
@@ -443,8 +513,7 @@ def sub_assign_json():
     if session.query(SubstituteAssignment).filter_by(request_id=request_id, player_id=player_id).first():
         return jsonify({'success': False, 'error': 'That player is already assigned'}), 409
     current = len(req.assignments or [])
-    if current >= req.substitutes_needed:
-        return jsonify({'success': False, 'error': 'This request is already fully staffed'}), 409
+    # Admins may over-assign (more than requested) — no hard cap on count.
 
     outreach_methods = None
     resp = session.query(SubstituteResponse).filter_by(request_id=request_id, player_id=player_id).first()
@@ -554,6 +623,37 @@ def sub_discord_channels():
     """JSON channel list for the live-refresh button (live from the bot, else fallback)."""
     channels, source = _discord_channels()
     return jsonify({'success': True, 'channels': channels, 'source': source})
+
+
+def _discord_roles():
+    """Return (roles, source) for the poll ping-role PICKER — the live Discord
+    role list from the bot's /api/discord/roles (mirrors _discord_channels; sync
+    `requests` per the gevent-web rule). Falls back to any saved role ids so the
+    picker still renders their chips if the bot is unreachable."""
+    saved = [r.strip() for r in (AdminConfig.get_setting('sub_poll_role_ids', '') or '').split(',') if r.strip()]
+    try:
+        import requests
+        from app.config import Config
+        url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/roles"
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            body = resp.json()
+            if body.get('success') and isinstance(body.get('roles'), list):
+                roles = [{'id': str(r.get('id')), 'name': r.get('name')} for r in body['roles']]
+                return roles, 'live'
+    except Exception:
+        logger.warning("Discord roles: bot unreachable, using saved ids", exc_info=True)
+    # Fallback: at least show the saved ids so selection round-trips.
+    return [{'id': rid, 'name': f'(role {rid})'} for rid in saved], 'fallback'
+
+
+@admin_panel_bp.route('/substitutes/discord-roles')
+@login_required
+@role_required(ADMIN_ROLES)
+def sub_discord_roles():
+    """JSON role list for the ping-role picker (live from the bot, else saved-id fallback)."""
+    roles, source = _discord_roles()
+    return jsonify({'success': True, 'roles': roles, 'source': source})
 
 
 @admin_panel_bp.route('/substitutes/settings-save', methods=['POST'])
@@ -741,3 +841,354 @@ def sub_reachout_web():
             'notifications_sent': send_results.get('sent', 0),
             'per_channel_counts': send_results.get('per_channel_counts', {}),
         })
+
+
+# ===========================================================================
+# Coach/Admin sub-REQUEST creation, cancel, and the request picker options.
+#
+# These let a coach (own team) or admin CREATE a sub request straight from the
+# hub with position + gender (M/F) + amount + notes. Pub League requests land
+# OPEN and are NOT auto-contacted (the coordinator broadcasts via reach-out /
+# notify-pool). ECS FC requests fire the ECS FC pool notification inline — parity
+# with the mobile ECS FC create — since ECS FC has no separate broadcast step.
+# Authority is gated through substitute_authority.can_request.
+# ===========================================================================
+
+def _resolve_needed(raw):
+    """Coerce a requested count to an int in 1..10, defaulting from the org-wide
+    'sub_default_needed' Setting when omitted/invalid."""
+    default_needed = AdminConfig.get_setting('sub_default_needed', 1)
+    try:
+        needed = int(raw) if raw not in (None, '') else int(default_needed)
+    except (TypeError, ValueError):
+        try:
+            needed = int(default_needed)
+        except (TypeError, ValueError):
+            needed = 1
+    return max(1, min(needed, 10))
+
+
+def _normalize_gender_pref(raw):
+    """'male'/'female' pass through; anything else (incl. '' / 'any') -> None."""
+    gp = (raw or '').strip().lower()
+    return gp if gp in ('male', 'female') else None
+
+
+@admin_panel_bp.route('/substitutes/request-create', methods=['POST'])
+@login_required
+@role_required(HUB_ROLES)
+@transactional
+def sub_request_create():
+    """Coach/admin sub-REQUEST creation from the hub.
+
+    Body: {
+        league: 'pub_league' | 'ecs_fc',
+        team_id, match_id,
+        positions_needed?, gender_preference? ('male'|'female'|''),
+        substitutes_needed? (int; default AdminConfig 'sub_default_needed', clamp 1..10),
+        notes?
+    }
+    Returns: {success, request_id, duplicate?}
+    """
+    from app.models import Team, Match
+    from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
+    from app.services.substitute_authority import can_request
+
+    data = request.get_json(silent=True) or {}
+    league = (data.get('league') or 'pub_league').strip().lower()
+    if league not in ('pub_league', 'ecs_fc'):
+        return jsonify({'success': False, 'error': "league must be 'pub_league' or 'ecs_fc'"}), 400
+
+    try:
+        team_id = int(data.get('team_id'))
+        match_id = int(data.get('match_id'))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'team_id and match_id are required'}), 400
+
+    positions_needed = (data.get('positions_needed') or '').strip() or None
+    notes = (data.get('notes') or '').strip() or None
+    gender_preference = _normalize_gender_pref(data.get('gender_preference'))
+    substitutes_needed = _resolve_needed(data.get('substitutes_needed'))
+
+    session = db.session
+    program = 'ECS FC' if league == 'ecs_fc' else 'Pub League'
+    if not can_request(session, current_user.id, team_id=team_id, program=program):
+        return jsonify({'success': False,
+                        'error': 'You are not authorized to request subs for this team'}), 403
+
+    if league == 'ecs_fc':
+        from app.models.ecs_fc import EcsFcMatch
+        match = session.query(EcsFcMatch).get(match_id)
+        if not match:
+            return jsonify({'success': False, 'error': 'Match not found'}), 404
+        # An ECS FC match belongs to exactly one team.
+        if match.team_id != team_id:
+            return jsonify({'success': False, 'error': 'Team is not part of this match'}), 400
+        existing = session.query(EcsFcSubRequest).filter(
+            EcsFcSubRequest.match_id == match_id,
+            EcsFcSubRequest.team_id == team_id,
+            EcsFcSubRequest.status == 'OPEN',
+        ).first()
+        if existing:
+            return jsonify({'success': True, 'request_id': existing.id, 'duplicate': True,
+                            'message': 'An open request already exists for this match'}), 200
+        sub_request = EcsFcSubRequest(
+            match_id=match_id, team_id=team_id, requested_by=current_user.id,
+            positions_needed=positions_needed, gender_preference=gender_preference,
+            substitutes_needed=substitutes_needed, notes=notes, status='OPEN',
+        )
+        session.add(sub_request)
+        session.flush()
+        new_id = sub_request.id
+        # Commit BEFORE notify: notify_ecs_fc_pool queries the request back on
+        # db.session and commits its own EcsFcSubResponse rows.
+        session.commit()
+        try:
+            from app.services.substitute_notification_service import SubstituteNotificationService
+            SubstituteNotificationService().notify_ecs_fc_pool(
+                request_id=new_id, custom_message=notes, subs_needed=substitutes_needed,
+            )
+        except Exception:
+            logger.exception("Failed to notify ECS FC pool for request %s", new_id)
+        return jsonify({'success': True, 'request_id': new_id})
+
+    # Pub League — lands OPEN, coordinator broadcasts later (NO auto-contact here).
+    match = session.query(Match).get(match_id)
+    if not match:
+        return jsonify({'success': False, 'error': 'Match not found'}), 404
+    if match.home_team_id != team_id and match.away_team_id != team_id:
+        return jsonify({'success': False, 'error': 'Team is not part of this match'}), 400
+    existing = session.query(SubstituteRequest).filter(
+        SubstituteRequest.match_id == match_id,
+        SubstituteRequest.team_id == team_id,
+        SubstituteRequest.status.in_(['OPEN', 'PENDING']),
+    ).first()
+    if existing:
+        return jsonify({'success': True, 'request_id': existing.id, 'duplicate': True,
+                        'message': 'An open request already exists for this match/team'}), 200
+
+    # Resolve the division league_type (Classic/Premier).
+    from app.utils.substitute_helpers import resolve_league_type_from_match
+    league_type = resolve_league_type_from_match(match, session)
+    if league_type in (None, '', 'Pub League'):
+        team_obj = session.query(Team).get(team_id)
+        league_type = team_obj.league.name if team_obj and team_obj.league else 'Classic'
+
+    sub_request = SubstituteRequest(
+        match_id=match_id, team_id=team_id, requested_by=current_user.id,
+        league_type=league_type, positions_needed=positions_needed,
+        gender_preference=gender_preference, substitutes_needed=substitutes_needed,
+        notes=notes, status='OPEN', source='web',
+    )
+    session.add(sub_request)
+    session.flush()
+    return jsonify({'success': True, 'request_id': sub_request.id})
+
+
+@admin_panel_bp.route('/substitutes/request-cancel', methods=['POST'])
+@login_required
+@role_required(HUB_ROLES)
+@transactional
+def sub_request_cancel():
+    """Cancel a sub request from the hub.
+
+    Body: {league:'pub_league'|'ecs_fc', request_id}
+    Authority: admin, OR the original requester, OR a coach who can_request for the
+    request's team. Sets status CANCELLED (+cancelled_at for Pub League), commits,
+    then queues notify_substitute_request_cancelled (itself gated by the
+    'sub_notify_on_cancel' Setting). Returns {success}.
+    """
+    from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
+    from app.services.substitute_authority import can_request
+
+    data = request.get_json(silent=True) or {}
+    league = (data.get('league') or 'pub_league').strip().lower()
+    if league not in ('pub_league', 'ecs_fc'):
+        return jsonify({'success': False, 'error': "league must be 'pub_league' or 'ecs_fc'"}), 400
+    try:
+        request_id = int(data.get('request_id'))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'request_id is required'}), 400
+
+    session = db.session
+    program = 'ECS FC' if league == 'ecs_fc' else 'Pub League'
+    Model = EcsFcSubRequest if league == 'ecs_fc' else SubstituteRequest
+    req = session.query(Model).get(request_id)
+    if not req:
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+
+    authorized = (
+        is_admin(session, current_user.id)
+        or req.requested_by == current_user.id
+        or can_request(session, current_user.id, team_id=req.team_id, program=program)
+    )
+    if not authorized:
+        return jsonify({'success': False,
+                        'error': 'You are not authorized to cancel this request'}), 403
+
+    if req.status not in ('OPEN', 'PENDING', 'APPROVED'):
+        return jsonify({'success': False,
+                        'error': f'Cannot cancel a request with status {req.status}'}), 409
+
+    req.status = 'CANCELLED'
+    # Only Pub League's SubstituteRequest carries cancelled_at.
+    if hasattr(req, 'cancelled_at'):
+        req.cancelled_at = datetime.utcnow()
+    session.commit()
+
+    try:
+        from app.tasks.tasks_substitute_pools import notify_substitute_request_cancelled
+        notify_substitute_request_cancelled.delay(request_id, league)
+    except Exception:
+        logger.exception("Failed to queue cancellation notice for %s request %s", league, request_id)
+
+    return jsonify({'success': True})
+
+
+@admin_panel_bp.route('/substitutes/request-edit', methods=['POST'])
+@login_required
+@role_required(HUB_ROLES)
+@transactional
+def sub_request_edit():
+    """Edit an OPEN sub request's details (coach for their own team, or admin).
+
+    Body: {league, request_id, positions_needed?, gender_preference?('male'|'female'|''),
+           substitutes_needed?(int), notes?}. Same authority as cancel. Editable only
+           while OPEN/PENDING/APPROVED. Team + match are NOT editable here (cancel + recreate
+           to move a request). Returns {success}.
+    """
+    from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
+    from app.services.substitute_authority import can_request
+
+    data = request.get_json(silent=True) or {}
+    league = (data.get('league') or 'pub_league').strip().lower()
+    if league not in ('pub_league', 'ecs_fc'):
+        return jsonify({'success': False, 'error': "league must be 'pub_league' or 'ecs_fc'"}), 400
+    try:
+        request_id = int(data.get('request_id'))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'request_id is required'}), 400
+
+    session = db.session
+    program = 'ECS FC' if league == 'ecs_fc' else 'Pub League'
+    Model = EcsFcSubRequest if league == 'ecs_fc' else SubstituteRequest
+    req = session.query(Model).get(request_id)
+    if not req:
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+
+    authorized = (
+        is_admin(session, current_user.id)
+        or req.requested_by == current_user.id
+        or can_request(session, current_user.id, team_id=req.team_id, program=program)
+    )
+    if not authorized:
+        return jsonify({'success': False, 'error': 'You are not authorized to edit this request'}), 403
+    if req.status not in ('OPEN', 'PENDING', 'APPROVED'):
+        return jsonify({'success': False, 'error': f'Cannot edit a request with status {req.status}'}), 409
+
+    if 'positions_needed' in data:
+        req.positions_needed = (data.get('positions_needed') or '').strip() or None
+    if 'gender_preference' in data:
+        gp = (data.get('gender_preference') or '').strip().lower()
+        req.gender_preference = gp if gp in ('male', 'female') else None
+    if 'notes' in data:
+        req.notes = (data.get('notes') or '').strip() or None
+    if 'substitutes_needed' in data:
+        try:
+            req.substitutes_needed = max(1, min(int(data.get('substitutes_needed')), 10))
+        except (TypeError, ValueError):
+            pass
+
+    session.commit()
+    return jsonify({'success': True, 'request_id': request_id})
+
+
+@admin_panel_bp.route('/substitutes/request-options')
+@login_required
+@role_required(HUB_ROLES)
+def sub_request_options():
+    """Teams + upcoming matches the current user may create a sub request for.
+
+    Coaches see their own teams; admins additionally see all current-season teams
+    across BOTH programs. Each team lists up to 6 upcoming REGULAR non-self matches.
+    Returns: {teams:[{id, name, program:'pub_league'|'ecs_fc',
+                       league_type:'Classic'|'Premier'|'ECS FC',
+                       matches:[{id, label, date}]}]}
+    """
+    from app.models import Team, Match, League, Season
+    from app.models.ecs_fc import EcsFcMatch
+    from app.services.substitute_authority import coach_team_ids
+
+    session = db.session
+    today = datetime.now().date()
+    MATCH_CAP = 6
+
+    team_ids = set(coach_team_ids(session, current_user.id))
+    if is_admin(session, current_user.id):
+        rows = (
+            session.query(Team.id)
+            .join(League, Team.league_id == League.id)
+            .join(Season, League.season_id == Season.id)
+            .filter(Season.is_current == True)
+            .all()
+        )
+        team_ids.update(tid for (tid,) in rows)
+
+    if not team_ids:
+        return jsonify({'success': True, 'teams': []})
+
+    teams = session.query(Team).filter(Team.id.in_(team_ids)).all()
+    out = []
+    for team in teams:
+        league = team.league
+        lname = (league.name if league else '') or ''
+        is_ecs = 'ECS FC' in lname
+        program = 'ecs_fc' if is_ecs else 'pub_league'
+        league_type = 'ECS FC' if is_ecs else (lname or 'Classic')
+
+        matches = []
+        if is_ecs:
+            rows = session.query(EcsFcMatch).filter(
+                EcsFcMatch.team_id == team.id,
+                EcsFcMatch.match_date >= today,
+            ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).limit(MATCH_CAP).all()
+            for m in rows:
+                matches.append({
+                    'id': m.id,
+                    'label': f'vs {m.opponent_name}' if m.opponent_name else 'Match',
+                    'date': m.match_date.isoformat() if m.match_date else None,
+                })
+        else:
+            rows = session.query(Match).filter(
+                ((Match.home_team_id == team.id) | (Match.away_team_id == team.id)),
+                Match.week_type == 'REGULAR',
+                Match.home_team_id != Match.away_team_id,
+                Match.date >= today,
+            ).order_by(Match.date, Match.time).limit(MATCH_CAP).all()
+            opp_ids = {
+                (m.away_team_id if m.home_team_id == team.id else m.home_team_id)
+                for m in rows
+            }
+            name_by_id = {}
+            if opp_ids:
+                for t in session.query(Team).filter(Team.id.in_(opp_ids)).all():
+                    name_by_id[t.id] = t.name
+            for m in rows:
+                opp_id = m.away_team_id if m.home_team_id == team.id else m.home_team_id
+                matches.append({
+                    'id': m.id,
+                    'label': f"vs {name_by_id.get(opp_id, 'TBD')}",
+                    'date': m.date.isoformat() if m.date else None,
+                })
+
+        out.append({
+            'id': team.id,
+            'name': team.name,
+            'program': program,
+            'league_type': league_type,
+            'matches': matches,
+        })
+
+    # Teams with upcoming matches first, then alphabetical.
+    out.sort(key=lambda t: (not t['matches'], (t['name'] or '').lower()))
+    return jsonify({'success': True, 'teams': out})

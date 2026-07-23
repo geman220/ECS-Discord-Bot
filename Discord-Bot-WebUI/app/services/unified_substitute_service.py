@@ -175,6 +175,7 @@ def _normalize_pub_league(req):
         'assigned': assigned,
         'status': req.status,
         'notes': req.notes or '',
+        'gender_preference': req.gender_preference or '',
         'created_at': req.created_at,
         'tally': tally,
         'total_contacted': len(responses),
@@ -215,6 +216,7 @@ def _normalize_ecs_fc(req):
         'assigned': assigned,
         'status': req.status,
         'notes': req.notes or '',
+        'gender_preference': req.gender_preference or '',
         'created_at': req.created_at,
         'tally': tally,
         'total_contacted': len(responses),
@@ -371,6 +373,26 @@ def _pub_pool_status(entry):
     return 'active'
 
 
+def _fmt_positions(raw):
+    """Humanize a raw positions value for display. Handles Postgres array literals
+    ('{goalkeeper,defender}'), comma strings, and slugs ('central_midfielder')
+    -> 'Goalkeeper, Defender', 'Central Midfielder'. De-dupes, never raises."""
+    if not raw:
+        return ''
+    s = str(raw).replace('{', '').replace('}', '').replace('"', '')
+    labels, seen = [], set()
+    for p in s.split(','):
+        p = p.strip()
+        if not p:
+            continue
+        label = p.replace('_', ' ').strip().title()
+        key = label.lower()
+        if label and key not in seen:
+            seen.add(key)
+            labels.append(label)
+    return ', '.join(labels)
+
+
 def get_unified_pool(session, season_id=None, include_inactive=False):
     """Return both substitute pools' members, enriched for the hub.
 
@@ -388,8 +410,14 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
     from app.services.substitute_availability_service import player_sub_stats_bulk
 
     members = []
+    # Dedupe key (player_id, league_type). The ECS FC "twin" writes BOTH a
+    # SubstitutePool('ECS FC') row and an EcsFcSubPool row (and the Phase 5 backfill
+    # folded legacy ECS-FC-only members into SubstitutePool too), so without this an
+    # ECS FC sub would appear twice. SubstitutePool is authoritative (it's what the
+    # pool-management endpoints act on), so it wins.
+    seen_keys = set()
 
-    # --- Pub League pool ---
+    # --- SubstitutePool (Classic / Premier / ECS FC twin) — authoritative ---
     try:
         q = session.query(SubstitutePool).options(joinedload(SubstitutePool.player))
         if not include_inactive:
@@ -400,17 +428,22 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
         stats_map = player_sub_stats_bulk(session, [e.player_id for e in pub_entries], season_id)
         for entry in pub_entries:
             player = entry.player
+            lt = entry.league_type or 'Pub League'
+            key = (entry.player_id, lt)
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
             stats = stats_map.get(entry.player_id, {
                 'response_rate': round(entry.acceptance_rate, 1),
                 'matches_played': entry.matches_played or 0,
                 'subbed_this_season': 0,
             })
             members.append({
-                'league': 'pub_league',
+                'league': 'ecs_fc' if lt == 'ECS FC' else 'pub_league',
                 'player_id': entry.player_id,
                 'name': player.name or 'Unknown',
-                'positions': entry.preferred_positions or player.favorite_position or '',
-                'league_type': entry.league_type or 'Pub League',
+                'positions': _fmt_positions(entry.preferred_positions or player.favorite_position),
+                'league_type': lt,
                 'avatar_url': player.avatar_image_url if player else None,
                 'initials': _initials(player.name),
                 'status': _pub_pool_status(entry),
@@ -419,9 +452,9 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
                 'subbed_this_season': stats['subbed_this_season'],
             })
     except Exception as e:
-        logger.error(f"Error loading Pub League sub pool: {e}", exc_info=True)
+        logger.error(f"Error loading substitute pool: {e}", exc_info=True)
 
-    # --- ECS FC pool ---
+    # --- EcsFcSubPool — only members NOT already covered by the SubstitutePool twin ---
     try:
         q = session.query(EcsFcSubPool).options(joinedload(EcsFcSubPool.player))
         if not include_inactive:
@@ -430,8 +463,10 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
             player = entry.player
             if not player:
                 continue
-            # ECS FC keeps its own counters (no separate approval step); acceptance
-            # is derived from the EcsFcSubPool row directly.
+            key = (entry.player_id, 'ECS FC')
+            if key in seen_keys:
+                continue  # already listed from SubstitutePool (authoritative)
+            seen_keys.add(key)
             received = entry.requests_received or 0
             accepted = entry.requests_accepted or 0
             acc_rate = round((accepted / received) * 100, 1) if received else 0.0
@@ -439,7 +474,7 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
                 'league': 'ecs_fc',
                 'player_id': entry.player_id,
                 'name': player.name or 'Unknown',
-                'positions': entry.preferred_positions or player.favorite_position or '',
+                'positions': _fmt_positions(entry.preferred_positions or player.favorite_position),
                 'league_type': 'ECS FC',
                 'avatar_url': player.avatar_image_url if player else None,
                 'initials': _initials(player.name),

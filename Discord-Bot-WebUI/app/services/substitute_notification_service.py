@@ -508,6 +508,13 @@ class SubstituteNotificationService:
             if subs_needed and subs_needed > 0:
                 sub_request.substitutes_needed = subs_needed
 
+            # Honor the request's OWN stored gender_preference when the caller did
+            # not pass an explicit gender_filter. Coach/admin requests created via the
+            # hub (and mobile) persist 'male'/'female' on the request itself, so a
+            # pool broadcast that omits gender_filter still respects that M/F ask.
+            if not gender_filter:
+                gender_filter = getattr(sub_request, 'gender_preference', None) or None
+
             # Get "Active in Pool" ECS FC members. The EcsFcSubPool model has
             # no approval concept (no approved_at column) — is_active is the
             # only gate. Referencing EcsFcSubPool.approved_at here previously
