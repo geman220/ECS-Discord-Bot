@@ -1321,6 +1321,8 @@ class SubstituteNotificationService:
         request_id: Optional[int] = None,
         match_id: Optional[int] = None,
         purpose: str = 'request',
+        reachout_id: Optional[int] = None,
+        time_slots: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
         Send notifications via specified channels.
@@ -1338,6 +1340,12 @@ class SubstituteNotificationService:
             purpose: 'request' (initial outreach asking availability) or
                 'assignment' (confirmation that the player has been assigned).
                 Controls the FCM data.type field that Flutter routes on.
+            reachout_id: SubstituteReachout ID. When set, the push is typed
+                'sub_reachout' and carries the id so the app can answer at
+                POST /substitutes/reachout/<id>/respond (which folds the reply
+                into the availability pool) instead of a per-match request screen.
+            time_slots: Slots the reach-out asked about, so the app can
+                pre-select them on the response screen.
 
         Returns:
             Dict with 'sent_count' and 'channels_sent' list
@@ -1394,13 +1402,23 @@ class SubstituteNotificationService:
             try:
                 deep_link = self._build_deep_link(rsvp_token, league_type) if rsvp_token else None
                 push_data = {
-                    'type': 'substitute_assignment' if purpose == 'assignment' else 'sub_request',
+                    'type': (
+                        'substitute_assignment' if purpose == 'assignment'
+                        else 'sub_reachout' if reachout_id
+                        else 'sub_request'
+                    ),
                     'token': rsvp_token,
                     'league_type': league_type,
                     'deep_link': deep_link,
                     'web_url': rsvp_url
                 }
-                # Add request_id and match_id for mobile API access
+                # Add reachout_id / request_id / match_id for mobile API access.
+                # reachout_id routes the app to the availability-pool response
+                # endpoint; request_id would send it to a single-match screen.
+                if reachout_id:
+                    push_data['reachout_id'] = str(reachout_id)
+                if time_slots:
+                    push_data['time_slots'] = ','.join(str(s) for s in time_slots)
                 if request_id:
                     push_data['request_id'] = str(request_id)
                 if match_id:
@@ -1663,6 +1681,8 @@ class SubstituteNotificationService:
                     request_id=reachout.request_id,
                     match_id=None,
                     purpose='request',
+                    reachout_id=reachout.id,
+                    time_slots=slots,
                 )
 
                 combined_sent = list(send_results.get('channels_sent', [])) + extra_sent

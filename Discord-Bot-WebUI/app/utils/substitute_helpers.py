@@ -455,8 +455,10 @@ def format_substitute_request_response(request, league_type: str, include_respon
             } if hasattr(request, 'requester') and request.requester else None
         }
 
-        # Add league-specific fields
-        if league_type != 'ECS FC' and hasattr(request, 'gender_preference'):
+        # Add league-specific fields.
+        # gender_preference exists on both league's request models — the old
+        # `!= 'ECS FC'` guard predates the ECS FC column and hid it from clients.
+        if hasattr(request, 'gender_preference'):
             base_data['gender_preference'] = request.gender_preference
 
         if league_type == 'ECS FC' and hasattr(request, 'positions_needed'):

@@ -5,8 +5,9 @@
  *
  * Drives: tab switching, league/pool filters, the This-Week candidate slide-over
  * (request-select -> fetch ranked candidates -> assign in place, authority-aware),
- * the reach-out modal (whole-pool / specific-people targeting + live Discord-style
- * preview), settings save, and live Discord channel refresh.
+ * the reach-out modal (whole-pool / available-this-week / by-position /
+ * specific-people targeting, per-channel reach preview + live Discord-style message
+ * preview), live Settings message previews, settings save, and Discord channel refresh.
  *
  * Server contracts (all on admin_panel_bp):
  *   GET  candidates-for-request?request_id=&league=  -> {candidates, can_assign, assign_url, match_id, team_id}
@@ -14,6 +15,7 @@
  *   POST settings-save  (JSON of AdminConfig keys)
  *   GET  discord-channels
  *   POST reachout-web   (JSON {kind, league_type, match_date, time_slots, ...})
+ *   POST reachout-reach (JSON {player_ids}) -> {counts:{PUSH,DISCORD,SMS,EMAIL}, total}
  * Assign dispatches to the existing per-league endpoints (Pub League: form body;
  * ECS FC: request_id in the URL). Authority is re-enforced server-side.
  */
@@ -38,6 +40,7 @@ function cfg() {
         discordChannelsUrl: r.dataset.discordChannelsUrl,
         discordRolesUrl: r.dataset.discordRolesUrl,
         reachoutUrl: r.dataset.reachoutUrl,
+        reachoutReachUrl: r.dataset.reachoutReachUrl,
         requestOptionsUrl: r.dataset.requestOptionsUrl,
         requestCreateUrl: r.dataset.requestCreateUrl,
         requestEditUrl: r.dataset.requestEditUrl,
@@ -515,17 +518,93 @@ async function addPlayerToPool(el) {
 
 /* ------------------------------------------------------- reach-out modal */
 
+// `who` is the targeting mode: 'pool' (whole league pool -> kind 'general'),
+// 'available' (available this week), 'position' (by position) and 'specific'
+// (hand-picked) all resolve recipient ids CLIENT-SIDE and send kind 'targeted'.
 const reachState = { kind: 'general', who: 'pool', leagueType: 'Premier', requestId: null,
-                     matchDate: null, matchId: null, timeSlot: null };
+                     matchDate: null, matchId: null, timeSlot: null, position: null };
 
 function poolData() {
     try { return JSON.parse(document.getElementById('sct-pool-data').textContent) || []; }
     catch (e) { return []; }
 }
 
+// Server-rendered week availability rows: {player_id, league_type, is_available, time_slots}.
+function availabilityData() {
+    const el = document.getElementById('sct-availability-data');
+    if (!el) return [];
+    try { return JSON.parse(el.textContent) || []; }
+    catch (e) { return []; }
+}
+
 function settingsData() {
     try { return JSON.parse(document.getElementById('sct-settings-data').textContent) || {}; }
     catch (e) { return {}; }
+}
+
+// Position chooser tokens -> the words that show up in a pool member's humanized
+// `positions` string ('Goalkeeper, Center Back'). Substring match, case-insensitive.
+const POSITION_KEYWORDS = {
+    GK: ['goalkeeper', 'keeper', 'gk'],
+    DEF: ['defender', 'defence', 'defense', 'back', 'cb', 'rb', 'lb'],
+    MID: ['midfield', 'mid', 'cm', 'dm', 'am'],
+    FWD: ['forward', 'striker', 'winger', 'wing', 'attack', 'fwd', 'st'],
+};
+
+// Rows carry 'Premier' / 'Classic' / 'ECS FC'; the reach-out league select is
+// Pub-League-only, so a case-insensitive contains keeps this tolerant of variants.
+function reachLeagueMatch(leagueType) {
+    const want = (reachState.leagueType || '').toLowerCase();
+    if (!want) return true;
+    return (leagueType || '').toLowerCase().indexOf(want) !== -1;
+}
+
+function dedupeInts(list) {
+    const seen = {};
+    const out = [];
+    (list || []).forEach(v => {
+        const n = parseInt(v, 10);
+        if (!isNaN(n) && !seen[n]) { seen[n] = 1; out.push(n); }
+    });
+    return out;
+}
+
+// Resolve the recipient player ids for the current targeting mode, entirely from
+// the page's server-rendered data (no round-trip). Whole-pool resolves too, so the
+// per-channel reach preview can be computed for it as well.
+function resolveRecipientIds() {
+    const who = reachState.who;
+    if (who === 'specific') {
+        return dedupeInts(
+            Array.from(document.querySelectorAll('#sct-reach-list input:checked')).map(c => c.value)
+        );
+    }
+    if (who === 'available') {
+        return dedupeInts(
+            availabilityData()
+                .filter(a => a && a.is_available && reachLeagueMatch(a.league_type))
+                .map(a => a.player_id)
+        );
+    }
+    if (who === 'position') {
+        if (!reachState.position) return [];
+        const kws = POSITION_KEYWORDS[reachState.position] || [];
+        return dedupeInts(
+            poolData()
+                .filter(m => m && m.status === 'active' && reachLeagueMatch(m.league_type))
+                .filter(m => {
+                    const pos = (m.positions || '').toLowerCase();
+                    return !!pos && kws.some(k => pos.indexOf(k) !== -1);
+                })
+                .map(m => m.player_id)
+        );
+    }
+    // 'pool' — every active member of the selected league's pool.
+    return dedupeInts(
+        poolData()
+            .filter(m => m && m.status === 'active' && reachLeagueMatch(m.league_type))
+            .map(m => m.player_id)
+    );
 }
 
 function fillTokens(tmpl) {
@@ -552,15 +631,56 @@ function renderReachPicker() {
       </label>`).join('') || '<div class="px-3 py-4 text-xs text-gray-400 text-center">No subs in this league\'s pool.</div>';
 }
 
+/* Per-channel reach counts — how many of the resolved recipients each channel can
+   actually deliver to, so the admin sees the real blast size before sending.
+   Debounced: targeting/recipient changes fire on every keystroke/checkbox. */
+let _reachCountsTimer = null;
+let _reachCountsSeq = 0;
+
+function renderReachCounts(counts) {
+    const el = document.getElementById('sct-reach-reach');
+    if (!el) return;
+    if (!counts) { el.textContent = ''; return; }
+    const parts = [
+        ['ti-device-mobile', 'Push', counts.PUSH],
+        ['ti-brand-discord', 'Discord', counts.DISCORD],
+        ['ti-message-2', 'SMS', counts.SMS],
+        ['ti-mail', 'Email', counts.EMAIL],
+    ];
+    el.innerHTML = parts.map(p =>
+        `<span class="inline-flex items-center gap-1"><i class="ti ${esc(p[0])}"></i>${esc(p[1])} ${esc(p[2] || 0)}</span>`
+    ).join('<span class="text-gray-300 dark:text-gray-600">·</span>');
+}
+
+async function fetchReachCounts(ids, seq) {
+    const el = document.getElementById('sct-reach-reach');
+    if (!el) return;
+    const url = cfg().reachoutReachUrl;
+    if (!url || !ids.length) { el.textContent = ''; return; }
+    try {
+        const { ok, data } = await postJson(url, { player_ids: ids });
+        // Ignore a stale response that lost the race with a newer resolve.
+        if (seq !== _reachCountsSeq) return;
+        renderReachCounts(ok && data ? data.counts : null);
+    } catch (e) {
+        if (seq === _reachCountsSeq) el.textContent = '';
+    }
+}
+
+function scheduleReachCounts(ids) {
+    const seq = ++_reachCountsSeq;
+    clearTimeout(_reachCountsTimer);
+    _reachCountsTimer = setTimeout(() => fetchReachCounts(ids, seq), 300);
+}
+
 function updateReachPreview() {
     const msg = document.getElementById('sct-reach-msg');
-    document.getElementById('sct-reach-preview').textContent = fillTokens(msg.value);
-    const channels = Array.from(document.querySelectorAll('#sct-reach-channels input:checked')).length;
+    const prev = document.getElementById('sct-reach-preview');
+    if (msg && prev) prev.textContent = fillTokens(msg.value);
+    const ids = resolveRecipientIds();
     const summary = document.getElementById('sct-reach-summary');
-    const recips = reachState.who === 'specific'
-        ? document.querySelectorAll('#sct-reach-list input:checked').length
-        : (poolData().filter(m => (m.league_type || '').indexOf(reachState.leagueType) !== -1).length);
-    summary.textContent = `Reaches ~${recips} sub${recips === 1 ? '' : 's'} · ${channels} channel${channels === 1 ? '' : 's'}`;
+    if (summary) summary.textContent = `${ids.length} sub${ids.length === 1 ? '' : 's'}`;
+    scheduleReachCounts(ids);
 }
 
 function openReach(el) {
@@ -571,6 +691,7 @@ function openReach(el) {
     reachState.matchDate = d.matchDate || cfg().week;
     reachState.timeSlot = d.timeSlot || null;
     reachState.who = 'pool';
+    reachState.position = null;
 
     const leagueSel = document.getElementById('sct-reach-league');
     const s = settingsData();
@@ -600,6 +721,7 @@ function openReach(el) {
     const defCh = (s.sub_reachout_default_channels || 'PUSH,DISCORD,EMAIL').toUpperCase();
     document.querySelectorAll('#sct-reach-channels input').forEach(cb => { cb.checked = defCh.indexOf(cb.value) !== -1; });
 
+    syncReachPosChips();
     setReachWho('pool');
     renderReachPicker();
     updateReachPreview();
@@ -622,7 +744,29 @@ function setReachWho(who) {
         b.classList.toggle('border-gray-200', !on);
         b.classList.toggle('text-gray-500', !on);
     });
-    document.getElementById('sct-reach-picker').classList.toggle('hidden', who !== 'specific');
+    const picker = document.getElementById('sct-reach-picker');
+    if (picker) picker.classList.toggle('hidden', who !== 'specific');
+    const posWrap = document.getElementById('sct-reach-positions');
+    if (posWrap) posWrap.classList.toggle('hidden', who !== 'position');
+    updateReachPreview();
+}
+
+function syncReachPosChips() {
+    document.querySelectorAll('.sct-reach-pos').forEach(b => {
+        const on = b.dataset.pos === reachState.position;
+        b.classList.toggle('border-ecs-green', on);
+        b.classList.toggle('bg-ecs-green/10', on);
+        b.classList.toggle('text-ecs-green', on);
+        b.classList.toggle('border-gray-200', !on);
+        b.classList.toggle('text-gray-500', !on);
+    });
+}
+
+// Single-select position chooser (clicking the active one clears it).
+function setReachPos(el) {
+    const pos = (el && el.dataset.pos) || null;
+    reachState.position = (reachState.position === pos) ? null : pos;
+    syncReachPosChips();
     updateReachPreview();
 }
 
@@ -632,10 +776,21 @@ async function sendReach() {
     const channels = Array.from(document.querySelectorAll('#sct-reach-channels input:checked')).map(c => c.value);
     if (!channels.length) { errEl.textContent = 'Select at least one channel.'; errEl.classList.remove('hidden'); return; }
 
+    // Whole pool is the only mode the server resolves for us ('general'); every
+    // other mode resolves ids here and sends them as an explicit 'targeted' list.
     const who = reachState.who;
-    const kind = who === 'specific' ? 'targeted' : 'general';
-    const recipientIds = Array.from(document.querySelectorAll('#sct-reach-list input:checked')).map(c => parseInt(c.value, 10));
-    if (kind === 'targeted' && !recipientIds.length) { errEl.textContent = 'Pick at least one person.'; errEl.classList.remove('hidden'); return; }
+    const kind = who === 'pool' ? 'general' : 'targeted';
+    const recipientIds = kind === 'targeted' ? resolveRecipientIds() : [];
+    if (kind === 'targeted' && !recipientIds.length) {
+        const why = who === 'specific'
+            ? 'Pick at least one person.'
+            : (who === 'position'
+                ? (reachState.position ? 'No active subs in that league play that position.' : 'Pick a position.')
+                : 'No subs have marked themselves available for that league this week.');
+        errEl.textContent = why;
+        errEl.classList.remove('hidden');
+        return;
+    }
 
     const payload = {
         kind,
@@ -922,6 +1077,53 @@ async function cancelRequest(el) {
     }
 }
 
+/* ------------------------------------------------ settings live previews */
+
+// Sample values so the admin sees a realistic message while typing. {early}
+// reads the live arrive-early input so the two settings stay visibly linked.
+function fillSampleTokens(tmpl) {
+    const earlyEl = document.querySelector('[data-setting="sub_arrive_early_min"]');
+    const earlyRaw = earlyEl ? String(earlyEl.value || '').trim() : '';
+    const early = earlyRaw === '' ? '15' : earlyRaw;
+    return String(tmpl == null ? '' : tmpl)
+        .replace(/\{date\}/g, 'Sun Jul 27')
+        .replace(/\{team\}/g, 'Cascade FC')
+        .replace(/\{time\}/g, '8:20am')
+        .replace(/\{location\}/g, 'Starfire 3')
+        .replace(/\{early\}/g, early)
+        .replace(/\{slots\}/g, '8:20am, 9:30am')
+        .replace(/\{slot\}/g, '8:20am')
+        .replace(/\{league\}/g, 'Premier');
+}
+
+// AdminConfig key -> preview element id (rendered by _substitute_settings.html).
+const SETTINGS_PREVIEWS = {
+    sub_poll_question: 'sct-prev-poll',
+    sub_reachout_msg_general: 'sct-prev-general',
+    sub_reachout_msg_targeted: 'sct-prev-targeted',
+    sub_confirmation_msg: 'sct-prev-confirm',
+};
+
+function renderSettingPreview(key) {
+    const src = document.querySelector(`[data-setting="${key}"]`);
+    const target = document.getElementById(SETTINGS_PREVIEWS[key]);
+    if (!src || !target) return;
+    // textContent — never innerHTML: the admin's raw template is untrusted markup.
+    target.textContent = fillSampleTokens(src.value);
+}
+
+function initSettingsPreviews() {
+    Object.keys(SETTINGS_PREVIEWS).forEach(key => {
+        const src = document.querySelector(`[data-setting="${key}"]`);
+        if (!src) return;
+        renderSettingPreview(key);
+        src.addEventListener('input', () => renderSettingPreview(key));
+    });
+    // {early} lives in the confirmation message — re-render it as the number changes.
+    const early = document.querySelector('[data-setting="sub_arrive_early_min"]');
+    if (early) early.addEventListener('input', () => renderSettingPreview('sub_confirmation_msg'));
+}
+
 /* ------------------------------------------------------------ settings */
 
 function collectSettings() {
@@ -1024,6 +1226,7 @@ function registerHandlers() {
     ED.register('sct-req-pos-chip', (el) => togglePosChip(el));
     ED.register('sct-reach-close', () => closeReach());
     ED.register('sct-reach-who', (el) => setReachWho(el.dataset.who));
+    ED.register('sct-reach-pos', (el) => setReachPos(el));
     ED.register('sct-reach-send', () => sendReach());
     ED.register('sct-settings-save', () => saveSettings());
     ED.register('sct-settings-reset', () => window.location.reload());
@@ -1086,6 +1289,7 @@ function init() {
     if (!root()) return;
     registerHandlers();
     bindDirect();
+    initSettingsPreviews();
     loadChannelsOnInit();
     loadRolesOnInit();
 }

@@ -10,6 +10,43 @@
 {% set _poll_h12 = (_poll_hr % 12) if _poll_hr is number else 2 %}
 {% set _poll_h12 = 12 if _poll_h12 == 0 else _poll_h12 %}
 {% set _poll_ampm = 'PM' if (_poll_hr is number and _poll_hr >= 12) else 'AM' %}
+
+{# Discord-style live preview cards. The <p id> bodies are filled (escaped, via
+   textContent) by substitute-command-center.js as the admin types, with sample
+   token substitution. #}
+{% macro msg_preview(pid, title='Preview') %}
+<div class="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+  <div class="px-3 py-1.5 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 flex items-center gap-1.5"><i class="ti ti-eye text-ecs-green"></i>{{ title }}</div>
+  <div class="p-3 flex gap-2.5">
+    <span class="h-8 w-8 rounded-full bg-ecs-green text-white inline-flex items-center justify-center text-[10px] font-bold shrink-0">ECS</span>
+    <div class="min-w-0 flex-1">
+      <p class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">ECS Sub Bot <span class="text-[8px] font-bold bg-indigo-500 text-white px-1 rounded">BOT</span></p>
+      <p id="{{ pid }}" class="text-xs text-gray-700 dark:text-gray-200 mt-1 leading-relaxed whitespace-pre-line"></p>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+{% macro poll_preview(pid) %}
+<div class="mt-2 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+  <div class="px-3 py-1.5 text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-bold bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700 flex items-center gap-1.5"><i class="ti ti-eye text-ecs-green"></i>Preview — availability poll</div>
+  <div class="p-3 flex gap-2.5">
+    <span class="h-8 w-8 rounded-full bg-ecs-green text-white inline-flex items-center justify-center text-[10px] font-bold shrink-0">ECS</span>
+    <div class="min-w-0 flex-1">
+      <p class="text-xs font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">ECS Sub Bot <span class="text-[8px] font-bold bg-indigo-500 text-white px-1 rounded">BOT</span></p>
+      <p id="{{ pid }}" class="text-xs text-gray-700 dark:text-gray-200 mt-1 leading-relaxed whitespace-pre-line"></p>
+      <div class="mt-2 space-y-1">
+        {% for slot in ['8:20am', '9:30am'] %}
+        <div class="flex items-center justify-between gap-2 rounded-md border border-gray-200 dark:border-gray-600 px-2.5 py-1.5 text-xs text-gray-700 dark:text-gray-200">
+          <span class="inline-flex items-center gap-1.5"><i class="ti ti-clock text-ecs-green"></i>{{ slot }}</span>
+          <span class="text-[10px] font-mono text-gray-400">0 ✋</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
 <div class="flex items-center justify-between gap-3 flex-wrap mb-4">
   <div>
     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Substitute settings</h2>
@@ -76,6 +113,7 @@
         <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Poll question</label>
         <textarea data-setting="sub_poll_question" data-setting-type="string" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_poll_question }}</textarea>
         <div class="mt-1.5 flex gap-1.5 text-[11px] text-gray-400"><span>Tokens:</span><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{league}</code></div>
+        {{ poll_preview('sct-prev-poll') }}
       </div>
     </div>
   </div>
@@ -97,11 +135,13 @@
         <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">General ask — "can anyone sub?"</label>
         <textarea data-setting="sub_reachout_msg_general" data-setting-type="string" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_reachout_msg_general }}</textarea>
         <div class="mt-1.5 flex gap-1.5 text-[11px] text-gray-400"><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{league}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{slots}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code></div>
+        {{ msg_preview('sct-prev-general') }}
       </div>
       <div class="py-3">
         <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Targeted ask — "can YOU sub for this time?"<small class="block text-[11px] text-gray-400 font-normal">Team is never revealed to the sub</small></label>
         <textarea data-setting="sub_reachout_msg_targeted" data-setting-type="string" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_reachout_msg_targeted }}</textarea>
         <div class="mt-1.5 flex gap-1.5 text-[11px] text-gray-400"><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{slot}</code></div>
+        {{ msg_preview('sct-prev-targeted') }}
       </div>
       <div class="flex items-center justify-between gap-4 py-3">
         <span class="text-sm text-gray-800 dark:text-gray-200">Allow SMS reach-outs<small class="block text-[11px] text-gray-400">Only to consented, verified numbers</small></span>
@@ -157,6 +197,7 @@
         <label class="text-sm text-gray-800 dark:text-gray-200 mb-1.5 block">Assignment confirmation message</label>
         <textarea data-setting="sub_confirmation_msg" data-setting-type="string" rows="4" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">{{ settings.sub_confirmation_msg }}</textarea>
         <div class="mt-1.5 flex flex-wrap gap-1.5 text-[11px] text-gray-400"><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{team}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{date}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{time}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{location}</code><code class="px-1 rounded bg-ecs-green/10 text-ecs-green">{early}</code></div>
+        {{ msg_preview('sct-prev-confirm', 'Preview — confirmation DM') }}
       </div>
     </div>
   </div>

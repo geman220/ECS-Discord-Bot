@@ -27,7 +27,7 @@ from app.constants.positions import label_for
 from app.decorators import jwt_role_required
 from app.utils.mobile_auth import api_key_required
 from app.core.session_manager import managed_session
-from app.models import User, Player, Team, Match, player_teams
+from app.models import User, Player, Team, Match, League, player_teams
 from app.models.core import Role
 from app.models.admin_config import AdminAuditLog
 from app.models.discord_polls import DiscordPoll, DiscordPollVote
@@ -509,21 +509,47 @@ def update_substitute_request(request_id: int):
             except (ValueError, TypeError):
                 pass
         if 'notes' in data:
-            sub_request.notes = data['notes'].strip()
+            # Tolerate an explicit null (clients clear the field either way)
+            sub_request.notes = (data['notes'] or '').strip()
         if 'gender_preference' in data:
             sub_request.gender_preference = data['gender_preference']
 
         session.commit()
 
+        # Echo the same shape as GET /substitutes/requests/<id> so a client that
+        # replaces (rather than merges) its object doesn't lose team/match.
         return jsonify({
             "success": True,
             "message": "Request updated",
             "request": {
                 "id": sub_request.id,
+                "match": {
+                    "id": sub_request.match.id,
+                    "date": sub_request.match.date.isoformat() if sub_request.match.date else None,
+                    "time": sub_request.match.time.isoformat() if sub_request.match.time else None,
+                    "location": sub_request.match.location,
+                    "home_team": {
+                        "id": sub_request.match.home_team.id,
+                        "name": sub_request.match.home_team.name
+                    } if sub_request.match.home_team else None,
+                    "away_team": {
+                        "id": sub_request.match.away_team.id,
+                        "name": sub_request.match.away_team.name
+                    } if sub_request.match.away_team else None
+                } if sub_request.match else None,
+                "team": {
+                    "id": sub_request.team.id,
+                    "name": sub_request.team.name
+                } if sub_request.team else None,
+                "league_type": sub_request.league_type,
+                "requested_by": sub_request.requester.username if sub_request.requester else None,
                 "positions_needed": sub_request.positions_needed,
                 "substitutes_needed": sub_request.substitutes_needed,
+                "gender_preference": sub_request.gender_preference,
                 "notes": sub_request.notes,
-                "status": sub_request.status
+                "status": sub_request.status,
+                "created_at": sub_request.created_at.isoformat() if sub_request.created_at else None,
+                "updated_at": sub_request.updated_at.isoformat() if sub_request.updated_at else None
             }
         }), 200
 
@@ -723,11 +749,14 @@ def get_all_substitute_requests():
 
 @mobile_api_v2.route('/substitutes/requests/<int:request_id>/assign', methods=['POST'])
 @jwt_required()
-@jwt_role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+@jwt_role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin'])
 def assign_substitute(request_id: int):
     """
-    Assign a substitute to a request. Admins can assign for any team;
-    Pub League Coaches can assign only for their own team's requests.
+    Assign a substitute to a request — ADMINS ONLY (the locked invariant).
+
+    The decorator now describes the same set can_assign() accepts: a Pub League
+    Coach used to clear the decorator only to be 403'd below, and an ECS FC Admin
+    (whom can_assign() accepts) was rejected before ever reaching it.
 
     Args:
         request_id: Substitute request ID
@@ -1017,10 +1046,15 @@ def notify_individual_substitute(request_id: int):
 
 @mobile_api_v2.route('/substitutes/pool', methods=['GET'])
 @jwt_required()
-@jwt_role_required(['Global Admin', 'Pub League Admin'])
+@jwt_role_required(['Global Admin', 'Pub League Admin', 'ECS FC Admin', 'Pub League Coach'])
 def get_substitute_pool():
     """
-    Get all players in the substitute pool (admin only).
+    Get players in the substitute pool.
+
+    Admins see the full pool with membership stats. A Pub League Coach — who may
+    already send a targeted reach-out to specific player ids — gets a roster-only
+    view (id, name, positions) of the ACTIVE, APPROVED subs in the league(s) they
+    coach, so they can actually discover those ids. No contact details either way.
 
     Query Parameters:
         league_type: Filter by league type
@@ -1029,24 +1063,53 @@ def get_substitute_pool():
     Returns:
         JSON with list of pool members
     """
+    from app.services.substitute_authority import is_admin, coach_team_ids
+
+    current_user_id = int(get_jwt_identity())
     league_type = request.args.get('league_type')
     active_only = request.args.get('active_only', 'true').lower() == 'true'
 
     with managed_session() as session:
+        caller_is_admin = is_admin(session, current_user_id)
+
         query = session.query(SubstitutePool).options(
             joinedload(SubstitutePool.player)
         )
 
-        if league_type:
-            query = query.filter(SubstitutePool.league_type == league_type)
-        if active_only:
-            query = query.filter(SubstitutePool.is_active == True)
+        if not caller_is_admin:
+            # Scope a coach to the league(s) of the teams they actually coach,
+            # and to subs who are live in the pool (active + approved).
+            team_ids = coach_team_ids(session, current_user_id)
+            if not team_ids:
+                return jsonify({"pool_members": [], "count": 0}), 200
+
+            coached_leagues = {
+                name for (name,) in session.query(League.name)
+                .join(Team, Team.league_id == League.id)
+                .filter(Team.id.in_(team_ids)).all()
+                if name
+            }
+            if league_type:
+                coached_leagues &= {league_type}
+            if not coached_leagues:
+                return jsonify({"pool_members": [], "count": 0}), 200
+
+            query = query.filter(
+                SubstitutePool.league_type.in_(coached_leagues),
+                SubstitutePool.is_active == True,
+                SubstitutePool.approved_at.isnot(None),
+            )
+        else:
+            if league_type:
+                query = query.filter(SubstitutePool.league_type == league_type)
+            if active_only:
+                query = query.filter(SubstitutePool.is_active == True)
 
         pool_members = query.order_by(SubstitutePool.joined_pool_at.desc()).all()
 
         members_data = []
         for member in pool_members:
-            members_data.append({
+            entry = {
                 "id": member.id,
                 "player_id": member.player.id if member.player else None,
                 "player": {
@@ -1058,14 +1121,20 @@ def get_substitute_pool():
                 } if member.player else None,
                 "league_type": member.league_type,
                 "is_active": member.is_active,
-                "is_approved": member.approved_at is not None,
-                "approved_at": member.approved_at.isoformat() if member.approved_at else None,
                 "preferred_positions": member.preferred_positions,
-                "requests_received": member.requests_received,
-                "requests_accepted": member.requests_accepted,
-                "matches_played": member.matches_played,
-                "joined_pool_at": member.joined_pool_at.isoformat() if member.joined_pool_at else None
-            })
+            }
+            if caller_is_admin:
+                entry.update({
+                    "is_approved": member.approved_at is not None,
+                    "approved_at": member.approved_at.isoformat() if member.approved_at else None,
+                    "requests_received": member.requests_received,
+                    "requests_accepted": member.requests_accepted,
+                    "matches_played": member.matches_played,
+                    "joined_pool_at": member.joined_pool_at.isoformat() if member.joined_pool_at else None
+                })
+            else:
+                entry["is_approved"] = True
+            members_data.append(entry)
 
         return jsonify({
             "pool_members": members_data,

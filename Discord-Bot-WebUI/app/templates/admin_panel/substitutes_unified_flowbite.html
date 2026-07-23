@@ -37,6 +37,7 @@
      data-discord-channels-url="{{ url_for('admin_panel.sub_discord_channels') }}"
      data-discord-roles-url="{{ url_for('admin_panel.sub_discord_roles') }}"
      data-reachout-url="{{ url_for('admin_panel.sub_reachout_web') }}"
+     data-reachout-reach-url="{{ url_for('admin_panel.sub_reachout_reach') }}"
      data-request-options-url="{{ url_for('admin_panel.sub_request_options') }}"
      data-request-create-url="{{ url_for('admin_panel.sub_request_create') }}"
      data-request-edit-url="{{ url_for('admin_panel.sub_request_edit') }}"
@@ -117,6 +118,16 @@
         {% if insights.fill_rate_pct is not none %}{{ insights.fill_rate_pct | int }}%{% else %}<span class="text-gray-300 dark:text-gray-600">—</span>{% endif %}
       </p>
       <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">{{ insights.filled_count }} filled of {{ insights.actionable_count }} requests</p>
+      {# Sub-response trend — last 8 weeks. Hidden when empty or flat-zero. #}
+      {% set trend = insights.weekly_trend or [] %}
+      {% set n = trend | length %}
+      {% if n > 0 and (trend | max) > 0 %}
+      {% set tmax = trend | max %}
+      <svg viewBox="0 0 100 18" preserveAspectRatio="none" class="w-full h-[18px] mt-2 text-ecs-green" aria-hidden="true" focusable="false">
+        <polyline fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"
+                  points="{% for v in trend %}{{ (loop.index0 * 100 / (n - 1)) | round(2) if n > 1 else 50 }},{{ (17 - (v * 15 / tmax)) | round(2) }} {% endfor %}"/>
+      </svg>
+      {% endif %}
     </div>
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
       <p class="text-xs font-medium text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-2"><i class="ti ti-antenna"></i>Channel effectiveness</p>
@@ -567,6 +578,9 @@
 {# ---- Data payloads for the JS module ---- #}
 <script id="sct-pool-data" type="application/json">{{ active_pool | tojson }}</script>
 <script id="sct-settings-data" type="application/json">{{ settings | tojson }}</script>
+{# Week availability (player_id, league_type, is_available, time_slots) — the
+   reach-out "Available this week" targeting resolves recipients from this. #}
+<script id="sct-availability-data" type="application/json">{{ week_availability | tojson }}</script>
 
 </div>{# /root #}
 {% endblock %}
@@ -597,7 +611,15 @@
         <span class="block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Who to ask</span>
         <div class="flex flex-wrap gap-2" id="sct-reach-who">
           <button type="button" data-action="sct-reach-who" data-who="pool" class="sct-who px-3 py-1.5 rounded-lg text-xs font-semibold border border-ecs-green bg-ecs-green/10 text-ecs-green">Whole pool</button>
+          <button type="button" data-action="sct-reach-who" data-who="available" class="sct-who px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">Available this week</button>
+          <button type="button" data-action="sct-reach-who" data-who="position" class="sct-who px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">By position</button>
           <button type="button" data-action="sct-reach-who" data-who="specific" class="sct-who px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">Specific people</button>
+        </div>
+        {# Position chooser — only when "By position" is picked. #}
+        <div id="sct-reach-positions" class="hidden mt-2 flex flex-wrap gap-2">
+          {% for tok, lbl in [('GK','Goalkeeper'), ('DEF','Defender'), ('MID','Midfielder'), ('FWD','Forward')] %}
+          <button type="button" data-action="sct-reach-pos" data-pos="{{ tok }}" class="sct-reach-pos px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">{{ lbl }}</button>
+          {% endfor %}
         </div>
         <div id="sct-reach-picker" class="hidden mt-2">
           <div class="relative mb-2">
@@ -619,6 +641,8 @@
           {% endfor %}
         </div>
         <p class="mt-1 text-[11px] text-gray-400">SMS only reaches consented, verified numbers.</p>
+        {# Live per-channel blast size for the resolved recipients (Task 2). #}
+        <div id="sct-reach-reach" class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono text-gray-500 dark:text-gray-400"></div>
       </div>
       {# Message + live preview #}
       <div>

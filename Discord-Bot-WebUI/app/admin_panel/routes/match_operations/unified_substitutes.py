@@ -843,6 +843,61 @@ def sub_reachout_web():
         })
 
 
+@admin_panel_bp.route('/substitutes/reachout-reach', methods=['POST'])
+@login_required
+@role_required(ADMIN_ROLES)
+def sub_reachout_reach():
+    """Per-channel reach counts for a resolved recipient set — the blast-size
+    preview the reach-out modal shows before sending.
+
+    Body: {player_ids:[...]} -> {success, counts:{PUSH,DISCORD,SMS,EMAIL}, total}.
+
+    Tallies get_player_channels per player (which channels COULD deliver to them).
+    Respects the org SMS master switch: if 'sub_reachout_allow_sms' is off, SMS is
+    reported as 0 regardless of per-recipient consent — matching what a send would do.
+    Best-effort per player: one bad row never breaks the count.
+    """
+    from app.models import Player
+    from app.services.substitute_notification_service import get_notification_service
+
+    data = request.get_json(silent=True) or {}
+    raw_ids = data.get('player_ids') or []
+    try:
+        player_ids = [int(p) for p in raw_ids]
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'player_ids must be integers'}), 400
+
+    # Dedupe, preserve order.
+    seen = set()
+    player_ids = [p for p in player_ids if not (p in seen or seen.add(p))]
+
+    counts = {'PUSH': 0, 'DISCORD': 0, 'SMS': 0, 'EMAIL': 0}
+    total = 0
+    if player_ids:
+        allow_sms = str(AdminConfig.get_setting('sub_reachout_allow_sms', False)).lower() \
+            in ('true', '1', 'yes', 'on')
+        svc = get_notification_service()
+        players = db.session.query(Player).filter(Player.id.in_(player_ids)).all()
+        total = len(players)
+        for p in players:
+            try:
+                ch = svc.get_player_channels(p) or {}
+            except Exception:
+                logger.debug("get_player_channels failed for player %s in reach count",
+                             getattr(p, 'id', None), exc_info=True)
+                continue
+            if ch.get('PUSH'):
+                counts['PUSH'] += 1
+            if ch.get('DISCORD'):
+                counts['DISCORD'] += 1
+            if ch.get('EMAIL'):
+                counts['EMAIL'] += 1
+            if allow_sms and ch.get('SMS'):
+                counts['SMS'] += 1
+
+    return jsonify({'success': True, 'counts': counts, 'total': total})
+
+
 # ===========================================================================
 # Coach/Admin sub-REQUEST creation, cancel, and the request picker options.
 #

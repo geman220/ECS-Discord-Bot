@@ -26,6 +26,10 @@ from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, League
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
+# Substitute routes gate through the single authority module (per-team coach +
+# real admin roles), NOT the looser local is_coach_for_team/is_admin_user pair
+# below, which treats 'ECS FC Coach' as a league-wide admin role.
+from app.services.substitute_authority import can_request, can_assign, ECS_FC
 
 logger = logging.getLogger(__name__)
 
@@ -1504,6 +1508,7 @@ def get_ecs_fc_substitute_requests():
                 "requested_by": req.requested_by or 0,
                 "substitutes_needed": req.substitutes_needed or 1,
                 "positions_needed": req.positions_needed,
+                "gender_preference": req.gender_preference,
                 "notes": req.notes,
                 "status": req.status.lower() if req.status else "open",
                 "team_name": req.team.name if req.team else None,
@@ -1609,8 +1614,8 @@ def create_ecs_fc_substitute_request():
         # (client may send their pub league team_id if they coach in both leagues)
         team_id = match.team_id
 
-        # Verify coach access
-        if not is_coach_for_team(session, current_user_id, team_id) and not is_admin_user(session, current_user_id):
+        # Verify coach access — admins anywhere, ECS FC coaches on their own team only
+        if not can_request(session, current_user_id, team_id=team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to create requests for this team"}), 403
 
         # Check for existing open request for this match
@@ -1639,6 +1644,7 @@ def create_ecs_fc_substitute_request():
             team_id=team_id,
             requested_by=current_user_id,
             positions_needed=positions_needed,
+            gender_preference=data.get('gender_preference'),
             substitutes_needed=subs_needed,
             notes=data.get('notes') or data.get('message'),
             status='OPEN'
@@ -1786,6 +1792,7 @@ def get_ecs_fc_substitute_request(request_id: int):
             "team_info": team_info,
             "team": team_info,  # Legacy key
             "positions_needed": sub_request.positions_needed,
+            "gender_preference": sub_request.gender_preference,
             "substitutes_needed": sub_request.substitutes_needed,
             "notes": sub_request.notes,
             "status": sub_request.status,
@@ -1813,12 +1820,14 @@ def update_ecs_fc_substitute_request(request_id: int):
             return jsonify({"msg": "Request not found"}), 404
 
         # Verify authorization
-        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+        if not can_request(session, current_user_id, team_id=sub_request.team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to update this request"}), 403
 
         # Update fields
         if 'positions_needed' in data:
             sub_request.positions_needed = data['positions_needed']
+        if 'gender_preference' in data:
+            sub_request.gender_preference = data['gender_preference']
         if 'substitutes_needed' in data:
             sub_request.substitutes_needed = data['substitutes_needed']
         if 'notes' in data:
@@ -1849,7 +1858,7 @@ def delete_ecs_fc_substitute_request(request_id: int):
             return jsonify({"msg": "Request not found"}), 404
 
         # Verify authorization
-        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+        if not can_request(session, current_user_id, team_id=sub_request.team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to delete this request"}), 403
 
         sub_request.status = 'CANCELLED'
@@ -2089,7 +2098,7 @@ def assign_ecs_fc_substitute(request_id: int):
             return jsonify({"msg": "Request not found"}), 404
 
         # Verify authorization
-        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+        if not can_assign(session, current_user_id, team_id=sub_request.team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to assign substitutes"}), 403
 
         # Verify player exists
@@ -2139,6 +2148,60 @@ def assign_ecs_fc_substitute(request_id: int):
                 }
             }
         }), 201
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/assignments/<int:assignment_id>', methods=['DELETE'])
+@jwt_required()
+def remove_ecs_fc_assignment(assignment_id: int):
+    """
+    Remove an ECS FC substitute assignment (admin, or the team's own coach).
+
+    ECS FC needs its own route: DELETE /substitutes/assignments/<id> resolves
+    ids against the Pub League `substitute_assignments` table, whose id sequence
+    is independent of this one — passing an ECS FC assignment id there would
+    delete an unrelated Pub League assignment on collision.
+
+    Args:
+        assignment_id: ECS FC substitute assignment ID
+
+    Returns:
+        JSON with success message
+    """
+    from app.models.substitutes import EcsFcSubAssignment
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        assignment = session.query(EcsFcSubAssignment).options(
+            joinedload(EcsFcSubAssignment.request)
+        ).get(assignment_id)
+
+        if not assignment:
+            return jsonify({"msg": "Assignment not found"}), 404
+
+        sub_request = assignment.request
+        if not sub_request:
+            return jsonify({"msg": "Assignment has no parent request"}), 404
+
+        if not can_assign(session, current_user_id,
+                          team_id=sub_request.team_id, program=ECS_FC):
+            return jsonify({"msg": "You are not authorized to remove this assignment"}), 403
+
+        session.delete(assignment)
+
+        # Reopen the request if this assignment had filled it
+        if sub_request.status == 'FILLED':
+            sub_request.status = 'OPEN'
+            sub_request.filled_at = None
+
+        session.commit()
+
+        logger.info(f"ECS FC substitute assignment {assignment_id} removed by user {current_user_id}")
+
+        return jsonify({
+            "success": True,
+            "message": "Assignment removed"
+        }), 200
 
 
 @mobile_api_v2.route('/substitutes/ecs-fc/pool/my-status', methods=['GET'])
@@ -2569,7 +2632,7 @@ def notify_ecs_fc_substitute_pool(request_id: int):
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
 
-        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+        if not can_request(session, current_user_id, team_id=sub_request.team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to contact subs for this team"}), 403
 
         if sub_request.status not in ['OPEN', 'PENDING']:
@@ -2638,7 +2701,7 @@ def notify_ecs_fc_individual_substitute(request_id: int):
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
 
-        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+        if not can_request(session, current_user_id, team_id=sub_request.team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to contact subs for this team"}), 403
 
         if sub_request.status not in ['OPEN', 'PENDING']:
@@ -2783,7 +2846,7 @@ def get_ecs_fc_request_responses(request_id: int):
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
 
-        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+        if not can_request(session, current_user_id, team_id=sub_request.team_id, program=ECS_FC):
             return jsonify({"msg": "You are not authorized to view responses"}), 403
 
         responses = session.query(EcsFcSubResponse).options(

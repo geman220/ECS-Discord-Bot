@@ -532,7 +532,40 @@ def get_hub_insights(session, season_id=None):
         'filled_count': 0,
         'actionable_count': 0,
         'channel_effectiveness': [],
+        'weekly_trend': [],
     }
+
+    # --- Weekly response trend: sub responses per ISO week, last 8 weeks (oldest
+    # -> newest) for the This-Week KPI sparkline. Fully defensive: any failure
+    # leaves weekly_trend an empty list so the sparkline just hides. ---
+    try:
+        from datetime import timedelta as _td
+        today_d = datetime.utcnow().date()
+        monday = today_d - _td(days=today_d.weekday())   # Monday of the current week
+        window_start = monday - _td(weeks=7)             # Monday 8 weeks ago (bucket 0)
+        buckets = [0] * 8
+        tq = session.query(SubstituteResponse.responded_at).filter(
+            SubstituteResponse.responded_at.isnot(None),
+            SubstituteResponse.responded_at >= datetime.combine(window_start, datetime.min.time()),
+        )
+        if season_id:
+            tq = tq.join(
+                SubstituteRequest, SubstituteResponse.request_id == SubstituteRequest.id
+            ).join(Match, SubstituteRequest.match_id == Match.id).join(
+                Schedule, Match.schedule_id == Schedule.id
+            ).filter(Schedule.season_id == season_id)
+        for (responded_at,) in tq.all():
+            if not responded_at:
+                continue
+            d = responded_at.date() if hasattr(responded_at, 'date') else responded_at
+            wk_monday = d - _td(days=d.weekday())
+            idx = (wk_monday - window_start).days // 7
+            if 0 <= idx < 8:
+                buckets[idx] += 1
+        out['weekly_trend'] = [int(x) for x in buckets]
+    except Exception as e:
+        logger.error(f"Error computing weekly response trend: {e}", exc_info=True)
+        out['weekly_trend'] = []
 
     # --- Avg time-to-fill: created_at -> earliest assignment, per request ---
     try:
