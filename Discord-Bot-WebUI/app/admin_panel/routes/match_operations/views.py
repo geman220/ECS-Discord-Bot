@@ -394,53 +394,16 @@ def live_matches_data():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def match_reports():
-    """View match reports."""
-    try:
-        from app.models.matches import Match
-        from app.models import Team
+    """Consolidated into the Match Operations hub — redirect (kept so the nav links
+    still resolve).
 
-        # Log the access to match reports
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_match_reports',
-            resource_type='match_operations',
-            resource_id='reports',
-            new_value='Accessed match reports interface',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        # Get recent matches for reports
-        recent_date = datetime.utcnow().date() - timedelta(days=30)
-        recent_matches = Match.query.filter(Match.date >= recent_date).limit(20).all()
-
-        # Get teams for dropdown/filtering
-        teams = Team.query.all()
-
-        # Calculate basic statistics. "Completed" = both scores entered (Match has
-        # no status column, so the old Match.status=='completed' check always read 0).
-        total_matches = Match.query.count()
-        recent_matches_count = len(recent_matches)
-        completed_matches = Match.query.filter(
-            Match.home_team_score.isnot(None),
-            Match.away_team_score.isnot(None)
-        ).count()
-
-        reports_data = {
-            'total_matches': total_matches,
-            'recent_matches_count': recent_matches_count,
-            'completed_matches': completed_matches,
-            'pending_matches': total_matches - completed_matches,
-            'recent_matches': recent_matches,
-            'teams': teams
-        }
-
-        return render_template('admin_panel/match_operations/match_reports_flowbite.html',
-                               reports_data=reports_data)
-    except Exception as e:
-        logger.error(f"Error loading match reports: {e}")
-        flash('Match reports unavailable. Check database connectivity and report generation.', 'error')
-        return redirect(url_for('admin_panel.match_operations'))
+    The old page showed total/completed/pending counts that were computed with an
+    UNSCOPED ``Match.query.count()`` — league-lifetime totals, so "pending" counted
+    every future fixture and special week across all seasons. The hub shows the same
+    picture season-scoped, so this thin duplicate is retired as a redirect (mirrors
+    ``match_results``).
+    """
+    return redirect(url_for('admin_panel.match_operations'))
 
 
 @admin_panel_bp.route('/matches/bulk-actions', methods=['POST'])

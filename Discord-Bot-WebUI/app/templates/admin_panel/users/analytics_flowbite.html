@@ -144,7 +144,11 @@
       </div>
       <div class="px-3 py-3">
         <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Growth Rate</p>
+        {% if analytics_data.overview.growth_rate_30d is none %}
+        <p class="mt-0.5 font-mono text-lg font-bold text-gray-400" title="Too few signups in the prior 30 days to compute a meaningful rate">—</p>
+        {% else %}
         <p class="mt-0.5 font-mono text-lg font-bold {% if analytics_data.overview.growth_rate_30d >= 0 %}text-ecs-green{% else %}text-red-600 dark:text-red-400{% endif %}">{{ analytics_data.overview.growth_rate_30d }}%</p>
+        {% endif %}
       </div>
       <div class="px-3 py-3">
         <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</p>
@@ -419,7 +423,7 @@
         </div>
         <div class="mt-3 flex items-center text-sm text-white/70">
             <i class="ti ti-activity mr-1"></i>
-            {{ analytics_data.overview.growth_rate_30d }}% growth rate
+            {% if analytics_data.overview.growth_rate_30d is none %}Growth rate n/a{% else %}{{ analytics_data.overview.growth_rate_30d }}% growth rate{% endif %}
         </div>
     </div>
 

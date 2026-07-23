@@ -132,13 +132,14 @@ def sms_analytics_dashboard():
             ]
         }
 
-        # Calculate delivery rate
+        # Calculate delivery rate. None at zero volume — a quiet day and a total
+        # Twilio outage are NOT both "100% delivered".
         for period in ['today', 'week', 'month']:
             total = stats[period]['delivered'] + stats[period]['failed']
             if total > 0:
                 stats[period]['delivery_rate'] = round((stats[period]['delivered'] / total) * 100, 1)
             else:
-                stats[period]['delivery_rate'] = 100.0
+                stats[period]['delivery_rate'] = None
 
         return render_template(
             'admin_panel/communication/sms_analytics_flowbite.html',
@@ -151,9 +152,9 @@ def sms_analytics_dashboard():
         return render_template(
             'admin_panel/communication/sms_analytics_flowbite.html',
             stats={
-                'today': {'count': 0, 'estimated_cost': 0, 'actual_cost': 0, 'delivered': 0, 'failed': 0, 'delivery_rate': 100},
-                'week': {'count': 0, 'estimated_cost': 0, 'actual_cost': 0, 'delivered': 0, 'failed': 0, 'delivery_rate': 100},
-                'month': {'count': 0, 'estimated_cost': 0, 'actual_cost': 0, 'delivered': 0, 'failed': 0, 'delivery_rate': 100},
+                'today': {'count': 0, 'estimated_cost': 0, 'actual_cost': 0, 'delivered': 0, 'failed': 0, 'delivery_rate': None},
+                'week': {'count': 0, 'estimated_cost': 0, 'actual_cost': 0, 'delivered': 0, 'failed': 0, 'delivery_rate': None},
+                'month': {'count': 0, 'estimated_cost': 0, 'actual_cost': 0, 'delivered': 0, 'failed': 0, 'delivery_rate': None},
                 'type_breakdown': [],
                 'daily_stats': []
             },

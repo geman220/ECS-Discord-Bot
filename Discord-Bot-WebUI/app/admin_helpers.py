@@ -519,27 +519,46 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
     if session is None:
         session = g.db_session
         
-    # Get regular team players with their availability
-    players_with_availability = session.query(Player, Availability).\
+    # Roster comes from the player_teams association, NOT Player.primary_team_id.
+    # primary_team_id is a single nullable pointer, so filtering on it silently dropped
+    # every player whose primary team wasn't set and every dual-rostered player — they
+    # vanished from the RSVP list entirely and the "No Response" denominator was wrong.
+    from app.models.players import player_teams
+    team_by_id = {match.home_team_id: match.home_team, match.away_team_id: match.away_team}
+
+    players_with_availability = session.query(Player, Availability, player_teams.c.team_id).\
+        join(
+            player_teams,
+            player_teams.c.player_id == Player.id
+        ).\
         outerjoin(
             Availability,
             (Player.id == Availability.player_id) & (Availability.match_id == match.id)
         ).\
         filter(
-            (Player.primary_team_id == match.home_team_id) | (Player.primary_team_id == match.away_team_id)
+            player_teams.c.team_id.in_([match.home_team_id, match.away_team_id])
         ).\
-        options(joinedload(Player.primary_team), joinedload(Player.user)).\
+        options(joinedload(Player.user)).\
         all()
 
-    rsvp_data = [{
-        'player': player,
-        'team': player.primary_team,
-        'response': availability.response if availability else 'No Response',
-        'responded_at': availability.responded_at if availability else None,
-        'discord_synced': availability.discord_id is not None if availability else False,
-        'is_temp_sub': False,
-        'assignment_id': None  # Regular team players don't have assignment_id
-    } for player, availability in players_with_availability]
+    # De-dupe on player: a player rostered on BOTH teams of this match (rare, but
+    # possible) would otherwise appear twice and inflate the roster/response counts.
+    # First membership seen wins; the availability row is the same either way.
+    rsvp_data = []
+    _seen_player_ids = set()
+    for player, availability, roster_team_id in players_with_availability:
+        if player.id in _seen_player_ids:
+            continue
+        _seen_player_ids.add(player.id)
+        rsvp_data.append({
+            'player': player,
+            'team': team_by_id.get(roster_team_id),
+            'response': availability.response if availability else 'No Response',
+            'responded_at': availability.responded_at if availability else None,
+            'discord_synced': availability.discord_id is not None if availability else False,
+            'is_temp_sub': False,
+            'assignment_id': None  # Regular team players don't have assignment_id
+        })
     
     # Get temporary subs assigned to this match
     sub_assignments = session.query(TemporarySubAssignment).filter(
@@ -561,8 +580,11 @@ def get_rsvp_status_data(match: Match, session=None) -> List[Dict[str, Any]]:
         rsvp_data.append({
             'player': assignment.player,
             'team': assignment.team,
-            'response': sub_availability.response if sub_availability else 'Yes',  # Default subs to Yes
-            'responded_at': sub_availability.responded_at if sub_availability else assignment.created_at,
+            # An assigned sub who never RSVP'd has NOT said yes. Defaulting them to 'Yes'
+            # (and stamping the assignment time as a response time) invented an affirmative
+            # RSVP that was indistinguishable in the UI from a real one.
+            'response': sub_availability.response if sub_availability else 'No Response',
+            'responded_at': sub_availability.responded_at if sub_availability else None,
             'discord_synced': sub_availability.discord_id is not None if sub_availability else False,
             'is_temp_sub': True,
             'assignment_id': assignment.id,

@@ -14,7 +14,7 @@ Design: ~/.claude/plans/registration-lifecycle-overhaul.md  §10.2
 
 import logging
 
-from flask import render_template, jsonify, abort, request
+from flask import render_template, jsonify, abort, request, url_for
 from flask_login import login_required
 
 from app.admin_panel import admin_panel_bp
@@ -68,17 +68,28 @@ def _sub_summary(session, sub_pids):
     """{player_id: [{'lane': 'Classic'|'Premier'|'ECS FC', 'status': 'active'|'resting'}]}
     for the Subs tab, from the live sub pools (Pub League SubstitutePool + EcsFcSubPool)."""
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
-    summary = {}
+    from app.services.league_membership_sync import _norm_league_type
     if not sub_pids:
-        return summary
+        return {}
+    raw = {}
     for sp in session.query(SubstitutePool).filter(SubstitutePool.player_id.in_(sub_pids)).all():
         if sp.approved_at is None:
             continue
-        summary.setdefault(sp.player_id, []).append(
+        raw.setdefault(sp.player_id, []).append(
             {'lane': sp.league_type, 'status': 'active' if sp.is_active else 'resting'})
     for ep in session.query(EcsFcSubPool).filter(EcsFcSubPool.player_id.in_(sub_pids)).all():
-        summary.setdefault(ep.player_id, []).append(
+        raw.setdefault(ep.player_id, []).append(
             {'lane': 'ECS FC', 'status': 'active' if ep.is_active else 'resting'})
+    # DEDUPE by normalized lane: an ECS FC sub commonly has BOTH a SubstitutePool('ECS FC')
+    # twin AND an EcsFcSubPool row, which would otherwise render "ECS FC" twice. Active wins.
+    summary = {}
+    for pid, rows in raw.items():
+        by_lane = {}
+        for r in rows:
+            key = _norm_league_type(r['lane']) or r['lane']
+            if key not in by_lane or (r['status'] == 'active' and by_lane[key]['status'] != 'active'):
+                by_lane[key] = r
+        summary[pid] = list(by_lane.values())
     return summary
 
 
@@ -147,6 +158,13 @@ def members_worklist():
     for (pid,) in db.session.query(EcsFcSubPool.player_id).all():
         if pid:
             sub_pids.add(pid)
+    # Exclude DENIED players from the sub set at the SOURCE so the count, KPI chips and the
+    # rendered list all agree (denied people are hidden from live queues everywhere).
+    if sub_pids:
+        denied_pids = {pid for (pid,) in db.session.query(Player.id)
+                       .join(User, User.id == Player.user_id)
+                       .filter(Player.id.in_(sub_pids), User.approval_status == 'denied').all()}
+        sub_pids -= denied_pids
 
     thirty_days_ago = now - timedelta(days=30)
     stats = {
@@ -266,9 +284,48 @@ def members_worklist():
         pagination = q.paginate(page=page, per_page=50, error_out=False)
         users = pagination.items
 
+    # Waitlist open now? Gates the waitlist approve/pre-approve options (closed in break/offseason).
+    try:
+        from app.services.season_phase_service import is_waitlist_open
+        waitlist_open = bool(is_waitlist_open(db.session))
+    except Exception:
+        waitlist_open = True
+
     any_filter = any([search, role_filter, league_filter, approval_filter, active_filter,
                       season_filter, lane_filter, sub_status_filter,
                       (qp_status and qp_status != 'pending')])
+
+    # Active-filter chips: each links to the SAME view minus that one filter, so an admin
+    # always sees WHAT is narrowing the list and can drop filters one at a time.
+    _APPROVAL_LBL = {'approved': 'Approved', 'pending': 'Pending', 'denied': 'Denied', 'all': 'Incl. denied'}
+    _ACTIVE_LBL = {'true': 'Enabled', 'false': 'Disabled'}
+    _SEASON_LBL = {'active': 'Playing this season', 'inactive': 'Not active'}
+    _LANE_LBL2 = {'classic': 'Classic', 'premier': 'Premier', 'ecs_fc': 'ECS FC', 'undecided': 'Undecided'}
+    _SUBST_LBL = {'active': 'Active subs', 'resting': 'Resting subs'}
+    _league_name = next((lg.name for lg in all_leagues if str(lg.id) == str(league_filter)), None)
+    _params = [
+        ('search', search, ('“%s”' % search) if search else None),
+        ('role', role_filter, ('Role: %s' % role_filter) if role_filter else None),
+        ('approval', approval_filter, _APPROVAL_LBL.get(approval_filter)),
+        ('season', season_filter, _SEASON_LBL.get(season_filter)),
+        ('active', active_filter, _ACTIVE_LBL.get(active_filter)),
+        ('league', league_filter, ('League: %s' % (_league_name or ('#' + str(league_filter)))) if league_filter else None),
+        ('lane', lane_filter, _LANE_LBL2.get(lane_filter)),
+        ('sub_status', sub_status_filter, _SUBST_LBL.get(sub_status_filter)),
+        ('qp_status', (qp_status if qp_status != 'pending' else ''),
+         (qp_status.title() if (qp_status and qp_status != 'pending') else None)),
+    ]
+
+    def _url_drop(drop):
+        kw = {'tab': tab}
+        for p, val, _lbl in _params:
+            if p != drop and val:
+                kw[p] = val
+        return url_for('admin_panel.members_worklist', **kw)
+
+    active_chips = [{'label': lbl, 'remove_url': _url_drop(p)} for p, val, lbl in _params if val and lbl]
+    result_total = pagination.total if pagination else (len(profiles) if tab == 'quick' else len(users))
+    result_shown = len(profiles) if tab == 'quick' else len(users)
 
     # --- flow metrics (time / % / age) — informational, shown as non-filter stat chips ---
     from sqlalchemy import func as _func
@@ -370,7 +427,8 @@ def members_worklist():
                            approval_filter=approval_filter, active_filter=active_filter,
                            season_filter=season_filter, lane_filter=lane_filter,
                            sub_status_filter=sub_status_filter, qp_status=qp_status,
-                           any_filter=any_filter, tab_kpis=tab_kpis)
+                           any_filter=any_filter, tab_kpis=tab_kpis, waitlist_open=waitlist_open,
+                           active_chips=active_chips, result_total=result_total, result_shown=result_shown)
 
 
 @admin_panel_bp.route('/members/<int:user_id>')
@@ -721,7 +779,12 @@ def member_qp_detail(profile_id):
                   'author': (n.author.username if getattr(n, 'author', None) else 'system'),
                   'created_at': n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else ''}
                  for n in notes]
-    return jsonify({'success': True, 'profile': data, 'notes': note_list})
+    try:
+        from app.services.season_phase_service import is_waitlist_open
+        waitlist_open = bool(is_waitlist_open(db.session))
+    except Exception:
+        waitlist_open = True
+    return jsonify({'success': True, 'profile': data, 'notes': note_list, 'waitlist_open': waitlist_open})
 
 
 @admin_panel_bp.route('/members/quick-profile/<int:profile_id>/note', methods=['POST'])
@@ -759,8 +822,9 @@ def member_qp_note_add(profile_id):
 @transactional
 def member_qp_preapprove(profile_id):
     """Pre-approve (or clear) a quick profile so the person is auto-approved into the chosen
-    league the moment they claim their code (see QuickProfile._apply_pre_approval). Only a
-    league/sub type is accepted (waitlist isn't an approval). Body: {league_type} ('' clears)."""
+    league the moment they claim their code (see QuickProfile._apply_pre_approval). Accepts a
+    league/sub type, or a waitlist-* type which is applied phase-aware on claim (waitlist if
+    open, else the plain league). Body: {league_type} ('' clears)."""
     from flask_login import current_user
     from datetime import datetime
     from app.core import db
@@ -771,7 +835,8 @@ def member_qp_preapprove(profile_id):
         return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
     data = request.get_json(silent=True) or {}
     league = (data.get('league_type') or '').strip()
-    valid = {'classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc'}
+    valid = {'classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc',
+             'waitlist-classic', 'waitlist-premier', 'waitlist-ecs-fc'}
     if league and league not in valid:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
     if league:
@@ -1165,6 +1230,18 @@ def member_place(user_id):
                                                   performed_by_user_id=getattr(current_user, 'id', None))
                 except Exception as _sub_err:
                     logger.warning(f"sub-status cleanup skipped for player {player.id}: {_sub_err}")
+                # A rostered player is IN — auto-clear any stale waitlist so we never leave
+                # someone on the waitlist after placing them (they go to the normal pool).
+                try:
+                    from app.models import Role
+                    wl_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+                    if wl_role and wl_role in user.roles:
+                        user.roles.remove(wl_role)
+                        user.waitlist_league = None
+                        if hasattr(user, 'waitlist_joined_at'):
+                            user.waitlist_joined_at = None
+                except Exception as _wl_err:
+                    logger.warning(f"waitlist auto-clear skipped for player {player.id}: {_wl_err}")
                 db.session.flush()
                 resync_player_memberships(db.session, player.id)
                 if player.discord_id:

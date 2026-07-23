@@ -928,7 +928,10 @@ def security_dashboard():
                                 'time_remaining': int(expiry - current_time),
                                 'reason': 'Automatic detection',
                                 'banned_by': 'Security System',
-                                'banned_at': datetime.fromtimestamp(expiry - 1800),
+                                # In-memory bans only record an expiry, not when the ban
+                                # started. Don't fabricate it (this used to guess
+                                # expiry - 30min); leave it unknown.
+                                'banned_at': None,
                                 'is_permanent': False
                             })
         except ImportError:

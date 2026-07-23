@@ -231,7 +231,8 @@
             </td>
             <td class="px-4 py-3 text-center">
               {% if attendance %}
-              {% set rate = (attendance.season_attendance_rate * 100)|int %}
+              {# season_attendance_rate is stored 0-100, not 0-1 — multiplying again rendered 8570%. #}
+              {% set rate = (attendance.season_attendance_rate or 0)|round|int %}
               <span class="px-1.5 py-0.5 text-xs font-mono rounded {% if rate >= 80 %}bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400{% elif rate >= 60 %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400{% else %}bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400{% endif %}">{{ rate }}%</span>
               {% else %}<span class="text-gray-400 font-mono">N/A</span>{% endif %}
             </td>
@@ -606,7 +607,8 @@
                     </td>
                     <td class="px-4 py-3 text-center">
                         {% if attendance %}
-                        {% set rate = (attendance.season_attendance_rate * 100)|int %}
+                        {# season_attendance_rate is stored 0-100, not 0-1 — multiplying again rendered 8570%. #}
+              {% set rate = (attendance.season_attendance_rate or 0)|round|int %}
                         <span class="px-1.5 py-0.5 text-xs rounded {% if rate >= 80 %}bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400{% elif rate >= 60 %}bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400{% else %}bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400{% endif %}">{{ rate }}%</span>
                         {% else %}
                         <span class="text-gray-400">N/A</span>

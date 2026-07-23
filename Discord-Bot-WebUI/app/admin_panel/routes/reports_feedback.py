@@ -12,7 +12,7 @@ This module contains routes for:
 
 import logging
 from datetime import datetime, timedelta
-from flask import render_template, request, jsonify, g, redirect, url_for, abort
+from flask import render_template, request, jsonify, g, redirect, url_for, abort, flash
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func, and_, or_
@@ -45,19 +45,9 @@ def reports_dashboard():
     return redirect(url_for('admin_panel.feedback_list'), code=302)
 
 
-@admin_panel_bp.route('/reports/api/stats')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def reports_stats_api():
-    """API endpoint for report statistics."""
-    session = g.db_session
-
-    try:
-        stats = _get_match_stats(session)
-        return jsonify(stats)
-    except Exception as e:
-        logger.error(f"Error getting report stats: {e}")
-        return jsonify({'error': 'Internal Server Error'}), 500
+# RETIRED: reports_stats_api / _get_match_stats — a dead JSON endpoint (zero
+# template/JS references) that labelled all-time Match/Availability counts with the
+# current season's name. Removed rather than left as misleading dead weight.
 
 
 # -----------------------------------------------------------
@@ -134,6 +124,22 @@ def update_rsvp():
             return jsonify({'success': False, 'message': 'Player not found'}), 404
         return redirect(url_for('admin_panel.rsvp_status', match_id=match_id))
 
+    # Authority check. `role_required` only proves the caller is *a* coach — it
+    # says nothing about WHICH team. Without this, any Pub League Coach could
+    # rewrite any player's RSVP on any match in the league. Admins are
+    # unrestricted; a coach may only touch a player on a team they coach in this
+    # specific match. Mirrors the equivalent guard on app/teams.py.
+    if not _may_update_rsvp(session, current_user, player, match_id, is_ecs_fc_match):
+        msg = 'You can only update RSVPs for players on a team you coach.'
+        logger.warning(
+            f"Blocked RSVP update: user {current_user.id} attempted to set player "
+            f"{player_id} on match {match_id} without coaching that team."
+        )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': msg}), 403
+        flash(msg, 'danger')
+        return redirect(url_for('admin_panel.rsvp_status', match_id=match_id))
+
     try:
         if is_ecs_fc_match:
             actual_match_id = int(match_id[4:])
@@ -162,6 +168,62 @@ def update_rsvp():
             return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
     return redirect(url_for('admin_panel.rsvp_status', match_id=match_id))
+
+
+def _may_update_rsvp(session, user, player, match_id, is_ecs_fc_match):
+    """May `user` change `player`'s RSVP for this match?
+
+    Global / Pub League admins: always. A coach: only when they coach one of the
+    teams playing THIS match AND the target player is on that same team.
+
+    Coach status is read from `player_teams.is_coach`, the current-season roster —
+    the same source the match itself is scoped to. `Player.is_coach` is a global
+    convenience flag and is deliberately NOT trusted here: it says someone coaches
+    something, not that they coach this team.
+    """
+    from app.models.players import player_teams
+
+    if any(r.name in ('Global Admin', 'Pub League Admin') for r in user.roles):
+        return True
+
+    coach_player = session.query(Player).filter_by(user_id=user.id).first()
+    if not coach_player:
+        return False
+
+    # Fail closed on an unparseable id rather than letting int() raise a 500.
+    try:
+        if is_ecs_fc_match:
+            ecs_match = EcsFcScheduleManager.get_match_by_id(int(str(match_id)[4:]))
+            team_ids = [ecs_match.team_id] if ecs_match and ecs_match.team_id else []
+        else:
+            match = session.query(Match).get(int(match_id))
+            team_ids = [match.home_team_id, match.away_team_id] if match else []
+    except (TypeError, ValueError):
+        return False
+
+    if not team_ids:
+        return False
+
+    coached_team_ids = {
+        row.team_id for row in session.execute(
+            player_teams.select().where(
+                player_teams.c.player_id == coach_player.id,
+                player_teams.c.team_id.in_(team_ids),
+                player_teams.c.is_coach.is_(True),
+            )
+        ).fetchall()
+    }
+    if not coached_team_ids:
+        return False
+
+    # ...and the player they're editing must be on that same team.
+    target_on_team = session.execute(
+        player_teams.select().where(
+            player_teams.c.player_id == player.id,
+            player_teams.c.team_id.in_(coached_team_ids),
+        )
+    ).fetchone()
+    return target_on_team is not None
 
 
 def _handle_ecs_fc_rsvp_update(session, player, match_id, response):
@@ -687,10 +749,19 @@ def bulk_update_rsvp():
 
         is_ecs_fc = isinstance(match_id, str) and match_id.startswith('ecs_')
         updated_count = 0
+        blocked_count = 0
 
         for player_id in player_ids:
             player = session.query(Player).get(int(player_id))
             if not player:
+                continue
+
+            # Same authority check as the single-update route. Without it, a coach
+            # could rewrite any players' RSVPs on any match via the bulk button —
+            # exactly the hole the single-update guard closes, one door over.
+            # Admins unrestricted; a coach only their own team's players in this match.
+            if not _may_update_rsvp(session, current_user, player, match_id, is_ecs_fc):
+                blocked_count += 1
                 continue
 
             try:
@@ -704,6 +775,12 @@ def bulk_update_rsvp():
                 logger.error(f"Error updating RSVP for player {player_id}: {e}")
                 continue
 
+        if blocked_count:
+            logger.warning(
+                f"Bulk RSVP: user {current_user.id} blocked from {blocked_count} "
+                f"player(s) they do not coach on match {match_id}."
+            )
+
         AdminAuditLog.log_action(
             user_id=current_user.id,
             action='bulk_rsvp_update',
@@ -714,9 +791,14 @@ def bulk_update_rsvp():
             user_agent=request.headers.get('User-Agent')
         )
 
+        message = f'Updated {updated_count} RSVPs to {response_value}'
+        if blocked_count:
+            message += f' ({blocked_count} skipped — not your team)'
         return jsonify({
             'success': True,
-            'message': f'Updated {updated_count} RSVPs to {response_value}'
+            'message': message,
+            'updated': updated_count,
+            'blocked': blocked_count,
         })
 
     except Exception as e:
@@ -860,74 +942,3 @@ def export_statistics():
         logger.error(f"Error exporting statistics: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-
-# -----------------------------------------------------------
-# Statistics Helper Functions
-# -----------------------------------------------------------
-
-def _get_match_stats(session):
-    """Generate comprehensive match statistics."""
-    try:
-        current_season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
-        if not current_season:
-            return {"status": "no_season", "stats": []}
-
-        now = datetime.now()
-        week_ago = now - timedelta(days=7)
-
-        stats = {
-            "status": "ok",
-            "timestamp": now.isoformat(),
-            "season": {
-                "id": current_season.id,
-                "name": current_season.name
-            },
-            "matches": {},
-            "rsvps": {},
-            "verification": {}
-        }
-
-        # Match statistics
-        total_matches = session.query(Match).count()
-        recent_matches = session.query(Match).filter(Match.date >= week_ago).count()
-        upcoming_matches = session.query(Match).filter(Match.date >= now).count()
-
-        stats["matches"] = {
-            "total": total_matches,
-            "recent_week": recent_matches,
-            "upcoming": upcoming_matches
-        }
-
-        # RSVP statistics
-        total_rsvps = session.query(Availability).count()
-        recent_rsvps = session.query(Availability).filter(Availability.responded_at >= week_ago).count()
-
-        rsvp_breakdown = session.query(
-            Availability.response,
-            func.count(Availability.id)
-        ).group_by(Availability.response).all()
-
-        stats["rsvps"] = {
-            "total": total_rsvps,
-            "recent_week": recent_rsvps,
-            "breakdown": {response: count for response, count in rsvp_breakdown}
-        }
-
-        # Match verification statistics
-        verified_matches = session.query(Match).filter(
-            and_(Match.home_team_verified == True, Match.away_team_verified == True)
-        ).count()
-
-        stats["verification"] = {
-            "fully_verified": verified_matches
-        }
-
-        return stats
-
-    except Exception as e:
-        logger.error(f"Error generating match statistics: {e}")
-        return {
-            "status": "error",
-            "message": f"Failed to generate statistics: {str(e)}",
-            "timestamp": datetime.now().isoformat()
-        }

@@ -135,13 +135,15 @@ export function initializeInitialEvents(matchId, data) {
             unique_id: String(card.id),
             stat_id: String(card.id),
             player_id: String(card.player_id),
-            minute: card.minute || null
+            minute: card.minute || null,
+            card_reason: card.card_reason || null
         })),
         redCards: red_cards.map(card => ({
             unique_id: String(card.id),
             stat_id: String(card.id),
             player_id: String(card.player_id),
-            minute: card.minute || null
+            minute: card.minute || null,
+            card_reason: card.card_reason || null
         })),
         ownGoals: own_goals.map(ownGoal => ({
             unique_id: String(ownGoal.id),

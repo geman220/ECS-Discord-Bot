@@ -24,11 +24,15 @@
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, empty_state %}
 
-{# ---- Group the flat rsvps list (route passes a list of dicts: response/player/team/responded_at/is_temp_sub/position_assigned) ---- #}
-{% set yes_rows      = rsvps | selectattr('response', 'in', ['Yes', 'Substitute']) | list %}
-{% set no_rows       = rsvps | selectattr('response', 'equalto', 'No')     | list %}
-{% set maybe_rows    = rsvps | selectattr('response', 'equalto', 'Maybe')  | list %}
-{% set pending_rows  = rsvps | selectattr('response', 'equalto', 'No Response') | list %}
+{# ---- Group the flat rsvps list (route passes a list of dicts: response/player/team/responded_at/is_temp_sub/position_assigned).
+   Response casing differs by source — pub league stores lowercase 'yes'/'no'/'maybe',
+   ECS FC stores uppercase 'YES'/'NO'/'MAYBE', and the helper adds literal 'Substitute'
+   and 'No Response'. This page serves both, so match every casing or real responders
+   silently vanish from the tabs and from the response count. ---- #}
+{% set yes_rows      = rsvps | selectattr('response', 'in', ['yes', 'Yes', 'YES', 'Substitute']) | list %}
+{% set no_rows       = rsvps | selectattr('response', 'in', ['no', 'No', 'NO'])                   | list %}
+{% set maybe_rows    = rsvps | selectattr('response', 'in', ['maybe', 'Maybe', 'MAYBE'])          | list %}
+{% set pending_rows  = rsvps | selectattr('response', 'in', ['No Response', 'no_response', ''])    | list %}
 {% set total_roster  = rsvps | length %}
 {% set responded_ct  = (yes_rows | length) + (no_rows | length) + (maybe_rows | length) %}
 {% set response_pct  = ((responded_ct * 100 // total_roster) if total_roster else 0) %}

@@ -28,9 +28,10 @@
     <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-whistle text-ecs-green shrink-0" aria-hidden="true"></i>Coach Engagement</h1>
     <p class="text-sm text-gray-500 dark:text-gray-400">
       {% if season %}{{ season.name }} &middot; {{ season.league_type }}{% else %}No season selected{% endif %}
+      &middot; <a href="{{ url_for('admin_panel.coach_channels') }}" class="text-ecs-green hover:underline inline-flex items-center gap-1"><i class="ti ti-hash text-xs"></i>Coaches channels</a>
     </p>
   </div>
-  <form method="get" id="seasonForm" class="flex items-center gap-2">
+  <form method="get" id="seasonForm" class="flex flex-wrap items-center gap-2">
     <label for="season_id" class="text-xs font-medium text-gray-500 dark:text-gray-400">Season</label>
     <select name="season_id" id="season_id"
             class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
@@ -40,7 +41,28 @@
       </option>
       {% endfor %}
     </select>
+    {% if engagement.available_leagues %}
+    <label for="league" class="text-xs font-medium text-gray-500 dark:text-gray-400 ml-1">League</label>
+    <select name="league" id="league"
+            class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+      <option value="">All divisions</option>
+      {% for l in engagement.available_leagues %}
+      <option value="{{ l }}" {% if engagement.league_filter == l %}selected{% endif %}>{{ l }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
   </form>
+</div>
+
+<!-- ============ What this measures (and can't) ============ -->
+<div class="mb-6 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/5 p-4 flex gap-3">
+  <i class="ti ti-info-circle text-blue-500 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+  <div class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+    <strong class="text-gray-900 dark:text-white">These signals measure administrative and online activity — they cannot see coaching.</strong>
+    A coach who is excellent on match day and quiet online will read low here, and that is a limit of the data, not a verdict on them.
+    Chat counts only a coach's reachable channels (their team channel plus their division and all-coaches channels); general and announcement channels are ignored.
+    Logins and app opens are shown as context but never scored. Use this to find who to support — and pair it with what you know before any decision to invite a coach back.
+  </div>
 </div>
 
 {% if not season or not engagement.teams %}
@@ -49,6 +71,118 @@
   <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">No coaching data for this season yet.</p>
 </div>
 {% else %}
+
+{% if summary.coaches == 0 and not (season and season.is_current) %}
+<!-- Past season with teams but no coach snapshot: honest, not "ghost teams". -->
+<div class="mb-6 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 p-4 flex gap-3">
+  <i class="ti ti-history text-amber-500 text-lg shrink-0 mt-0.5"></i>
+  <div class="text-sm text-gray-700 dark:text-gray-300">
+    <strong class="text-gray-900 dark:text-white">No coach record for this season.</strong>
+    Per-season coach tracking began recently, so seasons before it have no snapshot of who coached which team.
+    Coach history accrues from the current season forward.
+  </div>
+</div>
+{% endif %}
+
+{# ============ View tabs: support queue (default) + the full record ============ #}
+{% set queue = engagement.attention_queue or [] %}
+<div class="flex items-center gap-1 mb-5 border-b border-gray-200 dark:border-gray-700">
+  <button type="button" data-coach-tab="queue" class="coach-tab -mb-px px-4 py-2.5 text-sm font-semibold border-b-2 border-ecs-green text-ecs-green">
+    <i class="ti ti-user-search"></i> Needs attention
+    {% if engagement.attention_open %}<span class="ml-1.5 text-xs font-mono px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500">{{ engagement.attention_open }}</span>{% endif %}
+  </button>
+  <button type="button" data-coach-tab="all" class="coach-tab -mb-px px-4 py-2.5 text-sm font-semibold border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+    <i class="ti ti-list-details"></i> All coaches <span class="ml-1 text-xs text-gray-400">{{ summary.coaches }}</span>
+  </button>
+</div>
+
+{# ---------- Support queue (default view) ---------- #}
+<div data-coach-panel="queue">
+  {% set open_q = queue | rejectattr('reviewed') | list %}
+  {% set done_q = queue | selectattr('reviewed') | list %}
+  <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+    Coaches worth a check-in this season — surfaced by disengagement signals, not ranked. Being absent from this list is the normal state.
+    These are prompts to reach out and support, not verdicts.
+  </p>
+
+  {% if open_q %}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    {% for q in open_q %}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 {% if q.hard_count %}border-l-4 border-l-red-500{% else %}border-l-4 border-l-amber-500{% endif %}">
+      <div class="flex items-start gap-3">
+        {% if q.avatar_url %}
+        <img src="{{ q.avatar_url }}" alt="" class="w-11 h-11 rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0" loading="lazy">
+        {% else %}
+        <span class="w-11 h-11 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-bold shrink-0">{{ (q.name or '?')[0]|upper }}</span>
+        {% endif %}
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ q.name }}</span>
+            <span class="text-xs text-gray-400">{{ q.team_name }}{% if q.teams and q.teams|length > 1 %} +{{ q.teams|length - 1 }}{% endif %}
+              {%- set l = (q.league_name or '')|lower -%}
+              {% if 'premier' in l %}<span class="text-[10px] font-bold px-1 py-0.5 rounded bg-ecs-green/10 text-ecs-green">Premier</span>
+              {% elif 'classic' in l %}<span class="text-[10px] font-bold px-1 py-0.5 rounded bg-blue-500/10 text-blue-500">Classic</span>
+              {% elif 'ecs' in l %}<span class="text-[10px] font-bold px-1 py-0.5 rounded bg-purple-500/10 text-purple-500">ECS FC</span>{% endif %}
+            </span>
+          </div>
+          <ul class="mt-2 space-y-1">
+            {% for r in q.reasons %}
+            <li class="flex items-start gap-1.5 text-xs {% if r.severity == 'hard' %}text-red-600 dark:text-red-400{% else %}text-amber-600 dark:text-amber-400{% endif %}">
+              <i class="ti ti-point-filled text-[10px] mt-0.5 shrink-0"></i><span>{{ r.text }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2 flex-wrap">
+        <a href="{{ url_for('admin_panel.coach_history', player_id=q.player_id) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-history"></i> History</a>
+        <a href="{{ url_for('players.player_profile', player_id=q.player_id) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-user"></i> Profile</a>
+        <form method="post" action="{{ url_for('admin_panel.coach_attention_review') }}" class="ml-auto">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="season_id" value="{{ season.id }}">
+          <input type="hidden" name="player_id" value="{{ q.player_id }}">
+          <input type="hidden" name="league" value="{{ engagement.league_filter or '' }}">
+          <input type="hidden" name="action" value="review">
+          <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-check"></i> Mark reviewed</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
+    <i class="ti ti-circle-check text-4xl text-ecs-green"></i>
+    <p class="mt-3 text-sm text-gray-600 dark:text-gray-300 font-medium">Nobody needs a check-in right now.</p>
+    <p class="text-xs text-gray-400">No coach is showing disengagement signals this season.</p>
+  </div>
+  {% endif %}
+
+  {% if done_q %}
+  <details class="mt-5">
+    <summary class="cursor-pointer text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700">Reviewed this season ({{ done_q|length }})</summary>
+    <ul class="mt-2 divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+      {% for q in done_q %}
+      <li class="flex items-center gap-2 px-3 py-2 text-sm">
+        <i class="ti ti-check text-ecs-green"></i>
+        <span class="text-gray-600 dark:text-gray-300">{{ q.name }}</span>
+        <span class="text-xs text-gray-400">{{ q.team_name }}</span>
+        <form method="post" action="{{ url_for('admin_panel.coach_attention_review') }}" class="ml-auto">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="season_id" value="{{ season.id }}">
+          <input type="hidden" name="player_id" value="{{ q.player_id }}">
+          <input type="hidden" name="league" value="{{ engagement.league_filter or '' }}">
+          <input type="hidden" name="action" value="unreview">
+          <button type="submit" class="text-xs text-gray-400 hover:text-ecs-green underline">Move back</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</div>
+
+{# ---------- The full record (second tab) ---------- #}
+<div data-coach-panel="all" class="hidden">
 
 <!-- ============ KPI band ============ -->
 <section class="mb-6">
@@ -154,6 +288,8 @@
             <th class="px-3 py-2 font-medium text-center">Reports</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Verified</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups</th>
+            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell" title="Matches where the coach checked players in at the pitch — physical presence">Check-ins</th>
+            <th class="px-3 py-2 font-medium text-center hidden xl:table-cell" title="Substitute requests the coach raised">Subs</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">RSVP checks</th>
             <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Reminders</th>
             <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Own RSVP</th>
@@ -182,7 +318,7 @@
                 {% if c.coach_score >= 70 %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300
                 {% elif c.coach_score >= 40 %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300
                 {% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300{% endif %}"
-                title="Duties {{ c.score_duties }} · Availability {{ c.score_availability }} · Chat {{ c.score_chat }}">{{ c.coach_score }}</span>
+                title="Duties {{ c.score_duties }} · Availability {% if c.score_availability is none %}n/a (no matches played yet){% else %}{{ c.score_availability }}{% endif %} · Chat {{ c.score_chat }}">{{ c.coach_score }}</span>
             </td>
             <td class="px-3 py-3">
               <div class="flex items-center gap-2">
@@ -196,6 +332,8 @@
             <td class="px-3 py-3 text-center font-mono {% if c.matches_reported == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.matches_reported }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.matches_verified == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.matches_verified }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.lineups_set == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.lineups_set }}</td>
+            <td class="px-3 py-3 text-center font-mono hidden lg:table-cell {% if c.venue_checkin_matches == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}" title="Matches the coach ran check-in for (context, not scored)">{{ c.venue_checkin_matches }}</td>
+            <td class="px-3 py-3 text-center font-mono hidden xl:table-cell {% if c.sub_requests == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.sub_requests }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell {% if c.rsvp_views == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.rsvp_views }}</td>
             <td class="px-3 py-3 text-center font-mono hidden lg:table-cell {% if c.rsvp_reminders == 0 %}text-gray-300 dark:text-gray-600{% else %}text-gray-900 dark:text-white{% endif %}">{{ c.rsvp_reminders }}</td>
             <td class="px-3 py-3 text-center font-mono hidden md:table-cell" title="Coach's own availability for their team's matches">
@@ -226,7 +364,7 @@
           </tr>
           {% endfor %}
           {% if not team.coaches %}
-          <tr><td colspan="12" class="px-5 py-4 text-center text-xs text-gray-400 dark:text-gray-500">No coaches assigned to this team.</td></tr>
+          <tr><td colspan="14" class="px-5 py-4 text-center text-xs text-gray-400 dark:text-gray-500">No coaches assigned to this team.</td></tr>
           {% endif %}
         </tbody>
       </table>
@@ -302,18 +440,46 @@
   </div>
 </section>
 
+</div>{# end data-coach-panel="all" #}
+
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
-  // Season selector: plain navigation, no EventDelegation dependency.
+  // Season + league selectors: plain navigation, no EventDelegation dependency.
   document.addEventListener('DOMContentLoaded', function () {
-    var sel = document.getElementById('season_id');
-    if (sel) {
-      sel.addEventListener('change', function () {
-        document.getElementById('seasonForm').submit();
+    ['season_id', 'league'].forEach(function (id) {
+      var sel = document.getElementById(id);
+      if (sel) {
+        sel.addEventListener('change', function () {
+          document.getElementById('seasonForm').submit();
+        });
+      }
+    });
+
+    // Coach view tabs: support queue (default) vs the full record. Remembers the
+    // last choice so a page refresh keeps you where you were.
+    var tabs = document.querySelectorAll('[data-coach-tab]');
+    var panels = document.querySelectorAll('[data-coach-panel]');
+    if (tabs.length) {
+      var onClass = ['border-ecs-green', 'text-ecs-green'];
+      var offClass = ['border-transparent', 'text-gray-500', 'dark:text-gray-400'];
+      var show = function (which) {
+        panels.forEach(function (p) { p.classList.toggle('hidden', p.getAttribute('data-coach-panel') !== which); });
+        tabs.forEach(function (t) {
+          var active = t.getAttribute('data-coach-tab') === which;
+          onClass.forEach(function (c) { t.classList.toggle(c, active); });
+          offClass.forEach(function (c) { t.classList.toggle(c, !active); });
+        });
+        try { window.localStorage.setItem('coachView', which); } catch (e) {}
+      };
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () { show(t.getAttribute('data-coach-tab')); });
       });
+      var saved = null;
+      try { saved = window.localStorage.getItem('coachView'); } catch (e) {}
+      show(saved === 'all' ? 'all' : 'queue');
     }
   });
 </script>

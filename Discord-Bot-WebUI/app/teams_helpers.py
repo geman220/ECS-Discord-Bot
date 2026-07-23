@@ -140,10 +140,11 @@ def recompute_team_standings(session, team, season):
 
 
 
-def process_own_goals(session, match, data, add_key, remove_key):
+def process_own_goals(session, match, data, add_key, remove_key, reported_by=None):
     """
     Process own goal events for a match: remove and add/update events.
-    Own goals are team events, not player events.
+    Own goals are team events, not player events. ``reported_by`` stamps the
+    filing user for coach-engagement attribution (see process_events).
     """
     logger.info(f"Processing OWN_GOAL events for Match ID {match.id}")
     events_to_add = data.get(add_key, [])
@@ -189,7 +190,8 @@ def process_own_goals(session, match, data, add_key, remove_key):
                 team_id=team_id,
                 match_id=match.id,
                 minute=minute,
-                event_type=PlayerEventType.OWN_GOAL
+                event_type=PlayerEventType.OWN_GOAL,
+                reported_by=reported_by,
             )
             session.add(event)
             logger.info(f"Added new OWN_GOAL for team_id={team_id} at minute {minute}")
@@ -234,9 +236,14 @@ def _resolve_player_team_for_match(session, player, match, is_sub: bool):
     return None
 
 
-def process_events(session, match, data, event_type, add_key, remove_key):
+def process_events(session, match, data, event_type, add_key, remove_key, reported_by=None):
     """
     Process player events for a match: remove and add/update events.
+
+    ``reported_by`` is the id of the user filing the report. It is stamped on every
+    newly-created PlayerEvent so the coach-engagement metric can attribute match
+    reporting to the coach — the web path used to leave it NULL, which made ~95% of
+    events (everything not reported from mobile/live) invisible to that score.
     """
     logger.info(f"Processing {event_type.name} events for Match ID {match.id}")
     events_to_add = data.get(add_key, [])
@@ -257,11 +264,22 @@ def process_events(session, match, data, event_type, add_key, remove_key):
             else:
                 logger.warning(f"Event with Stat ID {stat_id} not found.")
 
+    # Card reason is only meaningful on cards, and only from the fixed vocabulary the
+    # Discipline report buckets on. Anything else is stored as NULL (Unspecified).
+    _VALID_CARD_REASONS = {'FOUL', 'DISSENT', 'PERSISTENT_INFRINGEMENT', 'SERIOUS_FOUL_PLAY'}
+    _is_card = event_type in (PlayerEventType.YELLOW_CARD, PlayerEventType.RED_CARD)
+
+    def _clean_reason(raw):
+        if not _is_card:
+            return None
+        return raw if raw in _VALID_CARD_REASONS else None
+
     # Process additions or updates
     for event_data in events_to_add:
         player_id = int(event_data.get('player_id'))
         minute = event_data.get('minute')
         stat_id = event_data.get('stat_id')
+        card_reason = _clean_reason(event_data.get('card_reason'))
 
         # Check if player is on one of the match teams (roster or temp sub)
         player = session.query(Player).filter(
@@ -306,6 +324,8 @@ def process_events(session, match, data, event_type, add_key, remove_key):
                 # Backfill team_id on existing rows that pre-date team-aware reporting.
                 if event_team_id is not None and event.team_id != event_team_id:
                     event.team_id = event_team_id
+                if _is_card:
+                    event.card_reason = card_reason
                 logger.info(f"Updated {event_type.name}: Stat ID {stat_id}")
             else:
                 logger.warning(f"Event with Stat ID {stat_id} not found.")
@@ -317,7 +337,9 @@ def process_events(session, match, data, event_type, add_key, remove_key):
                 team_id=event_team_id,
                 minute=minute,
                 event_type=event_type,
-                is_sub_event=is_sub
+                is_sub_event=is_sub,
+                reported_by=reported_by,
+                card_reason=card_reason,
             )
             session.add(new_event)
             logger.info(f"Calling update_player_stats for player_id={player_id}, event_type={event_type.value}, is_sub={is_sub}")

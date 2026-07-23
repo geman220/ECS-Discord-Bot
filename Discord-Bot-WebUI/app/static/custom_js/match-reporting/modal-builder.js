@@ -355,11 +355,11 @@ function populateEventContainers(matchId, data) {
     });
 
     yellow_cards.forEach(yellow => {
-        addEvent(matchId, 'yellowCardsContainer-' + matchId, yellow.id, yellow.player_id, yellow.minute);
+        addEvent(matchId, 'yellowCardsContainer-' + matchId, yellow.id, yellow.player_id, yellow.minute, yellow.card_reason);
     });
 
     red_cards.forEach(red => {
-        addEvent(matchId, 'redCardsContainer-' + matchId, red.id, red.player_id, red.minute);
+        addEvent(matchId, 'redCardsContainer-' + matchId, red.id, red.player_id, red.minute, red.card_reason);
     });
 
     own_goals.forEach(ownGoal => {

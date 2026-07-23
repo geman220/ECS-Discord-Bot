@@ -37,7 +37,26 @@ const TAILWIND_CLASSES = {
  * @param {string|null} playerId - Pre-selected player ID
  * @param {string|null} minute - Event minute
  */
-export function addEvent(matchId, containerId, statId = null, playerId = null, minute = null) {
+// Card-reason options (value must match the server's VALID_CARD_REASONS). Kept
+// here so the report modal can capture a reason — previously only the live-
+// reporting client ever set one, so the Discipline report was all "Unspecified".
+const CARD_REASON_OPTIONS = [
+    ['', 'Reason…'],
+    ['FOUL', 'Foul'],
+    ['DISSENT', 'Dissent'],
+    ['PERSISTENT_INFRINGEMENT', 'Persistent infringement'],
+    ['SERIOUS_FOUL_PLAY', 'Serious foul play'],
+];
+
+function cardReasonSelect(formBaseName, selected) {
+    const opts = CARD_REASON_OPTIONS.map(function (o) {
+        const sel = (o[0] === (selected || '')) ? ' selected' : '';
+        return `<option value="${o[0]}"${sel}>${o[1]}</option>`;
+    }).join('');
+    return `<select class="${TAILWIND_CLASSES.select} select-card-reason" name="${formBaseName}-card_reason[]">${opts}</select>`;
+}
+
+export function addEvent(matchId, containerId, statId = null, playerId = null, minute = null, cardReason = null) {
     const containerSelector = '#' + containerId;
 
     // Generate a unique ID for the event if not provided
@@ -50,15 +69,18 @@ export function addEvent(matchId, containerId, statId = null, playerId = null, m
     let eventIndicator = '';
     let inputGroupClass = TAILWIND_CLASSES.inputGroup;
     let formBaseName = baseName;
+    let isCard = false;
 
     if (baseName === 'yellowCards') {
         eventIndicator = `<span class="${TAILWIND_CLASSES.cardIndicator}">🟨</span>`;
         inputGroupClass = TAILWIND_CLASSES.inputGroupCompact;
         formBaseName = 'yellow_cards';
+        isCard = true;
     } else if (baseName === 'redCards') {
         eventIndicator = `<span class="${TAILWIND_CLASSES.cardIndicator}">🟥</span>`;
         inputGroupClass = TAILWIND_CLASSES.inputGroupCompact;
         formBaseName = 'red_cards';
+        isCard = true;
     } else if (baseName === 'ownGoals') {
         formBaseName = 'own_goals';
     }
@@ -84,7 +106,7 @@ export function addEvent(matchId, containerId, statId = null, playerId = null, m
             </div>
         `;
     } else {
-        // Standard event (goals, assists, cards)
+        // Standard event (goals, assists, cards). Cards get a reason selector.
         newInputGroup = `
             <div class="${inputGroupClass}" data-unique-id="${uniqueId}">
                 ${eventIndicator}
@@ -97,6 +119,7 @@ export function addEvent(matchId, containerId, statId = null, playerId = null, m
                        value="${minute ? minute : ''}"
                        pattern="^\\d{1,3}(\\+\\d{1,2})?$"
                        title="Enter a valid minute (e.g., '45' or '45+2')">
+                ${isCard ? cardReasonSelect(formBaseName, cardReason) : ''}
                 <button class="${TAILWIND_CLASSES.removeButton}" type="button" data-action="remove-event">×</button>
             </div>
         `;

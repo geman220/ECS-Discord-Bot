@@ -34,32 +34,10 @@ class APIRequestLog(db.Model):
     def __repr__(self):
         return f'<APIRequestLog {self.method} {self.endpoint_path} {self.status_code}>'
 
-    @classmethod
-    def log_request(cls, endpoint_path, method, status_code, response_time_ms,
-                   user_id=None, ip_address=None, user_agent=None):
-        """
-        Log an API request.
-
-        Args:
-            endpoint_path: The API endpoint path
-            method: HTTP method (GET, POST, etc.)
-            status_code: HTTP response status code
-            response_time_ms: Response time in milliseconds
-            user_id: Optional user ID if authenticated
-            ip_address: Client IP address
-            user_agent: Client user agent string
-        """
-        log_entry = cls(
-            endpoint_path=endpoint_path[:500],  # Truncate if too long
-            method=method,
-            status_code=status_code,
-            response_time_ms=response_time_ms,
-            user_id=user_id,
-            ip_address=ip_address,
-            user_agent=user_agent[:500] if user_agent else None
-        )
-        db.session.add(log_entry)
-        # Don't commit here - let the caller handle transaction
+    # NOTE: rows are written by the async middleware writer
+    # (app/tasks/tasks_api_logging.py via the raw APIRequestLog(...) constructor),
+    # not through a classmethod. A former `log_request()` helper here had zero
+    # callers and was removed; use the constructor + the writer task instead.
 
     @classmethod
     def get_stats(cls, hours=24):

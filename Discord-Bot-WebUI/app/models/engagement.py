@@ -107,3 +107,60 @@ class CoachEngagementEvent(db.Model):
     def __repr__(self):
         return (f"<CoachEngagementEvent user={self.user_id} team={self.team_id} "
                 f"{self.activity_type}/{self.source} {self.stat_date} x{self.count}>")
+
+class DiscordChannelRole(db.Model):
+    """Classifies the COACH Discord channels for the involvement metric.
+
+    Team channels are derived from ``team.discord_channel_id`` and are NOT stored
+    here. This table only records the coaches channels and which cohort each one
+    belongs to, so a coach is measured against the channels they can actually
+    reach:
+
+        coach_global  -> the all-coaches channel (both divisions can post)
+        coach_premier -> Premier coaches channel
+        coach_classic -> Classic coaches channel
+
+    Matched by ``channel_id`` (stable) rather than name, so a Discord rename does
+    not silently drop the channel from tracking.
+    """
+    __tablename__ = 'discord_channel_role'
+
+    ROLE_GLOBAL = 'coach_global'
+    ROLE_PREMIER = 'coach_premier'
+    ROLE_CLASSIC = 'coach_classic'
+    ROLES = (ROLE_GLOBAL, ROLE_PREMIER, ROLE_CLASSIC)
+
+    id = db.Column(db.Integer, primary_key=True)
+    channel_id = db.Column(db.String(30), nullable=False, unique=True)
+    channel_name = db.Column(db.String(120), nullable=True)
+    role = db.Column(db.String(20), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
+                           onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<DiscordChannelRole {self.role} {self.channel_name} ({self.channel_id})>"
+
+class CoachAttentionReview(db.Model):
+    """Marks a coach as 'reviewed' in the support queue for a season.
+
+    Set when an admin has acted on a coach the Needs-attention queue surfaced, so
+    they drop off the list. Per-season (unique on season_id + player_id), so a new
+    season starts the queue clean.
+    """
+    __tablename__ = 'coach_attention_review'
+
+    id = db.Column(db.Integer, primary_key=True)
+    season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    note = db.Column(db.Text, nullable=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('season_id', 'player_id', name='uq_coach_attention_review'),
+        db.Index('ix_coach_attention_review_season', 'season_id'),
+    )
+
+    def __repr__(self):
+        return f"<CoachAttentionReview season={self.season_id} player={self.player_id}>"

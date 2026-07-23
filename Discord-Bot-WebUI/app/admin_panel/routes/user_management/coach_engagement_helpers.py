@@ -66,31 +66,137 @@ CARRY_THRESHOLD_PCT = 60
 # Targets are "full-credit" thresholds, weights sum to 1.0 — all tunable here.
 SCORE_WEIGHTS = {'duties': 0.40, 'availability': 0.35, 'chat': 0.25}
 DUTIES_TARGET_UNITS = 10.0   # weighted report/lineup/reminder units = full duties credit
-CHAT_TARGET_DAYS = 8.0       # active days in the team channel = full chat credit
+CHAT_TARGET_DAYS = 8.0       # active days in reachable channels = full chat credit
+
+
+# --- Support queue: when is a coach worth a check-in? ------------------------
+# Deliberately conservative — the page's job is to SURFACE people to support, not
+# to rank everyone, and the disclaimer is explicit that these signals can't see
+# coaching. A coach appears in the queue on any ONE hard signal, or TWO soft ones.
+ATTN_LOW_RSVP_PCT = 40      # says yes to fewer than this % of their own matches...
+ATTN_LOW_RSVP_MIN = 3       # ...over at least this many played matches
+ATTN_UNSEEN_DAYS = 28       # not seen anywhere in this many days (soft)
+
+
+def _coach_attention(c, team_unreported, team_played):
+    """Reasons a coach is worth a check-in. Returns (reasons, needs_attention).
+
+    reasons: list of {kind, severity('hard'|'soft'), text}.
+    """
+    reasons = []
+    if c.get('is_inactive'):
+        reasons.append({'kind': 'inactive', 'severity': 'hard',
+                        'text': 'No tracked activity this season'})
+    if (team_played and team_unreported > 0 and c.get('matches_reported', 0) == 0):
+        reasons.append({'kind': 'unreported', 'severity': 'hard',
+                        'text': f"{team_unreported} played match{'es' if team_unreported != 1 else ''} unreported; this coach reported none"})
+    if (c.get('own_rsvp_total', 0) >= ATTN_LOW_RSVP_MIN
+            and c.get('own_rsvp_yes_pct', 0) < ATTN_LOW_RSVP_PCT):
+        reasons.append({'kind': 'own_rsvp', 'severity': 'hard',
+                        'text': f"Says yes to {c.get('own_rsvp_yes_pct', 0)}% of their own team's matches"})
+    reachable_chat = c.get('discord_active_days', 0) + c.get('coach_channel_active_days', 0)
+    if c.get('discord_linked') and reachable_chat == 0:
+        reasons.append({'kind': 'quiet', 'severity': 'soft',
+                        'text': 'No messages in their team or coaches channels'})
+    dss = c.get('days_since_seen')
+    if dss is not None and dss > ATTN_UNSEEN_DAYS:
+        reasons.append({'kind': 'unseen', 'severity': 'soft',
+                        'text': f"Not seen anywhere in {dss} days"})
+
+    hard = sum(1 for r in reasons if r['severity'] == 'hard')
+    soft = len(reasons) - hard
+    needs = hard >= 1 or soft >= 2
+    return reasons, needs
+
+
+def _division_of(league_name):
+    """Coarse division from a league name: 'Premier' | 'Classic' | None."""
+    n = (league_name or '').lower()
+    if 'premier' in n:
+        return 'Premier'
+    if 'classic' in n:
+        return 'Classic'
+    return None
+
+
+def _coach_channel_ids(session):
+    """{role: set(channel_id)} for the classified coach channels.
+
+    Empty roles are fine — nothing is measured against a channel that hasn't been
+    classified yet, rather than mis-measuring against every channel.
+    """
+    from app.models import DiscordChannelRole
+    out = {DiscordChannelRole.ROLE_GLOBAL: set(),
+           DiscordChannelRole.ROLE_PREMIER: set(),
+           DiscordChannelRole.ROLE_CLASSIC: set()}
+    try:
+        for cid, role in session.query(DiscordChannelRole.channel_id, DiscordChannelRole.role).all():
+            if role in out:
+                out[role].add(str(cid))
+    except Exception as e:
+        # Table not migrated yet — degrade to "no coach channels classified" rather
+        # than taking the whole page down. Roll the aborted txn back so the request's
+        # session stays usable.
+        logger.warning(f"discord_channel_role unavailable, coach-channel chat skipped: {e}")
+        session.rollback()
+    return out
+
+
+def _reachable_coach_channels(coach_channels, division):
+    """Channel ids a coach in `division` can post in: global + their division."""
+    from app.models import DiscordChannelRole
+    reachable = set(coach_channels.get(DiscordChannelRole.ROLE_GLOBAL, set()))
+    if division == 'Premier':
+        reachable |= coach_channels.get(DiscordChannelRole.ROLE_PREMIER, set())
+    elif division == 'Classic':
+        reachable |= coach_channels.get(DiscordChannelRole.ROLE_CLASSIC, set())
+    return reachable
 
 
 def _coach_score(m, total_matches, own_responded, own_yes):
     """Return the 0-100 coach score + its component sub-scores and own-RSVP stats."""
+    # rsvp_views is deliberately NOT scored. It counts screen loads, so it was a pure
+    # gaming vector: ~50 refreshes of the mobile RSVP screen maxed out this pillar for a
+    # coach who had reported nothing, set no lineups and sent no reminders. It is still
+    # collected and still displayed as context — it just cannot earn points.
     duties_units = (m.get('matches_reported', 0) * 3
                     + m.get('matches_verified', 0) * 1
                     + m.get('lineups_set', 0) * 3
-                    + m.get('rsvp_reminders', 0) * 2
-                    + m.get('rsvp_views', 0) * 0.2)
-    duties = min(1.0, duties_units / DUTIES_TARGET_UNITS)
+                    + m.get('rsvp_reminders', 0) * 2)
+    # Duties scale with how much season has actually been played. A fixed 10-unit target
+    # meant week-3 and week-12 scores were never comparable; now full credit means
+    # "kept up with the matches that have happened".
+    duties_target = max(2.0, min(DUTIES_TARGET_UNITS, total_matches * 1.4)) if total_matches else DUTIES_TARGET_UNITS
+    duties = min(1.0, duties_units / duties_target)
+
+    # No played matches yet (preseason) => availability is UNKNOWN, not zero. Scoring it as
+    # zero painted the entire league red before a ball was kicked. Drop the pillar and
+    # renormalise the remaining weights so the number stays on a 0-100 scale.
     if total_matches > 0:
         resp_rate = min(1.0, own_responded / total_matches)
         yes_rate = min(1.0, own_yes / total_matches)
         availability = 0.5 * resp_rate + 0.5 * yes_rate
     else:
-        availability = 0.0
-    chat = min(1.0, m.get('discord_active_days', 0) / CHAT_TARGET_DAYS)
-    score = 100 * (SCORE_WEIGHTS['duties'] * duties
-                   + SCORE_WEIGHTS['availability'] * availability
-                   + SCORE_WEIGHTS['chat'] * chat)
+        availability = None
+
+    # Chat = active days across the channels this coach can actually reach: their
+    # own team channel plus their division + global coaches channels. General and
+    # announcement channels are deliberately excluded — posting there says nothing
+    # about coaching. (A day active in both a team and a coaches channel can count
+    # twice; harmless against a soft, capped target.)
+    reachable_days = m.get('discord_active_days', 0) + m.get('coach_channel_active_days', 0)
+    chat = min(1.0, reachable_days / CHAT_TARGET_DAYS)
+
+    parts = [(SCORE_WEIGHTS['duties'], duties), (SCORE_WEIGHTS['chat'], chat)]
+    if availability is not None:
+        parts.append((SCORE_WEIGHTS['availability'], availability))
+    weight_sum = sum(w for w, _v in parts)
+    score = 100 * sum(w * v for w, v in parts) / weight_sum if weight_sum else 0
+
     return {
         'coach_score': round(score),
         'score_duties': round(duties * 100),
-        'score_availability': round(availability * 100),
+        'score_availability': round(availability * 100) if availability is not None else None,
         'score_chat': round(chat * 100),
         'own_rsvp_responded': own_responded,
         'own_rsvp_yes': own_yes,
@@ -135,8 +241,12 @@ def _activity_score(metrics):
     return sum(metrics.get(k, 0) * w for k, w in WEIGHTS.items())
 
 
-def get_coach_engagement(session, season_id=None):
-    """Build the per-team, per-coach engagement breakdown for one season."""
+def get_coach_engagement(session, season_id=None, league_name=None):
+    """Build the per-team, per-coach engagement breakdown for one season.
+
+    ``league_name`` optionally narrows to one division (e.g. 'Premier' / 'Classic')
+    so a Premier admin isn't scrolling past every Classic team.
+    """
     season = _resolve_season(session, season_id)
     if not season:
         return {
@@ -144,41 +254,81 @@ def get_coach_engagement(session, season_id=None):
             'available_seasons': list_engagement_seasons(session),
             'teams': [],
             'summary': {},
+            'league_filter': league_name,
             'generated_at': datetime.utcnow().isoformat(),
         }
 
     # --- teams in this season -------------------------------------------------
-    team_rows = (
+    team_q = (
         session.query(Team.id, Team.name, League.name.label('league_name'))
         .join(League, Team.league_id == League.id)
         .filter(League.season_id == season.id, Team.is_active == True)  # noqa: E712
-        .order_by(League.name, Team.name)
-        .all()
     )
+    if league_name:
+        team_q = team_q.filter(League.name == league_name)
+    team_rows = team_q.order_by(League.name, Team.name).all()
     team_ids = [t.id for t in team_rows]
+
+    # Division options — always the FULL (league-unfiltered) set for this season, so
+    # the filter dropdown stays usable even when the current filter matches no teams.
+    available_leagues = [
+        name for (name,) in session.query(League.name)
+        .join(Team, Team.league_id == League.id)
+        .filter(League.season_id == season.id, Team.is_active == True)  # noqa: E712
+        .distinct().order_by(League.name).all()
+    ]
+
     if not team_ids:
         return {
             'season': season.to_dict(),
             'available_seasons': list_engagement_seasons(session),
+            'available_leagues': available_leagues,
+            'league_filter': league_name,
             'teams': [],
             'summary': {'teams': 0, 'coaches': 0, 'inactive_coaches': 0,
-                        'teams_with_carrier': 0, 'teams_fully_active': 0},
+                        'teams_with_carrier': 0, 'teams_fully_active': 0,
+                        'avg_coach_score': 0, 'game_day_only_coaches': 0,
+                        'teams_with_goal_gap': 0},
             'generated_at': datetime.utcnow().isoformat(),
         }
 
     # --- coaches per team -----------------------------------------------------
-    coach_rows = (
-        session.query(
-            player_teams.c.team_id,
-            Player.id.label('player_id'),
-            Player.name,
-            Player.user_id,
-            Player.discord_id,
-        )
-        .join(Player, Player.id == player_teams.c.player_id)
-        .filter(player_teams.c.team_id.in_(team_ids), player_teams.c.is_coach == True)  # noqa: E712
-        .all()
+    # Coaches come from PlayerTeamSeason.is_coach — the DURABLE per-season snapshot.
+    # player_teams.is_coach is wiped at rollover, so reading it made every PAST
+    # season show "0 coaches / all teams ghost". For the current season we also
+    # union the live player_teams flag, so a coach whose snapshot wasn't stamped
+    # (assigned outside the draft path) still appears.
+    from collections import namedtuple
+    _CoachRow = namedtuple('_CoachRow', 'team_id player_id name user_id discord_id')
+
+    coach_pairs = set(
+        (tid, pid) for tid, pid in session.query(
+            PlayerTeamSeason.team_id, PlayerTeamSeason.player_id
+        ).filter(
+            PlayerTeamSeason.season_id == season.id,
+            PlayerTeamSeason.team_id.in_(team_ids),
+            PlayerTeamSeason.is_coach == True,  # noqa: E712
+        ).all()
     )
+    if season.is_current:
+        coach_pairs |= set(
+            (tid, pid) for tid, pid in session.query(
+                player_teams.c.team_id, player_teams.c.player_id
+            ).filter(
+                player_teams.c.team_id.in_(team_ids),
+                player_teams.c.is_coach == True,  # noqa: E712
+            ).all()
+        )
+    _pids = {pid for _, pid in coach_pairs}
+    _pinfo = {
+        p.id: p for p in session.query(
+            Player.id, Player.name, Player.user_id, Player.discord_id
+        ).filter(Player.id.in_(_pids)).all()
+    } if _pids else {}
+    coach_rows = [
+        _CoachRow(tid, pid, _pinfo[pid].name, _pinfo[pid].user_id, _pinfo[pid].discord_id)
+        for (tid, pid) in coach_pairs if pid in _pinfo
+    ]
     # team_id -> [coach dict]; (team_id, user_id) -> coach dict
     coaches_by_team = {tid: [] for tid in team_ids}
     coach_index = {}
@@ -202,10 +352,14 @@ def get_coach_engagement(session, season_id=None):
             'rsvp_reminders': 0,
             'rsvp_active_days': 0,
             'discord_messages': 0,
-            'discord_active_days': 0,
+            'discord_active_days': 0,           # active days in their TEAM channel
+            'coach_channel_active_days': 0,     # active days in reachable coaches channels
+            'coach_channel_messages': 0,
             'discord_messages_all': 0,  # across ALL pub-league channels (not just team)
             'own_rsvp_responded': 0,    # coach's OWN availability for their team's matches
             'own_rsvp_yes': 0,
+            'venue_checkin_matches': 0,  # matches where the coach checked players in at the pitch
+            'sub_requests': 0,           # substitute requests the coach raised for this team
             'last_web_login': None,     # User.last_login (webui)
             'last_mobile_at': None,     # last Flutter app session
             'last_discord_any_at': None,  # last message in ANY pub-league channel
@@ -237,6 +391,11 @@ def get_coach_engagement(session, season_id=None):
             or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
             Match.home_team_id != Match.away_team_id,  # drop BYE/special self-matches
             Match.week_type.notin_(NON_REPORTABLE_WEEK_TYPES),  # exclude FUN/TST/BYE/etc.
+            # PLAYED matches only. Schedules are generated for the whole season up front,
+            # so counting every fixture made "X/Y reported" and the RSVP pillar divide by
+            # games that haven't happened — every coach in the league read red until roughly
+            # week 10, and read 0 during preseason.
+            Match.date <= datetime.utcnow().date(),
         )
         .all()
     )
@@ -467,6 +626,113 @@ def get_coach_engagement(session, season_id=None):
             if c['discord_id']:
                 c['discord_messages_all'] = all_by_did.get(str(c['discord_id']), 0)
 
+        # --- reachable coaches-channel chat -----------------------------------
+        # Activity in the coach's DIVISION + GLOBAL coaches channels. A Premier
+        # coach cannot see the Classic coaches channel, so each coach is measured
+        # only against the channels they can actually post in. Nothing is measured
+        # against a channel that hasn't been classified.
+        team_league = {t.id: t.league_name for t in team_rows}
+        coach_channels = _coach_channel_ids(session)
+        # A team channel must never also count as a coaches channel, or its days
+        # would be added twice (team pillar + coach pillar). The picker forbids it,
+        # but strip any team channel_id from the coach sets defensively so stale or
+        # hand-inserted rows can't inflate the score.
+        team_chan_ids = {
+            str(c) for (c,) in session.query(Team.discord_channel_id)
+            .filter(Team.discord_channel_id.isnot(None)).distinct().all()
+        }
+        for _role in coach_channels:
+            coach_channels[_role] -= team_chan_ids
+        all_coach_chan_ids = (coach_channels['coach_global']
+                              | coach_channels['coach_premier']
+                              | coach_channels['coach_classic'])
+        if all_coach_chan_ids:
+            cc_rows = (
+                session.query(
+                    DiscordMessageStat.discord_user_id,
+                    DiscordMessageStat.channel_id,
+                    DiscordMessageStat.stat_date,
+                    DiscordMessageStat.message_count,
+                    DiscordMessageStat.last_message_at,
+                )
+                .filter(
+                    DiscordMessageStat.discord_user_id.in_(coach_discord_ids),
+                    DiscordMessageStat.channel_id.in_(all_coach_chan_ids),
+                )
+                .all()
+            )
+            by_did = {}
+            for r in cc_rows:
+                by_did.setdefault(str(r.discord_user_id), []).append(r)
+            for (tid, uid), c in coach_index.items():
+                did = str(c['discord_id']) if c['discord_id'] else None
+                if not did or did not in by_did:
+                    continue
+                reachable = _reachable_coach_channels(coach_channels, _division_of(team_league.get(tid)))
+                days, msgs, last = set(), 0, None
+                for r in by_did[did]:
+                    if str(r.channel_id) in reachable:
+                        days.add(r.stat_date)
+                        msgs += int(r.message_count or 0)
+                        last = _max_dt(last, r.last_message_at)
+                c['coach_channel_active_days'] = len(days)
+                c['coach_channel_messages'] = msgs
+                c['last_discord_at'] = _max_dt(c['last_discord_at'], last)
+
+    # --- venue check-ins the coach ran (DISPLAYED, not scored) ----------------
+    # match_attendance rows the coach recorded (checked_in_by='coach_manual'). It's
+    # real admin work, but MANUAL check-ins are enterable from anywhere, so it is
+    # shown as context — not scored — to avoid a "mark everyone present from home"
+    # gaming vector. (Token/QR self-check-ins are the ungameable kind, but those
+    # aren't coach-recorded.) Counted as DISTINCT matches (15 players in one match
+    # is one match), and only for matches the coach's own team played.
+    if match_ids and coach_user_ids:
+        from app.models import MatchAttendance
+        att_rows = (
+            session.query(MatchAttendance.recorded_by_user_id, MatchAttendance.match_id)
+            .filter(
+                MatchAttendance.league_type == 'pub_league',
+                MatchAttendance.match_id.in_(match_ids),
+                MatchAttendance.checked_in_by == 'coach_manual',
+                MatchAttendance.recorded_by_user_id.in_(coach_user_ids),
+            )
+            .distinct()
+            .all()
+        )
+        # (team_id, user_id) -> set(match_id), crediting only the coach's own team's match
+        checkin_matches = {}
+        for uid, mid in att_rows:
+            home_tid, away_tid = match_teams.get(mid, (None, None))
+            for tid in (home_tid, away_tid):
+                if (tid, uid) in coach_index:
+                    checkin_matches.setdefault((tid, uid), set()).add(mid)
+        for key, mids in checkin_matches.items():
+            coach_index[key]['venue_checkin_matches'] = len(mids)
+
+    # --- substitute requests the coach raised ---------------------------------
+    # Solving a short roster instead of forfeiting is coaching work. Shown as a
+    # fact rather than scored (there's a per-match dedup guard on open requests,
+    # but volume is still coach-controllable, so it informs rather than inflates).
+    if team_ids and coach_user_ids:
+        from app.models import SubstituteRequest
+        sub_rows = (
+            session.query(
+                SubstituteRequest.team_id,
+                SubstituteRequest.requested_by,
+                func.count(SubstituteRequest.id).label('n'),
+            )
+            .filter(
+                SubstituteRequest.team_id.in_(team_ids),
+                SubstituteRequest.requested_by.in_(coach_user_ids),
+            )
+            .group_by(SubstituteRequest.team_id, SubstituteRequest.requested_by)
+            .all()
+        )
+        for tid, uid, n in sub_rows:
+            c = coach_index.get((tid, uid))
+            if c:
+                c['sub_requests'] = int(n or 0)
+
     # --- platform recency: webui login, mobile app, Discord, midweek ----------
     user_to_entries = {}
     did_to_entries = {}
@@ -529,10 +795,14 @@ def get_coach_engagement(session, season_id=None):
     inactive_coaches = 0
     teams_with_carrier = 0
     teams_fully_active = 0
+    # Support queue keyed by PLAYER (a coach on two flagged teams is one person to
+    # check in on, not two cards / two badge counts). Reasons merge across teams.
+    attention_by_player = {}
 
     for t in team_rows:
         coaches = coaches_by_team.get(t.id, [])
         team_matches = team_match_count.get(t.id, 0)
+        team_unreported = team_match_count.get(t.id, 0) - team_reported_count.get(t.id, 0)
         for c in coaches:
             c['activity_score'] = _activity_score(c)
             c['last_active'] = _max_iso(
@@ -558,6 +828,37 @@ def get_coach_engagement(session, season_id=None):
                       'last_web_login', 'last_mobile_at', 'last_discord_any_at'):
                 c[k] = _to_iso(c[k])
             c.pop('discord_id', None)
+
+        # Support queue: flag coaches worth a check-in (see _coach_attention).
+        for c in coaches:
+            reasons, needs = _coach_attention(c, team_unreported, team_matches > 0)
+            c['attention'] = reasons
+            c['needs_attention'] = needs
+            if not needs:
+                continue
+            pid = c['player_id']
+            entry = attention_by_player.get(pid)
+            if entry is None:
+                attention_by_player[pid] = {
+                    'player_id': pid, 'user_id': c['user_id'], 'name': c['name'],
+                    'team_id': t.id, 'team_name': t.name, 'league_name': t.league_name,
+                    'teams': [t.name],
+                    'coach_score': c.get('coach_score'),
+                    'reasons': list(reasons),
+                    'days_since_seen': c.get('days_since_seen'),
+                    'last_seen': c.get('last_seen'),
+                }
+            else:
+                # Same person flagged on another team — merge, don't duplicate.
+                entry['teams'].append(t.name)
+                have = {r['kind'] for r in entry['reasons']}
+                for r in reasons:
+                    if r['kind'] not in have:
+                        entry['reasons'].append(r)
+                        have.add(r['kind'])
+                dss = c.get('days_since_seen')
+                if dss is not None and (entry['days_since_seen'] is None or dss > entry['days_since_seen']):
+                    entry['days_since_seen'] = dss
 
         coaches.sort(key=lambda x: x['activity_score'], reverse=True)
 
@@ -591,7 +892,10 @@ def get_coach_engagement(session, season_id=None):
             'goal_expected': goal_exp,
             'goal_recorded': goal_rec,
             'goal_missing': goal_missing,
-            'goal_coverage_pct': round(goal_rec / goal_exp * 100) if goal_exp else 100,
+            # None when no goals were scored — "no goals to attribute" is not "100%
+            # coverage". Not rendered on the page (gated on goal_expected>0); this is
+            # the JSON value.
+            'goal_coverage_pct': round(goal_rec / goal_exp * 100) if goal_exp else None,
             'goal_detail_gap': goal_gap,
             'coaches': coaches,
             'coach_count': len(coaches),
@@ -614,10 +918,38 @@ def get_coach_engagement(session, season_id=None):
     game_day_only_coaches = sum(1 for c in all_coaches if c.get('game_day_only'))
     teams_with_goal_gap = sum(1 for tm in teams_out if tm.get('goal_detail_gap'))
 
+    # Support queue: worst-first (most hard signals, then longest unseen), with a
+    # photo for each. Reviewed coaches (see coach_attention_review) drop off until a
+    # new season, so a handled coach doesn't keep nagging. One entry per PERSON.
+    attention_queue = list(attention_by_player.values())
+    for q in attention_queue:
+        q['hard_count'] = sum(1 for r in q['reasons'] if r['severity'] == 'hard')
+
+    reviewed = _reviewed_player_ids(session, season.id)
+    for q in attention_queue:
+        q['reviewed'] = q['player_id'] in reviewed
+    if attention_queue:
+        avatars = {
+            p.id: p.avatar_image_url for p in
+            session.query(Player).filter(Player.id.in_([q['player_id'] for q in attention_queue])).all()
+        }
+        for q in attention_queue:
+            q['avatar_url'] = avatars.get(q['player_id'])
+    attention_queue.sort(key=lambda q: (
+        q['reviewed'],                       # unreviewed first
+        -q['hard_count'],                    # most hard signals first
+        -(q['days_since_seen'] or 0),        # longest unseen first
+        q['name'].lower(),
+    ))
+
     return {
         'season': season.to_dict(),
         'available_seasons': list_engagement_seasons(session),
+        'available_leagues': available_leagues,  # computed once, above
+        'league_filter': league_name,
         'teams': teams_out,
+        'attention_queue': attention_queue,
+        'attention_open': sum(1 for q in attention_queue if not q['reviewed']),
         'summary': {
             'teams': len(teams_out),
             'coaches': total_coaches,
@@ -630,6 +962,20 @@ def get_coach_engagement(session, season_id=None):
         },
         'generated_at': datetime.utcnow().isoformat(),
     }
+
+
+def _reviewed_player_ids(session, season_id):
+    """Set of player_ids an admin has marked 'reviewed' for this season."""
+    from app.models import CoachAttentionReview
+    try:
+        rows = session.query(CoachAttentionReview.player_id).filter(
+            CoachAttentionReview.season_id == season_id).all()
+        return {pid for (pid,) in rows}
+    except Exception as e:
+        # Table not migrated yet — degrade to "nothing reviewed" rather than 500.
+        logger.warning(f"coach_attention_review unavailable: {e}")
+        session.rollback()
+        return set()
 
 
 STALE_CHANNEL_DAYS = 14

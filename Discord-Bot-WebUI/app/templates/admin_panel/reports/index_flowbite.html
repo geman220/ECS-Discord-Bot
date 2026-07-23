@@ -12,6 +12,7 @@
 </li>
 {% endblock %}
 
+{% from 'admin_panel/reports/_preview.html' import scope_bar, report_avatar, league_chip %}
 {% block panel_content %}
 {# ---- tone -> color class maps (kept literal so Tailwind keeps the classes) ---- #}
 {% set tone_icon = {
@@ -53,91 +54,102 @@
     </div>
 </section>
 
-{# ================= ATTENDANCE ================= #}
-{# Drill-down links carry the section's active league slice so the detail report
-   opens already scoped. `att_league` is None / 'pub_league' / a League.name. #}
-{% set att_drill = {'league': att_league or None} %}
-<section class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+{# ================= ATTENDANCE (scoped, from the participation spine) ================= #}
+{% macro lane(title, icon, tone, rows, total, why) %}
+{% set tone_head = {'crit':'text-red-500','warn':'text-amber-500','info':'text-blue-500'} %}
+{% set tone_cnt  = {'crit':'bg-red-500/10 text-red-500','warn':'bg-amber-500/10 text-amber-500','info':'bg-blue-500/10 text-blue-500'} %}
+<div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-700/30 flex flex-col">
+    <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <i class="ti {{ icon }} {{ tone_head[tone] }}"></i>
+        <span class="text-sm font-semibold {{ tone_head[tone] }}">{{ title }}</span>
+        <span class="ml-auto text-xs font-mono px-2 py-0.5 rounded-full {{ tone_cnt[tone] }}">{{ total }}</span>
+    </div>
+    <p class="px-3 py-1.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">{{ why }}</p>
+    {% if rows %}
+    <ul class="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
+        {% for r in rows %}
+        <li class="flex items-center gap-2.5 px-3 py-2">
+            <a href="{{ url_for('players.player_profile', player_id=r.player_id) }}" class="flex items-center gap-2.5 min-w-0 flex-1 group">
+                {{ report_avatar(r.avatar_url, r.player, size='w-7 h-7') }}
+                <span class="min-w-0">
+                    <span class="block text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-ecs-green">{{ r.player }}</span>
+                    <span class="block text-[11px] text-gray-400 truncate">{{ r.team }} · {{ league_chip(r.league) }}</span>
+                </span>
+            </a>
+            <span class="text-right shrink-0 tabular-nums">
+                {% if tone == 'crit' %}
+                <span class="text-xs font-bold text-red-500">▼ {{ r.drop|round|int }}</span>
+                <span class="block text-[10px] text-gray-400">{{ r.turnout_pct }}% now</span>
+                {% elif tone == 'warn' %}
+                <span class="text-xs font-bold text-amber-500">{{ r.career_turnout|round|int }}%</span>
+                <span class="block text-[10px] text-gray-400">{{ r.career_played }} played</span>
+                {% else %}
+                <span class="text-xs font-bold text-blue-500">0 / {{ r.matches_played }}</span>
+                <span class="block text-[10px] text-gray-400">no reply</span>
+                {% endif %}
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+    {% if total > rows|length %}
+    <a href="{{ url_for('admin_panel.attendance_report', **scope.as_query_args(sort='low')) }}"
+       class="mt-auto px-3 py-2 text-xs font-medium text-ecs-green hover:underline bg-white dark:bg-gray-800">View all {{ total }} →</a>
+    {% endif %}
+    {% else %}
+    <div class="px-3 py-6 text-center text-xs text-gray-400 bg-white dark:bg-gray-800 flex-1">Nobody here — good.</div>
+    {% endif %}
+</div>
+{% endmacro %}
+
+<section id="attendance" class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
         <i class="ti ti-calendar-check text-ecs-green" aria-hidden="true"></i>
-        <a href="{{ url_for('admin_panel.attendance_report', segment='all', metric='season', league=att_drill.league) }}"
-           class="font-semibold text-gray-900 dark:text-white hover:text-ecs-green">Attendance &amp; Reliability</a>
-        {# Lightweight league slicer — re-links every card below via att_league. #}
-        <div class="inline-flex ml-2" role="group">
-            {% set lg_base = "px-2.5 py-1 text-xs font-medium border first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0" %}
-            {% set lg_on = "bg-ecs-green text-white border-ecs-green" %}
-            {% set lg_off = "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700" %}
-            {% for val, lbl in [('all','All'), ('pub_league','Pub League'), ('Premier','Premier'), ('Classic','Classic')] %}
-            {% set active = (att_league == val) or (val == 'all' and not att_league) %}
-            <a href="{{ url_for('admin_panel.reports_center', att_league=(val if val != 'all' else None)) }}#attendance"
-               class="{{ lg_base }} {{ lg_on if active else lg_off }}">{{ lbl }}</a>
-            {% endfor %}
-        </div>
-        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ attendance_total }} current players</span>
+        <a href="{{ url_for('admin_panel.attendance_report', **scope.as_query_args()) }}"
+           class="font-semibold text-gray-900 dark:text-white hover:text-ecs-green">Attendance &amp; Turnout</a>
+        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ attendance_total }} players · {{ scope.season_label }} · {{ scope.league_label }}</span>
     </div>
-    <div id="attendance" class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
-        <div>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <a href="{{ url_for('admin_panel.attendance_report', segment='all', metric='season', league=att_drill.league) }}"
-                   class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3 hover:border-ecs-green hover:shadow-sm transition cursor-pointer">
-                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">Avg season <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
-                    <div class="mt-1 text-2xl font-bold text-ecs-green tabular-nums">{{ avg_season_attendance }}%</div>
-                </a>
-                <a href="{{ url_for('admin_panel.attendance_report', segment='all', metric='career', league=att_drill.league) }}"
-                   class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3 hover:border-ecs-green hover:shadow-sm transition cursor-pointer">
-                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">Avg career <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
-                    <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ avg_career_attendance }}%</div>
-                </a>
-                <a href="{{ url_for('admin_panel.attendance_report', segment='high', metric='season', league=att_drill.league) }}"
-                   class="group rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 p-3 hover:border-emerald-500 hover:shadow-sm transition cursor-pointer">
-                    <div class="text-xs text-emerald-700 dark:text-emerald-400 uppercase tracking-wide flex items-center gap-1">High ≥ {{ high_threshold|int }}% <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
-                    <div class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{{ high_count }}</div>
-                </a>
-                <a href="{{ url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_drill.league) }}"
-                   class="group rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 p-3 hover:border-amber-500 hover:shadow-sm transition cursor-pointer">
-                    <div class="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">Low ≤ {{ low_threshold|int }}% <i class="ti ti-arrow-up-right opacity-0 group-hover:opacity-100 text-[10px]"></i></div>
-                    <div class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">{{ low_count }}</div>
-                </a>
-            </div>
-            {% if attendance_total %}
-            <div class="relative h-56"><canvas id="attendanceChart"></canvas></div>
-            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Distribution of players by season attendance %.</p>
-            {% else %}
-            <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                No attendance data recorded yet.
-            </div>
-            {% endif %}
-        </div>
-        <div>
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-                <i class="ti ti-alert-triangle text-amber-500"></i> Lowest attendance — needs follow-up
-                {% if low_count > low_attendance_players|length %}
-                <a href="{{ url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_drill.league) }}"
-                   class="ml-auto text-xs font-medium text-ecs-green hover:underline">View all {{ low_count }}</a>
-                {% elif low_count %}
-                <a href="{{ url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_drill.league) }}"
-                   class="ml-auto text-xs font-medium text-ecs-green hover:underline">View all</a>
-                {% endif %}
-            </h3>
-            {% if low_attendance_players %}
-            <ul class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
-                {% for p in low_attendance_players %}
-                <li class="flex items-center gap-3 px-3 py-2">
-                    <span class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-500 text-xs font-bold">{{ loop.index }}</span>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ p['Player'] }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ p['Current Team'] or p['Primary League'] or '—' }} · {{ p['Matches Invited'] }} invited</p>
+
+    <div class="p-4 space-y-4">
+        {{ scope_bar(scope, 'admin_panel.reports_center') }}
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {# left: pulse tiles + distribution #}
+            <div>
+                <div class="grid grid-cols-3 gap-3 mb-4">
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Turnout</div>
+                        <div class="mt-1 text-2xl font-bold text-ecs-green tabular-nums">{{ (pulse.turnout_pct ~ '%') if pulse.turnout_pct is not none else '—' }}</div>
                     </div>
-                    <span class="font-bold text-amber-600 dark:text-amber-400 tabular-nums shrink-0">{{ p['Season Attendance %'] }}%</span>
-                </li>
-                {% endfor %}
-            </ul>
-            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Showing up to top {{ top_n }} lowest. Full per-player detail in the Attendance report below.</p>
-            {% else %}
-            <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                No players below the low-attendance threshold.
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Response</div>
+                        <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ (pulse.response_pct ~ '%') if pulse.response_pct is not none else '—' }}</div>
+                    </div>
+                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Played</div>
+                        <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ pulse.total_played }}</div>
+                    </div>
+                </div>
+                {% if attendance_total %}
+                <div class="relative h-52"><canvas id="attendanceChart"></canvas></div>
+                <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Players by turnout % (played matches only). Preseason players with nothing played yet are omitted.</p>
+                {% else %}
+                <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No participation rows for this scope yet.
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
+
+            {# right: the three follow-up lanes #}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                    <i class="ti ti-user-search text-gray-400"></i> Needs follow-up
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {{ lane('Slipping', 'ti-trending-down-2', 'crit', slipping, slipping_total, 'Below their own baseline. Reach out this week.') }}
+                    {{ lane('Chronic', 'ti-alert-triangle', 'warn', chronic, chronic_total, 'Low across their whole career. A drafting signal.') }}
+                    {{ lane('Never replied', 'ti-message-off', 'info', never, never_total, 'No RSVP this season. A contactability problem.') }}
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -149,6 +161,7 @@
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <i class="ti ti-arrows-up-down text-blue-500" aria-hidden="true"></i>
             <h2 class="font-semibold text-gray-900 dark:text-white">Player Movement</h2>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_movers }} moved · {{ movement_total }} tracked</span>
         </div>
         <div class="p-4">
@@ -168,6 +181,7 @@
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <i class="ti ti-cards text-red-500" aria-hidden="true"></i>
             <h2 class="font-semibold text-gray-900 dark:text-white">Discipline</h2>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_cards }} cards · {{ players_booked }} players</span>
         </div>
         <div class="p-4">
@@ -204,6 +218,7 @@
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
         <i class="ti ti-users-group text-emerald-500" aria-hidden="true"></i>
         <h2 class="font-semibold text-gray-900 dark:text-white">Retention &amp; Churn</h2>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
         <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
             {{ seasons_tracked }} seasons · avg {{ avg_retention }}% retention
         </span>

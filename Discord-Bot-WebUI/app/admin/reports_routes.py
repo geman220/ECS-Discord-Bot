@@ -188,6 +188,23 @@ def update_rsvp():
             return jsonify({'success': False, 'message': 'Player not found'}), 404
         show_error('Player not found.')
         return redirect(url_for('admin.rsvp_status', match_id=match_id))
+
+    # Authority check — `role_required` proves the caller is *a* coach, not that
+    # they coach THIS team. Without it any Pub League Coach could rewrite any
+    # player's RSVP on any match. Admins unrestricted. This route duplicates
+    # admin_panel.update_rsvp; the guard is shared so retiring one can't reopen
+    # the hole in the other.
+    from app.admin_panel.routes.reports_feedback import _may_update_rsvp
+    if not _may_update_rsvp(session, safe_current_user, player, match_id, is_ecs_fc_match):
+        msg = 'You can only update RSVPs for players on a team you coach.'
+        logger.warning(
+            f"Blocked RSVP update: user {safe_current_user.id} attempted to set player "
+            f"{player_id} on match {match_id} without coaching that team."
+        )
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({'success': False, 'message': msg}), 403
+        show_error(msg)
+        return redirect(url_for('admin.rsvp_status', match_id=match_id))
     
     # If clearing the response
     if response == 'no_response':

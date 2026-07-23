@@ -42,9 +42,11 @@ from .match_lineup import (
 
 from .stats import (
     PlayerSeasonStats, PlayerCareerStats, Standings, StatChangeLog,
-    PlayerAttendanceStats, PlayerEventType, PlayerEvent, 
+    PlayerAttendanceStats, PlayerEventType, PlayerEvent,
     StatChangeType, PlayerStatAudit
 )
+
+from .participation import PlayerSeasonParticipation
 
 from .communication import (
     Notification, Announcement, ScheduledMessage, Feedback,
@@ -228,7 +230,7 @@ from .points_events import (
 )
 
 from .engagement import (
-    DiscordMessageStat, CoachEngagementEvent
+    DiscordMessageStat, CoachEngagementEvent, DiscordChannelRole, CoachAttentionReview
 )
 
 # Make all models available at package level for backward compatibility
@@ -255,8 +257,11 @@ __all__ = [
     
     # Statistics models
     'PlayerSeasonStats', 'PlayerCareerStats', 'Standings', 'StatChangeLog',
-    'PlayerAttendanceStats', 'PlayerEventType', 'PlayerEvent', 
+    'PlayerAttendanceStats', 'PlayerEventType', 'PlayerEvent',
     'StatChangeType', 'PlayerStatAudit',
+
+    # Analytics spine
+    'PlayerSeasonParticipation',
     
     # Communication models
     'Notification', 'Announcement', 'ScheduledMessage', 'Feedback',
@@ -389,5 +394,5 @@ __all__ = [
     'PointsEventType', 'PointsEventAward',
 
     # Engagement tracking models
-    'DiscordMessageStat', 'CoachEngagementEvent',
+    'DiscordMessageStat', 'CoachEngagementEvent', 'DiscordChannelRole', 'CoachAttentionReview',
 ]

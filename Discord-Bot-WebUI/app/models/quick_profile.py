@@ -288,11 +288,36 @@ class QuickProfile(db.Model):
             session = _sa_inspect(user).session
             if session is None:
                 return
+
+            # Waitlist pre-approval is PHASE-AWARE: honor it only if the waitlist is OPEN now
+            # (preseason/in_season + toggle). In break/offseason there is no waitlist, so we
+            # approve straight to the league instead (per admin intent).
+            WL_TO_LANE = {'waitlist-classic': 'classic', 'waitlist-premier': 'premier', 'waitlist-ecs-fc': 'ecs_fc'}
+            WL_TO_LEAGUE = {'waitlist-classic': 'classic', 'waitlist-premier': 'premier', 'waitlist-ecs-fc': 'ecs-fc'}
+            if league in WL_TO_LANE:
+                wl_open = False
+                try:
+                    from app.services.season_phase_service import is_waitlist_open
+                    wl_open = bool(is_waitlist_open(session))
+                except Exception:
+                    wl_open = False
+                if wl_open:
+                    wl_role = session.query(Role).filter_by(name='pl-waitlist').first()
+                    if wl_role and wl_role not in user.roles:
+                        user.roles.append(wl_role)
+                    user.waitlist_league = WL_TO_LANE[league]
+                    if hasattr(user, 'waitlist_joined_at') and not getattr(user, 'waitlist_joined_at', None):
+                        user.waitlist_joined_at = datetime.utcnow()
+                    logger.info(f"Quick profile {self.id}: pre-approved to WAITLIST "
+                                f"({WL_TO_LANE[league]}) for user {user.id} on claim")
+                    return
+                league = WL_TO_LEAGUE[league]  # waitlist closed -> approve to the plain league
+
             role_map = {'classic': 'pl-classic', 'premier': 'pl-premier', 'ecs-fc': 'pl-ecs-fc',
                         'sub-classic': 'Classic Sub', 'sub-premier': 'Premier Sub', 'sub-ecs-fc': 'ECS FC Sub'}
             rname = role_map.get(league)
             if not rname:
-                return  # waitlist-* / unknown: not auto-approved here
+                return  # unknown: not auto-approved here
             role = session.query(Role).filter_by(name=rname).first()
             if role and role not in user.roles:
                 user.roles.append(role)

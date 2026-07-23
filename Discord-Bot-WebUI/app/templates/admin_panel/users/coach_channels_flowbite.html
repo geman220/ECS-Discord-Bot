@@ -1,0 +1,97 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Coaches Channels{% endblock %}
+{% block panel_description %}Classify which Discord channels count as coaches channels for the engagement metric{% endblock %}
+
+{% block breadcrumb_items %}
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <a href="{{ url_for('admin_panel.coach_engagement') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400">Coach Engagement</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Channels</span></div></li>
+{% endblock %}
+
+{% block panel_content %}
+{% set roles = [('coach_global','All-coaches','bg-ecs-green/10 text-ecs-green'),
+                ('coach_premier','Premier coaches','bg-blue-500/10 text-blue-500'),
+                ('coach_classic','Classic coaches','bg-purple-500/10 text-purple-500')] %}
+{% set role_label = {'coach_global':'All-coaches','coach_premier':'Premier coaches','coach_classic':'Classic coaches'} %}
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+    <div>
+        <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-hash text-ecs-green shrink-0"></i>Coaches Channels</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Only these channels — plus each coach's own team channel — count toward the chat signal.</p>
+    </div>
+    <a href="{{ url_for('admin_panel.coach_engagement') }}" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <i class="ti ti-arrow-left"></i> Back to engagement
+    </a>
+</div>
+
+<div class="mb-5 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/5 p-4 flex gap-3">
+    <i class="ti ti-info-circle text-blue-500 text-lg shrink-0 mt-0.5"></i>
+    <div class="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+        A Premier coach is only measured against the <strong>all-coaches</strong> and <strong>Premier coaches</strong> channels (a Premier coach can't see the Classic one, and vice versa).
+        Team channels are tracked automatically and can't be set here. General and announcement channels are left unclassified and don't count. Matching is by channel id, so renaming a channel in Discord won't drop it.
+    </div>
+</div>
+
+{% if channels %}
+<div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+                <tr>
+                    <th class="px-4 py-2.5 font-medium">Channel</th>
+                    <th class="px-4 py-2.5 font-medium text-right hidden sm:table-cell">Messages</th>
+                    <th class="px-4 py-2.5 font-medium">Classification</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                {% for c in channels %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 {% if c.conflict %}bg-red-50 dark:bg-red-500/5{% endif %}">
+                    <td class="px-4 py-2.5">
+                        <div class="flex items-center gap-2">
+                            <i class="ti ti-hash text-gray-400 text-xs"></i>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ c.channel_name or c.channel_id }}</span>
+                            {% if c.is_team %}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="{{ c.team_name }}">team</span>{% endif %}
+                            {% if c.conflict %}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">conflict — clear this</span>{% endif %}
+                        </div>
+                        <div class="text-[11px] text-gray-400 font-mono">{{ c.channel_id }}</div>
+                    </td>
+                    <td class="px-4 py-2.5 text-right tabular-nums text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ "{:,}".format(c.messages) }}</td>
+                    <td class="px-4 py-2.5">
+                        {% if c.is_team and not c.conflict %}
+                        <span class="text-xs text-gray-400">Tracked automatically</span>
+                        {% else %}
+                        <form method="post" action="{{ url_for('admin_panel.coach_channels_set') }}" class="flex items-center gap-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="channel_id" value="{{ c.channel_id }}">
+                            <input type="hidden" name="channel_name" value="{{ c.channel_name or '' }}">
+                            <select name="role" onchange="this.form.submit()"
+                                    class="h-8 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                                <option value="" {% if not c.role %}selected{% endif %}>— Not tracked —</option>
+                                {% for val, lbl, _cls in roles %}
+                                <option value="{{ val }}" {% if c.role == val %}selected{% endif %}>{{ lbl }}</option>
+                                {% endfor %}
+                            </select>
+                            {% if c.role %}
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded {% if c.role == 'coach_global' %}bg-ecs-green/10 text-ecs-green{% elif c.role == 'coach_premier' %}bg-blue-500/10 text-blue-500{% else %}bg-purple-500/10 text-purple-500{% endif %}">
+                                {{ role_label[c.role] }}
+                            </span>
+                            {% endif %}
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<p class="mt-3 text-xs text-gray-400 dark:text-gray-500">Only channels the bot has recorded activity in appear here. If a coaches channel is missing, it has no tracked messages yet.</p>
+{% else %}
+<div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
+    <i class="ti ti-hash-off text-4xl text-gray-300 dark:text-gray-600"></i>
+    <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">No Discord channel activity has been recorded yet. Once the bot logs messages, channels will appear here to classify.</p>
+</div>
+{% endif %}
+{% endblock %}

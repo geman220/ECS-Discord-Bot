@@ -53,7 +53,7 @@
 {% endmacro %}
 
 {% macro hub_btn(uid) %}
-<a href="{{ url_for('admin_panel.member_hub', user_id=uid) }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-id-badge-2"></i>Hub</a>
+<a href="{{ url_for('admin_panel.member_hub', user_id=uid) }}" data-hub class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-id-badge-2"></i>Hub</a>
 {% endmacro %}
 
 {% macro qp_pill(status) %}
@@ -209,6 +209,23 @@
       <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}" class="h-10 inline-flex items-center gap-1 px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-medium"><i class="ti ti-x"></i>Clear</a>
       {% endif %}
     </form>
+  </div>
+
+  <!-- ===== result count + active-filter chips (what am I looking at?) ===== -->
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Showing <span class="font-semibold text-gray-700 dark:text-gray-300 font-mono">{{ result_shown }}</span>{% if result_total and result_total != result_shown %} of <span class="font-semibold text-gray-700 dark:text-gray-300 font-mono">{{ result_total }}</span>{% endif %}
+      {{ 'profile' if tab == 'quick' else 'member' }}{{ '' if result_total == 1 else 's' }}
+    </p>
+    {% if active_chips %}
+    <div class="flex items-center gap-1.5 flex-wrap">
+      <span class="text-xs text-gray-400">Filters:</span>
+      {% for c in active_chips %}
+      <a href="{{ c.remove_url }}" title="Remove this filter" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green hover:bg-ecs-green/20 transition">{{ c.label }} <i class="ti ti-x text-[11px]"></i></a>
+      {% endfor %}
+      <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10">Clear all</a>
+    </div>
+    {% endif %}
   </div>
 
   <!-- ===== list ===== -->
@@ -370,11 +387,20 @@
                         <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="classic" data-name="{{ u.username }}">Classic</a></li>
                         <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="premier" data-name="{{ u.username }}">Premier</a></li>
                         <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="ecs-fc" data-name="{{ u.username }}">ECS FC</a></li>
+                        {% if waitlist_open %}
+                        <li class="px-3 py-1 text-[10px] uppercase tracking-wide text-gray-400 border-t border-gray-200 dark:border-gray-600">Waitlist</li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="waitlist-classic" data-name="{{ u.username }}">Classic</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="waitlist-premier" data-name="{{ u.username }}">Premier</a></li>
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="waitlist-ecs-fc" data-name="{{ u.username }}">ECS FC</a></li>
+                        {% endif %}
                         <li class="border-t border-gray-200 dark:border-gray-600"><a href="{{ url_for('admin_panel.member_hub', user_id=u.id) }}#member-approval" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green">More options…</a></li>
                       </ul>
                     </div>
                   </div>
                   <button type="button" data-action="member-deny" data-url="{{ url_for('admin_panel.deny_user', user_id=u.id) }}" data-name="{{ u.username }}" class="inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x"></i></button>
+                  {% endif %}
+                  {% if tab == 'waitlist' %}
+                  <button type="button" data-action="member-waitlist-remove" data-url="{{ url_for('admin_panel.remove_from_waitlist', user_id=u.id) }}" data-name="{{ u.player.name if u.player else u.username }}" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-user-minus"></i>Remove</button>
                   {% endif %}
                   {{ hub_btn(u.id) }}
                 </div>
@@ -568,6 +594,19 @@
     window.addEventListener('resize', closeFixedMenu);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeFixedMenu(); });
 
+    // Clickable rows: click anywhere on a person's row to open their Hub — but not when the
+    // click is on a button/link/menu/input. Rows with no Hub button (quick profiles) stay inert.
+    document.querySelectorAll('tr').forEach(function (row) {
+      if (row.querySelector('a[data-hub]')) row.style.cursor = 'pointer';
+    });
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('a, button, select, input, textarea, label, [data-action], [data-fixedmenu-target], [id^="apprMenu"], [id^="qpMenu"]')) return;
+      var row = e.target.closest('tr');
+      if (!row) return;
+      var hub = row.querySelector('a[data-hub]');
+      if (hub) window.location.href = hub.getAttribute('href');
+    });
+
     document.addEventListener('click', function (e) {
       var t = e.target.closest('[data-action]'); if (!t) return;
       if (t.closest('[id^="qpMenu"], [id^="apprMenu"]')) closeFixedMenu();
@@ -584,6 +623,11 @@
           window.Swal.fire(swalBase({ icon: 'warning', title: 'Deny ' + (t.dataset.name || 'this applicant') + '?', input: 'text', inputPlaceholder: 'Reason (optional)', showCancelButton: true, confirmButtonText: 'Deny' }))
             .then(function (res) { if (res.isConfirmed) go(res.value); });
         } else if (confirm('Deny this applicant?')) { go(''); }
+
+      } else if (action === 'member-waitlist-remove') {
+        e.preventDefault();
+        if (!window.confirm('Remove ' + (t.dataset.name || 'this person') + ' from the waitlist? They move to the normal pool.')) return;
+        postJson(t.dataset.url, { reason: 'Removed via Members waitlist' }).then(done);
 
       } else if (action === 'qp-create-account') {
         e.preventDefault(); postJson(t.dataset.url, {}).then(done);
@@ -630,7 +674,11 @@
               html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
               html += '<button data-action="qp-preapprove" data-url="' + esc(preUrl) + '" data-league="" class="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button></div>';
             } else {
-              html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8"><option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option><option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option></select>';
+              var preOpts = '<option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option><option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option>';
+              if (r.waitlist_open) {
+                preOpts += '<optgroup label="Waitlist"><option value="waitlist-classic">Waitlist · Classic</option><option value="waitlist-premier">Waitlist · Premier</option><option value="waitlist-ecs-fc">Waitlist · ECS FC</option></optgroup>';
+              }
+              html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">' + preOpts + '</select>';
               html += '<button data-action="qp-preapprove-set" data-url="' + esc(preUrl) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-user-check"></i>Pre-approve</button></div>';
             }
             html += '</div>';

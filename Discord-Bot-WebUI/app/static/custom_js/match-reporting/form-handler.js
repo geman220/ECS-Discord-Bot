@@ -110,7 +110,13 @@ export function getFinalEvents(matchId, eventType) {
             playerId = playerId ? String(playerId) : null;
             minute = minute ? String(minute) : null;
 
-            events.push({ unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute });
+            const evt = { unique_id: uniqueId, stat_id: statId, player_id: playerId, minute: minute };
+            // Cards carry an optional reason (yellow_cards / red_cards only).
+            if (eventType === 'yellow_cards' || eventType === 'red_cards') {
+                const reason = window.$(this).find(`select[name="${formBaseName}-card_reason[]"]`).val();
+                evt.card_reason = reason ? String(reason) : null;
+            }
+            events.push(evt);
         });
     }
 
@@ -157,7 +163,9 @@ export function eventChangedOrNew(event, initialArray) {
     const match = initialArray.find(e => e.stat_id && String(e.stat_id) === String(event.stat_id));
     if (!match) return true;
     return String(match.player_id) !== String(event.player_id)
-        || String(match.minute || '') !== String(event.minute || '');
+        || String(match.minute || '') !== String(event.minute || '')
+        // A reason-only edit must also re-send, or the change is silently dropped.
+        || String(match.card_reason || '') !== String(event.card_reason || '');
 }
 
 /**

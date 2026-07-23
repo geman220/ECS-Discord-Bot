@@ -209,7 +209,14 @@ def get_user_analytics():
             User.created_at >= prev_30d_start,
             User.created_at < thirty_days_ago
         ).count()
-        growth_rate = round(((new_users_30d - prev_30d_count) / max(prev_30d_count, 1)) * 100, 1)
+        # Growth % is meaningless when the prior window had (nearly) no signups —
+        # dividing by max(prev,1) turned "12 signups vs 0 last month" into "+1200%".
+        # Report None (the UI shows "—") below a minimum prior base instead of a
+        # fabricated spike.
+        if prev_30d_count >= 3:
+            growth_rate = round(((new_users_30d - prev_30d_count) / prev_30d_count) * 100, 1)
+        else:
+            growth_rate = None
 
         # Approval counts. "pending" = awaiting a decision (waitlisted excluded, via
         # the shared helper) so this card matches the approvals page and nav badge.

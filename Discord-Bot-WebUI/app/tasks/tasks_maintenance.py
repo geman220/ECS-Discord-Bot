@@ -647,6 +647,69 @@ def recalculate_all_attendance_stats(self, session):
 
 
 @celery_task(
+    name='app.tasks.tasks_maintenance.refresh_participation_rollup',
+    bind=True,
+    queue='celery',
+    max_retries=1,
+    default_retry_delay=300,
+)
+def refresh_participation_rollup(self, session, season_id=None, all_seasons=False):
+    """Rebuild `player_season_participation` — the analytics spine.
+
+    Unlike `recalculate_all_attendance_stats`, this is set-based: one statement per
+    season rather than ~11 queries per player. A whole season is a handful of
+    statements, so it is cheap enough to run nightly and safe under the PgBouncer
+    transaction budget.
+
+    It also fixes a structural gap in the older job, which seeds its worklist FROM
+    the attendance cache and therefore can never create a row for a player who has
+    never RSVP'd — 86 current players are invisible to the attendance report for
+    exactly that reason. This one is driven by the ROSTER, so everyone rostered gets
+    a row whether or not they have ever responded.
+
+    Args:
+        season_id: refresh one season (its league_type is looked up). Defaults to the
+            current Pub League AND ECS FC season(s).
+        all_seasons: refresh every Pub League and ECS FC season (post-migration backfill).
+    """
+    from app.services.participation_service import (
+        refresh_season_participation, refresh_all_seasons, current_season_ids,
+    )
+    from app.models import Season
+
+    try:
+        if all_seasons:
+            results = refresh_all_seasons(session)  # both league types
+            session.commit()
+            logger.info(f"refresh_participation_rollup: backfilled {len(results)} seasons")
+            return {'success': True, 'seasons': results}
+
+        # Default: the current season of BOTH league types (each has its own).
+        if season_id:
+            targets = [season_id]
+        else:
+            targets = (current_season_ids(session, 'Pub League')
+                       + current_season_ids(session, 'ECS FC'))
+        if not targets:
+            logger.warning("refresh_participation_rollup: no current season")
+            return {'success': True, 'seasons': [], 'reason': 'no current season'}
+
+        results = []
+        for sid in targets:
+            s = session.query(Season).get(sid)
+            lt = s.league_type if s else 'Pub League'
+            results.append(refresh_season_participation(session, sid, league_type=lt))
+            # Commit per season so a later failure can't discard earlier work.
+            session.commit()
+        return {'success': True, 'seasons': results}
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"refresh_participation_rollup failed: {e}", exc_info=True)
+        raise self.retry(exc=e)
+
+
+@celery_task(
     name='app.tasks.tasks_maintenance.expire_past_match_sub_requests',
     bind=True,
     queue='celery',

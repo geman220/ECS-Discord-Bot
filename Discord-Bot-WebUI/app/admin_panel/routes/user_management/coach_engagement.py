@@ -18,10 +18,14 @@ from flask_login import login_required
 
 from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.admin_panel.routes.user_management.coach_engagement_helpers import (
     get_coach_engagement,
     get_discord_channel_metrics,
     get_coach_history,
+)
+from app.services.coach_channels import (
+    list_classifiable_channels, set_channel_role, clear_channel_role,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,8 +38,9 @@ def coach_engagement():
     """Coach engagement + community Discord dashboard."""
     try:
         season_id = request.args.get('season_id', type=int)
+        league_name = request.args.get('league') or None
         session = g.db_session
-        engagement = get_coach_engagement(session, season_id=season_id)
+        engagement = get_coach_engagement(session, season_id=season_id, league_name=league_name)
         discord_metrics = get_discord_channel_metrics(
             session, season_id=engagement.get('season', {}).get('id') if engagement.get('season') else None)
         return render_template(
@@ -65,6 +70,72 @@ def coach_history(player_id):
         logger.error(f"Error loading coach history: {e}", exc_info=True)
         flash('Coach history unavailable. Check application logs for details.', 'error')
         return redirect(url_for('admin_panel.coach_engagement'))
+
+
+@admin_panel_bp.route('/users/coach-engagement/review', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def coach_attention_review():
+    """Mark / unmark a coach as reviewed in the support queue (per season)."""
+    from flask_login import current_user
+    from app.models import CoachAttentionReview
+    season_id = request.form.get('season_id', type=int)
+    player_id = request.form.get('player_id', type=int)
+    action = request.form.get('action', 'review')
+    if not season_id or not player_id:
+        flash('Missing coach or season.', 'error')
+        return redirect(url_for('admin_panel.coach_engagement'))
+
+    existing = g.db_session.query(CoachAttentionReview).filter_by(
+        season_id=season_id, player_id=player_id).first()
+    if action == 'unreview':
+        if existing:
+            g.db_session.delete(existing)
+        flash('Moved back to the attention queue.', 'success')
+    else:
+        if not existing:
+            g.db_session.add(CoachAttentionReview(
+                season_id=season_id, player_id=player_id, reviewed_by=current_user.id))
+        flash('Marked reviewed — cleared from the queue for this season.', 'success')
+    return redirect(url_for('admin_panel.coach_engagement',
+                            season_id=season_id, league=request.form.get('league') or None))
+
+
+@admin_panel_bp.route('/users/coach-engagement/channels')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def coach_channels():
+    """Manage which Discord channels count as coaches channels (and their cohort)."""
+    try:
+        channels = list_classifiable_channels(g.db_session)
+        return render_template(
+            'admin_panel/users/coach_channels_flowbite.html', channels=channels)
+    except Exception as e:
+        logger.error(f"Error loading coach channels: {e}", exc_info=True)
+        flash('Channel manager unavailable — has the discord_channel_role table been created?', 'error')
+        return redirect(url_for('admin_panel.coach_engagement'))
+
+
+@admin_panel_bp.route('/users/coach-engagement/channels/set', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional(max_retries=2)
+def coach_channels_set():
+    """Classify or clear a single channel. Form: channel_id, role ('' clears), channel_name."""
+    channel_id = (request.form.get('channel_id') or '').strip()
+    role = (request.form.get('role') or '').strip()
+    channel_name = (request.form.get('channel_name') or '').strip() or None
+    if not channel_id:
+        flash('Missing channel.', 'error')
+        return redirect(url_for('admin_panel.coach_channels'))
+
+    if role:
+        ok, msg = set_channel_role(g.db_session, channel_id, role, channel_name)
+    else:
+        ok, msg = clear_channel_role(g.db_session, channel_id)
+    flash(msg, 'success' if ok else 'error')
+    return redirect(url_for('admin_panel.coach_channels'))
 
 
 @admin_panel_bp.route('/users/community-analytics')
@@ -136,8 +207,9 @@ def coach_engagement_data():
     """JSON feed for the coach engagement dashboard (season switch / export)."""
     try:
         season_id = request.args.get('season_id', type=int)
+        league_name = request.args.get('league') or None
         session = g.db_session
-        engagement = get_coach_engagement(session, season_id=season_id)
+        engagement = get_coach_engagement(session, season_id=season_id, league_name=league_name)
         season_for_discord = engagement.get('season', {}).get('id') if engagement.get('season') else None
         discord_metrics = get_discord_channel_metrics(session, season_id=season_for_discord)
         return jsonify({'success': True, 'engagement': engagement, 'discord_metrics': discord_metrics})

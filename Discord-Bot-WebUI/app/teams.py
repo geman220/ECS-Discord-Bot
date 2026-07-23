@@ -848,7 +848,9 @@ def report_match(match_id):
                     {
                         'id': ev.id,
                         'player_id': ev.player_id,
-                        'minute': ev.minute or ''
+                        'minute': ev.minute or '',
+                        # Cards carry a reason so the modal pre-fills it on edit.
+                        'card_reason': ev.card_reason,
                     }
                     for ev in events
                 ]
@@ -923,14 +925,17 @@ def report_match(match_id):
             if match.reset_verification():
                 logger.info(f"Match {match_id} verification reset due to web report resubmission")
 
-        # Process player events for the match
-        process_events(session, match, data, PlayerEventType.GOAL, 'goals_to_add', 'goals_to_remove')
-        process_events(session, match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove')
-        process_events(session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
-        process_events(session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
+        # Process player events for the match. reported_by = the filing user, so the
+        # coach-engagement metric can credit whoever reported (the web path used to
+        # leave it NULL, hiding ~95% of events from that score).
+        reporter_id = safe_current_user.id
+        process_events(session, match, data, PlayerEventType.GOAL, 'goals_to_add', 'goals_to_remove', reported_by=reporter_id)
+        process_events(session, match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove', reported_by=reporter_id)
+        process_events(session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove', reported_by=reporter_id)
+        process_events(session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove', reported_by=reporter_id)
 
         # Process own goals for the match
-        process_own_goals(session, match, data, 'own_goals_to_add', 'own_goals_to_remove')
+        process_own_goals(session, match, data, 'own_goals_to_add', 'own_goals_to_remove', reported_by=reporter_id)
 
         # Handle team verification
         current_user_id = safe_current_user.id
@@ -2764,21 +2769,26 @@ def send_match_rsvp_reminder(match_id):
             f"on {match_date} at {match_time}."
         )
 
-    # Queue notifications (would use notification service)
+    # Actually dispatch. This block used to instantiate NotificationService, never call
+    # it, and return "Reminder sent to N players" — coaches were chasing RSVPs and no
+    # player ever received anything. Hand off to Celery: the send makes an HTTP call to
+    # the bot API, which must not happen inside the open web transaction.
     notifications_queued = 0
     try:
-        from app.services.notification_service import NotificationService
-        notification_service = NotificationService()
+        from app.tasks.tasks_rsvp_dm_reminders import send_coach_rsvp_reminder
 
-        for player in recipients:
-            player_user = session.query(User).get(player.user_id) if player.user_id else None
-            if player_user and player.discord_id:
-                # Queue Discord notification
-                notifications_queued += 1
+        recipient_ids = [p.id for p in recipients]
+        send_coach_rsvp_reminder.delay(
+            match_id=match_id,
+            player_ids=recipient_ids,
+            custom_message=custom_message or None,
+            match_type='pub_league',
+        )
+        notifications_queued = len(recipient_ids)
 
         logger.info(
-            f"RSVP reminder sent by user {user.id} for team {coached_team_id} match {match_id}. "
-            f"Recipients: {len(recipients)}"
+            f"RSVP reminder dispatched by user {user.id} for team {coached_team_id} "
+            f"match {match_id}. Recipients: {len(recipients)}"
         )
 
         # Engagement: coach proactively chased down RSVPs from the web.
@@ -2795,8 +2805,11 @@ def send_match_rsvp_reminder(match_id):
 
     return jsonify({
         'success': True,
-        'message': f'Reminder sent to {len(recipients)} player(s)',
+        # "Sending" not "sent" — delivery happens in Celery. Players who have snoozed
+        # their RSVP reminders are skipped by the task, so this is the queued count.
+        'message': f'Sending a reminder to {len(recipients)} player(s)',
         'recipients': len(recipients),
+        'queued': notifications_queued,
         'reminder_message': reminder_message
     })
 

@@ -197,6 +197,20 @@ def _pct(part, whole):
     return round(part / whole * 100, 1) if whole else 0.0
 
 
+def _current_only_default_on():
+    """Resolve a 'current players only' checkbox that defaults ON.
+
+    A GET checkbox submits nothing when unchecked, so a plain default-on can never
+    be turned off. The filter form carries a hidden ``applied=1`` marker: once the
+    form has been submitted we honor the checkbox exactly; on first load (no marker)
+    we default to current-players-only so the report isn't diluted by every account
+    ever created.
+    """
+    if request.args.get('applied'):
+        return 1 if request.args.get('current_only') else 0
+    return 1
+
+
 def _avg(values):
     return round(sum(values) / len(values), 1) if values else 0.0
 
@@ -218,45 +232,39 @@ def reports_center():
     """
     session = g.db_session
 
-    LOW_ATTENDANCE = 50.0   # season attendance % at/below this is "low"
-    HIGH_ATTENDANCE = 85.0  # at/above this is "high"
-    TOP_N = 10              # cap for on-page leaderboards
+    from app.utils.analytics_scope import resolve_scope
+    from app.services.attendance_analytics import (
+        build_attendance_rows, season_pulse, follow_up_lanes,
+    )
 
-    # ---- Attendance (current players) --------------------------------------
-    # Lightweight league slice for the attendance section. The drill-down links
-    # carry this same value so the detail report opens already scoped.
-    att_league_param = request.args.get('att_league') or None
-    att_league_name, att_league_names, _ = _resolve_attendance_league(att_league_param)
-    attendance_rows = _build_attendance(
-        session, league_name=att_league_name, current_only=1, league_names=att_league_names)
-    season_vals = [r['Season Attendance %'] for r in attendance_rows]
-    career_vals = [r['Attendance Rate %'] for r in attendance_rows]
+    TOP_N = 8  # cap for the on-page follow-up lists
 
-    low_attendance = [r for r in attendance_rows if r['Season Attendance %'] <= LOW_ATTENDANCE]
-    high_attendance = [r for r in attendance_rows if r['Season Attendance %'] >= HIGH_ATTENDANCE]
+    # ---- Attendance (scoped season x league, from the participation spine) --
+    # Season and league come from the shared scope resolver, so this reads the
+    # rollup instead of the overwritten single-row cache. Turnout is played-based
+    # (never counts unplayed fixtures) and league is the real league of play.
+    scope = resolve_scope(session)
+    pulse = season_pulse(session, scope)
+    lanes = follow_up_lanes(session, scope)
+    att_rows = build_attendance_rows(session, scope)
 
-    # Distribution of season attendance into buckets for a bar chart.
+    # Turnout distribution for the bar chart. None = no matches played yet (e.g.
+    # preseason) and is simply omitted rather than counted as 0%.
     att_buckets = ['0–25%', '26–50%', '51–75%', '76–90%', '91–100%']
     att_bucket_counts = [0, 0, 0, 0, 0]
-    for v in season_vals:
-        if v <= 25:
-            att_bucket_counts[0] += 1
-        elif v <= 50:
-            att_bucket_counts[1] += 1
-        elif v <= 75:
-            att_bucket_counts[2] += 1
-        elif v <= 90:
-            att_bucket_counts[3] += 1
-        else:
-            att_bucket_counts[4] += 1
+    for r in att_rows:
+        v = r['turnout_pct']
+        if v is None:
+            continue
+        idx = 0 if v <= 25 else 1 if v <= 50 else 2 if v <= 75 else 3 if v <= 90 else 4
+        att_bucket_counts[idx] += 1
+    attendance_chart = {'labels': att_buckets, 'counts': att_bucket_counts}
 
-    # Lowest-attendance players to surface for follow-up (sorted ascending).
-    low_list = sorted(low_attendance, key=lambda r: (r['Season Attendance %'], -r['Matches Invited']))[:TOP_N]
-
-    attendance_chart = {
-        'labels': att_buckets,
-        'counts': att_bucket_counts,
-    }
+    # Cap each lane for the on-page cards; the full lists live on the report.
+    slipping = lanes['slipping']
+    chronic = lanes['chronic']
+    never = lanes['never']
+    scope_args = scope.as_query_args()
 
     # ---- Player Movement ---------------------------------------------------
     movement_rows = _movement_records(session, movers_only=False)
@@ -303,31 +311,31 @@ def reports_center():
     # ---- Top-line stat cards ----------------------------------------------
     stat_cards = [
         {
-            'label': 'Avg Season Attendance',
-            'value': f"{_avg(season_vals)}%" if season_vals else '—',
+            'label': 'Season Turnout',
+            'value': f"{pulse['turnout_pct']}%" if pulse['turnout_pct'] is not None else '—',
             'icon': 'ti-calendar-check', 'tone': 'primary',
-            'note': f"{len(attendance_rows)} current players tracked",
-            'url': url_for('admin_panel.attendance_report', segment='all', metric='season', league=att_league_param),
+            'note': f"{pulse['players']} players · {scope.season_label}",
+            'url': url_for('admin_panel.attendance_report', **scope_args),
         },
         {
-            'label': 'Low-Attendance Players',
-            'value': len(low_attendance),
-            'icon': 'ti-alert-triangle', 'tone': 'warn',
-            'note': f"at or below {LOW_ATTENDANCE:.0f}% this season",
-            'url': url_for('admin_panel.attendance_report', segment='low', metric='season', league=att_league_param),
+            'label': 'Slipping',
+            'value': len(slipping),
+            'icon': 'ti-trending-down-2', 'tone': 'warn',
+            'note': 'below their own baseline',
+            'url': url_for('admin_panel.attendance_report', **scope_args),
         },
         {
-            'label': 'Players Who Moved',
-            'value': total_movers,
-            'icon': 'ti-arrows-up-down', 'tone': 'info',
-            'note': f"of {len(movement_rows)} tracked across seasons",
-            'url': url_for('admin_panel.movement_report', movers_only=1),
+            'label': 'Never Replied',
+            'value': len(never),
+            'icon': 'ti-message-off', 'tone': 'info',
+            'note': f"no RSVP · {scope.season_label}",
+            'url': url_for('admin_panel.attendance_report', **scope_args),
         },
         {
             'label': 'Total Cards',
             'value': total_cards,
             'icon': 'ti-cards', 'tone': 'danger',
-            'note': f"{total_yellow} yellow · {total_red} red",
+            'note': f"{total_yellow} yellow · {total_red} red · all-time",
             'url': url_for('admin_panel.discipline_report'),
         },
         {
@@ -344,17 +352,14 @@ def reports_center():
     return render_template(
         'admin_panel/reports/index_flowbite.html',
         stat_cards=stat_cards,
-        # attendance
+        # attendance — scoped, from the spine
+        scope=scope,
+        pulse=pulse,
         attendance_chart=attendance_chart,
-        avg_season_attendance=_avg(season_vals),
-        avg_career_attendance=_avg(career_vals),
-        low_count=len(low_attendance),
-        high_count=len(high_attendance),
-        low_attendance_players=low_list,
-        attendance_total=len(attendance_rows),
-        low_threshold=LOW_ATTENDANCE,
-        high_threshold=HIGH_ATTENDANCE,
-        att_league=att_league_param,
+        attendance_total=len(att_rows),
+        slipping=slipping[:TOP_N], slipping_total=len(slipping),
+        chronic=chronic[:TOP_N], chronic_total=len(chronic),
+        never=never[:TOP_N], never_total=len(never),
         # movement
         movement_chart=movement_chart,
         movement_total=len(movement_rows),
@@ -526,172 +531,98 @@ def player_stats_export():
 
 
 # =====================================================================
-# 2. Attendance & Reliability
+# 2. Attendance & Turnout  (reads the participation spine)
 # =====================================================================
+#
+# Rewritten off player_season_participation via the shared scope resolver. The
+# old version filtered on Player.primary_league_id (a pointer rollover rewrites),
+# divided by scheduled-not-played fixtures, and read a one-row-per-player cache
+# with no season history. All three are fixed by the spine.
 
-def _build_attendance(session, league_name, current_only, min_invited=0, league_names=None):
-    """Per-player attendance/reliability rows.
-
-    ``league_name`` filters to a single ``League.name``. ``league_names`` (a list)
-    filters to *any* of several league names — used for the "All Pub League"
-    option, which is Premier OR Classic. If both are given, ``league_names`` wins.
-    """
-    query = (
-        session.query(PlayerAttendanceStats)
-        .options(joinedload(PlayerAttendanceStats.player).joinedload(Player.primary_league))
-        .join(Player, PlayerAttendanceStats.player_id == Player.id)
-    )
-    if current_only:
-        query = query.filter(Player.is_current_player.is_(True))
-    if league_names:
-        query = query.join(League, Player.primary_league_id == League.id).filter(League.name.in_(league_names))
-    elif league_name:
-        query = query.join(League, Player.primary_league_id == League.id).filter(League.name == league_name)
-    if min_invited:
-        query = query.filter(PlayerAttendanceStats.total_matches_invited >= min_invited)
-
-    rows = []
-    for a in query.all():
-        player = a.player
-        rows.append({
-            'Player': player.name if player else f'#{a.player_id}',
-            'Primary League': player.primary_league.name if player and player.primary_league else '',
-            'Current Team': _current_team_name(player) if player else '',
-            'Matches Invited': a.total_matches_invited,
-            'Responses': a.total_responses,
-            'Yes': a.yes_responses,
-            'No': a.no_responses,
-            'Maybe': a.maybe_responses,
-            'No Response': a.no_response_count,
-            'Response Rate %': round(a.response_rate, 1),
-            'Attendance Rate %': round(a.attendance_rate, 1),
-            'Adjusted Attendance %': round(a.adjusted_attendance_rate, 1),
-            'Reliability Score': round(a.reliability_score, 1),
-            'Season Attendance %': round(a.season_attendance_rate, 1),
-            'Last Match': a.last_match_date.strftime('%Y-%m-%d') if a.last_match_date else '',
-            '_player_id': a.player_id,
+def _attendance_export_rows(rows):
+    """Flatten read-service rows into export-friendly dicts (spreadsheet order)."""
+    out = []
+    for r in rows:
+        out.append({
+            'Player': r['player'],
+            'Team': r['team'],
+            'League': r['league'],
+            'Played': r['matches_played'],
+            'Yes': r['rsvp_yes'],
+            'No': r['rsvp_no'],
+            'Maybe': r['rsvp_maybe'],
+            'No Reply': r['rsvp_none'],
+            'Turnout %': r['turnout_pct'] if r['turnout_pct'] is not None else '',
+            'Response %': r['response_pct'] if r['response_pct'] is not None else '',
+            'Checked In': r['checked_in'],
+            'Career Turnout %': r.get('career_turnout') if r.get('career_turnout') is not None else '',
         })
-    rows.sort(key=lambda r: (-r['Reliability Score'], r['Player'].lower()))
-    return rows
-
-
-# Attendance segment / metric thresholds. Kept identical to the Reports Center
-# so a drill-in always matches the card that linked to it.
-ATT_LOW_THRESHOLD = 50.0   # season/career % at/below this is "low"
-ATT_HIGH_THRESHOLD = 85.0  # at/above this is "high"
-
-# `league` query-param values that aren't a literal League.name. The pseudo
-# option "pub_league" means Premier OR Classic ("All Pub League").
-PUB_LEAGUE_NAMES = ['Premier', 'Classic']
-
-
-def _resolve_attendance_league(league_param):
-    """Map the ``league`` query param to (single_name, name_list, chip_label).
-
-    - 'pub_league'            -> (None, ['Premier','Classic'], 'All Pub League')
-    - '' / 'all' / None       -> (None, None, None)            # no league filter
-    - any other value         -> (value, None, value)         # exact League.name
-    """
-    if league_param in ('pub_league', 'pub league'):
-        return None, list(PUB_LEAGUE_NAMES), 'All Pub League'
-    if not league_param or league_param == 'all':
-        return None, None, None
-    return league_param, None, league_param
-
-
-def _segment_attendance(rows, segment, metric):
-    """Filter + sort attendance rows by season/career rate and a segment band.
-
-    ``metric`` selects which rate drives the segment cut and the sort:
-    'career' -> 'Attendance Rate %', anything else -> 'Season Attendance %'.
-    ``segment`` is 'low' (<= LOW), 'high' (>= HIGH), or 'all'.
-    """
-    rate_key = 'Attendance Rate %' if metric == 'career' else 'Season Attendance %'
-    if segment == 'low':
-        rows = [r for r in rows if r[rate_key] <= ATT_LOW_THRESHOLD]
-        rows.sort(key=lambda r: (r[rate_key], -r['Matches Invited'], r['Player'].lower()))
-    elif segment == 'high':
-        rows = [r for r in rows if r[rate_key] >= ATT_HIGH_THRESHOLD]
-        rows.sort(key=lambda r: (-r[rate_key], -r['Matches Invited'], r['Player'].lower()))
-    else:
-        rows = list(rows)
-        rows.sort(key=lambda r: (-r[rate_key], r['Player'].lower()))
-    return rows
+    return out
 
 
 @admin_panel_bp.route('/reports/attendance')
 @login_required
 @role_required(REPORT_ROLES)
 def attendance_report():
+    from app.utils.analytics_scope import resolve_scope
+    from app.services.attendance_analytics import (
+        build_attendance_rows, career_turnout, week_strips,
+    )
+
     session = g.db_session
-    league_param = request.args.get('league') or None
-    # current_only defaults ON; only the explicit value 0 turns it off.
-    current_only = request.args.get('current_only', default=1, type=int)
-    min_invited = request.args.get('min_invited', type=int) or 0
-    segment = request.args.get('segment') or 'all'
-    if segment not in ('low', 'high', 'all'):
-        segment = 'all'
-    metric = request.args.get('metric') or 'season'
-    if metric not in ('season', 'career'):
-        metric = 'season'
+    scope = resolve_scope(session)
+    min_played = request.args.get('min_played', type=int) or 0
+    sort = request.args.get('sort') or 'turnout'
 
-    league_name, league_names, league_chip = _resolve_attendance_league(league_param)
+    rows = build_attendance_rows(session, scope, min_played=min_played)
 
-    rows = _build_attendance(session, league_name, current_only, min_invited, league_names=league_names)
-    rows = _segment_attendance(rows, segment, metric)
+    # Career baseline (lifetime, excludes the import-baseline season) + this
+    # season's week-by-week strip so a rate reads as a pattern, not a number.
+    career = career_turnout(session, [r['player_id'] for r in rows],
+                            exclude_season_ids=scope.baseline_season_ids)
+    strips = week_strips(session, scope)
+    for r in rows:
+        r['career_turnout'] = career.get(r['player_id'], {}).get('turnout')
+        r['strip'] = strips.get(r['player_id'], [])
 
-    # On-page table columns (full filtered set, not just a top-N preview).
-    table_rows = [{
-        'Player': r['Player'],
-        'Team': r['Current Team'] or '—',
-        'League': r['Primary League'] or '—',
-        'Invited': r['Matches Invited'],
-        'Season %': r['Season Attendance %'],
-        'Career %': r['Attendance Rate %'],
-        'Response %': r['Response Rate %'],
-        '_player_id': r.get('_player_id'),
-    } for r in rows]
+    # Sort. Turnout ascending surfaces who needs a nudge; players with no matches
+    # played yet (turnout None) always sort to the bottom, never as "0%".
+    def _turn(r):
+        return r['turnout_pct'] if r['turnout_pct'] is not None else 999
+    if sort == 'name':
+        rows.sort(key=lambda r: r['player'].lower())
+    elif sort == 'response':
+        rows.sort(key=lambda r: (-(r['response_pct'] or 0), r['player'].lower()))
+    elif sort == 'low':
+        rows.sort(key=lambda r: (_turn(r), -r['matches_played'], r['player'].lower()))
+    else:  # 'turnout' — best first
+        rows.sort(key=lambda r: (-(r['turnout_pct'] if r['turnout_pct'] is not None else -1),
+                                 r['player'].lower()))
 
-    rate_label = 'Career' if metric == 'career' else 'Season'
+    # KPIs from the weighted pulse over the SAME rows (not a mean of rates).
+    total_played = sum(r['matches_played'] for r in rows)
+    total_yes = sum(r['rsvp_yes'] for r in rows)
+    total_answered = sum(r['rsvp_yes'] + r['rsvp_no'] + r['rsvp_maybe'] for r in rows)
     kpis = [
         {'label': 'Players', 'value': len(rows)},
-        {'label': f'Avg {rate_label} %',
-         'value': _avg([r['Attendance Rate %' if metric == 'career' else 'Season Attendance %'] for r in rows])},
-        {'label': 'Avg Response %', 'value': _avg([r['Response Rate %'] for r in rows])},
-        {'label': 'Avg Reliability', 'value': _avg([r['Reliability Score'] for r in rows])},
+        {'label': 'Turnout %', 'value': _pct(total_yes, total_played)},
+        {'label': 'Response %', 'value': _pct(total_answered, total_played)},
+        {'label': 'Matches Played', 'value': total_played},
     ]
 
-    chips = []
-    if league_chip:
-        chips.append(f"League: {league_chip}")
-    if segment == 'low':
-        chips.append(f"{rate_label} attendance ≤ {ATT_LOW_THRESHOLD:.0f}%")
-    elif segment == 'high':
-        chips.append(f"{rate_label} attendance ≥ {ATT_HIGH_THRESHOLD:.0f}%")
-    if metric == 'career':
-        chips.append('Career rate')
-    if current_only:
-        chips.append('Current players only')
-    if min_invited:
-        chips.append(f"Min {min_invited} matches invited")
+    # In a multi-season scope a player has one row per season; show a Season column
+    # so the otherwise-identical rows are distinguishable.
+    show_season = scope.season_ids is None or len(scope.season_ids) > 1
 
     return render_template(
         'admin_panel/reports/attendance_flowbite.html',
-        leagues=_league_names(session),
-        args={
-            'league': league_param or '',
-            'league_name': league_name,
-            'current_only': current_only,
-            'min_invited': min_invited,
-            'segment': segment,
-            'metric': metric,
-        },
+        scope=scope,
         kpis=kpis,
-        chips=chips,
-        rows=table_rows,
+        rows=rows,
         total_count=len(rows),
-        low_threshold=ATT_LOW_THRESHOLD,
-        high_threshold=ATT_HIGH_THRESHOLD,
+        sort=sort,
+        min_played=min_played,
+        show_season=show_season,
     )
 
 
@@ -702,18 +633,20 @@ def attendance_export():
     guard = _pandas_guard()
     if guard:
         return guard
-    league_name, league_names, _ = _resolve_attendance_league(request.args.get('league') or None)
-    rows = _build_attendance(
-        g.db_session,
-        league_name,
-        request.args.get('current_only', default=1, type=int),
-        request.args.get('min_invited', type=int) or 0,
-        league_names=league_names,
-    )
-    segment = request.args.get('segment') or 'all'
-    metric = request.args.get('metric') or 'season'
-    rows = _segment_attendance(rows, segment, metric)
-    return _build_xlsx_response([('Attendance', rows)], 'attendance')
+    from app.utils.analytics_scope import resolve_scope
+    from app.services.attendance_analytics import build_attendance_rows, career_turnout
+
+    session = g.db_session
+    scope = resolve_scope(session)
+    min_played = request.args.get('min_played', type=int) or 0
+    rows = build_attendance_rows(session, scope, min_played=min_played)
+    career = career_turnout(session, [r['player_id'] for r in rows],
+                            exclude_season_ids=scope.baseline_season_ids)
+    for r in rows:
+        r['career_turnout'] = career.get(r['player_id'], {}).get('turnout')
+    rows.sort(key=lambda r: (-(r['turnout_pct'] if r['turnout_pct'] is not None else -1),
+                             r['player'].lower()))
+    return _build_xlsx_response([('Attendance', _attendance_export_rows(rows))], 'attendance')
 
 
 # =====================================================================
@@ -827,6 +760,119 @@ def _movement_records(session, movers_only=False):
     return results
 
 
+def _season_league(session, season_id):
+    """{player_id: 'Premier'|'Classic'|<other league>} for one pub-league season.
+
+    Dual-league players resolve to Premier (the higher tier), matching the movement
+    path logic.
+    """
+    rows = (
+        session.query(PlayerTeamSeason.player_id, League.name)
+        .join(Team, PlayerTeamSeason.team_id == Team.id)
+        .join(League, Team.league_id == League.id)
+        .filter(PlayerTeamSeason.season_id == season_id)
+        .all()
+    )
+    by_player = defaultdict(set)
+    for pid, lname in rows:
+        by_player[pid].add(lname)
+    out = {}
+    for pid, leagues in by_player.items():
+        if 'Premier' in leagues:
+            out[pid] = 'Premier'
+        elif 'Classic' in leagues:
+            out[pid] = 'Classic'
+        else:
+            out[pid] = sorted(leagues)[0]
+    return out
+
+
+# Flow band styling: (from, to) -> (css tone key). Kept literal so the meaning of
+# each ribbon is explicit rather than guessed from color.
+MOVEMENT_FLOW_ORDER = [
+    ('Premier', 'Premier'), ('Premier', 'Classic'), ('Premier', 'Lapsed'),
+    ('Classic', 'Premier'), ('Classic', 'Classic'), ('Classic', 'Lapsed'),
+    ('New', 'Premier'), ('New', 'Classic'),
+]
+
+
+def _movement_flow(session, from_id, to_id):
+    """Season-to-season flow between two pub-league seasons.
+
+    Returns geometry for a proportional Sankey: left nodes (Premier/Classic/New),
+    right nodes (Premier/Classic/Lapsed), and ribbons sized by player count. All
+    band positions are computed here so the template just draws paths.
+    """
+    a = _season_league(session, from_id)
+    b = _season_league(session, to_id)
+
+    # Movement is a Premier↔Classic story, so only the two divisions are nodes. A
+    # player in some other pub league (shouldn't happen, but be safe) is skipped
+    # rather than silently miscounted as Classic; leaving the divisions entirely
+    # reads as Lapsed.
+    flow = defaultdict(int)
+    for pid, la in a.items():
+        if la not in ('Premier', 'Classic'):
+            continue
+        dst = b.get(pid)
+        dst = dst if dst in ('Premier', 'Classic') else 'Lapsed'
+        flow[(la, dst)] += 1
+    for pid, lb in b.items():
+        if pid in a or lb not in ('Premier', 'Classic'):
+            continue
+        flow[('New', lb)] += 1
+
+    left_nodes = ['Premier', 'Classic', 'New']
+    right_nodes = ['Premier', 'Classic', 'Lapsed']
+    left_tot = {n: sum(c for (s, d), c in flow.items() if s == n) for n in left_nodes}
+    right_tot = {n: sum(c for (s, d), c in flow.items() if d == n) for n in right_nodes}
+
+    H, GAP = 320.0, 16.0
+
+    def stack(nodes, totals):
+        active = [n for n in nodes if totals[n] > 0]
+        avail = H - GAP * max(len(active) - 1, 0)
+        scale = avail / (sum(totals[n] for n in active) or 1)
+        pos, y = {}, 10.0
+        for n in active:
+            h = totals[n] * scale
+            pos[n] = (y, h)
+            y += h + GAP
+        return pos, scale
+
+    lpos, lscale = stack(left_nodes, left_tot)
+    rpos, rscale = stack(right_nodes, right_tot)
+    lcur = {n: lpos[n][0] for n in lpos}
+    rcur = {n: rpos[n][0] for n in rpos}
+
+    bands = []
+    for (src, dst) in MOVEMENT_FLOW_ORDER:
+        c = flow.get((src, dst), 0)
+        if not c or src not in lpos or dst not in rpos:
+            continue
+        th_l, th_r = c * lscale, c * rscale
+        y0, y1 = lcur[src], rcur[dst]
+        bands.append({
+            'src': src, 'dst': dst, 'count': c,
+            'y0_top': round(y0, 1), 'y0_bot': round(y0 + th_l, 1),
+            'y1_top': round(y1, 1), 'y1_bot': round(y1 + th_r, 1),
+        })
+        lcur[src] += th_l
+        rcur[dst] += th_r
+
+    return {
+        'left': [{'name': n, 'y': round(lpos[n][0], 1), 'h': round(lpos[n][1], 1),
+                  'total': left_tot[n]} for n in left_nodes if n in lpos],
+        'right': [{'name': n, 'y': round(rpos[n][0], 1), 'h': round(rpos[n][1], 1),
+                   'total': right_tot[n]} for n in right_nodes if n in rpos],
+        'bands': bands,
+        'promoted': flow.get(('Classic', 'Premier'), 0),
+        'dropped': flow.get(('Premier', 'Classic'), 0),
+        'lapsed': right_tot['Lapsed'],
+        'new': left_tot['New'],
+    }
+
+
 @admin_panel_bp.route('/reports/movement')
 @login_required
 @role_required(REPORT_ROLES)
@@ -834,6 +880,20 @@ def movement_report():
     session = g.db_session
     movers_only = request.args.get('movers_only', type=int)
     rows = _movement_records(session, movers_only=bool(movers_only))
+
+    # Season-to-season flow diagram. Defaults to the two most recent pub seasons;
+    # ?from=&to= override. Only meaningful with at least two seasons.
+    pub_seasons = _pub_league_seasons(session)  # oldest → newest
+    flow = None
+    flow_from = flow_to = None
+    if len(pub_seasons) >= 2:
+        from_id = request.args.get('from', type=int) or pub_seasons[-2].id
+        to_id = request.args.get('to', type=int) or pub_seasons[-1].id
+        valid = {s.id for s in pub_seasons}
+        if from_id in valid and to_id in valid and from_id != to_id:
+            flow = _movement_flow(session, from_id, to_id)
+            flow_from = next(s for s in pub_seasons if s.id == from_id)
+            flow_to = next(s for s in pub_seasons if s.id == to_id)
 
     counts = {c: 0 for c in MOVEMENT_CATEGORIES}
     for r in rows:
@@ -856,6 +916,10 @@ def movement_report():
         kpis=kpis,
         chips=chips,
         chart_data=chart_data,
+        flow=flow,
+        flow_from=flow_from,
+        flow_to=flow_to,
+        pub_seasons=[{'id': s.id, 'name': s.name} for s in pub_seasons],
         preview_rows=_preview(rows),
         total_count=len(rows),
     )
@@ -906,6 +970,68 @@ def _retention_cohorts(session):
         out.append((s, cohorts, prev_season))
         prev_season, prev_set = s, cur
     return out
+
+
+def _retention_cohort_grid(session):
+    """Triangular retention cohorts: of players who JOINED in season S, what share
+    are still rostered S+1, S+2, … later.
+
+    A cohort = players whose FIRST pub-league season is S. Reading across a row
+    shows how that one intake decays over time — which a single season-over-season
+    line can't separate from "the import season was thin".
+
+    Returns {'rows': [...], 'max_offset': int, 'avg_next': float|None} where each row
+    is {season, is_baseline, joined, cells:[{offset,pct,n}|None]}. Cells past the
+    latest season are None (not yet knowable). Import-baseline cohorts are flagged
+    and excluded from the averages the UI shows.
+    """
+    seasons = _pub_league_seasons(session)  # oldest → newest
+    if not seasons:
+        return {'rows': [], 'max_offset': 0, 'avg_next': None}
+
+    members = defaultdict(set)
+    for sid, pid in (
+        session.query(PlayerTeamSeason.season_id, PlayerTeamSeason.player_id)
+        .filter(PlayerTeamSeason.season_id.in_([s.id for s in seasons])).all()
+    ):
+        members[sid].add(pid)
+
+    # First season index per player → their joining cohort.
+    first_idx = {}
+    for i, s in enumerate(seasons):
+        for pid in members.get(s.id, ()):
+            if pid not in first_idx:
+                first_idx[pid] = i
+    cohort = defaultdict(set)
+    for pid, i in first_idx.items():
+        cohort[i].add(pid)
+
+    n = len(seasons)
+    rows = []
+    next_pcts = []  # +1 retention across non-baseline cohorts, for the average
+    for i, s in enumerate(seasons):
+        joiners = cohort.get(i, set())
+        joined = len(joiners)
+        is_baseline = bool(getattr(s, 'is_analytics_baseline', False))
+        cells = []
+        for k in range(0, n - i):
+            still = len(joiners & members.get(seasons[i + k].id, set())) if joined else 0
+            pct = round(still / joined * 100, 1) if joined else None
+            cells.append({'offset': k, 'pct': pct, 'n': still})
+            if k == 1 and pct is not None and not is_baseline:
+                next_pcts.append(pct)
+        rows.append({
+            'season': s.name,
+            'is_baseline': is_baseline,
+            'joined': joined,
+            'cells': cells,
+        })
+
+    return {
+        'rows': rows,
+        'max_offset': max((len(r['cells']) for r in rows), default=0),
+        'avg_next': round(sum(next_pcts) / len(next_pcts), 1) if next_pcts else None,
+    }
 
 
 def _build_retention(session):
@@ -1001,11 +1127,14 @@ def retention_report():
         'total': [r['Total Players'] for r in rows],
     }
 
+    cohort_grid = _retention_cohort_grid(session)
+
     return render_template(
         'admin_panel/reports/retention_flowbite.html',
         detail_mode=False,
         kpis=kpis,
         chart_data=chart_data,
+        cohort_grid=cohort_grid,
         summary_rows=rows,
         preview_rows=_preview(rows),
         total_count=len(rows),
@@ -1257,7 +1386,7 @@ def _build_jersey(session, league_name, current_only):
 def jersey_report():
     session = g.db_session
     league_name = request.args.get('league') or None
-    current_only = request.args.get('current_only', type=int)
+    current_only = _current_only_default_on()
     data = _build_jersey(session, league_name, current_only)
 
     total = sum(r['Players'] for r in data['summary'])
@@ -1294,7 +1423,7 @@ def jersey_export():
     data = _build_jersey(
         g.db_session,
         request.args.get('league') or None,
-        request.args.get('current_only', type=int),
+        _current_only_default_on(),
     )
     return _build_xlsx_response(
         [('Summary by Size', data['summary']), ('Players', data['detail'])],
@@ -1333,7 +1462,9 @@ def _build_standings(session, season_id, league_name):
             'Points': st.points,
             '_team_id': st.team_id,
         })
-    rows.sort(key=lambda r: (r['Season'], -r['Points'], -r['GD'], -r['GF']))
+    # Sort within (Season, League) so Premier and Classic don't interleave into one
+    # points-ordered list that looks like a single league table but isn't.
+    rows.sort(key=lambda r: (r['Season'], r['League'], -r['Points'], -r['GD'], -r['GF']))
     return rows
 
 
@@ -1348,7 +1479,10 @@ def standings_report():
 
     kpis = [
         {'label': 'Teams', 'value': len(rows)},
-        {'label': 'Matches Played', 'value': sum(r['Played'] for r in rows)},
+        # Each match appears once per team in the Standings table, so sum(Played) is
+        # exactly 2× the real match count. Halve it (round up for an odd cross-league
+        # straggler) so the KPI reads as actual matches, not team-appearances.
+        {'label': 'Matches Played', 'value': (sum(r['Played'] for r in rows) + 1) // 2},
         {'label': 'Goals Scored', 'value': sum(r['GF'] for r in rows)},
         {'label': 'Top Team', 'value': rows[0]['Team'] if rows else '—'},
     ]
@@ -1563,7 +1697,7 @@ def _build_contactability(session, league_name, current_only, segment=None):
 def contactability_report():
     session = g.db_session
     league_name = request.args.get('league') or None
-    current_only = request.args.get('current_only', type=int)
+    current_only = _current_only_default_on()
     segment = request.args.get('segment') or None
     # KPIs reflect the full (unsegmented) population; the table shows the segment.
     all_rows = _build_contactability(session, league_name, current_only)
@@ -1574,8 +1708,10 @@ def contactability_report():
     sms = sum(1 for r in all_rows if r['SMS Consent'] == 'Yes')
     discord = sum(1 for r in all_rows if r['Discord Linked'] == 'Yes')
     verified = sum(1 for r in all_rows if r['Phone Verified'] == 'Yes')
+    # applied=1 so _current_only_default_on() honors the current_only value on the
+    # drill-in instead of snapping back to the default-on.
     _seg_url = lambda s: url_for('admin_panel.contactability_report', league=league_name,
-                                 current_only=current_only, segment=s)
+                                 current_only=current_only, applied=1, segment=s)
     kpis = [
         {'label': 'Players', 'value': total},
         {'label': 'SMS-Reachable %', 'value': _pct(sms, total), 'url': _seg_url('no_sms')},
@@ -1612,7 +1748,7 @@ def contactability_export():
     rows = _build_contactability(
         g.db_session,
         request.args.get('league') or None,
-        request.args.get('current_only', type=int),
+        _current_only_default_on(),
         segment=request.args.get('segment') or None,
     )
     return _build_xlsx_response([('Contactability', rows)], 'contactability')

@@ -1,5 +1,89 @@
 {# Reusable widgets for report pages: KPI tiles, filter chips, preview table. #}
 
+{# Shared season × league scope bar. `scope` is an AnalyticsScope; `endpoint` is
+   the route to relink (e.g. 'admin_panel.attendance_report'). Each control keeps
+   the other axis via scope.as_query_args(). #}
+{% macro scope_bar(scope, endpoint) %}
+{% set on  = "bg-ecs-green text-white border-ecs-green" %}
+{% set off = "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700" %}
+{% set base = "px-3 py-1.5 text-sm font-medium border first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0 focus:z-10 whitespace-nowrap" %}
+{% set is_all = scope.season_label == 'All seasons' %}
+<div class="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-5 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-2">
+        <span class="text-xs font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">Season</span>
+        <div class="inline-flex flex-wrap" role="group">
+            <a href="{{ url_for(endpoint, **scope.as_query_args(season='current')) }}"
+               class="{{ base }} {{ on if scope.is_current else off }}">Current</a>
+            {% for s in scope.seasons if not s.is_current %}
+            {% set s_active = (not scope.is_current) and (not is_all) and scope.season_ids and (scope.season_ids|length == 1) and (scope.season_ids[0] == s.id) %}
+            <a href="{{ url_for(endpoint, **scope.as_query_args(season=s.id)) }}"
+               class="{{ base }} {{ on if s_active else off }}">{{ s.name }}{% if s.is_baseline %} ·<i class="ti ti-database text-[10px]"></i>{% endif %}</a>
+            {% endfor %}
+            <a href="{{ url_for(endpoint, **scope.as_query_args(season='all')) }}"
+               class="{{ base }} {{ on if is_all else off }}">All time</a>
+        </div>
+    </div>
+    <div class="flex items-center gap-2">
+        <span class="text-xs font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">League</span>
+        <div class="inline-flex" role="group">
+            {% for val, lbl in [('all','All'), ('pub','Pub'), ('Premier','Premier'), ('Classic','Classic'), ('ECS FC','ECS FC')] %}
+            {% set l_active = (scope.league_param == val) or (val == 'all' and scope.league_param in ['all', '']) %}
+            {# Switching to/from ECS FC changes the season timeline, so reset the season pill to 'current'. #}
+            <a href="{{ url_for(endpoint, **scope.as_query_args(league=val, season='current')) }}"
+               class="{{ base }} {{ on if l_active else off }}">{{ lbl }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    {% if scope.baseline_season_ids and is_all %}
+    <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+        <i class="ti ti-database text-[10px]"></i>
+        {% if scope.include_baseline %}
+        Import baseline included
+        <a href="{{ url_for(endpoint, **scope.as_query_args(baseline=none)) }}" class="underline hover:no-underline">exclude</a>
+        {% else %}
+        Excludes import baseline
+        <a href="{{ url_for(endpoint, **scope.as_query_args(baseline=1)) }}" class="underline hover:no-underline">include</a>
+        {% endif %}
+    </span>
+    {% endif %}
+</div>
+{% endmacro %}
+
+{# Small week-by-week RSVP strip. `strip` is a list of {date, resp} with resp in
+   yes/no/maybe/None. Newest bars on the right; capped so it never wraps. #}
+{% macro week_strip(strip, cap=16) %}
+{% set shown = strip[-cap:] if strip|length > cap else strip %}
+<span class="inline-flex items-end gap-0.5 h-5" title="{{ strip|length }} played">
+    {% for w in shown %}
+    {%- if w.resp == 'yes' -%}{% set cls='bg-ecs-green' %}{% set h='h-4' %}{% set lbl='Yes' %}
+    {%- elif w.resp == 'maybe' -%}{% set cls='bg-amber-500' %}{% set h='h-2.5' %}{% set lbl='Maybe' %}
+    {%- elif w.resp == 'no' -%}{% set cls='bg-red-500' %}{% set h='h-1.5' %}{% set lbl='No' %}
+    {%- else -%}{% set cls='bg-gray-300 dark:bg-gray-600' %}{% set h='h-1' %}{% set lbl='No reply' %}
+    {%- endif -%}
+    <i class="w-1.5 {{ h }} {{ cls }} rounded-sm block" title="{{ w.date }} · {{ lbl }}"></i>
+    {% endfor %}
+    {% if not shown %}<span class="text-xs text-gray-400">—</span>{% endif %}
+</span>
+{% endmacro %}
+
+{# League name → short colored chip. #}
+{% macro league_chip(name) %}
+{%- set n = (name or '') | lower -%}
+{%- if 'premier' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">Premier</span>
+{%- elif 'classic' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">Classic</span>
+{%- elif 'ecs' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">ECS FC</span>
+{%- else -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500">{{ name or '—' }}</span>{%- endif -%}
+{% endmacro %}
+
+{# Player avatar (128px variant) with initials fallback. #}
+{% macro report_avatar(avatar_url, name, size='w-8 h-8') %}
+{% if avatar_url %}
+<img src="{{ avatar_url }}" alt="" class="{{ size }} rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0" loading="lazy">
+{% else %}
+<span class="{{ size }} rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green text-xs font-bold shrink-0">{{ (name or '?')[0] | upper }}</span>
+{% endif %}
+{% endmacro %}
+
 {# KPI summary tiles. `kpis` is a list of {label, value} dicts; an optional `url`
    key turns the tile into a link to that detail view. #}
 {% macro kpi_tiles(kpis) %}

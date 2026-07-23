@@ -479,38 +479,26 @@ def send_rsvp_reminder(team_id: int, match_id: int):
         notifications_queued = 0
 
         try:
-            from app.services.notification_service import NotificationService
-            notification_service = NotificationService()
+            # Actually dispatch. This block used to loop the roster incrementing a counter
+            # per "channel" and never send anything, then report success — coaches thought
+            # they were chasing RSVPs into a void. The task uses the orchestrator's tiered
+            # delivery (push > email > sms) plus interactive Discord DMs, so each player
+            # gets exactly one nudge on their best available channel.
+            from app.tasks.tasks_rsvp_dm_reminders import send_coach_rsvp_reminder
 
-            for player in recipients:
-                # Get user for notification preferences
-                user = session.query(User).get(player.user_id) if player.user_id else None
-
-                if not user:
-                    continue
-
-                # Check each channel
-                if 'discord' in channels and user.discord_notifications and player.discord_id:
-                    # Queue Discord notification (would use existing Discord service)
-                    notifications_queued += 1
-                    if 'discord' not in channels_used:
-                        channels_used.append('discord')
-
-                if 'email' in channels and user.email_notifications and user.email:
-                    # Queue email notification (would use existing email service)
-                    notifications_queued += 1
-                    if 'email' not in channels_used:
-                        channels_used.append('email')
-
-                if 'sms' in channels and user.sms_notifications and player.phone:
-                    # Queue SMS notification (would use existing SMS service)
-                    notifications_queued += 1
-                    if 'sms' not in channels_used:
-                        channels_used.append('sms')
+            recipient_ids = [p.id for p in recipients]
+            send_coach_rsvp_reminder.delay(
+                match_id=match_id,
+                player_ids=recipient_ids,
+                custom_message=custom_message or None,
+                match_type='pub_league',
+            )
+            notifications_queued = len(recipient_ids)
+            channels_used = ['push', 'discord', 'email', 'sms']
 
             logger.info(
-                f"RSVP reminder sent by user {current_user_id} for team {team_id} match {match_id}. "
-                f"Recipients: {len(recipients)}, Channels: {channels_used}"
+                f"RSVP reminder dispatched by user {current_user_id} for team {team_id} "
+                f"match {match_id}. Recipients: {len(recipients)}"
             )
 
             # Engagement: coach proactively chased down RSVPs.
@@ -518,8 +506,11 @@ def send_rsvp_reminder(team_id: int, match_id: int):
 
             return jsonify({
                 "success": True,
-                "message": f"Reminder sent to {len(recipients)} player(s)",
+                # "Sending" not "sent" — delivery happens in Celery, and players who have
+                # snoozed their RSVP reminders are skipped by the task.
+                "message": f"Sending a reminder to {len(recipients)} player(s)",
                 "recipients": len(recipients),
+                "queued": notifications_queued,
                 "channels_used": channels_used,
                 "reminder_message": reminder_message
             }), 200

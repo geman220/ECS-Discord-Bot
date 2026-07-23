@@ -24,6 +24,7 @@
 {% set m = stats.month %}
 {% set m_total = (m.delivered or 0) + (m.failed or 0) %}
 {% set m_rate = m.delivery_rate %}
+{% set m_has_rate = m_rate is not none %}
 <div data-page="sms-analytics">
 
   {% call page_header("SMS Delivery & Costs", subtitle="Is SMS delivering, and what is it costing?") %}
@@ -52,7 +53,9 @@
           <i class="ti ti-message-2-check text-ecs-green" aria-hidden="true"></i>
           <span class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Last 30 days</span>
         </h2>
-        {% if m_rate >= 95 %}
+        {% if not m_has_rate %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-message-off" aria-hidden="true"></i>No SMS sent</span>
+        {% elif m_rate >= 95 %}
           <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Healthy</span>
         {% elif m_rate >= 80 %}
           <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Degraded</span>
@@ -66,15 +69,19 @@
         <div class="xl:col-span-1 p-4 sm:p-6 border-b xl:border-b-0 xl:border-r border-gray-200 dark:border-gray-700">
           <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivery rate</p>
           <div class="mt-2 flex items-end gap-2 flex-wrap">
+            {% if not m_has_rate %}
+            <span class="font-mono text-5xl sm:text-6xl font-bold leading-none text-gray-400">—</span>
+            {% else %}
             <span class="font-mono text-5xl sm:text-6xl font-bold leading-none
               {% if m_rate >= 95 %}text-ecs-green
               {% elif m_rate >= 80 %}text-amber-600 dark:text-amber-400
               {% else %}text-red-600 dark:text-red-400{% endif %}">{{ "%.1f"|format(m_rate) }}<span class="text-2xl sm:text-3xl">%</span></span>
+            {% endif %}
           </div>
           <div class="mt-3 h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
             <div class="h-2 rounded-full w-0
-              {% if m_rate >= 95 %}bg-ecs-green{% elif m_rate >= 80 %}bg-amber-500{% else %}bg-red-500{% endif %}"
-              data-bar-fill data-pct="{{ m_rate|round(1) }}"></div>
+              {% if not m_has_rate %}bg-gray-300 dark:bg-gray-600{% elif m_rate >= 95 %}bg-ecs-green{% elif m_rate >= 80 %}bg-amber-500{% else %}bg-red-500{% endif %}"
+              data-bar-fill data-pct="{{ m_rate|round(1) if m_has_rate else 0 }}"></div>
           </div>
           <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ m.delivered }} / {{ m_total }} confirmed delivered</p>
         </div>
@@ -144,7 +151,9 @@
             <td class="px-3 py-3 text-right font-mono font-semibold text-gray-900 dark:text-white">{{ p.count }}</td>
             <td class="px-3 py-3 text-right font-mono font-medium text-green-600 dark:text-green-400">${{ "%.2f"|format(p.estimated_cost) }}</td>
             <td class="px-4 sm:px-5 py-3 text-right">
-              {% if p.delivery_rate >= 95 %}
+              {% if p.delivery_rate is none %}
+              <span class="font-mono text-gray-400" title="No messages sent in this window">—</span>
+              {% elif p.delivery_rate >= 95 %}
               <span class="inline-flex items-center gap-1 font-mono font-semibold text-green-600 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>{{ p.delivery_rate }}%</span>
               {% elif p.delivery_rate >= 80 %}
               <span class="inline-flex items-center gap-1 font-mono font-semibold text-amber-600 dark:text-amber-400"><i class="ti ti-alert-triangle" aria-hidden="true"></i>{{ p.delivery_rate }}%</span>
@@ -162,7 +171,8 @@
         <div class="px-4 py-3.5">
           <div class="flex items-center justify-between gap-2">
             <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white"><i class="ti {{ w.icon }} text-ecs-green" aria-hidden="true"></i>{{ w.label }}</span>
-            {% if p.delivery_rate >= 95 %}<span class="font-mono font-semibold text-green-600 dark:text-green-400">{{ p.delivery_rate }}%</span>
+            {% if p.delivery_rate is none %}<span class="font-mono text-gray-400">—</span>
+            {% elif p.delivery_rate >= 95 %}<span class="font-mono font-semibold text-green-600 dark:text-green-400">{{ p.delivery_rate }}%</span>
             {% elif p.delivery_rate >= 80 %}<span class="font-mono font-semibold text-amber-600 dark:text-amber-400">{{ p.delivery_rate }}%</span>
             {% else %}<span class="font-mono font-semibold text-red-600 dark:text-red-400">{{ p.delivery_rate }}%</span>{% endif %}
           </div>

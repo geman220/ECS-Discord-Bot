@@ -299,6 +299,14 @@ class CeleryConfig:
             'schedule': crontab(hour=4, minute=0),
             'options': {'queue': 'celery'},
         },
+        # Analytics spine. Runs BEFORE the legacy attendance recompute so the
+        # reports read a rollup that already reflects yesterday's matches. Cheap
+        # (set-based, one statement per season), so a daily cadence is comfortable.
+        'refresh-participation-rollup': {
+            'task': 'app.tasks.tasks_maintenance.refresh_participation_rollup',
+            'schedule': crontab(hour=3, minute=30),
+            'options': {'queue': 'celery'},
+        },
         'expire-past-match-sub-requests': {
             'task': 'app.tasks.tasks_maintenance.expire_past_match_sub_requests',
             'schedule': crontab(hour=3, minute=0),

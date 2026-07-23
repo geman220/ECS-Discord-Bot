@@ -1,8 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'admin_panel/reports/_preview.html' import kpi_tiles, filter_chips %}
+{% from 'admin_panel/reports/_preview.html' import kpi_tiles, scope_bar, week_strip, league_chip, report_avatar %}
 
-{% block admin_title %}Attendance Export{% endblock %}
-{% block panel_description %}RSVP response, attendance, and reliability per player{% endblock %}
+{% block admin_title %}Attendance &amp; Turnout{% endblock %}
+{% block panel_description %}RSVP turnout per player — played matches only, by season and league{% endblock %}
 
 {% block breadcrumb_items %}
 <li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
@@ -11,135 +11,124 @@
     <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Attendance</span></div></li>
 {% endblock %}
 
-{% set label_cls = "block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300" %}
-{% set field_cls = "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green p-2.5" %}
 {% set btn_primary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/30" %}
-{% set btn_secondary = "inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700" %}
-
-{# Segment / league pill helpers — keep current scope, swap one param. #}
-{% set seg_base = "px-3 py-1.5 text-sm font-medium border first:rounded-l-lg last:rounded-r-lg -ml-px first:ml-0 focus:z-10 focus:ring-2 focus:ring-ecs-green/40" %}
-{% set seg_on = "bg-ecs-green text-white border-ecs-green" %}
-{% set seg_off = "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700" %}
+{% set btn_secondary = "inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700" %}
 
 {% block panel_content %}
 {{ kpi_tiles(kpis) }}
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 sm:p-6 border border-gray-200 dark:border-gray-700 space-y-5">
 
-    {# ---- Quick league + segment selectors (link-based, preserve other params) ---- #}
-    <div class="flex flex-col lg:flex-row lg:items-center gap-4 mb-5">
-        <div>
-            <span class="{{ label_cls }}">League</span>
-            <div class="inline-flex flex-wrap" role="group">
-                {% set leagues_nav = [('all','All leagues'), ('pub_league','All Pub League'), ('Premier','Premier'), ('Classic','Classic'), ('ECS FC','ECS FC')] %}
-                {% for val, lbl in leagues_nav %}
-                {% set active = (args.league == val) or (val == 'all' and not args.league) %}
-                <a href="{{ url_for('admin_panel.attendance_report', league=(val if val != 'all' else None), segment=args.segment, metric=args.metric, current_only=args.current_only, min_invited=(args.min_invited or None)) }}"
-                   class="{{ seg_base }} {{ seg_on if active else seg_off }}">{{ lbl }}</a>
-                {% endfor %}
-            </div>
-        </div>
-        <div>
-            <span class="{{ label_cls }}">Segment</span>
-            <div class="inline-flex" role="group">
-                {% set seg_nav = [('all','All'), ('low','Low ≤ ' ~ low_threshold|int ~ '%'), ('high','High ≥ ' ~ high_threshold|int ~ '%')] %}
-                {% for val, lbl in seg_nav %}
-                <a href="{{ url_for('admin_panel.attendance_report', segment=val, league=(args.league or None), metric=args.metric, current_only=args.current_only, min_invited=(args.min_invited or None)) }}"
-                   class="{{ seg_base }} {{ seg_on if args.segment == val else seg_off }}">{{ lbl }}</a>
-                {% endfor %}
-            </div>
-        </div>
-        <div>
-            <span class="{{ label_cls }}">Metric</span>
-            <div class="inline-flex" role="group">
-                {% for val, lbl in [('season','Season'), ('career','Career')] %}
-                <a href="{{ url_for('admin_panel.attendance_report', metric=val, segment=args.segment, league=(args.league or None), current_only=args.current_only, min_invited=(args.min_invited or None)) }}"
-                   class="{{ seg_base }} {{ seg_on if args.metric == val else seg_off }}">{{ lbl }}</a>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
+    {{ scope_bar(scope, 'admin_panel.attendance_report') }}
 
-    {# ---- Full filter form (also drives the Excel export) ---- #}
-    <form method="get" class="space-y-5 border-t border-gray-100 dark:border-gray-700 pt-5">
-        <input type="hidden" name="segment" value="{{ args.segment }}">
-        <input type="hidden" name="metric" value="{{ args.metric }}">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-                <label for="league" class="{{ label_cls }}">Primary League</label>
-                <select id="league" name="league" class="{{ field_cls }}">
-                    <option value="" {{ 'selected' if not args.league }}>All leagues</option>
-                    <option value="pub_league" {{ 'selected' if args.league == 'pub_league' }}>All Pub League (Premier + Classic)</option>
-                    {% for l in leagues %}<option value="{{ l }}" {{ 'selected' if args.league == l }}>{{ l }}</option>{% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="min_invited" class="{{ label_cls }}">Min matches invited</label>
-                <input type="number" min="0" id="min_invited" name="min_invited" value="{{ args.min_invited or '' }}" placeholder="0" class="{{ field_cls }}">
-            </div>
-            <div class="flex items-end">
-                <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                    <input type="checkbox" name="current_only" value="1" {{ 'checked' if args.current_only }} class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green border-gray-300">
-                    Current players only
-                </label>
-            </div>
+    {# ---- secondary controls: min-played, sort, export ---- #}
+    <form method="get" class="flex flex-col sm:flex-row sm:items-end gap-3 flex-wrap">
+        {# preserve scope across the min-played submit #}
+        <input type="hidden" name="season" value="{{ scope.season_param }}">
+        <input type="hidden" name="league" value="{{ scope.league_param }}">
+        {% if scope.include_baseline %}<input type="hidden" name="baseline" value="1">{% endif %}
+        <div>
+            <label for="min_played" class="block mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">Min matches played</label>
+            <input type="number" min="0" id="min_played" name="min_played" value="{{ min_played or '' }}" placeholder="0"
+                   class="w-40 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green p-2">
         </div>
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-            Segments cut on the selected metric: Low is at/below {{ low_threshold|int }}%, High at/above {{ high_threshold|int }}%.
-            Use "min matches invited" to exclude tiny samples.
+        <div class="flex items-center gap-2">
+            <button type="submit" class="{{ btn_secondary }}"><i class="ti ti-filter"></i> Apply</button>
+            <a href="{{ url_for('admin_panel.attendance_export', **scope.as_query_args(min_played=(min_played or none))) }}" class="{{ btn_primary }}">
+                <i class="ti ti-file-spreadsheet"></i> Excel
+            </a>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-gray-500 sm:ml-auto sm:self-center basis-full sm:basis-auto">
+            Turnout = RSVP-yes ÷ matches <strong>played</strong>. Future fixtures are never counted.
         </p>
-        <div class="flex flex-wrap gap-3">
-            <button type="submit" formaction="{{ url_for('admin_panel.attendance_report') }}" class="{{ btn_secondary }}">
-                <i class="ti ti-eye"></i> Apply
-            </button>
-            <button type="submit" formaction="{{ url_for('admin_panel.attendance_export') }}" class="{{ btn_primary }}">
-                <i class="ti ti-file-spreadsheet"></i> Download Excel
-            </button>
-        </div>
     </form>
 
-    {{ filter_chips(chips) }}
-
-    {# ---- Full filtered result set ---- #}
-    <div class="mt-6">
+    {# ---- table ---- #}
+    {% set sortlink = 'text-xs font-medium text-gray-400 hover:text-ecs-green' %}
+    <div>
         <div class="flex items-center justify-between mb-2">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Players</h3>
-            <span class="text-xs text-gray-500 dark:text-gray-400">
-                {% if total_count %}{{ total_count }} player{{ 's' if total_count != 1 else '' }}{% else %}No matching players{% endif %}
-            </span>
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-gray-500 dark:text-gray-400">
+                    {% if total_count %}{{ total_count }} row{{ 's' if total_count != 1 else '' }}{% else %}No matching players{% endif %}
+                </span>
+                <span class="text-xs text-gray-400">·</span>
+                <span class="text-xs text-gray-400">Sort:</span>
+                {% for val, lbl in [('turnout','Turnout'), ('low','Lowest'), ('response','Response'), ('name','Name')] %}
+                <a href="{{ url_for('admin_panel.attendance_report', **scope.as_query_args(min_played=(min_played or none), sort=val)) }}"
+                   class="{{ 'text-xs font-semibold text-ecs-green' if sort == val else sortlink }}">{{ lbl }}</a>
+                {% endfor %}
+            </div>
         </div>
+
         {% if rows %}
         <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
             <table class="min-w-full text-sm text-left">
                 <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
                     <tr>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium">Player</th>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium hidden sm:table-cell">Team</th>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium hidden md:table-cell">League</th>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium text-right hidden md:table-cell">Invited</th>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium text-right {{ '' if args.metric == 'career' else 'text-ecs-green' }}">Season %</th>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium text-right {{ 'text-ecs-green' if args.metric == 'career' else '' }}">Career %</th>
-                        <th class="px-3 py-2 whitespace-nowrap font-medium text-right hidden sm:table-cell">Response %</th>
+                        <th class="px-3 py-2 font-medium">Player</th>
+                        {% if show_season %}<th class="px-3 py-2 font-medium">Season</th>{% endif %}
+                        <th class="px-3 py-2 font-medium hidden md:table-cell">Team</th>
+                        {% if not show_season %}<th class="px-3 py-2 font-medium hidden lg:table-cell">By week</th>{% endif %}
+                        <th class="px-3 py-2 font-medium text-right">Played</th>
+                        <th class="px-3 py-2 font-medium text-right hidden sm:table-cell">Yes</th>
+                        <th class="px-3 py-2 font-medium text-right">Turnout</th>
+                        <th class="px-3 py-2 font-medium text-right hidden sm:table-cell">vs career</th>
+                        <th class="px-3 py-2 font-medium text-right hidden md:table-cell">Response</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                    {% for row in rows %}
+                    {% for r in rows %}
+                    {% set drop = (r.career_turnout - r.turnout_pct) if (r.career_turnout is not none and r.turnout_pct is not none) else none %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                        <td class="px-3 py-2 whitespace-nowrap font-medium text-gray-900 dark:text-white">{{ row['Player'] }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300 hidden sm:table-cell">{{ row['Team'] }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ row['League'] }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right tabular-nums text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ row['Invited'] }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right tabular-nums text-gray-700 dark:text-gray-300">{{ row['Season %'] }}%</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right tabular-nums text-gray-700 dark:text-gray-300">{{ row['Career %'] }}%</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right tabular-nums text-gray-700 dark:text-gray-300 hidden sm:table-cell">{{ row['Response %'] }}%</td>
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <a href="{{ url_for('players.player_profile', player_id=r.player_id) }}" class="flex items-center gap-2.5 group">
+                                {{ report_avatar(r.avatar_url, r.player) }}
+                                <span class="font-medium text-gray-900 dark:text-white group-hover:text-ecs-green">{{ r.player }}</span>
+                                {% if r.was_coach %}<i class="ti ti-whistle text-gray-400 text-xs" title="Coached this team"></i>{% endif %}
+                            </a>
+                        </td>
+                        {% if show_season %}<td class="px-3 py-2 whitespace-nowrap text-gray-500 dark:text-gray-400">{{ r.season_name }}</td>{% endif %}
+                        <td class="px-3 py-2 whitespace-nowrap hidden md:table-cell">
+                            <span class="text-gray-700 dark:text-gray-300">{{ r.team }}</span>
+                            <span class="ml-1">{{ league_chip(r.league) }}</span>
+                        </td>
+                        {% if not show_season %}<td class="px-3 py-2 hidden lg:table-cell">{{ week_strip(r.strip) }}</td>{% endif %}
+                        <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300">{{ r.matches_played }}</td>
+                        <td class="px-3 py-2 text-right tabular-nums text-gray-700 dark:text-gray-300 hidden sm:table-cell">{{ r.rsvp_yes }}</td>
+                        <td class="px-3 py-2 text-right tabular-nums font-semibold">
+                            {% if r.turnout_pct is not none %}
+                            <span class="{{ 'text-red-500' if r.turnout_pct <= 40 else 'text-amber-500' if r.turnout_pct <= 60 else 'text-gray-900 dark:text-white' }}">{{ r.turnout_pct }}%</span>
+                            {% else %}<span class="text-gray-400" title="No matches played yet">—</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right tabular-nums hidden sm:table-cell">
+                            {% if drop is not none and drop >= 10 %}
+                            <span class="text-red-500" title="{{ r.career_turnout }}% career">▼ {{ drop|round|int }}</span>
+                            {% elif drop is not none and drop <= -10 %}
+                            <span class="text-ecs-green" title="{{ r.career_turnout }}% career">▲ {{ (-drop)|round|int }}</span>
+                            {% elif r.career_turnout is not none %}
+                            <span class="text-gray-400" title="{{ r.career_turnout }}% career">±</span>
+                            {% else %}<span class="text-gray-300 dark:text-gray-600">new</span>{% endif %}
+                        </td>
+                        <td class="px-3 py-2 text-right tabular-nums text-gray-500 dark:text-gray-400 hidden md:table-cell">
+                            {{ (r.response_pct ~ '%') if r.response_pct is not none else '—' }}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-400 dark:text-gray-500">
+            <span><i class="inline-block w-2 h-2 rounded-sm bg-ecs-green align-middle"></i> Yes</span>
+            <span><i class="inline-block w-2 h-2 rounded-sm bg-amber-500 align-middle"></i> Maybe</span>
+            <span><i class="inline-block w-2 h-2 rounded-sm bg-red-500 align-middle"></i> No</span>
+            <span><i class="inline-block w-2 h-2 rounded-sm bg-gray-300 dark:bg-gray-600 align-middle"></i> No reply</span>
+            <span class="ml-auto">“vs career” compares this scope to their lifetime turnout (excludes the import-baseline season).</span>
+        </div>
         {% else %}
-        <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            No players match the current filters.
+        <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+            No players match this scope.
+            {% if not scope.is_current %}Try the current season, or widen the league filter.{% endif %}
         </div>
         {% endif %}
     </div>

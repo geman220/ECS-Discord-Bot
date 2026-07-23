@@ -20,6 +20,7 @@
 {{ kpi_tiles(kpis) }}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
     <form method="get" class="space-y-5">
+        <input type="hidden" name="applied" value="1">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
                 <label for="league" class="{{ label_cls }}">Primary League</label>

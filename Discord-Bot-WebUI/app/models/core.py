@@ -374,6 +374,10 @@ class Season(db.Model):
     # is too — Pub League and ECS FC phase independently. Discord teardown is NOT tied to
     # 'offseason'; it happens only at the explicit rollover process.
     phase = db.Column(db.String(16), nullable=False, default='offseason')  # preseason|in_season|break|offseason
+    # Excludes this season from analytics trends/averages by default (with a one-click
+    # include). Set for the 2024 Fall data-import season, whose ~322 availability rows vs
+    # ~3,000 in every later season read as an engagement collapse rather than an artifact.
+    is_analytics_baseline = db.Column(db.Boolean, nullable=False, default=False, server_default='false')
 
     @hybrid_property
     def year(self):

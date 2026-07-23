@@ -440,3 +440,155 @@ def send_rsvp_dm_reminders_manual(self, session):
     """Manual trigger for RSVP DM reminders (for admin testing)."""
     result = send_rsvp_dm_reminders.delay()
     return {'task_id': result.id, 'status': 'dispatched'}
+
+
+@celery_task(max_retries=2, default_retry_delay=120)
+def send_coach_rsvp_reminder(self, session, match_id, player_ids, custom_message=None,
+                             match_type='pub_league'):
+    """Send a coach-initiated RSVP nudge to specific players for ONE match.
+
+    The coach-facing "send reminder" endpoints (app/teams.py and
+    app/mobile_api/coach_rsvp.py) used to build a message, increment a counter and
+    return "Reminder sent to N players" WITHOUT dispatching anything — coaches were
+    chasing RSVPs into the void. Those endpoints now hand off to this task.
+
+    Runs in Celery, not in the request: it makes an HTTP call to the bot API, which
+    must never happen inside an open web transaction (see the PgBouncer transaction
+    budget). Uses the same tiered orchestrator + interactive-button Discord DM path as
+    the scheduled Thursday reminder, so a player gets one nudge on their best channel.
+
+    Deliberately NOT deduped against RsvpDmReminderLog: this is an explicit human
+    action, so a coach asking twice should send twice. Rows are logged with
+    reminder_type-style batch tracking so the manual sends stay auditable.
+    """
+    from app.models import Match, EcsFcMatch, Player, User
+    from app.models.communication import RsvpDmReminderLog
+    from app.services import rsvp_snooze_service
+    from app.services.notification_orchestrator import (
+        orchestrator, NotificationPayload, NotificationType
+    )
+    from web_config import Config
+
+    if not player_ids:
+        return {'success': True, 'sent': 0, 'reason': 'no recipients'}
+
+    try:
+        batch_id = str(uuid.uuid4())
+        bot_api_url = Config.BOT_API_URL
+
+        if match_type == 'ecs_fc':
+            match = session.query(EcsFcMatch).get(match_id)
+        else:
+            match = session.query(Match).get(match_id)
+        if not match:
+            return {'success': False, 'error': f'match {match_id} not found'}
+
+        # Respect an active snooze/break exactly like the scheduled reminder does —
+        # a coach nudge must not punch through a player's opt-out.
+        rsvp_snooze_service.cleanup_expired(session=session)
+        snoozed_ids = rsvp_snooze_service.get_all_snoozed_player_ids(session=session)
+        targets = [
+            p for p in session.query(Player).filter(Player.id.in_(player_ids)).all()
+            if p.id not in snoozed_ids
+        ]
+        snoozed_out = len(player_ids) - len(targets)
+        if not targets:
+            return {'success': True, 'sent': 0, 'snoozed': snoozed_out}
+
+        info = _coach_reminder_match_info(session, match, match_type)
+        body = custom_message or (
+            f"Please RSVP for {info['team_name']} vs {info['opponent_name']} "
+            f"on {info['match_date']} at {info['match_time']}"
+        )
+
+        results = {'batch_id': batch_id, 'orchestrator': 0, 'discord_dm': 0,
+                   'failed': 0, 'snoozed': snoozed_out}
+
+        # Tier 1: push / email / sms via the orchestrator (Discord excluded — below).
+        user_ids = [p.user_id for p in targets if p.user_id]
+        if user_ids:
+            try:
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.RSVP_REMINDER,
+                    title="RSVP Reminder from your coach",
+                    message=body,
+                    user_ids=user_ids,
+                    data={'match_id': match_id, 'match_type': match_type},
+                    priority='high',
+                    action_url='/schedule',
+                    force_discord=False,
+                ))
+                results['orchestrator'] = len(user_ids)
+            except Exception as e:
+                logger.error(f"Coach RSVP reminder orchestrator failed (match {match_id}): {e}")
+                results['failed'] += len(user_ids)
+
+        # Tier 2: interactive Discord DMs with RSVP buttons.
+        if bot_api_url:
+            for player in targets:
+                if not player.discord_id:
+                    continue
+                user = session.query(User).get(player.user_id) if player.user_id else None
+                if user is not None and not getattr(user, 'discord_notifications', True):
+                    continue
+
+                status, error = _send_reminder_dm(bot_api_url, player.discord_id, [info])
+                session.add(RsvpDmReminderLog(
+                    player_id=player.id,
+                    match_id=match_id,
+                    # Log the same match_type the scheduled reminder does ('pub'/'ecs_fc'),
+                    # so the two share one convention in this column.
+                    match_type=info['match_type'],
+                    discord_id=player.discord_id,
+                    delivery_status=status,
+                    error_message=error,
+                    batch_id=batch_id,
+                ))
+                if status == 'sent':
+                    results['discord_dm'] += 1
+                else:
+                    results['failed'] += 1
+                time.sleep(0.3)
+        else:
+            logger.warning("BOT_API_URL not configured - coach RSVP reminder sent without Discord DMs")
+
+        results['success'] = True
+        results['sent'] = results['orchestrator'] + results['discord_dm']
+        logger.info(
+            f"Coach RSVP reminder for match {match_id}: orchestrator={results['orchestrator']}, "
+            f"discord_dm={results['discord_dm']}, failed={results['failed']}, "
+            f"snoozed={snoozed_out}, batch_id={batch_id}"
+        )
+        return results
+
+    except Exception as e:
+        logger.error(f"Error in send_coach_rsvp_reminder (match {match_id}): {e}", exc_info=True)
+        raise self.retry(exc=e)
+
+
+def _coach_reminder_match_info(session, match, match_type):
+    """Shape one match into the dict `_send_reminder_dm` expects."""
+    if match_type == 'ecs_fc':
+        team = match.team
+        return {
+            'match_type': 'ecs_fc',
+            'match_id': match.id,
+            'team_name': team.name if team else 'Your team',
+            'opponent_name': match.opponent_name or 'TBD',
+            'match_date': match.match_date.strftime('%A, %B %d') if match.match_date else 'TBD',
+            'match_time': match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD',
+            'location': match.location or 'TBD',
+        }
+    return {
+        # 'pub', NOT 'pub_league' — the bot's DM label and button custom_id key on
+        # 'pub' (rsvp_reminder_views.py), exactly as the scheduled Thursday reminder
+        # sends it. Using 'pub_league' here made every coach nudge render as an
+        # "ECS FC Match".
+        'match_type': 'pub',
+        'match_id': match.id,
+        'team_name': match.home_team.name if match.home_team else 'Your team',
+        'opponent_name': match.away_team.name if match.away_team else 'TBD',
+        'match_date': match.date.strftime('%A, %B %d') if match.date else 'TBD',
+        'match_time': match.time.strftime('%I:%M %p') if match.time else 'TBD',
+        'location': match.location or 'TBD',
+    }

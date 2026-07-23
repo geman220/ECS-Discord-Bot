@@ -708,6 +708,7 @@ def _get_endpoint_performance_data(date_from, date_to):
         for row in results:
             requests = row.requests or 0
             errors = row.error_count or 0
+            # Idle endpoint = no failures = 100% (kept numeric for %.1f formatting).
             success_rate = ((requests - errors) / requests * 100) if requests > 0 else 100
 
             performance_data.append({
@@ -814,6 +815,9 @@ def _get_endpoint_usage_stats(endpoint_path):
 
         total_requests = total_stats.total or 0
         error_count = total_stats.errors or 0
+        # 100% for an idle endpoint = 'no failures' (uptime-monitor convention), kept
+        # numeric because the template formats it with %.1f; the request count (0)
+        # already signals no traffic.
         success_rate = ((total_requests - error_count) / total_requests * 100) if total_requests > 0 else 100
 
         # Last 24h requests
@@ -876,7 +880,8 @@ def _get_endpoint_usage_stats(endpoint_path):
             'total_requests': 0,
             'avg_response_time': 0,
             'error_count': 0,
-            'success_rate': 100,
+            # 0, not 100 — a failed stats query is not "100% success".
+            'success_rate': 0,
             'last_24h_requests': 0,
             'peak_hour': 'N/A',
             'most_common_errors': []

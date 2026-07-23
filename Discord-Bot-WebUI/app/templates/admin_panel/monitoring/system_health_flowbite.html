@@ -289,7 +289,7 @@
                                 {% else %}text-red-600 dark:text-red-400{% endif %}">{{ performance.database.slow_queries }}</td>
                         </tr>
                         <tr>
-                            <th scope="row" class="px-4 sm:px-5 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Total Queries</th>
+                            <th scope="row" class="px-4 sm:px-5 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Sampled Queries <span class="text-[10px] font-normal text-gray-400">(last ≤100, this worker)</span></th>
                             <td class="px-4 sm:px-5 py-3 text-right font-mono text-base font-bold text-gray-900 dark:text-white">{{ performance.database.total_queries }}</td>
                         </tr>
                         <tr>
@@ -310,7 +310,7 @@
                             <td class="px-4 sm:px-5 py-3 text-right font-mono text-base font-bold text-gray-900 dark:text-white">{{ performance.cache.active_entries }}</td>
                         </tr>
                         <tr>
-                            <th scope="row" class="px-4 sm:px-5 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Cache Size</th>
+                            <th scope="row" class="px-4 sm:px-5 py-3 text-left font-medium text-gray-500 dark:text-gray-400">Cache Size <span class="text-[10px] font-normal text-gray-400">(est., this worker)</span></th>
                             <td class="px-4 sm:px-5 py-3 text-right font-mono text-base font-bold text-gray-900 dark:text-white">{{ performance.cache.cache_size_mb }}<span class="text-xs font-normal text-gray-400 ml-0.5">MB</span></td>
                         </tr>
                         <tr>
@@ -746,7 +746,7 @@
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ performance.database.total_queries }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Queries</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Sampled Queries <span class="text-[10px] text-gray-400">(≤100, this worker)</span></p>
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
                         <p class="text-sm font-medium text-gray-900 dark:text-white">
@@ -768,7 +768,7 @@
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
                         <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ performance.cache.cache_size_mb }}MB</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Cache Size</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Cache Size <span class="text-[10px] text-gray-400">(est., this worker)</span></p>
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
                         <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ performance.cache.expired_entries }}</p>

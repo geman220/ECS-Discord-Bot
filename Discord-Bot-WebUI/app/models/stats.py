@@ -270,19 +270,29 @@ class PlayerAttendanceStats(db.Model):
     def update_stats(self, session=None):
         """Recalculate all statistics from availability data.
 
-        'Matches invited' is the set of matches the player's current team(s)
-        actually played, bounded to those on/after the player's FIRST recorded
-        RSVP (earliest Availability.responded_at) — a proxy for tenure, since no
-        roster join-date is stored. Matches in that window with no yes/no/maybe
-        response count as no-response, so a player who only answered a couple of
-        RSVPs no longer shows an artificial 100% (the denominator was previously
-        just the count of Availability rows, i.e. only games they responded to).
+        'Matches invited' is the set of REGULAR-week matches the player's team(s) have
+        ALREADY PLAYED (Match.date <= today). Matches in that window with no yes/no/maybe
+        response count as a no-response, so a player who answered only a couple of RSVPs
+        does not show an artificial 100% (the denominator was once just the count of
+        Availability rows, i.e. only games they responded to).
+
+        Known remaining limitation: there is no roster join-date, so a player added to a
+        team mid-season is still charged for that team's earlier played matches. The
+        fallback branch approximates tenure with the player's first-ever RSVP, which
+        flatters anyone who ignored their opening weeks. Both go away once per-season
+        participation is tracked at (player, season, league) grain.
         """
         if session is None:
             session = g.db_session
 
         from sqlalchemy import or_
         from app.models.matches import Match, Availability
+
+        # Only matches that have actually been PLAYED can count. Without this bound the
+        # denominator included every unplayed fixture on the calendar as a no-response, so
+        # in week 2 of a 10-week season a perfect attender read ~20% — and in preseason,
+        # when nothing has been played, EVERY player read 0%.
+        today = datetime.utcnow().date()
 
         # Player's current team(s).
         team_ids = [tid for (tid,) in session.query(player_teams.c.team_id)
@@ -312,6 +322,8 @@ class PlayerAttendanceStats(db.Model):
         if pts_team_ids:
             invited_match_ids = [mid for (mid,) in session.query(Match.id).filter(
                 Match.week_type == 'REGULAR',
+                Match.date <= today,
+                Match.home_team_id != Match.away_team_id,
                 or_(Match.home_team_id.in_(pts_team_ids),
                     Match.away_team_id.in_(pts_team_ids))
             ).all()]
@@ -319,6 +331,8 @@ class PlayerAttendanceStats(db.Model):
             invited_match_ids = [mid for (mid,) in session.query(Match.id).filter(
                 or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
                 Match.date >= first_activity.date(),
+                Match.date <= today,
+                Match.home_team_id != Match.away_team_id,
                 Match.week_type == 'REGULAR'
             ).all()]
         else:
@@ -368,10 +382,21 @@ class PlayerAttendanceStats(db.Model):
         # why season attendance read 0% for everyone. Multiple leagues can each have a
         # current season, so we count matches in any of them.
         from app.models.core import Season
-        current_season_ids = [sid for (sid,) in session.query(Season.id)
-                              .filter(Season.is_current.is_(True)).all()]
+        # Season.is_current is per league_type, so Pub League AND ECS FC are both current at
+        # the same time. This query had no ORDER BY, so `[0]` was whichever row Postgres
+        # happened to return — and every coach-dashboard roster join keys on the stamped
+        # current_season_id, silently rendering N/A for a whole league when the other one won.
+        # Stamp the Pub League season deterministically (that is what the roster pages read);
+        # season match counting below still spans every current season.
+        current_rows = (session.query(Season.id, Season.league_type)
+                        .filter(Season.is_current.is_(True))
+                        .order_by(Season.id.desc()).all())
+        current_season_ids = [sid for (sid, _lt) in current_rows]
         if current_season_ids:
-            self.current_season_id = current_season_ids[0]
+            self.current_season_id = next(
+                (sid for (sid, lt) in current_rows if lt == 'Pub League'),
+                current_season_ids[0],
+            )
             self._update_season_stats(session, current_season_ids)
         else:
             self.season_matches_invited = 0
@@ -405,8 +430,11 @@ class PlayerAttendanceStats(db.Model):
                 Schedule.season_id.in_(season_ids),
                 or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
                 Match.date >= first_activity.date(),
+                # Played only — an unplayed fixture is not a missed one.
+                Match.date <= datetime.utcnow().date(),
                 # Real league games only (exclude special weeks / placeholders).
-                Match.week_type == 'REGULAR'
+                Match.week_type == 'REGULAR',
+                Match.home_team_id != Match.away_team_id
             ).all()]
         else:
             season_match_ids = list(responses.keys())

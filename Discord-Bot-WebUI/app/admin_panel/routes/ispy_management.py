@@ -568,16 +568,26 @@ def _get_ispy_analytics():
     active_season = ISpySeason.query.filter_by(is_active=True).first()
     season_id = active_season.id if active_season else None
 
-    total_shots = ISpyShot.query.count()
-    approved_shots = ISpyShot.query.filter_by(status='approved').count()
-    total_players = db.session.query(func.count(func.distinct(ISpyUserStats.discord_id))).scalar() or 0
+    # Scope the overview to the ACTIVE season — these numbers are headlined with the
+    # active season's name, so lifetime totals under that header were misleading.
+    shot_q = ISpyShot.query
+    stats_q = db.session.query(func.count(func.distinct(ISpyUserStats.discord_id)))
+    pts_q = db.session.query(func.avg(ISpyShot.total_points)).filter(ISpyShot.status == 'approved')
+    if season_id:
+        shot_q = shot_q.filter_by(season_id=season_id)
+        stats_q = stats_q.filter(ISpyUserStats.season_id == season_id)
+        pts_q = pts_q.filter(ISpyShot.season_id == season_id)
 
-    # Overall average points per approved shot (real, from total_points on approved shots)
-    avg_points_per_shot = db.session.query(func.avg(ISpyShot.total_points)).filter(
-        ISpyShot.status == 'approved'
-    ).scalar() or 0
+    total_shots = shot_q.count()
+    approved_shots = shot_q.filter_by(status='approved').count()
+    total_players = stats_q.scalar() or 0
+
+    avg_points_per_shot = pts_q.scalar() or 0
     avg_points_per_shot = round(float(avg_points_per_shot), 1)
 
+    # 0 when the season has no shots yet (0 shots => 0% approved; the shot count of 0
+    # signals "no data"). The key fix here was scoping the KPIs to the active season
+    # above, so these no longer read as lifetime totals under the season's name.
     overall_approval_rate = round((approved_shots / total_shots * 100), 1) if total_shots > 0 else 0
 
     # Prior-season approval-rate trend: compare this season's approval rate to the
