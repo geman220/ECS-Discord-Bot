@@ -1,4 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
+{% from 'admin_panel/reports/_preview.html' import info_dot %}
 
 {% block admin_title %}Coach Engagement{% endblock %}
 {% block panel_description %}See which coaches are doing the work — reports, lineups, RSVPs and team chat — vs. coaches in name only{% endblock %}
@@ -283,17 +284,17 @@
         <thead>
           <tr class="text-left text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
             <th class="px-4 sm:px-5 py-2 font-medium">Coach</th>
-            <th class="px-3 py-2 font-medium text-center">Score</th>
-            <th class="px-3 py-2 font-medium w-40">Contribution</th>
-            <th class="px-3 py-2 font-medium text-center">Reports</th>
-            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Verified</th>
-            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups</th>
-            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell" title="Matches where the coach checked players in at the pitch — physical presence">Check-ins</th>
-            <th class="px-3 py-2 font-medium text-center hidden xl:table-cell" title="Substitute requests the coach raised">Subs</th>
-            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">RSVP checks</th>
-            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Reminders</th>
-            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Own RSVP</th>
-            <th class="px-3 py-2 font-medium text-center">Team chat</th>
+            <th class="px-3 py-2 font-medium text-center">Score {{ info_dot('0–100 blend of three pillars: Duties 40% (match reports + lineups + reminders, scaled to how much season has been played), own-RSVP reliability 35%, and reachable-channel chat 25%. Availability is dropped (and the rest re-weighted) before any match is played. These signals measure admin/online activity — they cannot see on-pitch coaching.') }}</th>
+            <th class="px-3 py-2 font-medium w-40">Contribution {{ info_dot('This coach’s share of their team’s total tracked activity. High + a co-coach at ~0 flags a coach carrying the team.') }}</th>
+            <th class="px-3 py-2 font-medium text-center">Reports {{ info_dot('Played matches this coach filed a result for (web or mobile). Counts distinct matches, not events.') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Verified {{ info_dot('Opponent-report verifications this coach signed off — the second half of the two-coach handshake.') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Lineups {{ info_dot('Match lineups this coach created or last edited.') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Check-ins {{ info_dot('Matches where this coach ran player check-in at the pitch. Shown as context — NOT scored, because manual check-in can be entered from anywhere.') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden xl:table-cell">Subs {{ info_dot('Substitute requests this coach raised for their team (web/mobile/Discord). Context, not scored.') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">RSVP checks {{ info_dot('Times the coach opened their team’s RSVP screen. Context only — NOT scored (it was a gaming vector: refreshing a screen).') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Reminders {{ info_dot('RSVP reminders the coach sent their team (these now actually dispatch via push/Discord/email).') }}</th>
+            <th class="px-3 py-2 font-medium text-center hidden md:table-cell">Own RSVP {{ info_dot('The coach’s OWN yes-count for their team’s played matches — do they respond to their own team.') }}</th>
+            <th class="px-3 py-2 font-medium text-center">Team chat {{ info_dot('Messages in this coach’s reachable channels: their team channel + their division + all-coaches channels. General/announcement channels are excluded; a Premier coach isn’t measured against the Classic coaches channel.') }}</th>
             <th class="px-3 py-2 font-medium text-center hidden lg:table-cell">Last seen</th>
             <th class="px-3 sm:px-5 py-2 font-medium text-right">Status</th>
           </tr>

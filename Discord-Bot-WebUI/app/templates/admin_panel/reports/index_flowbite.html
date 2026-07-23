@@ -12,7 +12,7 @@
 </li>
 {% endblock %}
 
-{% from 'admin_panel/reports/_preview.html' import scope_bar, report_avatar, league_chip %}
+{% from 'admin_panel/reports/_preview.html' import scope_bar, report_avatar, league_chip, movement_sankey, cohort_grid_table, info_dot %}
 {% block panel_content %}
 {# ---- tone -> color class maps (kept literal so Tailwind keeps the classes) ---- #}
 {% set tone_icon = {
@@ -55,13 +55,14 @@
 </section>
 
 {# ================= ATTENDANCE (scoped, from the participation spine) ================= #}
-{% macro lane(title, icon, tone, rows, total, why) %}
+{% macro lane(title, icon, tone, rows, total, why, help='') %}
 {% set tone_head = {'crit':'text-red-500','warn':'text-amber-500','info':'text-blue-500'} %}
 {% set tone_cnt  = {'crit':'bg-red-500/10 text-red-500','warn':'bg-amber-500/10 text-amber-500','info':'bg-blue-500/10 text-blue-500'} %}
 <div class="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-gray-50 dark:bg-gray-700/30 flex flex-col">
     <div class="flex items-center gap-2 px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <i class="ti {{ icon }} {{ tone_head[tone] }}"></i>
         <span class="text-sm font-semibold {{ tone_head[tone] }}">{{ title }}</span>
+        {% if help %}{{ info_dot(help) }}{% endif %}
         <span class="ml-auto text-xs font-mono px-2 py-0.5 rounded-full {{ tone_cnt[tone] }}">{{ total }}</span>
     </div>
     <p class="px-3 py-1.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">{{ why }}</p>
@@ -117,15 +118,15 @@
             <div>
                 <div class="grid grid-cols-3 gap-3 mb-4">
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
-                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Turnout</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Turnout {{ info_dot('Total RSVP-“yes” divided by total matches PLAYED (never scheduled-but-unplayed), across every player in this scope. It is match-weighted, not an average of per-player rates.') }}</div>
                         <div class="mt-1 text-2xl font-bold text-ecs-green tabular-nums">{{ (pulse.turnout_pct ~ '%') if pulse.turnout_pct is not none else '—' }}</div>
                     </div>
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
-                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Response</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Response {{ info_dot('Share of played matches that got ANY RSVP (yes, no, or maybe) — i.e. did they answer at all. Higher than turnout because it counts “no” and “maybe” too.') }}</div>
                         <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ (pulse.response_pct ~ '%') if pulse.response_pct is not none else '—' }}</div>
                     </div>
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
-                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Played</div>
+                        <div class="text-[11px] text-gray-500 dark:text-gray-400 uppercase tracking-wide">Played {{ info_dot('Total REGULAR-week matches already played (date has passed) by teams in this scope. Playoffs and special weeks are excluded.') }}</div>
                         <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ pulse.total_played }}</div>
                     </div>
                 </div>
@@ -145,9 +146,9 @@
                     <i class="ti ti-user-search text-gray-400"></i> Needs follow-up
                 </h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {{ lane('Slipping', 'ti-trending-down-2', 'crit', slipping, slipping_total, 'Below their own baseline. Reach out this week.') }}
-                    {{ lane('Chronic', 'ti-alert-triangle', 'warn', chronic, chronic_total, 'Low across their whole career. A drafting signal.') }}
-                    {{ lane('Never replied', 'ti-message-off', 'info', never, never_total, 'No RSVP this season. A contactability problem.') }}
+                    {{ lane('Slipping', 'ti-trending-down-2', 'crit', slipping, slipping_total, 'Below their own baseline. Reach out this week.', lane_help.slipping) }}
+                    {{ lane('Chronic', 'ti-alert-triangle', 'warn', chronic, chronic_total, 'Low across their whole career. A drafting signal.', lane_help.chronic) }}
+                    {{ lane('Never replied', 'ti-message-off', 'info', never, never_total, 'No RSVP this season. A contactability problem.', lane_help.never) }}
                 </div>
             </div>
         </div>
@@ -165,7 +166,11 @@
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_movers }} moved · {{ movement_total }} tracked</span>
         </div>
         <div class="p-4">
-            {% if movement_total %}
+            {% if center_flow and center_flow.bands %}
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ center_flow_from.name }} <i class="ti ti-arrow-right"></i> {{ center_flow_to.name }} —
+                <a href="{{ url_for('admin_panel.movement_report') }}" class="text-ecs-green hover:underline">pick seasons</a></p>
+            {{ movement_sankey(center_flow, center_flow_from, center_flow_to) }}
+            {% elif movement_total %}
             <div class="relative h-64"><canvas id="movementChart"></canvas></div>
             <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Players grouped by their Classic↔Premier path across seasons.</p>
             {% else %}
@@ -224,9 +229,15 @@
         </span>
     </div>
     <div class="p-4">
-        {% if seasons_tracked %}
-        <div class="relative h-72"><canvas id="retentionChart"></canvas></div>
-        <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Roster size, new and lapsed players, and season-over-season retention %.</p>
+        {% if center_cohort_grid and center_cohort_grid.rows %}
+        <div class="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Of the players who <strong>joined</strong> each season, how many are still rostered later.</p>
+            {% if center_cohort_grid.avg_next is not none %}
+            <span class="text-xs text-gray-500 dark:text-gray-400">Avg season-2 <span class="font-mono font-semibold text-ecs-green">{{ center_cohort_grid.avg_next }}%</span></span>
+            {% endif %}
+        </div>
+        {{ cohort_grid_table(center_cohort_grid) }}
+        <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">First column = cohort size; the rest are retention %. <span class="text-amber-500">2024 Fall</span> import baseline is hatched and excluded from the average. <a href="{{ url_for('admin_panel.retention_report') }}" class="text-ecs-green hover:underline">Full retention report</a>.</p>
         {% else %}
         <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
             Not enough season history to compute retention.

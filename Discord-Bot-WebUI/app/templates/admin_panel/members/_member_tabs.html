@@ -1,0 +1,26 @@
+{#- Shared Members command-center tab bar.
+
+   Rendered by BOTH the worklist and the Analytics view so the tab set can never
+   drift between them. `tab` = the active key; `counts` = the queue badge numbers.
+   The Analytics tab carries no badge (it's a summary view, not a work queue), so
+   its count is `none` and the badge is skipped. -#}
+{% macro member_tabs(tab, counts) %}
+  {% set _tabs = [
+    ('all', 'All Members', counts.all, 'ti-users'),
+    ('pending', 'Pending Approval', counts.pending, 'ti-user-question'),
+    ('waitlist', 'Waitlist', counts.waitlist, 'ti-clock'),
+    ('subs', 'Subs', counts.subs, 'ti-arrows-shuffle'),
+    ('quick', 'Quick Profiles', counts.quick, 'ti-id'),
+    ('analytics', 'Analytics', none, 'ti-chart-line'),
+  ] %}
+  <div class="border-b border-gray-200 dark:border-gray-700 flex items-center gap-1 overflow-x-auto">
+    {% for key, label, count, icon in _tabs %}
+    <a href="{{ url_for('admin_panel.members_worklist', tab=key) }}"
+       class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
+       {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
+      <i class="ti {{ icon }}"></i>{{ label }}
+      {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+{% endmacro %}

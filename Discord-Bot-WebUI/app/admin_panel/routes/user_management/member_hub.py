@@ -184,6 +184,16 @@ def members_worklist():
     all_leagues = (db.session.query(League).options(joinedload(League.teams))
                    .join(Season).filter(Season.is_current == True).order_by(League.name).all())
 
+    # ---- Analytics view (folded in from the old /users/analytics page) ----
+    # The user-ACCOUNT lifecycle: growth, approval funnel, role/league mix. It lives
+    # here beside the intake queues it summarizes, sharing the same shell + tab bar.
+    # Early-return before the per-tab worklist queries — none of them apply.
+    if tab == 'analytics':
+        from app.admin_panel.routes.user_management.helpers import get_user_analytics
+        return render_template('admin_panel/members/analytics_flowbite.html',
+                               tab='analytics', counts=counts, stats=stats,
+                               analytics_data=get_user_analytics())
+
     users, profiles, pagination, sub_summary = [], [], None, {}
 
     if tab == 'waitlist':

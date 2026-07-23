@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
+{% from 'admin_panel/members/_member_tabs.html' import member_tabs %}
 
 {% block admin_title %}Members{% endblock %}
 {% block panel_description %}The unified member command center — every member, plus approvals, waitlist, subs and quick profiles in one place.{% endblock %}
@@ -20,15 +21,6 @@
 {% endblock %}
 
 {% block panel_content %}
-{#- ============================ macros ============================ -#}
-{% macro tablink(key, label, count, icon) %}
-<a href="{{ url_for('admin_panel.members_worklist', tab=key) }}"
-   class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
-   {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
-  <i class="ti {{ icon }}"></i>{{ label }}
-  <span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>
-</a>
-{% endmacro %}
 
 {% macro avatar(player, name, size='w-10 h-10') %}
 {% if player and player.profile_picture_url %}
@@ -82,13 +74,7 @@
   </div>
 
   <!-- ===== tabs ===== -->
-  <div class="border-b border-gray-200 dark:border-gray-700 flex items-center gap-1 overflow-x-auto">
-    {{ tablink('all', 'All Members', counts.all, 'ti-users') }}
-    {{ tablink('pending', 'Pending Approval', counts.pending, 'ti-user-question') }}
-    {{ tablink('waitlist', 'Waitlist', counts.waitlist, 'ti-clock') }}
-    {{ tablink('subs', 'Subs', counts.subs, 'ti-arrows-shuffle') }}
-    {{ tablink('quick', 'Quick Profiles', counts.quick, 'ti-id') }}
-  </div>
+  {{ member_tabs(tab, counts) }}
 
   <!-- ===== contextual tip (changes per tab) ===== -->
   {% set tips = {

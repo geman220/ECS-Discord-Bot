@@ -10,14 +10,13 @@ Routes for user analytics and export:
 
 import logging
 
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import request, jsonify, redirect, url_for
 from flask_login import login_required, current_user
 
 from app.admin_panel import admin_panel_bp
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
 from app.admin_panel.routes.user_management.helpers import (
-    get_user_analytics,
     generate_user_export_data,
     get_registration_trends,
 )
@@ -29,21 +28,15 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def user_analytics():
-    """Advanced user analytics dashboard."""
-    try:
-        # Get comprehensive analytics data
-        analytics_data = get_user_analytics()
+    """Legacy user-analytics dashboard — now folded into the Members command center.
 
-        if not analytics_data:
-            flash('User analytics returned no data. Check application logs for details.', 'error')
-            return redirect(url_for('admin_panel.users_comprehensive'))
-
-        return render_template('admin_panel/users/analytics_flowbite.html',
-                               analytics_data=analytics_data)
-    except Exception as e:
-        logger.error(f"Error loading user analytics: {e}", exc_info=True)
-        flash('User analytics unavailable. Verify database connection and analytics data.', 'error')
-        return redirect(url_for('admin_panel.users_comprehensive'))
+    The account-lifecycle analytics live at Members → Analytics so they sit beside
+    the intake queues they summarize. The endpoint name is kept so any lingering
+    bookmark or url_for('admin_panel.user_analytics') lands on the new surface; the
+    old standalone template is retired. The JSON/export endpoints below are unchanged
+    (the new view calls the same ones).
+    """
+    return redirect(url_for('admin_panel.members_worklist', tab='analytics'))
 
 
 @admin_panel_bp.route('/users/analytics/registration-trends')

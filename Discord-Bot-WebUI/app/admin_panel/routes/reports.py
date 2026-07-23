@@ -193,6 +193,25 @@ def _preview(rows):
     return rows[:PREVIEW_LIMIT]
 
 
+def _attach_avatars(session, rows, id_key='_player_id'):
+    """Set ``_avatar_url`` on each row from its ``_player_id`` (128px variant).
+
+    Batch-fetched in one query, and only for the (already small) preview rows, so
+    every report table can show a player photo without an N+1. Rows without a
+    player id are left untouched.
+    """
+    ids = {r[id_key] for r in rows if r.get(id_key)}
+    if not ids:
+        return rows
+    amap = {p.id: p.avatar_image_url
+            for p in session.query(Player).filter(Player.id.in_(ids)).all()}
+    for r in rows:
+        pid = r.get(id_key)
+        if pid in amap:
+            r['_avatar_url'] = amap[pid]
+    return rows
+
+
 def _pct(part, whole):
     return round(part / whole * 100, 1) if whole else 0.0
 
@@ -266,6 +285,21 @@ def reports_center():
     never = lanes['never']
     scope_args = scope.as_query_args()
 
+    # Exact thresholds, pulled from the service constants so the on-screen
+    # explanation can never drift from the logic that actually flags a player.
+    from app.services import attendance_analytics as _aa
+    lane_help = {
+        'slipping': (f"Flagged when this-season turnout is at least {_aa.SLIPPING_DROP_PP:.0f} "
+                     f"percentage points below their own career average — over at least "
+                     f"{_aa.SLIPPING_MIN_SEASON} matches this season, and with a career baseline of "
+                     f"at least {_aa.SLIPPING_MIN_CAREER} matches. It's a recent drop, not a lifelong low."),
+        'chronic': (f"Career turnout at or below {_aa.CHRONIC_MAX_PCT:.0f}% over at least "
+                    f"{_aa.CHRONIC_MIN_CAREER} matches — consistently low, a drafting signal rather "
+                    f"than a welfare check."),
+        'never': (f"No RSVP at all this season across at least {_aa.NEVER_MIN_PLAYED} played matches "
+                  f"— a contactability gap (no Discord/phone), not an attendance one."),
+    }
+
     # ---- Player Movement ---------------------------------------------------
     movement_rows = _movement_records(session, movers_only=False)
     movement_counts = {c: 0 for c in MOVEMENT_CATEGORIES}
@@ -280,6 +314,14 @@ def reports_center():
         'labels': MOVEMENT_CATEGORIES,
         'counts': [movement_counts[c] for c in MOVEMENT_CATEGORIES],
     }
+
+    # Season-to-season flow (the Sankey), same as the Movement report — surfaced
+    # on the center so its best visual isn't hidden behind a click.
+    pub_seasons = _pub_league_seasons(session)
+    center_flow = center_flow_from = center_flow_to = None
+    if len(pub_seasons) >= 2:
+        center_flow = _movement_flow(session, pub_seasons[-2].id, pub_seasons[-1].id)
+        center_flow_from, center_flow_to = pub_seasons[-2], pub_seasons[-1]
 
     # ---- Discipline (all-time across seasons) ------------------------------
     discipline_rows = _build_discipline(session, season_id=None)
@@ -296,6 +338,7 @@ def reports_center():
 
     # ---- Retention / Churn (season over season) ----------------------------
     retention_rows = _build_retention(session)
+    center_cohort_grid = _retention_cohort_grid(session)  # the cohort grid for the center
     latest_ret = retention_rows[-1] if retention_rows else None
     numeric_ret = [r['Retention % (of prior)'] for r in retention_rows
                    if isinstance(r['Retention % (of prior)'], (int, float))]
@@ -355,6 +398,7 @@ def reports_center():
         # attendance — scoped, from the spine
         scope=scope,
         pulse=pulse,
+        lane_help=lane_help,
         attendance_chart=attendance_chart,
         attendance_total=len(att_rows),
         slipping=slipping[:TOP_N], slipping_total=len(slipping),
@@ -364,6 +408,9 @@ def reports_center():
         movement_chart=movement_chart,
         movement_total=len(movement_rows),
         total_movers=total_movers,
+        center_flow=center_flow,
+        center_flow_from=center_flow_from,
+        center_flow_to=center_flow_to,
         # discipline
         discipline_chart=discipline_chart,
         total_yellow=total_yellow,
@@ -373,6 +420,7 @@ def reports_center():
         top_offenders=top_offenders,
         # retention
         retention_chart=retention_chart,
+        center_cohort_grid=center_cohort_grid,
         latest_retention=latest_ret,
         avg_retention=_avg(numeric_ret),
         seasons_tracked=len(retention_rows),
@@ -502,7 +550,7 @@ def player_stats_report():
         args=args,
         kpis=kpis,
         chips=chips,
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
         preview_label='Career totals' if primary == 'career' else 'Season-by-season',
     )
@@ -920,7 +968,7 @@ def movement_report():
         flow_from=flow_from,
         flow_to=flow_to,
         pub_seasons=[{'id': s.id, 'name': s.name} for s in pub_seasons],
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
     )
 
@@ -1108,7 +1156,7 @@ def retention_report():
             'admin_panel/reports/retention_flowbite.html',
             detail_mode=True,
             detail_title=f"{cohort_label} players — {_season_name(session, season_id)}",
-            preview_rows=detail_rows,
+            preview_rows=_attach_avatars(g.db_session, detail_rows),
             total_count=len(detail_rows),
         )
 
@@ -1136,7 +1184,7 @@ def retention_report():
         chart_data=chart_data,
         cohort_grid=cohort_grid,
         summary_rows=rows,
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
     )
 
@@ -1215,7 +1263,7 @@ def roster_history_report():
         args={'season_id': season_id},
         kpis=kpis,
         chips=chips,
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
     )
 
@@ -1317,6 +1365,11 @@ def leaderboards_report():
     if min_goals:
         chips.append(f"Min {min_goals} goals")
 
+    # Top-3 podium — a leaderboard IS a ranking, so lead with the medal spots.
+    metric_col = {'goals': 'Goals', 'assists': 'Assists',
+                  'yellow': 'Yellow Cards', 'red': 'Red Cards'}.get(sort, 'Goals')
+    podium = _attach_avatars(session, [dict(r) for r in rows[:3]])
+
     return render_template(
         'admin_panel/reports/leaderboards_flowbite.html',
         seasons=_all_seasons(session),
@@ -1324,7 +1377,9 @@ def leaderboards_report():
         args={'season_id': season_id, 'league_name': league_name, 'sort': sort, 'min_goals': min_goals},
         kpis=kpis,
         chips=chips,
-        preview_rows=_preview(rows),
+        podium=podium,
+        metric_col=metric_col,
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
     )
 
@@ -1499,7 +1554,7 @@ def standings_report():
         args={'season_id': season_id, 'league_name': league_name},
         kpis=kpis,
         chips=chips,
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
         highlight_top=1,
     )
@@ -1620,7 +1675,7 @@ def discipline_report():
         args={'season_id': season_id, 'card_type': card_type, 'reason': reason},
         kpis=kpis,
         chips=chips,
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
     )
 
@@ -1733,7 +1788,7 @@ def contactability_report():
         args={'league_name': league_name, 'current_only': current_only, 'segment': segment},
         kpis=kpis,
         chips=chips,
-        preview_rows=_preview(rows),
+        preview_rows=_attach_avatars(g.db_session, _preview(rows)),
         total_count=len(rows),
     )
 

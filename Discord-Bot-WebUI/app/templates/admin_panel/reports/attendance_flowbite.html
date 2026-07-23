@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'admin_panel/reports/_preview.html' import kpi_tiles, scope_bar, week_strip, league_chip, report_avatar %}
+{% from 'admin_panel/reports/_preview.html' import kpi_tiles, scope_bar, week_strip, league_chip, report_avatar, info_dot %}
 
 {% block admin_title %}Attendance &amp; Turnout{% endblock %}
 {% block panel_description %}RSVP turnout per player — played matches only, by season and league{% endblock %}
@@ -70,11 +70,11 @@
                         {% if show_season %}<th class="px-3 py-2 font-medium">Season</th>{% endif %}
                         <th class="px-3 py-2 font-medium hidden md:table-cell">Team</th>
                         {% if not show_season %}<th class="px-3 py-2 font-medium hidden lg:table-cell">By week</th>{% endif %}
-                        <th class="px-3 py-2 font-medium text-right">Played</th>
+                        <th class="px-3 py-2 font-medium text-right">Played {{ info_dot('REGULAR-week matches this player’s team(s) have already played (date passed). Never counts scheduled-but-unplayed fixtures.') }}</th>
                         <th class="px-3 py-2 font-medium text-right hidden sm:table-cell">Yes</th>
-                        <th class="px-3 py-2 font-medium text-right">Turnout</th>
-                        <th class="px-3 py-2 font-medium text-right hidden sm:table-cell">vs career</th>
-                        <th class="px-3 py-2 font-medium text-right hidden md:table-cell">Response</th>
+                        <th class="px-3 py-2 font-medium text-right">Turnout {{ info_dot('RSVP-“yes” ÷ matches played. This is a promise to attend, not a check-in — the “show rate” (physical check-in) is separate and shows only where check-in data exists.') }}</th>
+                        <th class="px-3 py-2 font-medium text-right hidden sm:table-cell">vs career {{ info_dot('This scope’s turnout minus their lifetime turnout (all seasons/leagues, excluding the import-baseline season). ▼ = down vs their own norm, ▲ = up.') }}</th>
+                        <th class="px-3 py-2 font-medium text-right hidden md:table-cell">Response {{ info_dot('Share of played matches they answered at all (yes/no/maybe). Higher than turnout because it counts “no” and “maybe”.') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">

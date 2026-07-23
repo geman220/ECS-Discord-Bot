@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'admin_panel/reports/_preview.html' import preview_table, kpi_tiles, filter_chips %}
+{% from 'admin_panel/reports/_preview.html' import preview_table, kpi_tiles, filter_chips, report_avatar, league_chip %}
 
 {% block admin_title %}Leaderboards Export{% endblock %}
 {% block panel_description %}Top scorers, assists, and discipline for a season or all-time{% endblock %}
@@ -66,6 +66,27 @@
     </form>
 
     {{ filter_chips(chips) }}
+
+    {# ---- Top-3 podium (a leaderboard is a ranking, so lead with the medals) ---- #}
+    {% if podium %}
+    {% set medal = {0: ['#facc15','2','order-2 sm:-mt-4','🥇'], 1: ['#cbd5e1','1','order-1','🥈'], 2: ['#d19a66','3','order-3','🥉'] } %}
+    <div class="grid grid-cols-3 gap-3 sm:gap-5 mb-6 items-end">
+        {% for p in podium %}
+        <a href="{{ url_for('players.player_profile', player_id=p['_player_id']) if p.get('_player_id') else '#' }}"
+           class="{{ medal[loop.index0][2] }} group flex flex-col items-center text-center rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 sm:p-4 hover:border-ecs-green hover:shadow-md transition">
+            <div class="relative">
+                {{ report_avatar(p.get('_avatar_url'), p['Player'], size='w-14 h-14 sm:w-16 sm:h-16') }}
+                <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background: {{ medal[loop.index0][0] }}">{{ medal[loop.index0][1] }}</span>
+            </div>
+            <p class="mt-2.5 text-sm font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green truncate max-w-full">{{ p['Player'] }}</p>
+            {% if p.get('Team') %}<p class="text-[11px] text-gray-400 truncate max-w-full">{{ p['Team'] }}</p>{% endif %}
+            <p class="mt-1.5 font-mono text-2xl sm:text-3xl font-bold text-ecs-green tabular-nums">{{ p[metric_col] }}</p>
+            <p class="text-[10px] uppercase tracking-wide text-gray-400">{{ metric_col }}</p>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     {{ preview_table(preview_rows, total_count, highlight_top=3) }}
 </div>
 {% endblock %}
