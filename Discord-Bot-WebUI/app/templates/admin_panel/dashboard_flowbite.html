@@ -219,7 +219,7 @@
           <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
           {% endif %}
         </a>
-        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+        <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
            class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-shield-check text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">Roles</span>
@@ -482,7 +482,7 @@
                 <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
                 {% endif %}
             </a>
-            <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <a href="{{ url_for('admin_panel.access_control', tab='roles') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                 <i class="ti ti-shield-check text-gray-400 group-hover:text-ecs-green"></i>
                 <span class="text-gray-700 dark:text-gray-300">Roles</span>
                 <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>

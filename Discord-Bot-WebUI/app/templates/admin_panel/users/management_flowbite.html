@@ -96,7 +96,7 @@
 
       {% call section_card('Role Management', icon='ti-shield-check') %}
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
-        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+        <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
            class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green flex items-center justify-center"><i class="ti ti-shield-check" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
@@ -105,7 +105,7 @@
           </span>
           <i class="ti ti-external-link text-gray-400 shrink-0" aria-hidden="true"></i>
         </a>
-        <a href="{{ url_for('admin_panel.roles_management') }}"
+        <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
            class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green flex items-center justify-center"><i class="ti ti-shield" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
@@ -342,7 +342,7 @@
     <!-- Role Management Card -->
     {% call card(title="Role Management", subtitle="Manage user roles and permissions") %}
     <div class="space-y-1">
-        <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+        <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
            class="flex items-center justify-between p-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors">
             <div class="flex items-center gap-3">
                 <i class="ti ti-shield-check"></i>
@@ -351,7 +351,7 @@
             <i class="ti ti-external-link"></i>
         </a>
 
-        <a href="{{ url_for('admin_panel.roles_management') }}"
+        <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
            class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
             <div class="flex items-center gap-3">
                 <i class="ti ti-shield text-ecs-green"></i>

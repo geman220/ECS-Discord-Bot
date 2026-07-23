@@ -944,45 +944,15 @@ def discord_stats_api():
 @login_required
 @role_required(['Global Admin'])
 def discord_role_mapping():
-    """Role mapping page - map Flask roles to Discord roles."""
-    from app.models import Role
-    from app.services.discord_role_sync_service import (
-        fetch_discord_roles_sync, CANONICAL_DISCORD_ROLE_MAP
-    )
+    """Legacy Discord role-mapping page — folded into the Access Control center.
 
-    session = g.db_session
-
-    # Get all Flask roles
-    flask_roles = session.query(Role).order_by(Role.name).all()
-
-    # Flask role names that are EXPECTED to have a Discord counterpart. Any role
-    # not in this set is an app-only permission role and should not read as a
-    # broken/unmapped to-do in the UI.
-    discord_mappable_names = list(CANONICAL_DISCORD_ROLE_MAP.keys())
-
-    # Get Discord roles from bot API via sync service
-    discord_roles = []
-    bot_status = 'offline'
-    guild_name = ''
-
-    try:
-        discord_roles = fetch_discord_roles_sync()
-        if discord_roles:
-            bot_status = 'online'
-            # Try to get guild name from first role or config
-            if discord_roles:
-                guild_name = 'Connected'  # Could be enhanced to get actual guild name
-    except Exception as e:
-        logger.warning(f"Could not fetch Discord roles: {e}")
-
-    return render_template(
-        'admin_panel/discord/role_mapping_flowbite.html',
-        flask_roles=flask_roles,
-        discord_roles=discord_roles,
-        discord_mappable_names=discord_mappable_names,
-        bot_status=bot_status,
-        guild_name=guild_name
-    )
+    Mapping now lives at Access Control → Discord mapping (alongside Roles &
+    Permissions, which all edit the same Role). The endpoint name is kept so any
+    lingering link lands on the new surface. The mapping action endpoints below
+    (update/auto-map/sync/preview/create-role) are unchanged — the Access Control
+    page calls them directly.
+    """
+    return redirect(url_for('admin_panel.access_control', tab='discord'))
 
 
 @admin_panel_bp.route('/discord/role-mapping/update', methods=['POST'])

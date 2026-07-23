@@ -1,0 +1,61 @@
+{#- System Command Center — shared tab bar + honesty/explainer helpers.
+
+   Mirrors admin_panel/members/_member_tabs.html: tabs are <a href="?tab=key">,
+   active tab = border-ecs-green text-ecs-green. `tab` is the active key; `counts`
+   carries the badge numbers (services / jobs / security). Only meaningful badges
+   render; the rest are `none` and skipped. -#}
+{% macro system_tabs(tab, counts) %}
+  {% set _tabs = [
+    ('overview', 'Overview', none, 'ti-heartbeat'),
+    ('services', 'Services', counts.services, 'ti-server-2'),
+    ('perf', 'Performance', none, 'ti-gauge'),
+    ('jobs', 'Jobs & Queues', counts.jobs, 'ti-list-check'),
+    ('data', 'Data & Cache', none, 'ti-database'),
+    ('security', 'Security', counts.security, 'ti-shield-check'),
+    ('logs', 'Logs & Audit', none, 'ti-file-text'),
+    ('api', 'API Traffic', none, 'ti-plug'),
+  ] %}
+  <div class="border-b border-gray-200 dark:border-gray-700 flex items-center gap-1 overflow-x-auto">
+    {% for key, label, count, icon in _tabs %}
+    <a href="{{ url_for('admin_panel.system_center', tab=key) }}"
+       class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
+       {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
+      <i class="ti {{ icon }}"></i>{{ label }}
+      {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+{% endmacro %}
+
+
+{#- honesty_badge(kind) — a small uppercase tag flagging a value that isn't the
+   whole-fleet truth. `kind` is one of the keys below; unknown kinds render nothing. -#}
+{% macro honesty_badge(kind) %}
+  {% set _kinds = {
+    'per-worker': ('PER-WORKER', 'Reflects only the worker that served this page, not the whole fleet'),
+    'estimated':  ('ESTIMATED', 'Derived/estimated, not directly measured'),
+    'stub':       ('STUB', 'No live source wired yet'),
+    'api-only':   ('API-ONLY', 'Covers /api/* traffic only; web + static not counted'),
+  } %}
+  {% set b = _kinds.get(kind) %}
+  {% if b %}
+  <span title="{{ b[1] }}"
+        class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide
+               bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 align-middle">{{ b[0] }}</span>
+  {% endif %}
+{% endmacro %}
+
+
+{#- explainer(title) — a "What am I looking at?" <details> disclosure. Use with
+   {% call %} to supply the body. Put one on EVERY panel. -#}
+{% macro explainer(title='What am I looking at?') %}
+<details class="group mt-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+  <summary class="flex items-center gap-2 px-3 py-2 cursor-pointer text-xs font-medium text-gray-600 dark:text-gray-300 select-none">
+    <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i>{{ title }}
+    <i class="ti ti-chevron-down text-[11px] ms-auto transition-transform group-open:rotate-180" aria-hidden="true"></i>
+  </summary>
+  <div class="px-3 pb-3 pt-0 text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+    {{ caller() }}
+  </div>
+</details>
+{% endmacro %}

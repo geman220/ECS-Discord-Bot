@@ -169,13 +169,17 @@
     <span class="text-xs text-gray-500 dark:text-gray-400">Toggle a cell to grant/revoke for that role. Changes save immediately.</span>
   </div>
 
-  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-x-auto">
+  {% set kind_dot = {'admin':'#b91c1c','coach':'#b45309','league':'#1a472a','sub':'#2563eb','referee':'#4f46e5','other':'#6b7280'} %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-auto max-h-[72vh]">
     <table class="w-full text-sm border-collapse" style="min-width: 720px">
       <thead>
         <tr>
-          <th class="sticky left-0 z-20 bg-gray-50 dark:bg-gray-700/60 border-b border-r border-gray-200 dark:border-gray-700 text-left px-4 py-2.5 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold" style="min-width:260px">Permission · what it impacts</th>
+          <th class="sticky top-0 left-0 z-30 bg-gray-100 dark:bg-gray-700 border-b border-r border-gray-200 dark:border-gray-600 text-left px-4 py-2.5 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold" style="min-width:260px">Permission · what it impacts</th>
           {% for role in matrix.roles %}
-          <th class="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/60 text-center px-2 py-2.5 text-[11px] text-gray-600 dark:text-gray-300 font-semibold whitespace-nowrap" title="{{ role.name }}">{{ role.label }}</th>
+          <th data-ac-col="{{ role.id }}" title="{{ role.name }} — click to highlight this column"
+              class="ac-col-head sticky top-0 z-20 bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 text-center px-2 py-2.5 text-[11px] text-gray-600 dark:text-gray-300 font-semibold whitespace-nowrap cursor-pointer select-none hover:bg-gray-200 dark:hover:bg-gray-600">
+            <span class="inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle" style="background: {{ kind_dot.get(role.kind, '#6b7280') }}"></span>{{ role.label }}
+          </th>
           {% endfor %}
         </tr>
       </thead>
@@ -188,20 +192,22 @@
         <tr class="ac-perm-row hover:bg-gray-50 dark:hover:bg-gray-700/30 border-b border-gray-100 dark:border-gray-700" data-perm="{{ row.name|lower }} {{ row.label|lower }} {{ row.impacts|lower }}">
           <td class="sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 px-4 py-2.5" style="min-width:260px">
             <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
-              {% if row.enforced %}<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Enforced — really gates behavior"></span>
-              {% else %}<span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Decorative — exists but gates nothing in code"></span>{% endif %}
+              {% if row.enforced and row.seeded %}<span class="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Live — enforced in code AND present in the DB"></span>
+              {% elif row.enforced %}<span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Enforced in code but missing from the DB — run the reconcile/seed"></span>
+              {% else %}<span class="w-1.5 h-1.5 rounded-full bg-gray-400" title="Decorative — a DB row that no code checks"></span>{% endif %}
               {{ row.label }}
-              {% if not row.enforced %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">gates nothing</span>{% endif %}
+              {% if row.enforced and not row.seeded %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" title="Code checks this permission, but there’s no DB row yet, so it can’t be granted. Run the reconcile.">not in DB</span>
+              {% elif not row.enforced %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">gates nothing</span>{% endif %}
             </div>
             <div class="text-[11.5px] text-gray-500 dark:text-gray-400 mt-0.5">{{ row.impacts }}</div>
             <div class="text-[10px] font-mono text-gray-400 mt-0.5">{{ row.name }}</div>
           </td>
           {% for role in matrix.roles %}
           {% set locked = (role.name == 'Global Admin') %}
-          <td class="text-center border-b border-gray-100 dark:border-gray-700 px-2 py-2.5">
+          <td data-ac-col="{{ role.id }}" class="ac-col-cell text-center border-b border-gray-100 dark:border-gray-700 px-2 py-2.5">
             <label class="ac-switch relative inline-block w-[38px] h-[21px] align-middle {{ 'opacity-50 cursor-not-allowed' if locked else 'cursor-pointer' }}">
               <input type="checkbox" class="ac-perm-toggle sr-only peer" {{ 'checked' if (locked or row.granted[role.id]) else '' }} {{ 'disabled' if locked else '' }}
-                     data-role-id="{{ role.id }}" data-perm="{{ row.name }}" {{ 'data-seeded=1' if row.enforced else '' }}>
+                     data-role-id="{{ role.id }}" data-perm="{{ row.name }}" {{ 'data-seeded=1' if row.seeded else '' }}>
               <span class="absolute inset-0 rounded-full bg-gray-200 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 peer-checked:bg-ecs-green peer-checked:border-ecs-green transition"></span>
               <span class="absolute top-[2.5px] left-[2.5px] w-[15px] h-[15px] rounded-full bg-white shadow peer-checked:translate-x-[16px] transition"></span>
             </label>
@@ -214,13 +220,27 @@
   </div>
   <div class="flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 dark:text-gray-400 px-1">
     <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Enforced — really gates behavior</span>
-    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Decorative — exists but gates nothing</span>
-    <span class="inline-flex items-center gap-1.5"><i class="ti ti-lock text-gray-400"></i> Global Admin is always allowed (locked)</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Decorative — gates nothing</span>
+    <span class="inline-flex items-center gap-1.5">Column dot = role type:</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#b91c1c"></span> Admin</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#b45309"></span> Coach</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#1a472a"></span> League</span>
+    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full" style="background:#2563eb"></span> Sub</span>
+    <span class="inline-flex items-center gap-1.5"><i class="ti ti-pointer text-gray-400"></i> Click a column header to highlight it</span>
   </div>
+
+  <div class="rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-900/20 px-4 py-3 text-sm text-gray-800 dark:text-gray-100 flex items-start gap-3">
+    <i class="ti ti-arrows-join text-blue-500 text-lg mt-0.5 shrink-0"></i>
+    <div class="space-y-1">
+      <p class="font-semibold">Access is additive — a person gets the sum of ALL their roles.</p>
+      <p class="text-gray-600 dark:text-gray-300">This grid shows each role on its own. Most people hold several roles at once — e.g. a <strong>Pub League Admin</strong> who is also a <strong>Premier Player</strong> gets every permission either column grants. So an empty cell in one role column doesn’t mean the person lacks it — check their other roles too. Use the <strong>column highlight</strong> (click headers) to trace the roles a given person holds, or the seeded <strong>Global Admin</strong> column (always granted everything) as the “can do anything” baseline.</p>
+    </div>
+  </div>
+
   <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
     <p class="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-1.5"><i class="ti ti-info-circle"></i>What this matrix controls</p>
-    <p>A permission gates fine-grained <strong>content</strong> (e.g. seeing a player’s admin notes, editing stats, reporting a match) — not whether someone can open an admin page (that’s role-based). Granting is per-role and applies to everyone with that role.</p>
-    <p><strong>Heads-up:</strong> a Redis-cached fast-auth path treats every permission as “admin-only,” so for a brief window after a change, cached sessions may not reflect a new grant until they refresh.</p>
+    <p>A permission gates fine-grained <strong>content</strong> (seeing a player’s admin notes, editing stats, reporting a match) — <em>not</em> whether someone can open an admin page, which is role-based and separate. Players always see their <strong>own</strong> stats/contact info regardless of these grants.</p>
+    <p><strong>Heads-up:</strong> a Redis-cached fast-auth path can treat admins as having everything, so right after a change some cached sessions may lag until they refresh.</p>
   </div>
   {% endif %}
 
@@ -416,6 +436,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // ---------- PERMISSIONS: click a column header to highlight it ----------
+  // Highlight one or MORE columns to trace a person's real (additive) access —
+  // e.g. tint "Pub League Admin" + "Premier Player" and scan the lit cells.
+  document.querySelectorAll('.ac-col-head').forEach(h => h.addEventListener('click', function () {
+    const id = this.dataset.acCol;
+    const on = this.classList.toggle('ac-hi');
+    this.style.background = on ? 'rgba(26,71,42,.20)' : '';
+    document.querySelectorAll('.ac-col-cell[data-ac-col="'+id+'"]').forEach(c => { c.style.background = on ? 'rgba(26,71,42,.09)' : ''; });
+  }));
+
   // ---------- ROLES ----------
   const roleUrls = {
     create: '{{ url_for("admin_panel.create_role_comprehensive") }}',
@@ -454,9 +484,13 @@ document.addEventListener('DOMContentLoaded', function () {
         return j('{{ url_for("admin_panel.create_discord_role") }}', {name: document.getElementById('acRoleName').value.trim()})
           .then(dr => {
             if (dr.success && d.role_id) {
-              return j('{{ url_for("admin_panel.update_role_mapping") }}', {role_id: d.role_id, discord_role_id: dr.role_id, discord_role_name: dr.role_name, sync_enabled: true});
+              return j('{{ url_for("admin_panel.update_role_mapping") }}', {role_id: d.role_id, discord_role_id: dr.role_id, discord_role_name: dr.role_name, sync_enabled: true})
+                .then(() => toast('success','Role created + Discord role linked',''));
             }
-          }).then(() => { toast('success','Role + Discord role created',''); setTimeout(()=>location.reload(), 700); });
+            // Flask role WAS created; the Discord side failed — be honest about it.
+            toast('warning','Role created — Discord role was not', dr.message || dr.error || 'The bot may be offline. Map it later on the Discord tab.');
+          })
+          .finally(() => setTimeout(()=>location.reload(), 900));
       }
       toast('success','Saved',''); setTimeout(()=>location.reload(), 600);
     }).catch(() => toast('error','Network error',''));

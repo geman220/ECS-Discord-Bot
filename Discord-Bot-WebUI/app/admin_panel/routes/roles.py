@@ -33,43 +33,15 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin'])
 def roles_comprehensive():
-    """Role management dashboard."""
-    try:
-        # Get all roles with user counts
-        roles_query = db.session.query(
-            Role,
-            func.count(user_roles.c.user_id).label('user_count')
-        ).outerjoin(user_roles).group_by(Role.id).order_by(Role.name)
-        
-        roles_data = roles_query.all()
-        
-        # Get role statistics
-        stats = {
-            'total_roles': Role.query.count(),
-            'admin_roles': Role.query.filter(Role.name.ilike('%admin%')).count(),
-            'player_roles': Role.query.filter(Role.name.ilike('%pl-%')).count(),
-            'coach_roles': Role.query.filter(Role.name.ilike('%coach%')).count(),
-            'total_assignments': db.session.query(user_roles).count()
-        }
-        
-        # Get recent role assignments (last 30 days)
-        recent_assignments = db.session.query(
-            User.username,
-            Role.name.label('role_name'),
-            User.created_at
-        ).select_from(User).join(user_roles).join(Role).filter(
-            User.created_at >= datetime.utcnow().replace(day=1)
-        ).order_by(User.created_at.desc()).limit(10).all()
-        
-        return render_template('admin_panel/roles/manage_roles_flowbite.html',
-                             roles_data=roles_data,
-                             stats=stats,
-                             recent_assignments=recent_assignments)
-                             
-    except Exception as e:
-        logger.error(f"Error loading role management: {e}")
-        flash('Error loading role management. Please try again.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    """Legacy role-management dashboard — folded into the Access Control center.
+
+    Roles now live at Access Control → Roles (alongside Permissions & Discord
+    mapping, which all edit the same Role). The endpoint name is kept so any
+    lingering link or url_for('admin_panel.roles_comprehensive') lands on the new
+    surface. The action endpoints below (create/edit/delete/assign/…) are unchanged
+    — the Access Control page calls them directly.
+    """
+    return redirect(url_for('admin_panel.access_control', tab='roles'))
 
 
 @admin_panel_bp.route('/roles-management/<int:role_id>')

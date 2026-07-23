@@ -53,6 +53,19 @@ def access_control():
 
     session = db.session
 
+    # For the Discord tab, hit the bot BEFORE any DB query so we never hold a
+    # PgBouncer slot across the (up to ~15s) bot HTTP call. Uses the gevent-safe
+    # sync `requests` path (fetch_discord_roles_sync), never aiohttp on the web.
+    discord_roles, bot_status, guild_name = [], 'offline', ''
+    if tab == 'discord':
+        from app.services.discord_role_sync_service import fetch_discord_roles_sync
+        try:
+            discord_roles = fetch_discord_roles_sync()
+            if discord_roles:
+                bot_status, guild_name = 'online', 'Connected'
+        except Exception as e:  # pragma: no cover - network dependent
+            logger.warning(f"Access Control: could not fetch Discord roles: {e}")
+
     # ---- header counts (cheap; shown on every tab's tab-bar) ----
     all_roles = session.query(Role).all()
     roles_count = len(all_roles)
@@ -102,22 +115,17 @@ def access_control():
 
     elif tab == 'permissions':
         matrix = build_permission_matrix(session)
-        # Attach friendly role labels for the column headers.
+        # Order the role COLUMNS by kind (admins → coaches → league → subs → …) and
+        # attach friendly labels + kind, so the matrix groups sensibly left-to-right.
+        matrix['roles'].sort(key=lambda r: role_sort_key(r['name']))
         for r in matrix['roles']:
-            r['label'] = role_display(r['name'])['label']
+            d = role_display(r['name'])
+            r['label'] = d['label']
+            r['kind'] = d['kind']
         ctx.update({'matrix': matrix})
 
     elif tab == 'discord':
-        from app.services.discord_role_sync_service import (
-            fetch_discord_roles_sync, CANONICAL_DISCORD_ROLE_MAP,
-        )
-        discord_roles, bot_status, guild_name = [], 'offline', ''
-        try:
-            discord_roles = fetch_discord_roles_sync()
-            if discord_roles:
-                bot_status, guild_name = 'online', 'Connected'
-        except Exception as e:  # pragma: no cover - network dependent
-            logger.warning(f"Access Control: could not fetch Discord roles: {e}")
+        # discord_roles / bot_status already fetched above (before DB work).
         roles_rows = _roles_with_counts(session)
         mapping_view = []
         for role, uc in roles_rows:

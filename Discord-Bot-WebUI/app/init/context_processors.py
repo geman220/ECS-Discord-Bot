@@ -169,6 +169,7 @@ def init_context_processors(app):
     _register_utility_processor(app)
     # _register_season_processor(app) — REMOVED, see note below (dead query per render)
     _register_file_versioning_processor(app)
+    _register_humanize_filter(app)
     _register_theme_colors_processor(app)
     _register_ai_assistant_processor(app)
     _register_nav_counts_processor(app)
@@ -176,6 +177,14 @@ def init_context_processors(app):
     _register_page_header_icon(app)
     _register_pending_access_processor(app)
     _register_waitlist_offer_processor(app)
+
+
+def _register_humanize_filter(app):
+    """Expose `| humanize` — turn snake/dotted/kebab identifiers into acronym-aware
+    Title Case (e.g. 'send_rsvp_reminders' -> 'Send RSVP Reminders'). Used by the
+    System Command Center and available to any template."""
+    from app.utils.humanize import humanize_identifier
+    app.jinja_env.filters['humanize'] = humanize_identifier
 
 
 def _register_pending_access_processor(app):
@@ -389,6 +398,7 @@ def _register_page_header_icon(app):
         'admin_panel.substitute_management': 'ti-user-plus',
         'admin_panel.substitute_pools': 'ti-user-plus',
         'admin_panel.surveys_list': 'ti-clipboard-list',
+        'admin_panel.system_center': 'ti-heartbeat',
         'admin_panel.system_health_consolidated': 'ti-heartbeat',
         'admin_panel.system_info': 'ti-info-circle',
         'admin_panel.system_logs': 'ti-file-text',

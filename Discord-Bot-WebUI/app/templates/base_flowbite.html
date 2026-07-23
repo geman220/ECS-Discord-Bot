@@ -519,5 +519,678 @@
     {% block custom_js %}{% endblock %}
     {% block scripts %}{{ super() if super is defined else '' }}{% endblock %}
     {% block extra_js %}{% endblock %}
+
+    {# ═══════════════════════════════════════════════════════════════════════
+       Easter egg — the ancient incantation:  ↑ ↑ ↓ ↓ ← → ← → B A
+       Successor to the original lost egg (old base.html, v1.0.75, "Konami
+       incantation complete: Digital doom unleashed"). The old popup pointed at
+       a now-dead host; this is a from-scratch, fully self-contained textured
+       raycaster — ECS FC "HELL PITCH". No external assets, no game link to rot:
+       Konami → the portal corrupts → DOOM hellfire → a playable level renders
+       right on the dashboard (WASD/mouse, procedural textures + audio, reactive
+       DOOMGUY HUD). Pure inline JS, deploy = webapp restart only. ESC to exit.
+       ═══════════════════════════════════════════════════════════════════════ #}
+    <script>
+    (function () {
+        'use strict';
+
+        // ══ The sacred sequence: ↑ ↑ ↓ ↓ ← → ← → B A ══
+        var SEQUENCE = [38, 38, 40, 40, 37, 39, 37, 39, 66, 65];
+        var pos = 0, running = false;
+
+        document.addEventListener('keydown', function (e) {
+            var el = document.activeElement;
+            if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+                       el.tagName === 'SELECT' || el.isContentEditable)) return;
+            if (running) return;
+            if (e.keyCode === SEQUENCE[pos]) {
+                pos++;
+                if (pos === SEQUENCE.length) { pos = 0; unleash(); }
+            } else {
+                pos = (e.keyCode === SEQUENCE[0]) ? 1 : 0;
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  Procedural audio — self-contained, no files. Gunshots & grunts.
+        // ═══════════════════════════════════════════════════════════════════
+        var actx = null;
+        function audio() {
+            if (actx === null) {
+                try { actx = new (window.AudioContext || window.webkitAudioContext)(); }
+                catch (e) { actx = false; }
+            }
+            return actx || null;
+        }
+        function sfx(kind) {
+            var a = audio(); if (!a) return;
+            var t = a.currentTime;
+            if (kind === 'shot') {
+                var buf = a.createBuffer(1, (a.sampleRate * 0.16) | 0, a.sampleRate);
+                var d = buf.getChannelData(0), i;
+                for (i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+                var s = a.createBufferSource(); s.buffer = buf;
+                var lp = a.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+                var g = a.createGain(); g.gain.value = 0.28;
+                s.connect(lp); lp.connect(g); g.connect(a.destination); s.start();
+                var o = a.createOscillator(); o.type = 'sine';
+                o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(38, t + 0.14);
+                var g2 = a.createGain(); g2.gain.setValueAtTime(0.35, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+                o.connect(g2); g2.connect(a.destination); o.start(t); o.stop(t + 0.16);
+            } else if (kind === 'hurt') {
+                var o2 = a.createOscillator(); o2.type = 'square';
+                o2.frequency.setValueAtTime(300, t); o2.frequency.exponentialRampToValueAtTime(70, t + 0.18);
+                var gh = a.createGain(); gh.gain.setValueAtTime(0.22, t); gh.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+                o2.connect(gh); gh.connect(a.destination); o2.start(t); o2.stop(t + 0.2);
+            } else if (kind === 'kill') {
+                var buf2 = a.createBuffer(1, (a.sampleRate * 0.35) | 0, a.sampleRate);
+                var d2 = buf2.getChannelData(0), j;
+                for (j = 0; j < d2.length; j++) d2[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / d2.length, 1.4);
+                var s2 = a.createBufferSource(); s2.buffer = buf2;
+                var bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.7;
+                var gk = a.createGain(); gk.gain.value = 0.3;
+                s2.connect(bp); bp.connect(gk); gk.connect(a.destination); s2.start();
+            } else if (kind === 'win') {
+                [523, 659, 784, 1047].forEach(function (f, k) {
+                    var o3 = a.createOscillator(); o3.type = 'sawtooth'; o3.frequency.value = f;
+                    var gw = a.createGain(); gw.gain.setValueAtTime(0.0001, t + k * 0.12);
+                    gw.gain.exponentialRampToValueAtTime(0.18, t + k * 0.12 + 0.02);
+                    gw.gain.exponentialRampToValueAtTime(0.0001, t + k * 0.12 + 0.18);
+                    o3.connect(gw); gw.connect(a.destination); o3.start(t + k * 0.12); o3.stop(t + k * 0.12 + 0.2);
+                });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  Procedural textures — 64x64 offscreen canvases, no image files.
+        // ═══════════════════════════════════════════════════════════════════
+        function tex(draw) {
+            var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+            draw(c.getContext('2d')); return c;
+        }
+        function noise(x, ctx, a) {
+            for (var i = 0; i < 900; i++) {
+                var px = (Math.random() * 64) | 0, py = (Math.random() * 64) | 0;
+                ctx.fillStyle = 'rgba(0,0,0,' + (Math.random() * a) + ')';
+                ctx.fillRect(px, py, 1, 1);
+            }
+        }
+        var TEX = {};
+        function buildTextures() {
+            // 1: hell brick
+            TEX[1] = tex(function (x) {
+                x.fillStyle = '#4a0d09'; x.fillRect(0, 0, 64, 64);
+                x.fillStyle = '#2a0705';
+                for (var r = 0; r < 4; r++) {
+                    var y = r * 16, off = (r % 2) * 16;
+                    for (var b = -1; b < 4; b++) {
+                        x.fillStyle = ['#5c120c', '#4a0d09', '#671510'][(b + r) % 3];
+                        x.fillRect(b * 16 + off + 1, y + 1, 14, 14);
+                    }
+                }
+                x.strokeStyle = '#1a0403'; x.lineWidth = 2;
+                for (var g = 0; g <= 64; g += 16) { x.beginPath(); x.moveTo(0, g); x.lineTo(64, g); x.stroke(); }
+                noise(0, x, 0.35);
+            });
+            // 2: tech / metal panel with a warning stripe
+            TEX[2] = tex(function (x) {
+                x.fillStyle = '#33343b'; x.fillRect(0, 0, 64, 64);
+                x.fillStyle = '#3d3f47'; x.fillRect(4, 4, 56, 56);
+                x.strokeStyle = '#191a1f'; x.lineWidth = 2; x.strokeRect(4, 4, 56, 56);
+                x.fillStyle = '#c9302c'; x.fillRect(4, 28, 56, 8);
+                x.fillStyle = '#1c1d22';
+                for (var s = 6; s < 60; s += 8) x.fillRect(s, 28, 4, 8);
+                x.fillStyle = '#5a5c66';
+                [[10, 10], [54, 10], [10, 54], [54, 54]].forEach(function (p) {
+                    x.beginPath(); x.arc(p[0], p[1], 2.5, 0, 7); x.fill();
+                });
+                noise(0, x, 0.25);
+            });
+            // 3: cursed flesh/marble
+            TEX[3] = tex(function (x) {
+                x.fillStyle = '#3b1020'; x.fillRect(0, 0, 64, 64);
+                x.strokeStyle = '#6e1f38'; x.lineWidth = 1.5;
+                for (var v = 0; v < 14; v++) {
+                    x.beginPath();
+                    var sx = Math.random() * 64, sy = Math.random() * 64;
+                    x.moveTo(sx, sy);
+                    for (var k = 0; k < 4; k++) { sx += (Math.random() - 0.5) * 24; sy += (Math.random() - 0.5) * 24; x.lineTo(sx, sy); }
+                    x.stroke();
+                }
+                noise(0, x, 0.3);
+            });
+            // sprite: an imp (transparent background)
+            TEX.imp = tex(function (x) {
+                x.clearRect(0, 0, 64, 64);
+                // body
+                x.fillStyle = '#7a2f18';
+                x.beginPath(); x.moveTo(20, 24); x.lineTo(44, 24); x.lineTo(50, 60); x.lineTo(14, 60); x.closePath(); x.fill();
+                // head
+                x.fillStyle = '#95421f'; x.beginPath(); x.arc(32, 20, 12, 0, 7); x.fill();
+                // horns
+                x.fillStyle = '#d9c7a3';
+                x.beginPath(); x.moveTo(22, 12); x.lineTo(16, 2); x.lineTo(26, 10); x.fill();
+                x.beginPath(); x.moveTo(42, 12); x.lineTo(48, 2); x.lineTo(38, 10); x.fill();
+                // eyes
+                x.fillStyle = '#ffdb2b';
+                x.beginPath(); x.arc(27, 20, 3, 0, 7); x.fill();
+                x.beginPath(); x.arc(37, 20, 3, 0, 7); x.fill();
+                x.fillStyle = '#000'; x.fillRect(26, 19, 2, 2); x.fillRect(36, 19, 2, 2);
+                // mouth
+                x.fillStyle = '#2a0a05'; x.fillRect(26, 26, 12, 3);
+                x.fillStyle = '#fff'; x.fillRect(27, 26, 2, 3); x.fillRect(31, 26, 2, 3); x.fillRect(35, 26, 2, 3);
+                // arms/claws
+                x.strokeStyle = '#7a2f18'; x.lineWidth = 4;
+                x.beginPath(); x.moveTo(20, 30); x.lineTo(8, 42); x.moveTo(44, 30); x.lineTo(56, 42); x.stroke();
+            });
+            // sprite: imp in pain (fireball hit flash) - brighter
+            TEX.impHit = tex(function (x) {
+                x.clearRect(0, 0, 64, 64);
+                x.fillStyle = '#ff5a2b';
+                x.beginPath(); x.moveTo(20, 24); x.lineTo(44, 24); x.lineTo(50, 60); x.lineTo(14, 60); x.closePath(); x.fill();
+                x.beginPath(); x.arc(32, 20, 12, 0, 7); x.fill();
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  Konami trigger → corruption → hellfire intro → the game
+        // ═══════════════════════════════════════════════════════════════════
+        var overlay, style, keys = {}, game = null, banished = false;
+
+        function unleash() {
+            running = true; banished = false; keys = {};
+            buildTextures();
+
+            style = document.createElement('style');
+            style.id = 'doom-egg-style';
+            style.textContent =
+                '@keyframes doomShake{0%,100%{transform:translate(0,0) rotate(0)}' +
+                '25%{transform:translate(-7px,5px) rotate(-.4deg)}50%{transform:translate(6px,-5px) rotate(.4deg)}' +
+                '75%{transform:translate(-5px,-6px) rotate(-.3deg)}}' +
+                '.doom-corrupt{animation:doomShake .35s infinite;filter:hue-rotate(-30deg) saturate(2.4) contrast(1.2) brightness(.82)!important}' +
+                '@keyframes doomFlick{0%,100%{opacity:1}50%{opacity:.7}}' +
+                '#doom-egg-overlay{position:fixed;inset:0;z-index:2147483647;opacity:0;transition:opacity .5s;' +
+                'background:#000;overflow:hidden;font-family:"Impact","Haettenschweiler","Arial Narrow Bold",sans-serif}' +
+                '#doom-egg-overlay canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}' +
+                '#doom-title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                'text-align:center;opacity:0;transition:opacity .6s;text-shadow:0 0 18px #ff2a00,0 4px 0 #400,0 6px 14px #000;pointer-events:none}' +
+                '#doom-title .k{color:#ffd21a;font-size:clamp(30px,6vw,74px);letter-spacing:.3em;margin:0}' +
+                '#doom-title h1{color:#ff3b1f;font-size:clamp(40px,10vw,140px);margin:.05em 0;letter-spacing:.04em;' +
+                '-webkit-text-stroke:2px #4a0000;animation:doomFlick 1.5s infinite}' +
+                '#doom-title p{color:#ff8a65;letter-spacing:.35em;font-size:clamp(12px,2.4vw,20px);text-transform:uppercase;margin:.2em}' +
+                '#doom-title .go{color:#ffd21a;margin-top:1.2em;font-size:clamp(16px,3vw,26px);animation:doomFlick .9s infinite}' +
+                '#doom-hud{position:absolute;bottom:0;left:0;right:0;height:74px;display:flex;align-items:center;justify-content:center;' +
+                'gap:clamp(10px,4vw,54px);background:linear-gradient(#4a4a52,#17171c);border-top:3px solid #000;' +
+                'color:#ff3b1f;font-family:"Impact",sans-serif;transform:translateY(100%);transition:transform .4s;z-index:5}' +
+                '#doom-hud .stat b{color:#ffd21a;font-size:clamp(20px,3.2vw,30px);display:block;line-height:1}' +
+                '#doom-hud .stat span{font-size:10px;letter-spacing:.22em;color:#9aa;display:block;text-align:center}' +
+                '#doom-hud canvas{position:static;width:52px;height:60px;image-rendering:pixelated}' +
+                '#doom-msg{position:absolute;top:0;left:0;right:0;bottom:74px;display:flex;align-items:center;justify-content:center;' +
+                'flex-direction:column;text-align:center;pointer-events:none;opacity:0;transition:opacity .5s;z-index:6;' +
+                'text-shadow:0 0 20px #000,0 3px 0 #000}' +
+                '#doom-msg b{font-size:clamp(40px,9vw,110px);letter-spacing:.05em;-webkit-text-stroke:2px #000}' +
+                '#doom-msg small{color:#ffd21a;font-family:monospace;letter-spacing:.2em;margin-top:1em;font-size:14px}' +
+                '#doom-exit{position:absolute;top:12px;right:16px;z-index:7;font-family:monospace;font-size:12px;letter-spacing:.2em;' +
+                'color:#ff8a65;background:rgba(0,0,0,.45);border:1px solid #7a0000;border-radius:4px;padding:6px 10px;cursor:pointer}' +
+                '#doom-flash{position:absolute;inset:0;background:#ff2a00;opacity:0;pointer-events:none;z-index:4;mix-blend-mode:screen}';
+            document.head.appendChild(style);
+            document.body.classList.add('doom-corrupt');
+
+            overlay = document.createElement('div');
+            overlay.id = 'doom-egg-overlay';
+            overlay.innerHTML =
+                '<canvas id="doom-fire"></canvas>' +
+                '<canvas id="doom-view" style="display:none"></canvas>' +
+                '<div id="doom-flash"></div>' +
+                '<div id="doom-title">' +
+                  '<p class="k">&uarr; &uarr; &darr; &darr; &larr; &rarr; &larr; &rarr; B A</p>' +
+                  '<h1>HELL PITCH</h1>' +
+                  '<p>ECS FC &nbsp;&bull;&nbsp; Knee-Deep in the Pitch</p>' +
+                  '<p style="opacity:.75;font-size:13px;letter-spacing:.25em">WASD / ARROWS move &nbsp; MOUSE or &larr;&rarr; turn &nbsp; CLICK / SPACE fire</p>' +
+                  '<div class="go">&#9660; PRESS ANY KEY TO DESCEND &#9660;</div>' +
+                '</div>' +
+                '<div id="doom-msg"></div>' +
+                '<div id="doom-exit">ESC &mdash; RETURN TO REALITY</div>';
+            document.documentElement.appendChild(overlay);
+            requestAnimationFrame(function () { overlay.style.opacity = '1'; });
+
+            overlay.querySelector('#doom-exit').addEventListener('click', banish);
+            document.addEventListener('keydown', escToQuit, true);
+
+            startFire();
+        }
+
+        function escToQuit(e) { if (e.key === 'Escape') banish(); }
+
+        // ── Intro: the classic DOOM fire climbs the screen ───────────────────
+        var fireRAF = null;
+        function startFire() {
+            var canvas = overlay.querySelector('#doom-fire');
+            var ctx = canvas.getContext('2d');
+            var W = 200, H = 130; canvas.width = W; canvas.height = H;
+            var img = ctx.createImageData(W, H);
+            var PAL = [[7,7,7],[31,7,7],[47,15,7],[71,15,7],[87,23,7],[103,31,7],[119,31,7],[143,39,7],
+                [159,47,7],[175,63,7],[191,71,7],[199,71,7],[223,79,7],[223,87,7],[223,87,7],[215,95,7],
+                [215,103,15],[207,111,15],[207,119,15],[207,127,15],[207,135,23],[199,135,23],[199,143,23],
+                [199,151,31],[191,159,31],[191,159,31],[191,167,39],[191,167,39],[191,175,47],[183,175,47],
+                [183,183,47],[183,183,55],[207,207,111],[223,223,159],[239,239,199],[255,255,255]];
+            var fire = new Array(W * H).fill(0), x;
+            for (x = 0; x < W; x++) fire[(H - 1) * W + x] = 36;
+            function spread(from) {
+                var rand = Math.round(Math.random() * 3.0) & 3;
+                var idx = from - rand + 1 - W;
+                if (idx < 0 || idx >= fire.length) return;
+                var v = fire[from] - (rand & 1); fire[idx] = v < 0 ? 0 : v;
+            }
+            function frame() {
+                var xx, yy, i;
+                for (xx = 0; xx < W; xx++) for (yy = 1; yy < H; yy++) spread(yy * W + xx);
+                var d = img.data;
+                for (i = 0; i < fire.length; i++) {
+                    var c = PAL[fire[i]] || PAL[0], p = i * 4;
+                    d[p] = c[0]; d[p + 1] = c[1]; d[p + 2] = c[2]; d[p + 3] = 255;
+                }
+                ctx.putImageData(img, 0, 0);
+                fireRAF = requestAnimationFrame(frame);
+            }
+            frame();
+            setTimeout(function () {
+                if (banished) return;
+                document.body.classList.remove('doom-corrupt');
+                overlay.querySelector('#doom-title').style.opacity = '1';
+            }, 1400);
+
+            // Any key / click after the title shows → descend into the game.
+            function descend(ev) {
+                if (banished) return;
+                if (ev.type === 'keydown' && ev.key === 'Escape') return;
+                if (ev.type === 'click' && ev.target && ev.target.id === 'doom-exit') return;
+                if (overlay.querySelector('#doom-title').style.opacity !== '1') return;
+                window.removeEventListener('keydown', descend, true);
+                overlay.removeEventListener('click', descend, true);
+                cancelAnimationFrame(fireRAF); fireRAF = null;
+                startGame();
+            }
+            window.addEventListener('keydown', descend, true);
+            overlay.addEventListener('click', descend, true);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  The game — a from-scratch textured raycaster
+        // ═══════════════════════════════════════════════════════════════════
+        var MAP = [
+            "1111111111111111",
+            "1..............1",
+            "1..2..2....3...1",
+            "1..............1",
+            "1....1111......1",
+            "3....1..1..3...3",
+            "1....1..1......1",
+            "1..............1",
+            "1...3.....22...1",
+            "1..............1",
+            "1..2....1111...1",
+            "3.......1......3",
+            "1...3...1..2...1",
+            "1..............1",
+            "1..............1",
+            "1111111111111111"
+        ];
+        var MW = 16, MH = 16;
+        function cell(mx, my) {
+            if (mx < 0 || my < 0 || mx >= MW || my >= MH) return 1;
+            var ch = MAP[my].charCodeAt(mx) - 48;
+            return (ch >= 1 && ch <= 3) ? ch : 0;
+        }
+
+        function startGame() {
+            var view = overlay.querySelector('#doom-view');
+            view.style.display = 'block';
+            overlay.querySelector('#doom-fire').style.display = 'none';
+            overlay.querySelector('#doom-title').style.display = 'none';
+
+            // low internal resolution, scaled up → chunky authentic DOOM look
+            function sizeView() {
+                var aspect = window.innerWidth / window.innerHeight;
+                view.height = 220; view.width = Math.min(560, Math.round(220 * aspect));
+            }
+            sizeView();
+            window.addEventListener('resize', sizeView);
+            var ctx = view.getContext('2d'); ctx.imageSmoothingEnabled = false;
+
+            // HUD
+            var hud = document.createElement('div'); hud.id = 'doom-hud';
+            hud.innerHTML =
+                '<div class="stat"><b id="d-hp">100%</b><span>HEALTH</span></div>' +
+                '<div class="stat"><b>666%</b><span>ARMOR</span></div>' +
+                '<canvas id="d-face" width="44" height="50"></canvas>' +
+                '<div class="stat"><b id="d-ammo">&infin;</b><span>AMMO</span></div>' +
+                '<div class="stat"><b id="d-kills">0/0</b><span>KILLS</span></div>';
+            overlay.appendChild(hud);
+            requestAnimationFrame(function () { hud.style.transform = 'translateY(0)'; });
+            var faceCtx = hud.querySelector('#d-face').getContext('2d');
+
+            var G = {
+                px: 2.5, py: 2.5, dx: 1, dy: 0, planeX: 0, planeY: 0.66,
+                hp: 100, ammo: Infinity, kills: 0,
+                imps: [], flash: 0, hurt: 0, bob: 0, dead: false, won: false,
+                last: (window.performance && performance.now) ? performance.now() : 0
+            };
+            // spawn imps on open cells away from the player
+            [[7.5, 1.5], [12.5, 3.5], [3.5, 3.5], [13.5, 7.5], [2.5, 9.5], [12.5, 13.5], [8.5, 13.5]].forEach(function (p) {
+                if (cell(p[0] | 0, p[1] | 0) === 0) G.imps.push({ x: p[0], y: p[1], hp: 60, alive: true, hit: 0, atk: 0 });
+            });
+            var total = G.imps.length;
+            game = G;
+
+            // input
+            function kd(e) {
+                if (e.key === 'Escape') return;
+                keys[e.keyCode] = true;
+                if (e.keyCode === 32) { e.preventDefault(); shoot(); } // space
+            }
+            function ku(e) { keys[e.keyCode] = false; }
+            window.addEventListener('keydown', kd, true);
+            window.addEventListener('keyup', ku, true);
+            view.addEventListener('mousedown', function () {
+                if (document.pointerLockElement !== view && view.requestPointerLock) view.requestPointerLock();
+                shoot();
+            });
+            function mm(e) {
+                if (document.pointerLockElement === view) rotate(-e.movementX * 0.0025);
+            }
+            document.addEventListener('mousemove', mm);
+            G._cleanup = function () {
+                window.removeEventListener('keydown', kd, true);
+                window.removeEventListener('keyup', ku, true);
+                window.removeEventListener('resize', sizeView);
+                document.removeEventListener('mousemove', mm);
+                if (document.pointerLockElement === view && document.exitPointerLock) document.exitPointerLock();
+            };
+
+            function rotate(ang) {
+                var c = Math.cos(ang), s = Math.sin(ang), odx = G.dx, opx = G.planeX;
+                G.dx = odx * c - G.dy * s; G.dy = odx * s + G.dy * c;
+                G.planeX = opx * c - G.planeY * s; G.planeY = opx * s + G.planeY * c;
+            }
+            function tryMove(nx, ny) {
+                var r = 0.22;
+                if (cell((nx + (nx > G.px ? r : -r)) | 0, G.py | 0) === 0) G.px = nx;
+                if (cell(G.px | 0, (ny + (ny > G.py ? r : -r)) | 0) === 0) G.py = ny;
+            }
+            function shoot() {
+                if (G.dead || G.won) return;
+                G.flash = 4; sfx('shot');
+                // nearest imp within a narrow cone and clear line of sight
+                var best = null, bestDist = 1e9, i;
+                for (i = 0; i < G.imps.length; i++) {
+                    var m = G.imps[i]; if (!m.alive) continue;
+                    var vx = m.x - G.px, vy = m.y - G.py;
+                    var dist = Math.sqrt(vx * vx + vy * vy);
+                    var dot = (vx * G.dx + vy * G.dy) / (dist || 1);
+                    if (dot < 0.985) continue;            // must be near screen centre
+                    if (!lineClear(m.x, m.y)) continue;
+                    if (dist < bestDist) { bestDist = dist; best = m; }
+                }
+                if (best) {
+                    best.hp -= 34; best.hit = 6;
+                    if (best.hp <= 0) { best.alive = false; G.kills++; sfx('kill'); }
+                }
+            }
+            function lineClear(tx, ty) {
+                var steps = 24, i, x, y;
+                for (i = 1; i < steps; i++) {
+                    x = G.px + (tx - G.px) * i / steps; y = G.py + (ty - G.py) * i / steps;
+                    if (cell(x | 0, y | 0) !== 0) return false;
+                }
+                return true;
+            }
+            function damage(n) {
+                if (G.dead) return;
+                G.hp -= n; G.hurt = 8; sfx('hurt');
+                if (G.hp <= 0) { G.hp = 0; G.dead = true; endGame(false); }
+            }
+
+            var zbuf = [];
+            function render(dt) {
+                var W = view.width, H = view.height, x;
+                // ceiling
+                var cg = ctx.createLinearGradient(0, 0, 0, H / 2);
+                cg.addColorStop(0, '#000'); cg.addColorStop(1, '#1a0a0a');
+                ctx.fillStyle = cg; ctx.fillRect(0, 0, W, H / 2);
+                // floor
+                var fg = ctx.createLinearGradient(0, H / 2, 0, H);
+                fg.addColorStop(0, '#2a1414'); fg.addColorStop(1, '#0a0505');
+                ctx.fillStyle = fg; ctx.fillRect(0, H / 2, W, H / 2);
+
+                // walls
+                for (x = 0; x < W; x++) {
+                    var camX = 2 * x / W - 1;
+                    var rdx = G.dx + G.planeX * camX, rdy = G.dy + G.planeY * camX;
+                    var mapX = G.px | 0, mapY = G.py | 0;
+                    var ddx = Math.abs(1 / rdx), ddy = Math.abs(1 / rdy);
+                    var stepX, stepY, sideX, sideY, side = 0;
+                    if (rdx < 0) { stepX = -1; sideX = (G.px - mapX) * ddx; } else { stepX = 1; sideX = (mapX + 1 - G.px) * ddx; }
+                    if (rdy < 0) { stepY = -1; sideY = (G.py - mapY) * ddy; } else { stepY = 1; sideY = (mapY + 1 - G.py) * ddy; }
+                    var hit = 0, guard = 0;
+                    while (!hit && guard++ < 64) {
+                        if (sideX < sideY) { sideX += ddx; mapX += stepX; side = 0; }
+                        else { sideY += ddy; mapY += stepY; side = 1; }
+                        if (cell(mapX, mapY) > 0) hit = cell(mapX, mapY);
+                    }
+                    var pdist = side === 0 ? (sideX - ddx) : (sideY - ddy);
+                    if (pdist < 0.01) pdist = 0.01;
+                    zbuf[x] = pdist;
+                    var lineH = Math.round(H / pdist);
+                    var start = -lineH / 2 + H / 2; if (start < 0) start = 0;
+                    var end = lineH / 2 + H / 2; if (end > H) end = H;
+                    var wallX = side === 0 ? (G.py + pdist * rdy) : (G.px + pdist * rdx);
+                    wallX -= wallX | 0;
+                    var texX = (wallX * 64) | 0;
+                    if ((side === 0 && rdx > 0) || (side === 1 && rdy < 0)) texX = 63 - texX;
+                    var t = TEX[hit] || TEX[1];
+                    ctx.drawImage(t, texX, 0, 1, 64, x, -lineH / 2 + H / 2, 1, lineH);
+                    // distance + side shading
+                    var sh = Math.min(0.82, pdist / 9) + (side === 1 ? 0.22 : 0);
+                    if (sh > 0.02) { ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.85, sh) + ')'; ctx.fillRect(x, -lineH / 2 + H / 2, 1, lineH); }
+                }
+
+                // sprites (imps), far-to-near
+                var vis = G.imps.filter(function (m) { return m.alive || m.hit > 0; });
+                vis.sort(function (a, b) {
+                    return ((b.x - G.px) * (b.x - G.px) + (b.y - G.py) * (b.y - G.py)) -
+                           ((a.x - G.px) * (a.x - G.px) + (a.y - G.py) * (a.y - G.py));
+                });
+                var invDet = 1 / (G.planeX * G.dy - G.dx * G.planeY);
+                vis.forEach(function (m) {
+                    var sx = m.x - G.px, sy = m.y - G.py;
+                    var tX = invDet * (G.dy * sx - G.dx * sy);
+                    var tY = invDet * (-G.planeY * sx + G.planeX * sy);
+                    if (tY <= 0.1) return;
+                    var scr = (W / 2) * (1 + tX / tY);
+                    var sh2 = Math.abs((H / tY) | 0);
+                    var sw = sh2;
+                    var vMove = sh2 * 0.15;                    // sit on floor
+                    var dsY = -sh2 / 2 + H / 2 + vMove;
+                    var startX = (-sw / 2 + scr) | 0, endX = (sw / 2 + scr) | 0;
+                    var img = (m.hit > 0) ? TEX.impHit : TEX.imp;
+                    for (var col = startX; col < endX; col++) {
+                        if (col < 0 || col >= W) continue;
+                        if (tY >= zbuf[col]) continue;         // behind a wall
+                        var texXs = ((col - (-sw / 2 + scr)) * 64 / sw) | 0;
+                        if (texXs < 0 || texXs > 63) continue;
+                        ctx.drawImage(img, texXs, 0, 1, 64, col, dsY, 1, sh2);
+                    }
+                });
+
+                // gun viewmodel + muzzle flash
+                drawGun(ctx, W, H);
+                // damage / muzzle full-screen tints via #doom-flash
+                var flashEl = overlay.querySelector('#doom-flash');
+                var fa = 0;
+                if (G.hurt > 0) { fa = Math.max(fa, G.hurt / 8 * 0.5); flashEl.style.background = '#c00'; }
+                if (G.flash > 0 && G.hurt <= 0) { fa = Math.max(fa, 0.18); flashEl.style.background = '#ffb03a'; }
+                flashEl.style.opacity = fa;
+            }
+
+            function drawGun(ctx, W, H) {
+                var bobX = Math.sin(G.bob) * 6, bobY = Math.abs(Math.cos(G.bob)) * 5;
+                var gx = W / 2 + bobX, gy = H - 4 + bobY + (G.flash > 0 ? 4 : 0);
+                var s = H / 220;
+                ctx.save();
+                // barrel
+                ctx.fillStyle = '#2b2b31'; ctx.fillRect(gx - 9 * s, gy - 60 * s, 18 * s, 60 * s);
+                ctx.fillStyle = '#1a1a1f'; ctx.fillRect(gx - 5 * s, gy - 66 * s, 10 * s, 8 * s);
+                // grip
+                ctx.fillStyle = '#3a3a42'; ctx.fillRect(gx - 14 * s, gy - 34 * s, 28 * s, 34 * s);
+                ctx.fillStyle = '#22222a'; ctx.fillRect(gx - 14 * s, gy - 34 * s, 28 * s, 6 * s);
+                if (G.flash > 0) {
+                    ctx.fillStyle = 'rgba(255,200,60,' + (G.flash / 4) + ')';
+                    ctx.beginPath(); ctx.arc(gx, gy - 66 * s, 22 * s, 0, 7); ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,220,' + (G.flash / 4) + ')';
+                    ctx.beginPath(); ctx.arc(gx, gy - 66 * s, 10 * s, 0, 7); ctx.fill();
+                }
+                ctx.restore();
+                // crosshair
+                ctx.strokeStyle = 'rgba(255,80,40,.8)'; ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(W / 2 - 6, H / 2); ctx.lineTo(W / 2 - 2, H / 2);
+                ctx.moveTo(W / 2 + 2, H / 2); ctx.lineTo(W / 2 + 6, H / 2);
+                ctx.moveTo(W / 2, H / 2 - 6); ctx.lineTo(W / 2, H / 2 - 2);
+                ctx.moveTo(W / 2, H / 2 + 2); ctx.lineTo(W / 2, H / 2 + 6);
+                ctx.stroke();
+            }
+
+            // ── the animated DOOMGUY-style face ──────────────────────────────
+            var faceTick = 0, look = 0;
+            function drawFace() {
+                var c = faceCtx, w = 44, h = 50;
+                c.clearRect(0, 0, w, h);
+                var hpf = G.hp / 100;
+                // hair
+                c.fillStyle = '#5a3a1a'; c.fillRect(8, 4, 28, 10);
+                c.fillRect(6, 8, 32, 6);
+                // face
+                c.fillStyle = G.hurt > 0 ? '#d68a63' : '#c98a5c';
+                c.fillRect(8, 12, 28, 30);
+                c.fillRect(6, 18, 32, 18);
+                // jaw
+                c.fillRect(10, 40, 24, 6);
+                // eyes
+                c.fillStyle = '#fff'; c.fillRect(12, 20, 8, 6); c.fillRect(24, 20, 8, 6);
+                c.fillStyle = '#1a1a2a';
+                var lx = 14 + look * 2;
+                c.fillRect(lx, 21, 4, 4); c.fillRect(lx + 12, 21, 4, 4);
+                // brow — angrier as hp drops
+                c.fillStyle = '#3a2410';
+                var brow = (1 - hpf) * 3;
+                c.beginPath(); c.moveTo(12, 18 + brow); c.lineTo(20, 20); c.lineTo(20, 18); c.lineTo(12, 16 + brow); c.fill();
+                c.beginPath(); c.moveTo(32, 18 + brow); c.lineTo(24, 20); c.lineTo(24, 18); c.lineTo(32, 16 + brow); c.fill();
+                // mouth by health tier
+                c.fillStyle = '#3a0a05';
+                if (G.dead) {
+                    c.fillStyle = '#5a0a05'; c.fillRect(12, 30, 20, 10);
+                    c.fillStyle = '#1a1a2a'; // X eyes
+                    c.fillRect(13, 20, 6, 2); c.fillRect(13, 24, 6, 2);
+                    c.fillRect(25, 20, 6, 2); c.fillRect(25, 24, 6, 2);
+                } else if (hpf > 0.66) {
+                    c.fillRect(15, 33, 14, 3);
+                    c.fillStyle = '#fff'; c.fillRect(17, 33, 3, 3); c.fillRect(24, 33, 3, 3);
+                } else if (hpf > 0.33) {
+                    c.fillRect(14, 32, 16, 5);
+                    c.fillStyle = '#fff';
+                    for (var tt = 15; tt < 30; tt += 4) c.fillRect(tt, 32, 2, 5);
+                } else {
+                    c.fillStyle = '#2a0505'; c.fillRect(15, 31, 14, 8); // open pain
+                }
+                // blood as hp drops
+                if (hpf <= 0.66) {
+                    c.fillStyle = '#a80f0f';
+                    c.fillRect(10, 14, 3, 8 + (1 - hpf) * 14);
+                    if (hpf <= 0.33) { c.fillRect(30, 16, 3, 12); c.fillRect(20, 12, 3, 6); }
+                }
+            }
+
+            function loop(now) {
+                if (banished) return;
+                if (!now) now = G.last + 16;
+                var dt = Math.min(0.05, (now - G.last) / 1000); G.last = now;
+
+                if (!G.dead && !G.won) {
+                    var sp = 2.6 * dt, rot = 2.2 * dt, moved = false;
+                    var fx = G.dx * sp, fy = G.dy * sp, stx = -G.dy * sp, sty = G.dx * sp;
+                    if (keys[87] || keys[38]) { tryMove(G.px + fx, G.py + fy); moved = true; }   // W / ↑
+                    if (keys[83] || keys[40]) { tryMove(G.px - fx, G.py - fy); moved = true; }   // S / ↓
+                    if (keys[65]) { tryMove(G.px + stx, G.py + sty); moved = true; }             // A strafe
+                    if (keys[68]) { tryMove(G.px - stx, G.py - sty); moved = true; }             // D strafe
+                    if (keys[37]) rotate(rot);                                                    // ←
+                    if (keys[39]) rotate(-rot);                                                   // →
+                    if (moved) G.bob += dt * 9; else G.bob += dt * 2;
+
+                    // imp AI
+                    G.imps.forEach(function (m) {
+                        if (!m.alive) { if (m.hit > 0) m.hit--; return; }
+                        if (m.hit > 0) m.hit--;
+                        var vx = G.px - m.x, vy = G.py - m.y, d = Math.sqrt(vx * vx + vy * vy);
+                        if (d > 1.0 && d < 9 && lineClear(m.x, m.y)) {
+                            var mv = 1.1 * dt / d; var nxp = m.x + vx * mv, nyp = m.y + vy * mv;
+                            if (cell(nxp | 0, m.y | 0) === 0) m.x = nxp;
+                            if (cell(m.x | 0, nyp | 0) === 0) m.y = nyp;
+                        }
+                        m.atk -= dt;
+                        if (d <= 1.2 && m.atk <= 0) { m.atk = 1.1; damage(9); }
+                    });
+
+                    if (G.kills >= total && total > 0 && !G.won) { G.won = true; endGame(true); }
+                }
+
+                if (G.flash > 0) G.flash--;
+                if (G.hurt > 0) G.hurt--;
+                faceTick += dt;
+                if (faceTick > 0.18) { faceTick = 0; look = (Math.random() * 3 | 0) - 1; drawFace(); }
+
+                render(dt);
+                document.getElementById('d-hp').textContent = Math.max(0, G.hp | 0) + '%';
+                document.getElementById('d-kills').textContent = G.kills + '/' + total;
+                game._raf = requestAnimationFrame(loop);
+            }
+            drawFace();
+            game._raf = requestAnimationFrame(loop);
+        }
+
+        function endGame(won) {
+            var msg = overlay.querySelector('#doom-msg');
+            if (won) {
+                sfx('win');
+                msg.innerHTML = '<b style="color:#ffd21a">THE PITCH IS CLEARED</b>' +
+                    '<small>you ripped &amp; teared. ESC to return &mdash; or ↑↑↓↓ to do it again.</small>';
+            } else {
+                msg.innerHTML = '<b style="color:#c0130f">YOU DIED</b>' +
+                    '<small>the pitch claimed another. ESC to return to reality.</small>';
+                overlay.querySelector('#doom-view').style.filter = 'sepia(1) hue-rotate(-40deg) saturate(4) brightness(.7)';
+            }
+            msg.style.opacity = '1';
+        }
+
+        function banish() {
+            if (banished) return;
+            banished = true; running = false;
+            document.removeEventListener('keydown', escToQuit, true);
+            if (fireRAF) cancelAnimationFrame(fireRAF);
+            if (game) { if (game._raf) cancelAnimationFrame(game._raf); if (game._cleanup) game._cleanup(); }
+            game = null;
+            document.body.classList.remove('doom-corrupt');
+            if (overlay) {
+                overlay.style.opacity = '0';
+                var o = overlay, s = style;
+                setTimeout(function () {
+                    if (o && o.parentNode) o.parentNode.removeChild(o);
+                    if (s && s.parentNode) s.parentNode.removeChild(s);
+                }, 500);
+            }
+            overlay = null; style = null;
+        }
+    })();
+    </script>
 </body>
 </html>

@@ -128,6 +128,16 @@ def register_all_routes(admin_panel_bp):
         logging.getLogger(__name__).error(
             "Failed to register Site Editor routes", exc_info=True)
 
+    # Phase 15: System Command Center (Overview + Services ops surface).
+    # Isolated so a fault in this newer module can't block the whole admin panel
+    # from booting; the promoted nav link degrades gracefully if it's absent.
+    try:
+        from .system_center import worklist  # noqa: F401
+    except Exception:
+        import logging
+        logging.getLogger(__name__).error(
+            "Failed to register System Command Center routes", exc_info=True)
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

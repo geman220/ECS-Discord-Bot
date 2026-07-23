@@ -957,6 +957,25 @@ def cached_counts(session) -> Dict[str, int]:
     return _counts_from_results(results)
 
 
+def peek_counts(session=None) -> Optional[Dict[str, int]]:
+    """Read the cached {total, high} counts WITHOUT ever triggering a scan.
+
+    For surfaces (e.g. the System Command Center overview) that must not run the full
+    integrity scan on a page render — running run_all_checks() synchronously inside a
+    web request holds a scarce PgBouncer transaction slot. Returns None on a cold/absent
+    cache (caller shows nothing rather than blocking); the integrity dashboard and its
+    background job keep the cache primed."""
+    import json
+    try:
+        from app.utils.safe_redis import get_safe_redis
+        raw = get_safe_redis().get(_COUNTS_CACHE_KEY)
+        if raw:
+            return json.loads(raw)
+    except Exception:
+        logger.debug('integrity counts peek failed', exc_info=True)
+    return None
+
+
 def findings_for_players(session, player_ids: Iterable[int]) -> Dict[int, List[IntegrityFinding]]:
     """Scoped run for list badges: {player_id: [findings]} for the given players.
     Runs the same detectors as the dashboard; the dedicated sub-conflict badge is a

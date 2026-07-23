@@ -197,7 +197,8 @@ def build_permission_matrix(session):
             'label': d['label'],
             'impacts': d['impacts'],
             'category': d['category'],
-            'enforced': d['enforced'],
+            'enforced': d['enforced'],       # referenced in code (registry) — really gates
+            'seeded': name in db_perm_names,  # actually exists as a DB row — can be granted
             'granted': {r['id']: (r['id'] in held) for r in role_list},
         })
 

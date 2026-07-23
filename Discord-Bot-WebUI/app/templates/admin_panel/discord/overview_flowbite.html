@@ -46,7 +46,7 @@
        class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-900 dark:text-white hover:border-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
       <i class="ti ti-shield text-base text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Role Sync
     </a>
-    <a href="{{ url_for('admin_panel.discord_role_mapping') }}"
+    <a href="{{ url_for('admin_panel.access_control', tab='discord') }}"
        class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-900 dark:text-white hover:border-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
       <i class="ti ti-link text-base text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Role Mapping
     </a>
@@ -424,7 +424,7 @@
             <a href="{{ url_for('admin_panel.discord_roles') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700">
                 <i class="ti ti-shield mr-2"></i>Role Sync
             </a>
-            <a href="{{ url_for('admin_panel.discord_role_mapping') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+            <a href="{{ url_for('admin_panel.access_control', tab='discord') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
                 <i class="ti ti-link mr-2"></i>Role Mapping
             </a>
             <a href="{{ url_for('admin_panel.discord_onboarding') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">

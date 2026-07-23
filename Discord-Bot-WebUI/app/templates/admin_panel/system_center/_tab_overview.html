@@ -1,0 +1,135 @@
+{#- System Command Center — Overview tab body.
+   Renders from `overview` (get_system_overview): health-at-a-glance component grid,
+   the attention feed, resource snapshot, and a non-destructive Quick Actions strip.
+   Every value traces to a real collector; nothing is fabricated. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state, attention_list, attention_item %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{% set tonebg = {
+  'primary': 'bg-ecs-green/10 text-ecs-green ring-ecs-green/30',
+  'success': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300 ring-green-300/40',
+  'warning': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-amber-300/40',
+  'danger':  'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-red-300/40',
+  'info':    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-blue-300/40',
+  'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
+} %}
+
+{% if not overview %}
+  {{ empty_state('ti-heartbeat-off', 'Overview unavailable', 'The health collectors could not be reached right now. This is a real signal — the underlying probes errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== health at a glance ===== -->
+  <section>
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 flex items-center gap-2">
+        <i class="ti ti-activity-heartbeat text-ecs-green"></i>Health at a glance
+      </h2>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ring-1 {{ tonebg.get(overview.overall.tone, tonebg['neutral']) }}">
+        <i class="ti ti-circle-filled text-[10px]"></i>{{ overview.overall.word }}
+      </span>
+    </div>
+    {% if overview.components %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {% for c in overview.components %}
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white min-w-0">
+            <i class="ti {{ c.icon }} text-ecs-green shrink-0"></i><span class="truncate">{{ c.name }}</span>
+          </span>
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 {{ tonebg.get(c.tone, tonebg['neutral']) }}">
+            <i class="ti ti-circle-filled text-[8px]"></i>{{ c.status_word }}
+          </span>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 break-words">{{ c.message or '—' }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      {{ empty_state('ti-server-off', 'No component data', 'The health check returned no components. The probe likely errored — not a sign that everything is fine.') }}
+    {% endif %}
+    {% call explainer() %}
+      Each card is one subsystem from the live health check (<code>_check_system_health</code>): database, Redis, Celery workers and Docker. The status word is that probe's own verdict, normalized to Healthy / Degraded / Down. The roll-up chip at the top is Down if a core service (DB, Redis, Celery) is down, Degraded if anything is off, else Healthy.
+    {% endcall %}
+  </section>
+
+  <!-- ===== needs your attention ===== -->
+  <section>
+    {% if overview.attention %}
+    {% call attention_list('Needs your attention', count=overview.attention|length, icon='ti-alert-triangle') %}
+      {% for a in overview.attention %}
+        {{ attention_item(a.icon, a.label, none, a.severity, a.action_url or '#', age=a.detail) }}
+      {% endfor %}
+    {% endcall %}
+    {% else %}
+    {% call section_card('Needs your attention', icon='ti-alert-triangle') %}
+      {{ empty_state('ti-circle-check', 'All clear', 'No failed jobs, no open data conflicts, and resources are within thresholds. Signals here are drawn from the task monitor, the integrity detectors, and live resource sampling.') }}
+    {% endcall %}
+    {% endif %}
+    {% call explainer() %}
+      This feed aggregates only <strong>real</strong> signals: failed Celery tasks in the last 24h (task monitor), open data-integrity conflicts (cached count from the integrity detectors), and CPU / memory / disk over threshold (live psutil sample from this worker). There is no separate alerts table — the resource warnings <em>are</em> the system alerts.
+    {% endcall %}
+  </section>
+
+  <!-- ===== resource snapshot ===== -->
+  <section>
+    {% call section_card('Resource snapshot', icon='ti-cpu') %}
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-x divide-y sm:divide-y-0 divide-gray-100 dark:divide-gray-700/60">
+        {% set res = [
+          ('CPU', overview.perf.cpu ~ '%', 'ti-cpu'),
+          ('Memory', overview.perf.memory ~ '%', 'ti-ram'),
+          ('Disk', overview.perf.disk ~ '%', 'ti-database'),
+          ('Uptime', overview.perf.uptime, 'ti-clock'),
+          ('Load', overview.perf.load, 'ti-gauge'),
+          ('Connections', overview.perf.connections, 'ti-plug-connected')
+        ] %}
+        {% for label, value, icon in res %}
+        <div class="p-4">
+          <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+            <i class="ti {{ icon }}"></i>{{ label }}
+          </div>
+          <div class="mt-1 font-mono text-lg font-bold text-gray-900 dark:text-white truncate" title="{{ value }}">{{ value }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+    {% call explainer() %}
+      Sampled with <code>psutil</code> {{ honesty_badge('per-worker') }} from the single gunicorn worker that served this page — not an average across the fleet. CPU is a 1-second sample; uptime is the host's, not the app's.
+    {% endcall %}
+  </section>
+
+  <!-- ===== quick actions (non-destructive: links only) ===== -->
+  <section>
+    {% call section_card('Quick actions', icon='ti-bolt') %}
+      <div class="p-4 flex flex-wrap gap-2">
+        {% set actions = [
+          ('Services', 'ti-server-2', 'admin_panel.system_center', {'tab': 'services'}, false),
+          ('System Health', 'ti-heartbeat', 'admin_panel.system_health_consolidated', {}, false),
+          ('Data Integrity', 'ti-shield-check', 'admin_panel.integrity_dashboard', {}, false),
+          ('Task Monitor', 'ti-list-check', 'admin_panel.task_monitoring_page', {}, false),
+          ('Cache & Redis', 'ti-database', 'admin_panel.cache_redis_consolidated', {}, false),
+          ('Security', 'ti-shield-lock', 'admin_panel.security_dashboard', {}, false)
+        ] %}
+        {% for label, icon, endpoint, args, disabled in actions %}
+          {% if not disabled and endpoint_exists(endpoint) %}
+          <a href="{{ url_for(endpoint, **args) }}"
+             class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
+            <i class="ti {{ icon }}"></i>{{ label }}
+          </a>
+          {% else %}
+          <span title="Comes online later in this rollout"
+                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-sm font-medium text-gray-400 cursor-not-allowed">
+            <i class="ti {{ icon }}"></i>{{ label }}
+          </span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endcall %}
+    {% call explainer() %}
+      Phase 1 quick actions are read-only jump-offs to the existing operations pages — nothing here mutates state. Destructive controls (restart worker, clear cache, ban IP) arrive in a later phase, gated behind confirmation.
+    {% endcall %}
+  </section>
+
+</div>
+{% endif %}

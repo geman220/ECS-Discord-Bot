@@ -88,10 +88,13 @@ def bot_management():
 @bot_admin_bp.route('/roles')
 @login_required
 def roles():
+    """Legacy role hub — folded into the Access Control center.
+
+    Roles, Permissions and Discord role-mapping now live on one surface. Kept as
+    a redirect so any old /bot/admin/roles bookmark or link lands there, and the
+    old menu (roles_flowbite.html) is no longer shown.
     """
-    Render a page displaying current roles.
-    """
-    return render_template('roles_flowbite.html', title='Current Roles')
+    return redirect(url_for('admin_panel.access_control', tab='roles'))
 
 
 # DEPRECATED ROUTE - MARKED FOR DELETION

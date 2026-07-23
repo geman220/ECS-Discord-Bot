@@ -1,0 +1,228 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, empty_state %}
+{% from 'admin_panel/system_center/_system_tabs.html' import system_tabs %}
+
+{% set _tab_labels = {
+  'overview': 'Overview', 'services': 'Services', 'perf': 'Performance',
+  'jobs': 'Jobs & Queues', 'data': 'Data & Cache', 'security': 'Security',
+  'logs': 'Logs & Audit', 'api': 'API Traffic'
+} %}
+
+{% block admin_title %}System{% endblock %}
+{% block panel_description %}The System Command Center — one operations surface for health, services, jobs, data, security and traffic.{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+    <span class="ms-1 text-sm text-gray-500 dark:text-gray-400">System</span>
+  </div>
+</li>
+<li aria-current="page">
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+    <span class="ms-1 text-sm font-medium text-gray-700 dark:text-gray-300">{{ _tab_labels.get(tab, 'Overview') }}</span>
+  </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-5 sm:space-y-6" data-svc-url-base="{{ url_for('admin_panel.system_center_service_data', key='__KEY__') }}">
+
+  {% call page_header('System Command Center', subtitle='Operations') %}
+    <a href="#system-guide" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"><i class="ti ti-help-circle"></i>Guide</a>
+  {% endcall %}
+
+  <!-- ===== KPI band ===== -->
+  {% set _htone = {'primary':'primary','warning':'warning','danger':'danger','neutral':'neutral'}.get(kpis.health_tone, 'neutral') %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+    {{ stat_card('ti-heartbeat', 'Overall', kpis.health_word, tone=_htone) }}
+    {{ stat_card('ti-server-2', 'Services Up', kpis.services_up ~ '/' ~ kpis.services_total, tone='primary') }}
+    {{ stat_card('ti-list-check', 'Active Jobs', kpis.active_jobs, tone='info') }}
+    {{ stat_card('ti-alert-triangle', 'Error Rate 24h', (kpis.error_rate ~ '%') if kpis.error_rate is not none else 'N/A', tone=('danger' if (kpis.error_rate or 0) >= 5 else 'neutral')) }}
+    {{ stat_card('ti-cpu', 'CPU', (kpis.cpu or 0) ~ '%', sublabel='per-worker', tone=('warning' if (kpis.cpu or 0) >= 80 else 'success')) }}
+    {{ stat_card('ti-ram', 'Memory', (kpis.memory or 0) ~ '%', sublabel='per-worker', tone=('warning' if (kpis.memory or 0) >= 80 else 'success')) }}
+  </div>
+
+  <!-- ===== tabs ===== -->
+  {{ system_tabs(tab, counts) }}
+
+  <!-- ===== active tab body ===== -->
+  {% if tab == 'overview' %}
+    {% include 'admin_panel/system_center/_tab_overview.html' %}
+  {% elif tab == 'services' %}
+    {% include 'admin_panel/system_center/_tab_services.html' %}
+  {% else %}
+    {{ empty_state('ti-tools', _tab_labels.get(tab, 'This section') ~ ' comes online later', 'This section comes online later in this rollout. Nothing is shown here yet because there is no live source wired for it — we would rather show you an honest blank than a fabricated number.') }}
+  {% endif %}
+
+  <!-- ===== guide ===== -->
+  <section id="system-guide" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 scroll-mt-20">
+    <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-help-circle text-ecs-green"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">How the System Center works</h2>
+    </div>
+    <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm text-gray-600 dark:text-gray-300">
+      <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">One operations surface.</span> Overview and Services are live now; Performance, Jobs, Data, Security, Logs and API traffic light up in later phases. Empty tabs mean "no live source wired yet" — never a hidden failure.</div>
+      <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Honesty first.</span> Every figure traces to a real collector. Values that describe only this worker or are estimated carry a small badge, so you always know how much to trust a number.</div>
+      <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Never faked healthy.</span> A service that can't be reached reads Down or Idle with the real reason. Twilio stays Idle until you explicitly test it — we don't probe it on every load.</div>
+      <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Read-only for now.</span> Phase 1 is look, don't touch. Quick actions jump to existing pages; destructive controls (restart, clear, ban) arrive later behind confirmation.</div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== service detail drawer (JS-populated; escaped) ===== -->
+<div id="svcDrawer" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/50" data-action="svc-close"></div>
+  <div id="svcDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="svcDrawerTitle" tabindex="-1"
+       class="absolute top-0 right-0 h-full w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl flex flex-col focus:outline-none">
+    <div class="px-5 h-14 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 shrink-0">
+      <h3 class="text-sm font-bold flex items-center gap-2 text-gray-900 dark:text-white min-w-0">
+        <i id="svcDrawerIcon" class="ti ti-server-2 text-ecs-green shrink-0"></i>
+        <span id="svcDrawerTitle" class="truncate">Service</span>
+      </h3>
+      <button type="button" data-action="svc-close" class="p-2 -mr-2 rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close"><i class="ti ti-x text-lg"></i></button>
+    </div>
+    <div id="svcDrawerBody" class="p-5 overflow-y-auto text-sm">
+      <div class="text-center text-gray-400 py-10"><i class="ti ti-loader animate-spin"></i> Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function onReady(fn) { if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  onReady(function () {
+    var esc = function (s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; };
+    var isDark = function () { return document.documentElement.classList.contains('dark'); };
+    function swalBase(extra) { return Object.assign({ confirmButtonColor: '#1a472a', background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' }, extra || {}); }
+    function toast(icon, title, text) { if (window.Swal) window.Swal.fire(swalBase({ icon: icon, title: title, text: text || '' })); else alert((title || '') + ' ' + (text || '')); }
+
+    var root = document.querySelector('[data-svc-url-base]');
+    var urlBase = root ? root.getAttribute('data-svc-url-base') : '';
+
+    // honesty badge (mirrors the Jinja honesty_badge macro)
+    var HONESTY = {
+      'per-worker': ['PER-WORKER', 'Reflects only the worker that served this page, not the whole fleet'],
+      'estimated':  ['ESTIMATED', 'Derived/estimated, not directly measured'],
+      'stub':       ['STUB', 'No live source wired yet'],
+      'api-only':   ['API-ONLY', 'Covers /api/* traffic only; web + static not counted']
+    };
+    function honestyBadge(kind) {
+      var b = HONESTY[kind];
+      if (!b) return '';
+      return '<span title="' + esc(b[1]) + '" class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 align-middle">' + esc(b[0]) + '</span>';
+    }
+    var TONE = {
+      'primary': 'bg-ecs-green/10 text-ecs-green ring-ecs-green/30',
+      'success': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300 ring-green-300/40',
+      'warning': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-amber-300/40',
+      'danger':  'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-red-300/40',
+      'info':    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-blue-300/40',
+      'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
+    };
+
+    var _lastFocus = null;
+    function openDrawer() {
+      var d = document.getElementById('svcDrawer'); if (!d) return;
+      _lastFocus = document.activeElement;
+      d.classList.remove('hidden'); document.body.classList.add('overflow-hidden');
+      var panel = document.getElementById('svcDrawerPanel'); if (panel) panel.focus();
+    }
+    function closeDrawer() {
+      var d = document.getElementById('svcDrawer'); if (!d || d.classList.contains('hidden')) return;
+      d.classList.add('hidden'); document.body.classList.remove('overflow-hidden');
+      if (_lastFocus && typeof _lastFocus.focus === 'function') _lastFocus.focus();
+      _lastFocus = null;
+    }
+
+    function renderService(s) {
+      var body = document.getElementById('svcDrawerBody');
+      document.getElementById('svcDrawerTitle').textContent = s.name || 'Service';
+      var iconEl = document.getElementById('svcDrawerIcon');
+      iconEl.className = 'ti ' + (s.icon || 'ti-server-2') + ' text-ecs-green shrink-0';
+
+      var html = '';
+      // status pill
+      html += '<div class="mb-4"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ring-1 ' + (TONE[s.tone] || TONE['neutral']) + '"><i class="ti ti-circle-filled text-[9px]"></i>' + esc(s.status_word || s.status || 'Unknown') + '</span></div>';
+
+      // metrics (with honesty tags)
+      html += '<h4 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Metrics</h4>';
+      if ((s.metrics || []).length) {
+        html += '<dl class="space-y-1.5 mb-5">';
+        (s.metrics || []).forEach(function (m) {
+          html += '<div class="flex items-baseline justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400 text-xs">' + esc(m.label) + '</dt>' +
+                  '<dd class="text-right min-w-0"><span class="font-mono text-gray-900 dark:text-white break-words">' + esc(m.value == null || m.value === '' ? '—' : m.value) + '</span> ' + honestyBadge(m.honesty) + '</dd></div>';
+        });
+        html += '</dl>';
+      } else {
+        html += '<p class="text-xs text-gray-400 mb-5">No metrics available.</p>';
+      }
+
+      // runbook
+      if (s.runbook) {
+        html += '<h4 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Runbook</h4>';
+        html += '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-5 whitespace-pre-wrap break-words">' + esc(s.runbook) + '</p>';
+      }
+
+      // controls (Phase 1: none / disabled)
+      html += '<h4 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Controls</h4>';
+      if ((s.controls || []).length) {
+        html += '<div class="flex flex-wrap gap-2 mb-5">';
+        (s.controls || []).forEach(function (c) {
+          html += '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 cursor-not-allowed" title="Arrives in a later phase">' + esc(c.label) + '</span>';
+        });
+        html += '</div>';
+      } else {
+        html += '<p class="text-xs text-gray-400 mb-5">Read-only in this phase — actions arrive later, behind confirmation.</p>';
+      }
+
+      // recent lines
+      if ((s.recent || []).length) {
+        html += '<h4 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Recent</h4>';
+        html += '<ul class="space-y-1">';
+        (s.recent || []).forEach(function (line) {
+          html += '<li class="text-xs font-mono text-gray-600 dark:text-gray-400 break-words border-l-2 border-gray-200 dark:border-gray-700 pl-2">' + esc(line) + '</li>';
+        });
+        html += '</ul>';
+      }
+
+      body.innerHTML = html;
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest('[data-action]');
+      if (!t) return;
+      var action = t.dataset.action;
+
+      if (action === 'svc-open') {
+        e.preventDefault();
+        var key = t.dataset.key;
+        if (!key || !urlBase) return;
+        document.getElementById('svcDrawerTitle').textContent = t.dataset.name || 'Service';
+        document.getElementById('svcDrawerBody').innerHTML = '<div class="text-center text-gray-400 py-10"><i class="ti ti-loader animate-spin"></i> Loading…</div>';
+        openDrawer();
+        fetch(urlBase.replace('__KEY__', encodeURIComponent(key)))
+          .then(function (r) { return r.json().catch(function () { return { success: false }; }); })
+          .then(function (r) {
+            if (!r || !r.success || !r.service) {
+              document.getElementById('svcDrawerBody').innerHTML = '<p class="text-red-500 text-center py-8">Could not load service detail.</p>';
+              return;
+            }
+            renderService(r.service);
+          })
+          .catch(function () {
+            document.getElementById('svcDrawerBody').innerHTML = '<p class="text-red-500 text-center py-8">Could not load service detail.</p>';
+          });
+
+      } else if (action === 'svc-close') {
+        e.preventDefault();
+        closeDrawer();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+  });
+})();
+</script>
+{% endblock %}

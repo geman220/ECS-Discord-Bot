@@ -148,7 +148,7 @@
   {% endif %}
 
   {# --- KPI stat strip --- #}
-  {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
+  {% if is_own_profile or has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
   <div class="mb-6">
     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Season Stats &middot; {{ season.name }}</p>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
@@ -1200,7 +1200,7 @@
         {% endif %}
 
         <!-- Stats Card -->
-        {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
+        {% if is_own_profile or has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Player Statistics</h3>
