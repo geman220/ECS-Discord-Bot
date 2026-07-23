@@ -368,6 +368,44 @@ async function poolReject(el) {
     poolAction(poolUrl(cfg().poolRejectUrl, ctx.leagueType), { player_id: ctx.playerId });
 }
 
+// Multi-league membership: put the same person into another league's pool. The
+// roster shows one card per (player, league), so the added league appears as its
+// own card and can be removed independently via that card's Remove.
+const POOL_LEAGUES = ['ECS FC', 'Classic', 'Premier'];
+
+async function poolAddLeague(el) {
+    const playerId = parseInt(el.dataset.playerId, 10);
+    const name = el.dataset.playerName || 'this player';
+    const current = el.dataset.currentLeague || '';
+    const others = POOL_LEAGUES.filter(lt => lt !== current);
+    if (!playerId || !others.length || !window.Swal) return;
+    const dark = document.documentElement.classList.contains('dark');
+    const inputOptions = {};
+    others.forEach(lt => { inputOptions[lt] = lt; });
+    const res = await window.Swal.fire({
+        title: 'Add to another league',
+        html: `Put <b>${esc(name)}</b> in an additional substitute pool.` +
+              (current ? ` They currently sub for <b>${esc(current)}</b>.` : ''),
+        input: 'select',
+        inputOptions,
+        inputValue: others[0],
+        showCancelButton: true,
+        confirmButtonText: 'Add to pool',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#16a34a',
+        background: dark ? '#1f2937' : '#ffffff', color: dark ? '#f3f4f6' : '#111827',
+    });
+    if (!res.isConfirmed || !res.value) return;
+    const chosen = res.value;
+    const { ok, data } = await postJson(poolUrl(cfg().poolAddUrl, chosen), { player_id: playerId });
+    if (ok) {
+        toast('success', `Added ${name} to ${chosen}`);
+        setTimeout(() => window.location.reload(), 700);
+    } else {
+        toast('error', 'Could not add', (data && data.message) || `${name} may already be in the ${chosen} pool.`);
+    }
+}
+
 /* ----------------------------------------------------- add-to-pool modal */
 
 const addState = { leagueType: 'ECS FC', addedAny: false };
@@ -978,6 +1016,7 @@ function registerHandlers() {
     ED.register('sct-pool-remove', (el) => poolRemove(el));
     ED.register('sct-pool-approve', (el) => poolApprove(el));
     ED.register('sct-pool-reject', (el) => poolReject(el));
+    ED.register('sct-pool-addleague', (el) => poolAddLeague(el));
     // Add-to-pool modal.
     ED.register('sct-pool-add-open', () => openAddPool());
     ED.register('sct-pool-add-close', () => closeAddPool());

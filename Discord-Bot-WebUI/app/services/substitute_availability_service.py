@@ -301,15 +301,20 @@ def player_sub_stats_bulk(session, player_ids, season_id=None):
     }
     subbed = {}
     if season_id:
-        rows = (
-            session.query(SubstituteAssignment.player_id, func.count(SubstituteAssignment.id))
-            .join(SubstituteRequest, SubstituteAssignment.request_id == SubstituteRequest.id)
-            .join(Match, SubstituteRequest.match_id == Match.id)
-            .filter(SubstituteAssignment.player_id.in_(ids), Match.season_id == season_id)
-            .group_by(SubstituteAssignment.player_id)
-            .all()
-        )
-        subbed = {pid: cnt for pid, cnt in rows}
+        try:
+            rows = (
+                session.query(SubstituteAssignment.player_id, func.count(SubstituteAssignment.id))
+                .join(SubstituteRequest, SubstituteAssignment.request_id == SubstituteRequest.id)
+                .join(Match, SubstituteRequest.match_id == Match.id)
+                .filter(SubstituteAssignment.player_id.in_(ids), Match.season_id == season_id)
+                .group_by(SubstituteAssignment.player_id)
+                .all()
+            )
+            subbed = {pid: cnt for pid, cnt in rows}
+        except Exception:
+            logger.warning("player_sub_stats_bulk: season-subbed count failed; defaulting to 0",
+                           exc_info=True)
+            subbed = {}
     out = {}
     for pid in ids:
         pool = pools.get(pid)

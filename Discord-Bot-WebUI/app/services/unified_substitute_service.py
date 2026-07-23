@@ -423,21 +423,33 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
         if not include_inactive:
             q = q.filter(SubstitutePool.is_active == True)  # noqa: E712
         pub_entries = [e for e in q.all() if e.player]
-        # Batch the per-member stats (subbed-this-season) in a fixed # of queries
-        # instead of 2 per member — avoids N+1 across the full ~150-member pool.
+    except Exception as e:
+        logger.error(f"Error querying substitute pool: {e}", exc_info=True)
+        pub_entries = []
+
+    # Stats are BEST-EFFORT. A stats-query failure (or one bad row) must never drop
+    # the whole roster — previously a single throw here left the Sub Pool tab showing
+    # only ECS FC. So compute stats defensively and fall back to the pool row's own
+    # counters, and guard each member individually.
+    try:
         stats_map = player_sub_stats_bulk(session, [e.player_id for e in pub_entries], season_id)
-        for entry in pub_entries:
+    except Exception as e:
+        logger.error(f"Sub pool stats failed; showing roster without season stats: {e}", exc_info=True)
+        stats_map = {}
+
+    for entry in pub_entries:
+        try:
             player = entry.player
             lt = entry.league_type or 'Pub League'
             key = (entry.player_id, lt)
             if key in seen_keys:
                 continue
             seen_keys.add(key)
-            stats = stats_map.get(entry.player_id, {
+            stats = stats_map.get(entry.player_id) or {
                 'response_rate': round(entry.acceptance_rate, 1),
                 'matches_played': entry.matches_played or 0,
                 'subbed_this_season': 0,
-            })
+            }
             members.append({
                 'league': 'ecs_fc' if lt == 'ECS FC' else 'pub_league',
                 'player_id': entry.player_id,
@@ -447,12 +459,14 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
                 'avatar_url': player.avatar_image_url if player else None,
                 'initials': _initials(player.name),
                 'status': _pub_pool_status(entry),
-                'acceptance_rate': stats['response_rate'],
-                'matches_played': stats['matches_played'],
-                'subbed_this_season': stats['subbed_this_season'],
+                'acceptance_rate': stats.get('response_rate', 0.0),
+                'matches_played': stats.get('matches_played', 0),
+                'subbed_this_season': stats.get('subbed_this_season', 0),
             })
-    except Exception as e:
-        logger.error(f"Error loading substitute pool: {e}", exc_info=True)
+        except Exception as e:
+            logger.error(f"Skipping bad sub pool entry (player %s): %s",
+                         getattr(entry, 'player_id', None), e, exc_info=True)
+            continue
 
     # --- EcsFcSubPool — only members NOT already covered by the SubstitutePool twin ---
     try:

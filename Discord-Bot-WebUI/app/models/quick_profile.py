@@ -83,6 +83,13 @@ class QuickProfile(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
 
+    # Pre-approval: an admin can approve a walk-in BEFORE they claim. On claim, the new
+    # account is auto-approved into this league (see _apply_pre_approval). One of the six
+    # league/sub types ('classic'/'premier'/'ecs-fc'/'sub-*'); NULL = not pre-approved.
+    pre_approved_league = db.Column(db.String(50), nullable=True)
+    pre_approved_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    pre_approved_at = db.Column(db.DateTime, nullable=True)
+
     # Relationships
     created_by = db.relationship('User', foreign_keys=[created_by_user_id], backref='created_quick_profiles')
     claimed_by_player = db.relationship('Player', foreign_keys=[claimed_by_player_id])
@@ -256,6 +263,54 @@ class QuickProfile(db.Model):
 
         logger.info(f"Quick profile {self.id} claimed by player {player.id}")
 
+        # If an admin pre-approved this walk-in before the claim, auto-approve the
+        # now-real account. Guarded so it can NEVER break the claim/registration.
+        self._apply_pre_approval(player)
+
+    def _apply_pre_approval(self, player):
+        """Auto-approve the claiming user when this profile was pre-approved by an admin.
+
+        Runs inside claim() so it fires for EVERY claim path (web register, waitlist
+        register, mobile). SESSION-SAFE: mutates on the user's OWN session (via
+        object_session), never the module-level db.session — registration flows use
+        g.db_session, and mixing sessions silently drops writes. Mirrors the CORE of
+        apply_approval (roles + approval fields); full league/Discord nuances reconcile
+        via the normal sync. No-op unless pre_approved_league is set. Never raises."""
+        league = getattr(self, 'pre_approved_league', None)
+        if not league:
+            return
+        user = getattr(player, 'user', None)
+        if user is None or getattr(user, 'approval_status', None) == 'approved':
+            return
+        try:
+            from sqlalchemy import inspect as _sa_inspect
+            from app.models import Role
+            session = _sa_inspect(user).session
+            if session is None:
+                return
+            role_map = {'classic': 'pl-classic', 'premier': 'pl-premier', 'ecs-fc': 'pl-ecs-fc',
+                        'sub-classic': 'Classic Sub', 'sub-premier': 'Premier Sub', 'sub-ecs-fc': 'ECS FC Sub'}
+            rname = role_map.get(league)
+            if not rname:
+                return  # waitlist-* / unknown: not auto-approved here
+            role = session.query(Role).filter_by(name=rname).first()
+            if role and role not in user.roles:
+                user.roles.append(role)
+            for _rm in ('pl-unverified', 'pl-waitlist'):
+                r = session.query(Role).filter_by(name=_rm).first()
+                if r and r in user.roles:
+                    user.roles.remove(r)
+            user.is_approved = True
+            user.approval_status = 'approved'
+            user.approval_league = league
+            if hasattr(user, 'approved_by'):
+                user.approved_by = getattr(self, 'pre_approved_by_user_id', None)
+            if hasattr(user, 'approved_at'):
+                user.approved_at = datetime.utcnow()
+            logger.info(f"Quick profile {self.id}: auto-approved user {user.id} into '{league}' on claim (pre-approved)")
+        except Exception:
+            logger.exception(f"Pre-approval on claim failed for quick profile {self.id} (claim still succeeded)")
+
     def link_to_player(self, player, admin_user, overwrite_photo=False):
         """
         Manually link this profile to an existing player (admin action).
@@ -372,6 +427,8 @@ class QuickProfile(db.Model):
             'linked_player_name': linked_player_name,  # Mobile expects this
             'linked_at': self.linked_at.isoformat() if self.linked_at else None,
             'linked_by_user_id': self.linked_by_user_id,
+            'pre_approved_league': self.pre_approved_league,
+            'pre_approved_at': self.pre_approved_at.isoformat() if self.pre_approved_at else None,
         }
 
         if include_created_by and self.created_by:

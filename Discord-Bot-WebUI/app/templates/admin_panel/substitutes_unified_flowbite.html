@@ -502,6 +502,11 @@
         <button type="button" data-action="sct-pool-reject"
                 class="h-8 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 dark:border-red-500/30 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x"></i>Reject</button>
         {% endif %}
+        {# Put this same person into another league's pool (multi-league membership is allowed). #}
+        <button type="button" data-action="sct-pool-addleague"
+                data-player-id="{{ m.player_id }}" data-player-name="{{ m.name|e }}" data-current-league="{{ m.league_type|e }}"
+                title="Add {{ m.name|e }} to another league's sub pool"
+                class="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0"><i class="ti ti-layers-linked"></i></button>
       </div>
     </div>
     {% endfor %}

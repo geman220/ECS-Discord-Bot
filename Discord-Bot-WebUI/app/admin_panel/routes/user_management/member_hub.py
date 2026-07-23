@@ -129,8 +129,13 @@ def members_worklist():
         return None
 
     # --- shared queue criteria (identical to the legacy pages, so counts can't drift) ---
+    # DENIED people are excluded from the waitlist everywhere (count + list): a denied person
+    # will not play, so they only surface via the All tab's explicit "Denied" filter — you have
+    # to go FIND them, they don't clutter the live queues.
+    not_denied = or_(User.approval_status != 'denied', User.approval_status.is_(None))
     pending_q = db.session.query(User).filter(*User.pending_approval_criteria())
-    waitlist_q = db.session.query(User).join(User.roles).filter(Role.name == 'pl-waitlist')
+    waitlist_q = (db.session.query(User).join(User.roles)
+                  .filter(Role.name == 'pl-waitlist', not_denied))
     quick_pending_q = db.session.query(QuickProfile).filter(
         QuickProfile.status == QuickProfileStatus.PENDING.value,
         or_(QuickProfile.expires_at.is_(None), QuickProfile.expires_at > now),
@@ -189,7 +194,8 @@ def members_worklist():
     elif tab == 'subs':
         if sub_pids:
             sq = (db.session.query(User).options(joinedload(User.player), joinedload(User.roles))
-                  .join(Player, Player.user_id == User.id).filter(Player.id.in_(sub_pids)))
+                  .join(Player, Player.user_id == User.id)
+                  .filter(Player.id.in_(sub_pids), not_denied))
             if search:
                 like = f'%{search}%'
                 sq = sq.filter(or_(Player.name.ilike(like), User.username.ilike(like)))
@@ -264,6 +270,54 @@ def members_worklist():
                       season_filter, lane_filter, sub_status_filter,
                       (qp_status and qp_status != 'pending')])
 
+    # --- per-tab KPI strip (contextual breakdown; each chip links to the matching filter) ---
+    tab_kpis = []
+    if tab == 'quick':
+        qb = db.session.query(QuickProfile)
+        for lbl, st, tone in [('Pending', 'pending', 'warning'), ('Claimed', 'claimed', 'success'),
+                              ('Linked', 'linked', 'info'), ('Expired', 'expired', 'danger')]:
+            tab_kpis.append({'label': lbl, 'value': qb.filter(QuickProfile.status == st).count(),
+                             'tone': tone, 'param': 'qp_status', 'val': st})
+    elif tab == 'waitlist':
+        for lbl, lane, tone in [('Classic', 'classic', 'info'), ('Premier', 'premier', 'gold'),
+                                ('ECS FC', 'ecs_fc', 'success')]:
+            c = _lane_clause(User.waitlist_league, lane)
+            tab_kpis.append({'label': lbl, 'value': (waitlist_q.filter(c).count() if c is not None else 0),
+                             'tone': tone, 'param': 'lane', 'val': lane})
+        und = waitlist_q.filter(or_(User.waitlist_league.is_(None), User.waitlist_league == '',
+                                    User.waitlist_league.ilike('%not_sure%'))).count()
+        tab_kpis.append({'label': 'Undecided', 'value': und, 'tone': 'neutral', 'param': 'lane', 'val': 'undecided'})
+    elif tab == 'subs':
+        full = _sub_summary(db.session, sub_pids)
+        active_ct = sum(1 for pid in full if any(r['status'] == 'active' for r in full[pid]))
+        lane_ct = {'classic': 0, 'premier': 0, 'ecs_fc': 0}
+        for rows in full.values():
+            for r in rows:
+                n = _norm_league_type(r['lane'])
+                if n in lane_ct:
+                    lane_ct[n] += 1
+        tab_kpis = [
+            {'label': 'Active', 'value': active_ct, 'tone': 'success', 'param': 'sub_status', 'val': 'active'},
+            {'label': 'Resting', 'value': max(len(full) - active_ct, 0), 'tone': 'neutral', 'param': 'sub_status', 'val': 'resting'},
+            {'label': 'Classic', 'value': lane_ct['classic'], 'tone': 'info', 'param': 'lane', 'val': 'classic'},
+            {'label': 'Premier', 'value': lane_ct['premier'], 'tone': 'gold', 'param': 'lane', 'val': 'premier'},
+            {'label': 'ECS FC', 'value': lane_ct['ecs_fc'], 'tone': 'success', 'param': 'lane', 'val': 'ecs_fc'},
+        ]
+    elif tab == 'pending':
+        for lbl, lane, tone in [('Classic', 'classic', 'info'), ('Premier', 'premier', 'gold'),
+                                ('ECS FC', 'ecs_fc', 'success')]:
+            clauses = [c for c in (_lane_clause(User.approval_league, lane),
+                                   _lane_clause(User.preferred_league, lane)) if c is not None]
+            tab_kpis.append({'label': lbl, 'value': (pending_q.filter(or_(*clauses)).count() if clauses else 0),
+                             'tone': tone, 'param': 'lane', 'val': lane})
+    elif tab == 'all':
+        tab_kpis = [
+            {'label': 'Approved', 'value': stats['approved'], 'tone': 'success', 'param': 'approval', 'val': 'approved'},
+            {'label': 'Playing now', 'value': stats['active_players'], 'tone': 'primary', 'param': 'season', 'val': 'active'},
+            {'label': 'Pending', 'value': stats['pending'], 'tone': 'warning', 'param': 'approval', 'val': 'pending'},
+            {'label': 'New (30d)', 'value': stats['recent'], 'tone': 'info', 'param': '', 'val': ''},
+        ]
+
     return render_template('admin_panel/members/worklist_flowbite.html',
                            tab=tab, search=search, counts=counts, stats=stats,
                            users=users, profiles=profiles, pagination=pagination,
@@ -272,7 +326,7 @@ def members_worklist():
                            approval_filter=approval_filter, active_filter=active_filter,
                            season_filter=season_filter, lane_filter=lane_filter,
                            sub_status_filter=sub_status_filter, qp_status=qp_status,
-                           any_filter=any_filter)
+                           any_filter=any_filter, tab_kpis=tab_kpis)
 
 
 @admin_panel_bp.route('/members/<int:user_id>')
@@ -305,6 +359,52 @@ def member_hub(user_id):
     return render_template('admin_panel/members/member_hub_flowbite.html', m=data,
                            all_roles=all_roles, user_role_ids=user_role_ids, leagues=leagues,
                            primary_team_id=primary_team_id, hub_teams=hub_teams, extras=extras)
+
+
+_AUDIT_LABELS = {
+    'edit_user_comprehensive': 'Profile edited',
+    'approve_user': 'Approved', 'approve_user_comprehensive': 'Approved',
+    'user_approval': 'Approval decision',
+    'deny_user': 'Denied',
+    'assign_user_role': 'Roles changed', 'assign_user_roles': 'Roles changed',
+    'remove_from_waitlist': 'Removed from waitlist',
+    'update_waitlist_priority': 'Waitlist priority set',
+    'activate_user_comprehensive': 'Account enabled',
+    'deactivate_user_comprehensive': 'Account disabled',
+    'delete_user': 'Account deleted',
+    'member_place': 'Team placement changed',
+    'member_sub_assign': 'Added to sub pool', 'member_sub_remove': 'Removed from sub pool',
+}
+
+
+def _humanize_audit(action, new_value):
+    """Turn a raw audit row (function-name action + dict/str new_value) into a friendly
+    (label, detail) pair — no raw `{'username': ...}` dumps on the member hub."""
+    label = _AUDIT_LABELS.get(action, (action or 'change').replace('_', ' ').capitalize())
+    raw = (new_value or '').strip()
+    if not raw:
+        return label, ''
+    # Dict-ish payload (e.g. the comprehensive edit) -> summarize the meaningful fields.
+    if raw.startswith('{'):
+        try:
+            import ast
+            v = ast.literal_eval(raw)
+            if isinstance(v, dict):
+                parts = []
+                if 'is_approved' in v:
+                    parts.append('approved' if v['is_approved'] else 'not approved')
+                if 'is_active' in v:
+                    parts.append('active' if v['is_active'] else 'disabled')
+                if v.get('approval_league'):
+                    parts.append(str(v['approval_league']))
+                if isinstance(v.get('roles'), list):
+                    parts.append(f"{len(v['roles'])} role" + ('s' if len(v['roles']) != 1 else ''))
+                return label, ' · '.join(parts)
+        except Exception:
+            pass
+        return label, ''
+    # Simple "approved:classic" / "waitlist:classic" style -> tidy separator.
+    return label, raw.replace(':', ' · ').replace('_', ' ')[:80]
 
 
 def _member_admin_extras(session, user):
@@ -391,12 +491,16 @@ def _member_admin_extras(session, user):
                     ['user', 'user_approval', 'user_management', 'user_waitlist', 'role']),
                     AdminAuditLog.resource_id == str(user.id))
                 .order_by(AdminAuditLog.timestamp.desc()).limit(20).all())
-        out['audit'] = [{
-            'action': a.action,
-            'actor': (a.user.username if getattr(a, 'user', None) else 'system'),
-            'when': a.timestamp.strftime('%Y-%m-%d %H:%M') if a.timestamp else '',
-            'detail': (a.new_value or '')[:120],
-        } for a in rows]
+        _audit = []
+        for a in rows:
+            label, detail = _humanize_audit(a.action, a.new_value)
+            _audit.append({
+                'action': label,
+                'actor': (a.user.username if getattr(a, 'user', None) else 'system'),
+                'when': a.timestamp.strftime('%Y-%m-%d %H:%M') if a.timestamp else '',
+                'detail': detail,
+            })
+        out['audit'] = _audit
     except Exception:
         logger.exception("member extras: audit failed")
 
@@ -603,6 +707,40 @@ def member_qp_note_add(profile_id):
         'id': note.id, 'content': note.content,
         'author': getattr(current_user, 'username', 'you'),
         'created_at': note.created_at.strftime('%Y-%m-%d %H:%M') if note.created_at else 'just now'}})
+
+
+@admin_panel_bp.route('/members/quick-profile/<int:profile_id>/preapprove', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def member_qp_preapprove(profile_id):
+    """Pre-approve (or clear) a quick profile so the person is auto-approved into the chosen
+    league the moment they claim their code (see QuickProfile._apply_pre_approval). Only a
+    league/sub type is accepted (waitlist isn't an approval). Body: {league_type} ('' clears)."""
+    from flask_login import current_user
+    from datetime import datetime
+    from app.core import db
+    from app.models import QuickProfile
+
+    profile = db.session.get(QuickProfile, profile_id)
+    if not profile:
+        return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
+    data = request.get_json(silent=True) or {}
+    league = (data.get('league_type') or '').strip()
+    valid = {'classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc'}
+    if league and league not in valid:
+        return jsonify({'success': False, 'message': 'Invalid league'}), 400
+    if league:
+        profile.pre_approved_league = league
+        profile.pre_approved_by_user_id = getattr(current_user, 'id', None)
+        profile.pre_approved_at = datetime.utcnow()
+        msg = f'Pre-approved into {league} — auto-approves when they claim'
+    else:
+        profile.pre_approved_league = None
+        profile.pre_approved_by_user_id = None
+        profile.pre_approved_at = None
+        msg = 'Pre-approval cleared'
+    return jsonify({'success': True, 'message': msg, 'pre_approved_league': profile.pre_approved_league})
 
 
 # lane_label -> canonical normalized lane -> sub Flask role name.

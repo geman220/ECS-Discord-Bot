@@ -103,6 +103,20 @@
     <p>{{ tips.get(tab, tips['all']) | safe }} <a href="#member-guide" class="text-ecs-green font-medium hover:underline whitespace-nowrap">Full guide →</a></p>
   </div>
 
+  <!-- ===== per-tab KPI strip (contextual; each chip links to its filter) ===== -->
+  {% if tab_kpis %}
+  {% set tonemap = {'primary':'text-ecs-green','success':'text-green-600 dark:text-green-400','warning':'text-amber-600 dark:text-amber-400','info':'text-blue-600 dark:text-blue-400','gold':'text-ecs-gold-500 dark:text-ecs-gold-400','danger':'text-red-600 dark:text-red-400','neutral':'text-gray-700 dark:text-gray-300'} %}
+  <div class="flex flex-wrap gap-2">
+    {% for k in tab_kpis %}
+    <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}{% if k.param %}?{{ k.param }}={{ k.val }}{% endif %}"
+       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-ecs-green/40 hover:shadow-sm transition">
+      <span class="font-mono text-base font-bold {{ tonemap.get(k.tone, tonemap['neutral']) }}">{{ k.value }}</span>
+      <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ k.label }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- ===== search + filters ===== -->
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
     <form method="get" action="{{ url_for('admin_panel.members_worklist') }}" class="flex flex-wrap items-end gap-3">
@@ -210,7 +224,7 @@
               <td class="px-4 py-2.5">
                 <div class="flex items-center gap-3">
                   {{ avatar(p, p.player_name, 'w-9 h-9') }}
-                  <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}</div>
+                  <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}{% if p.pre_approved_league %}<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Auto-approves into {{ p.pre_approved_league }} on claim"><i class="ti ti-user-check"></i>pre-approved</span>{% endif %}</div>
                     <div class="text-[11px] text-gray-500 dark:text-gray-400">{% if p.email %}{{ p.email }}{% elif p.phone_number %}{{ p.phone_number }}{% else %}no contact{% endif %}</div></div>
                 </div>
               </td>
@@ -256,7 +270,7 @@
         {% for p in profiles %}
         <div class="px-4 py-3.5 flex items-center gap-3">
           {{ avatar(p, p.player_name, 'w-10 h-10') }}
-          <div class="min-w-0 flex-1"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}</div>
+          <div class="min-w-0 flex-1"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}{% if p.pre_approved_league %}<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Auto-approves into {{ p.pre_approved_league }} on claim"><i class="ti ti-user-check"></i>pre-approved</span>{% endif %}</div>
             <div class="text-[11px] font-mono text-gray-500 dark:text-gray-400">{{ p.claim_code }}</div></div>
           <button type="button" data-action="qp-details" data-url="{{ url_for('admin_panel.member_qp_detail', profile_id=p.id) }}" data-name="{{ p.player_name }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">Manage</button>
         </div>
@@ -589,10 +603,28 @@
         fetch(t.dataset.url).then(function (r) { return r.json(); }).then(function (r) {
           if (!r || !r.success) { body.innerHTML = '<p class="text-red-500">Could not load details.</p>'; return; }
           var p = r.profile || {};
-          var rows = [['Name', p.player_name], ['Claim code', p.claim_code], ['Status', p.status], ['Email', p.email], ['Phone', p.phone_number], ['Jersey', p.jersey_size], ['Pronouns', p.pronouns], ['Profile note', p.notes]];
+          var rows = [['Name', p.player_name], ['Claim code', p.claim_code], ['Status', p.status], ['Email', p.email], ['Phone', p.phone_number], ['Jersey', p.jersey_size], ['Pronouns', p.pronouns]];
           var html = '<dl class="space-y-1.5">';
           rows.forEach(function (kv) { if (kv[1]) html += '<div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">' + esc(kv[0]) + '</dt><dd class="text-gray-900 dark:text-white text-right break-words">' + esc(kv[1]) + '</dd></div>'; });
           html += '</dl>';
+          if (p.notes) {
+            var iby = (p.created_by && (p.created_by.username || p.created_by.name)) || 'admin';
+            var ion = p.created_at ? String(p.created_at).slice(0, 16).replace('T', ' ') : '';
+            html += '<div class="mt-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40"><p class="text-[10px] uppercase tracking-wide text-gray-400">Intake note</p><p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">' + esc(p.notes) + '</p><p class="text-[11px] text-gray-400 mt-1">by ' + esc(iby) + (ion ? ' · ' + esc(ion) : '') + '</p></div>';
+          }
+          if (p.status === 'pending' || p.status === 'expired') {
+            var preUrl = t.dataset.url.replace('/detail', '/preapprove');
+            html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
+            html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Pre-approval <span class="normal-case text-gray-400">· auto-approves them the moment they claim</span></p>';
+            if (p.pre_approved_league) {
+              html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
+              html += '<button data-action="qp-preapprove" data-url="' + esc(preUrl) + '" data-league="" class="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button></div>';
+            } else {
+              html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8"><option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option><option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option></select>';
+              html += '<button data-action="qp-preapprove-set" data-url="' + esc(preUrl) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-user-check"></i>Pre-approve</button></div>';
+            }
+            html += '</div>';
+          }
           html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
           html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Notes <span class="normal-case text-gray-400">· admin / coach — not visible to the member</span></p>';
           html += '<div class="flex items-start gap-2 mb-3"><textarea id="qpNoteInput" rows="2" placeholder="Add a note…" class="flex-1 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"></textarea>';
@@ -623,6 +655,15 @@
           list.insertBefore(li, list.firstChild);
           nta.value = '';
         });
+
+      } else if (action === 'qp-preapprove-set') {
+        e.preventDefault();
+        var pl = document.getElementById('qpPreLeague');
+        postJson(t.dataset.url, { league_type: pl ? pl.value : '' }).then(done);
+
+      } else if (action === 'qp-preapprove') {
+        e.preventDefault();
+        postJson(t.dataset.url, { league_type: t.dataset.league || '' }).then(done);
 
       } else if (action === 'qp-link') {
         e.preventDefault();
