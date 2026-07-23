@@ -516,7 +516,7 @@ def get_hub_insights(session, season_id=None):
         }
 
     Time-to-fill and fill-rate are Pub-League-scoped (the availability pool is Pub
-    League), joined to Match.season_id. Channel effectiveness reads reply rate by
+    League), scoped by season via Match.schedule_id -> Schedule.season_id. Channel effectiveness reads reply rate by
     channel from BOTH SubstituteResponse.response_method and
     SubstituteReachoutRecipient (channels_sent + response_method).
     """
@@ -524,7 +524,7 @@ def get_hub_insights(session, season_id=None):
         SubstituteRequest, SubstituteResponse, SubstituteAssignment,
         SubstituteReachoutRecipient, SubstituteReachout,
     )
-    from app.models.matches import Match
+    from app.models.matches import Match, Schedule
 
     out = {
         'avg_time_to_fill_hours': None,
@@ -541,8 +541,9 @@ def get_hub_insights(session, season_id=None):
             .join(SubstituteAssignment, SubstituteAssignment.request_id == SubstituteRequest.id)
         )
         if season_id:
-            aq = aq.join(Match, SubstituteRequest.match_id == Match.id).filter(
-                Match.season_id == season_id
+            aq = aq.join(Match, SubstituteRequest.match_id == Match.id).join(
+                Schedule, Match.schedule_id == Schedule.id).filter(
+                Schedule.season_id == season_id
             )
         # Keep the smallest fill delay per request (earliest assignment wins),
         # keyed by the request's created_at timestamp.
@@ -565,8 +566,9 @@ def get_hub_insights(session, season_id=None):
     try:
         rq = session.query(SubstituteRequest.status)
         if season_id:
-            rq = rq.join(Match, SubstituteRequest.match_id == Match.id).filter(
-                Match.season_id == season_id
+            rq = rq.join(Match, SubstituteRequest.match_id == Match.id).join(
+                Schedule, Match.schedule_id == Schedule.id).filter(
+                Schedule.season_id == season_id
             )
         statuses = [s for (s,) in rq.all()]
         actionable = [s for s in statuses if s != 'CANCELLED']
@@ -612,8 +614,9 @@ def get_hub_insights(session, season_id=None):
         if season_id:
             sq = sq.join(SubstituteRequest,
                          SubstituteResponse.request_id == SubstituteRequest.id).join(
-                Match, SubstituteRequest.match_id == Match.id).filter(
-                Match.season_id == season_id
+                Match, SubstituteRequest.match_id == Match.id).join(
+                Schedule, Match.schedule_id == Schedule.id).filter(
+                Schedule.season_id == season_id
             )
         for methods, responded_at, resp_method in sq.all():
             chans = [c.strip().lower() for c in (methods or '').split(',') if c.strip()]

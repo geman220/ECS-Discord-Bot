@@ -603,7 +603,7 @@ def _discord_channels():
 
     try:
         import requests
-        from app.config import Config
+        from web_config import Config
         url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/channels"
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
@@ -633,7 +633,7 @@ def _discord_roles():
     saved = [r.strip() for r in (AdminConfig.get_setting('sub_poll_role_ids', '') or '').split(',') if r.strip()]
     try:
         import requests
-        from app.config import Config
+        from web_config import Config
         url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/roles"
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:

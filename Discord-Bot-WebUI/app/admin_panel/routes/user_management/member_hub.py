@@ -276,12 +276,21 @@ def members_worklist():
     def _stat(label, value, tone='info', icon=None, hint=None):
         return {'label': label, 'value': value, 'tone': tone, 'stat': True, 'icon': icon, 'hint': hint}
 
-    _appr_secs = (db.session.query(_func.avg(_func.extract('epoch', User.approved_at - User.created_at)))
-                  .filter(User.approved_at.isnot(None), User.approved_at >= now - timedelta(days=180),
-                          User.approved_at >= User.created_at).scalar())
-    avg_approve_days = round((_appr_secs or 0) / 86400.0, 1)
-    approved_30d = db.session.query(User).filter(User.approved_at.isnot(None),
-                                                 User.approved_at >= thirty_days_ago).count()
+    # func.avg(func.extract(...)) returns a Decimal in PostgreSQL — cast before float math.
+    # Whole block guarded: these metrics are informational and must never 500 the page.
+    try:
+        _appr_secs = (db.session.query(_func.avg(_func.extract('epoch', User.approved_at - User.created_at)))
+                      .filter(User.approved_at.isnot(None), User.approved_at >= now - timedelta(days=180),
+                              User.approved_at >= User.created_at).scalar())
+        avg_approve_days = round(float(_appr_secs or 0) / 86400.0, 1)
+    except Exception:
+        logger.exception("members: avg approve time failed")
+        avg_approve_days = 0
+    try:
+        approved_30d = db.session.query(User).filter(User.approved_at.isnot(None),
+                                                     User.approved_at >= thirty_days_ago).count()
+    except Exception:
+        approved_30d = 0
     conversion_pct = round(stats['approved'] / stats['total_members'] * 100) if stats['total_members'] else 0
 
     # --- per-tab KPI strip (filter chips = counts; stat chips = time/%/age) ---

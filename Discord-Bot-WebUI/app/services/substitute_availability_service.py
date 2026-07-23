@@ -26,7 +26,7 @@ from app.models import (
     SubstituteAvailability, SubstitutePool, SubstituteAssignment, SubstituteRequest,
     Player,
 )
-from app.models.matches import Match
+from app.models.matches import Match, Schedule
 
 logger = logging.getLogger(__name__)
 
@@ -270,9 +270,10 @@ def player_sub_stats(session, player_id, season_id=None):
             session.query(SubstituteAssignment)
             .join(SubstituteRequest, SubstituteAssignment.request_id == SubstituteRequest.id)
             .join(Match, SubstituteRequest.match_id == Match.id)
+            .join(Schedule, Match.schedule_id == Schedule.id)
             .filter(
                 SubstituteAssignment.player_id == player_id,
-                Match.season_id == season_id,
+                Schedule.season_id == season_id,
             )
             .count()
         )
@@ -306,7 +307,8 @@ def player_sub_stats_bulk(session, player_ids, season_id=None):
                 session.query(SubstituteAssignment.player_id, func.count(SubstituteAssignment.id))
                 .join(SubstituteRequest, SubstituteAssignment.request_id == SubstituteRequest.id)
                 .join(Match, SubstituteRequest.match_id == Match.id)
-                .filter(SubstituteAssignment.player_id.in_(ids), Match.season_id == season_id)
+                .join(Schedule, Match.schedule_id == Schedule.id)
+                .filter(SubstituteAssignment.player_id.in_(ids), Schedule.season_id == season_id)
                 .group_by(SubstituteAssignment.player_id)
                 .all()
             )
