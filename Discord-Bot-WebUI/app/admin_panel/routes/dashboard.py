@@ -629,39 +629,19 @@ def export_audit_logs():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_info():
-    """System information and health checks.
+    """RETIRED — redirects to Feature Toggles.
 
-    Left LIVE (not redirected into the System Command Center): its content — app-config
-    counts and critical-setting status (maintenance_mode, teams/waitlist toggles) — isn't
-    replaced by any System Center tab, so redirecting it would drop that visibility.
+    This page was a READ-ONLY mirror. Its three "critical settings"
+    (maintenance_mode, teams_navigation_enabled, waitlist_registration_enabled) all sit in
+    FEATURE_TOGGLE_CATEGORIES, so Feature Toggles shows the same rows AND lets you change
+    them — strictly more useful. Its counts are covered elsewhere: users/roles by Members +
+    Access Control, config counts by this same Features page, 24h audit activity by the
+    System Center Logs tab. An earlier docstring claimed no System Center tab replaced it;
+    that was true of System Center alone, but Features already covered the settings half.
+
+    Kept as a redirect (not deleted) so bookmarks and any stale link don't 404.
     """
-    try:
-        # Get system information
-        info = {
-            'database_status': 'Connected',
-            'total_users': User.query.count(),
-            'total_roles': Role.query.count(), 
-            'total_settings': AdminConfig.query.count(),
-            'enabled_settings': AdminConfig.query.filter_by(is_enabled=True).count(),
-            'recent_activity': AdminAuditLog.query.filter(
-                AdminAuditLog.timestamp >= datetime.utcnow() - timedelta(hours=24)
-            ).count()
-        }
-
-        # Check for any critical settings
-        critical_settings = AdminConfig.query.filter(
-            AdminConfig.key.in_(['maintenance_mode', 'teams_navigation_enabled', 'waitlist_registration_enabled'])
-        ).all()
-
-        return render_template(
-            'admin_panel/system_info_flowbite.html',
-            info=info,
-            critical_settings=critical_settings
-        )
-    except Exception as e:
-        logger.error(f"Error loading system info: {e}")
-        flash('System information unavailable. Database may be offline.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    return redirect(url_for('admin_panel.feature_toggles'))
 
 
 # Route aliases for backward compatibility

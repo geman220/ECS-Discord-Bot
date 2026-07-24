@@ -599,6 +599,27 @@ document.addEventListener('DOMContentLoaded', function () {
   function toast(ok, msg) {
     if (window.Swal) window.Swal.fire({ toast: true, position: 'top-end', timer: 2600, showConfirmButton: false, icon: ok ? 'success' : 'error', title: msg });
   }
+  function isDark() { return document.documentElement.classList.contains('dark'); }
+  // Every confirmation on this page goes through here so we never fall back to the
+  // browser's native confirm() chrome. Returns a promise of true/false.
+  function askConfirm(o) {
+    o = o || {};
+    if (!window.Swal) return Promise.resolve(window.confirm(o.title || 'Are you sure?'));
+    return window.Swal.fire({
+      icon: o.icon || 'warning',
+      title: o.title || 'Are you sure?',
+      text: o.text || '',
+      showCancelButton: true,
+      reverseButtons: true,
+      focusCancel: !!o.danger,
+      confirmButtonText: o.confirmText || 'Confirm',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: o.danger ? '#dc2626' : '#1a472a',
+      cancelButtonColor: '#6b7280',
+      background: isDark() ? '#1f2937' : '#ffffff',
+      color: isDark() ? '#f3f4f6' : '#111827'
+    }).then(function (r) { return !!r.isConfirmed; });
+  }
   function reloadSoon() { setTimeout(function () { window.location.reload(); }, 850); }
   function postForm(url, bodyStr, btn, okReload) {
     btn.disabled = true;
@@ -613,14 +634,21 @@ document.addEventListener('DOMContentLoaded', function () {
     var sel = document.querySelector('[data-approve-league]');
     var lt = sel ? sel.value : '';
     var label = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : lt;
-    if (!window.confirm('Approve this person as "' + label + '"? This assigns roles and syncs Discord.')) return;
-    postForm(approveBtn.getAttribute('data-url'), 'league_type=' + encodeURIComponent(lt), approveBtn, true);
+    askConfirm({
+      icon: 'question', title: 'Approve as "' + label + '"?',
+      text: 'This assigns their roles and syncs Discord.', confirmText: 'Approve'
+    }).then(function (ok) {
+      if (!ok) return;
+      postForm(approveBtn.getAttribute('data-url'), 'league_type=' + encodeURIComponent(lt), approveBtn, true);
+    });
   });
 
   var denyBtn = document.querySelector('[data-action-deny]');
   if (denyBtn) denyBtn.addEventListener('click', function () {
-    if (!window.confirm('Deny this person? They will be removed from the intake queue.')) return;
-    postForm(denyBtn.getAttribute('data-url'), '', denyBtn, true);
+    askConfirm({
+      title: 'Deny this person?', text: 'They will be removed from the intake queue.',
+      confirmText: 'Deny', danger: true
+    }).then(function (ok) { if (ok) postForm(denyBtn.getAttribute('data-url'), '', denyBtn, true); });
   });
 
   // Role add/remove (form-encoded to the shared assign-role endpoint)
@@ -641,7 +669,6 @@ document.addEventListener('DOMContentLoaded', function () {
       var teamId, isCoach = false;
       if (act === 'remove' || act === 'primary') {
         teamId = btn.getAttribute('data-team');
-        if (act === 'remove' && !window.confirm('Remove this player from the team?')) return;
       } else {
         var sel = document.querySelector('[data-place-team]');
         teamId = sel ? sel.value : '';
@@ -649,12 +676,20 @@ document.addEventListener('DOMContentLoaded', function () {
         var cb = document.querySelector('[data-place-coach]');
         isCoach = cb ? cb.checked : false;
       }
-      btn.disabled = true;
-      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: act, team_id: parseInt(teamId, 10), is_coach: isCoach }) })
-        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
-        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
-        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      var run = function () {
+        btn.disabled = true;
+        fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: act, team_id: parseInt(teamId, 10), is_coach: isCoach }) })
+          .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+          .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+          .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      };
+      if (act !== 'remove') { run(); return; }
+      askConfirm({
+        title: 'Remove this player from the team?',
+        text: 'Their team Discord role goes away with the roster spot.',
+        confirmText: 'Remove', danger: true
+      }).then(function (ok) { if (ok) run(); });
     });
   });
 
@@ -662,8 +697,12 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('[data-action-active]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var enabling = btn.getAttribute('data-active') === 'true';
-      if (!window.confirm(enabling ? 'Enable this account?' : 'Disable this account?')) return;
-      postForm(btn.getAttribute('data-url'), '', btn, true);
+      askConfirm({
+        icon: enabling ? 'question' : 'warning',
+        title: enabling ? 'Enable this account?' : 'Disable this account?',
+        text: enabling ? 'They get their login back.' : 'They lose access until it is re-enabled.',
+        confirmText: enabling ? 'Enable' : 'Disable', danger: !enabling
+      }).then(function (ok) { if (ok) postForm(btn.getAttribute('data-url'), '', btn, true); });
     });
   });
 
@@ -671,13 +710,18 @@ document.addEventListener('DOMContentLoaded', function () {
   // Reject a pending sub signup (delete the pending pool row + strip the sub role)
   document.querySelectorAll('[data-action-subreject]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      if (!window.confirm('Reject this pending sub signup? It will be removed.')) return;
-      btn.disabled = true;
-      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ league_type: btn.getAttribute('data-lane') }) })
-        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
-        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
-        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      askConfirm({
+        title: 'Reject this pending sub signup?', text: 'The signup will be removed.',
+        confirmText: 'Reject', danger: true
+      }).then(function (ok) {
+        if (!ok) return;
+        btn.disabled = true;
+        fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ league_type: btn.getAttribute('data-lane') }) })
+          .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+          .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+          .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      });
     });
   });
 
@@ -686,13 +730,16 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('[data-action-subctl]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var conf = btn.getAttribute('data-confirm');
-      if (conf && !window.confirm(conf)) return;
       var payload = { league_type: btn.getAttribute('data-lane'), active: btn.getAttribute('data-active') === 'true' };
-      btn.disabled = true;
-      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
-        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
-        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      var run = function () {
+        btn.disabled = true;
+        fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+          .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+          .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+          .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      };
+      if (!conf) { run(); return; }
+      askConfirm({ title: conf, confirmText: 'Confirm', danger: true }).then(function (ok) { if (ok) run(); });
     });
   });
 
@@ -745,16 +792,18 @@ document.addEventListener('DOMContentLoaded', function () {
   // Delete a note (delegated — handles both server-rendered and just-added rows)
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-action-note-delete]'); if (!btn) return;
-    if (!window.confirm('Delete this note?')) return;
-    btn.disabled = true;
-    fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: '{}' })
-      .then(function (r) { return r.json().catch(function () { return { success: false }; }); })
-      .then(function (d) {
-        btn.disabled = false;
-        if (d && d.success) { var li = btn.closest('[data-note-id]'); if (li) li.remove(); toast(true, 'Note deleted'); }
-        else { toast(false, (d && d.message) || 'Failed'); }
-      })
-      .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    askConfirm({ title: 'Delete this note?', confirmText: 'Delete', danger: true }).then(function (ok) {
+      if (!ok) return;
+      btn.disabled = true;
+      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: '{}' })
+        .then(function (r) { return r.json().catch(function () { return { success: false }; }); })
+        .then(function (d) {
+          btn.disabled = false;
+          if (d && d.success) { var li = btn.closest('[data-note-id]'); if (li) li.remove(); toast(true, 'Note deleted'); }
+          else { toast(false, (d && d.message) || 'Failed'); }
+        })
+        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+    });
   });
 
   // Waitlist actions (set priority / remove from waitlist)
@@ -766,14 +815,21 @@ document.addEventListener('DOMContentLoaded', function () {
         var sel = document.querySelector('[data-waitlist-priority]');
         payload = { priority: sel ? sel.value : 'auto' };
       } else if (act === 'remove') {
-        if (!window.confirm('Remove this person from the waitlist?')) return;
         payload = { reason: 'Removed via Member Hub' };
       }
-      btn.disabled = true;
-      fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-        .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
-        .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
-        .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      var run = function () {
+        btn.disabled = true;
+        fetch(btn.getAttribute('data-url'), { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+          .then(function (r) { return r.json().catch(function () { return { success: false, message: 'Server error' }; }); })
+          .then(function (d) { btn.disabled = false; toast(d && d.success, (d && d.message) || 'Failed'); if (d && d.success) reloadSoon(); })
+          .catch(function () { btn.disabled = false; toast(false, 'Network error'); });
+      };
+      if (act !== 'remove') { run(); return; }
+      askConfirm({
+        title: 'Remove this person from the waitlist?',
+        text: 'They keep their account, approval, team and roles — they just come off the waitlist.',
+        confirmText: 'Remove from waitlist', danger: true
+      }).then(function (ok) { if (ok) run(); });
     });
   });
 });

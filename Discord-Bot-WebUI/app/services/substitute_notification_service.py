@@ -519,11 +519,16 @@ class SubstituteNotificationService:
             # no approval concept (no approved_at column) — is_active is the
             # only gate. Referencing EcsFcSubPool.approved_at here previously
             # raised AttributeError on every ECS FC broadcast.
+            #
+            # Does NOT check Player.is_current_player, matching
+            # substitutes.get_active_substitutes. That flag means "paid/active THIS
+            # season" and season rollover clears it, so requiring it here would mute
+            # the ECS FC sub pool at every rollover — subs don't buy season passes.
+            # Availability is the pool row's is_active flag (active vs resting).
             query = db.session.query(EcsFcSubPool).options(
                 joinedload(EcsFcSubPool.player).joinedload(Player.user)
             ).join(Player).join(User).filter(
                 EcsFcSubPool.is_active == True,
-                Player.is_current_player == True,
                 User.is_approved == True
             )
 

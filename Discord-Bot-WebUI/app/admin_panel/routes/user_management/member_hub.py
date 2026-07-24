@@ -25,45 +25,6 @@ from app.services.member_hub_service import get_member_360
 logger = logging.getLogger(__name__)
 
 
-@admin_panel_bp.route('/cutover-flags')
-@login_required
-@role_required(['Global Admin'])
-def cutover_flags_page():
-    """Parallel-run control: which subsystems read the new spine vs the legacy path.
-
-    Defaults are the NEW system; turning a flag OFF fails back to legacy instantly
-    (both are kept in sync by the dual-write, so no data is lost either way).
-    """
-    from app.services.cutover_flags import all_flags_status
-    return render_template('admin_panel/cutover_flags_flowbite.html', flags=all_flags_status())
-
-
-@admin_panel_bp.route('/cutover-flags/set', methods=['POST'])
-@login_required
-@role_required(['Global Admin'])
-def cutover_flags_set():
-    """Toggle a cutover flag (True = new system, False = fail back to legacy)."""
-    from app.services.cutover_flags import CUTOVER_FLAGS
-    from app.models.admin_config import AdminConfig
-
-    data = request.get_json(silent=True) or {}
-    key = data.get('key') or request.form.get('key') or ''
-    enabled = data.get('enabled')
-    if enabled is None:
-        enabled = request.form.get('enabled') in ('true', '1', 'on', True)
-
-    if key not in CUTOVER_FLAGS:
-        return jsonify({'success': False, 'message': 'Unknown cutover flag'}), 400
-
-    # data_type='boolean' is REQUIRED: without it the value serializes as the string
-    # "False", and bool("False") is True — so failback would never engage.
-    AdminConfig.set_setting(key, bool(enabled), description=CUTOVER_FLAGS[key],
-                            category='cutover', data_type='boolean')
-    logger.info("Cutover flag %s set to %s by admin", key, bool(enabled))
-    return jsonify({'success': True, 'key': key, 'enabled': bool(enabled),
-                    'system': 'new (spine)' if enabled else 'legacy (failback)'})
-
-
 def _sub_summary(session, sub_pids):
     """{player_id: [{'lane': 'Classic'|'Premier'|'ECS FC', 'status': 'active'|'resting'}]}
     for the Subs tab, from the live sub pools (Pub League SubstitutePool + EcsFcSubPool)."""
@@ -791,14 +752,27 @@ def member_qp_detail(profile_id):
         return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
     data = profile.to_dict()
     if profile.claimed_by_player:
-        data['linked_player'] = {'id': profile.claimed_by_player.id,
-                                 'name': profile.claimed_by_player.name}
+        # Once claimed/linked the profile's data has already been merged into the player,
+        # so editing THIS row would be a no-op on the person. Hand the admin the real
+        # edit surfaces instead (see the modal's claimed branch).
+        _p = profile.claimed_by_player
+        data['linked_player'] = {
+            'id': _p.id,
+            'name': _p.name,
+            'edit_url': url_for('players.edit_player', player_id=_p.id),
+            'hub_url': url_for('admin_panel.member_hub', user_id=_p.user_id) if _p.user_id else None,
+        }
+    # Editing the profile row itself only makes sense while it's still the source of
+    # truth for the person — i.e. before anyone claims it.
+    data['editable'] = profile.status in ('pending', 'expired')
     notes = (db.session.query(PlayerAdminNote).options(joinedload(PlayerAdminNote.author))
              .filter(PlayerAdminNote.quick_profile_id == profile_id)
              .order_by(PlayerAdminNote.created_at.desc()).all())
     note_list = [{'id': n.id, 'content': n.content,
                   'author': (n.author.username if getattr(n, 'author', None) else 'system'),
-                  'created_at': n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else ''}
+                  'created_at': n.created_at.strftime('%Y-%m-%d %H:%M') if n.created_at else '',
+                  'edited': bool(n.updated_at and n.created_at and
+                                 (n.updated_at - n.created_at).total_seconds() > 1)}
                  for n in notes]
     try:
         from app.services.season_phase_service import is_waitlist_open
@@ -835,6 +809,196 @@ def member_qp_note_add(profile_id):
         'id': note.id, 'content': note.content,
         'author': getattr(current_user, 'username', 'you'),
         'created_at': note.created_at.strftime('%Y-%m-%d %H:%M') if note.created_at else 'just now'}})
+
+
+@admin_panel_bp.route('/members/quick-profile/<int:profile_id>/note/<int:note_id>/edit', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def member_qp_note_edit(profile_id, note_id):
+    """Rewrite one note on a quick profile's thread. Body: {content}."""
+    from app.core import db
+    from app.models.players import PlayerAdminNote
+
+    note = db.session.get(PlayerAdminNote, note_id)
+    if not note:
+        return jsonify({'success': False, 'message': 'Note not found'}), 404
+    # Ownership guard: a mismatched URL must never reach another profile's note.
+    if note.quick_profile_id != profile_id:
+        return jsonify({'success': False, 'message': 'Note does not belong to this profile'}), 400
+    data = request.get_json(silent=True) or {}
+    content = (data.get('content') or '').strip()
+    if not content:
+        return jsonify({'success': False, 'message': 'Note cannot be empty'}), 400
+    note.content = content
+    db.session.flush()
+    return jsonify({'success': True, 'note': {'id': note.id, 'content': note.content}})
+
+
+@admin_panel_bp.route('/members/quick-profile/<int:profile_id>/note/<int:note_id>/delete', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def member_qp_note_delete(profile_id, note_id):
+    """Delete one note from a quick profile's thread."""
+    from app.core import db
+    from app.models.players import PlayerAdminNote
+
+    note = db.session.get(PlayerAdminNote, note_id)
+    if not note:
+        return jsonify({'success': False, 'message': 'Note not found'}), 404
+    if note.quick_profile_id != profile_id:
+        return jsonify({'success': False, 'message': 'Note does not belong to this profile'}), 400
+    db.session.delete(note)
+    return jsonify({'success': True})
+
+
+def _purge_qp_photo_variants(old_url):
+    """Best-effort delete of a REPLACED quick-profile photo's 512/128 variants.
+
+    save_image_variants() only cleans up variants that share the new base slug, so a
+    photo swap that also renames the profile would otherwise leave the old files on
+    disk forever. Only ever touches files inside the quick_profiles upload folder
+    whose name matches the exact `<slug>_<8 hex>_(512|128).webp` variant shape."""
+    import os
+    import re
+    from flask import current_app
+
+    prefix = '/static/img/uploads/quick_profiles/'
+    if not old_url or not old_url.startswith(prefix):
+        return
+    m = re.match(r'^(.+_[0-9a-f]{8})_(?:512|128)\.webp$', os.path.basename(old_url))
+    if not m:
+        return
+    folder = os.path.realpath(os.path.join(current_app.root_path, 'static/img/uploads/quick_profiles'))
+    for size in ('512', '128'):
+        path = os.path.join(folder, f'{m.group(1)}_{size}.webp')
+        if os.path.dirname(os.path.realpath(path)) != folder:
+            continue
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+@admin_panel_bp.route('/members/quick-profile/<int:profile_id>/update', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def member_qp_update(profile_id):
+    """Edit an unclaimed quick profile in place: name, photo, contact, kit, pronouns,
+    intake note.
+
+    Only PENDING/EXPIRED profiles are editable. Once a profile is claimed or linked its
+    data has already been merged into the Player, so writing here would change nothing
+    the person actually sees — the modal sends those admins to the player instead.
+
+    Body (all optional except player_name): {player_name, email, phone_number,
+    jersey_number, jersey_size, pronouns, notes, photo_base64}. photo_base64 replaces
+    the photo; omit it to keep the current one."""
+    import re
+    from flask_login import current_user
+    from app.core import db
+    from app.models import QuickProfile
+    from app.models.admin_config import AdminAuditLog
+    from app.players_helpers import save_quick_profile_picture
+
+    # Row-locked read: a walk-in can claim their code at any moment. Without the lock the
+    # status check below runs on a stale snapshot, and an edit could land on a profile that
+    # was claimed a moment ago — overwriting the person's name and PURGING the photo file
+    # the new Player row now points at.
+    profile = db.session.query(QuickProfile).filter_by(id=profile_id).with_for_update().first()
+    if not profile:
+        return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
+    if profile.status not in ('pending', 'expired'):
+        return jsonify({'success': False,
+                        'message': 'This profile was already claimed — edit the player instead'}), 400
+
+    data = request.get_json(silent=True) or {}
+
+    player_name = (data.get('player_name') or '').strip()
+    if not player_name:
+        return jsonify({'success': False, 'message': 'Name is required'}), 400
+    if len(player_name) > 100:
+        return jsonify({'success': False, 'message': 'Name must be 100 characters or less'}), 400
+
+    # Length caps mirror the column widths — a longer value would blow up as a
+    # StringDataRightTruncation 500 instead of a readable validation error.
+    email = (data.get('email') or '').strip() or None
+    if email and ('@' not in email or len(email) > 255):
+        return jsonify({'success': False, 'message': 'Invalid email address'}), 400
+
+    phone_number = (data.get('phone_number') or '').strip() or None
+    if phone_number:
+        phone_digits = re.sub(r'\D', '', phone_number)
+        if len(phone_digits) < 10 or len(phone_digits) > 20:
+            return jsonify({'success': False, 'message': 'Phone number must be 10–20 digits'}), 400
+        phone_number = phone_digits
+
+    jersey_number = data.get('jersey_number')
+    if jersey_number in ('', None):
+        jersey_number = None
+    else:
+        try:
+            jersey_number = int(jersey_number)
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'Invalid jersey number'}), 400
+        if jersey_number < 1 or jersey_number > 99:
+            return jsonify({'success': False, 'message': 'Jersey number must be between 1 and 99'}), 400
+
+    jersey_size = (data.get('jersey_size') or '').strip().upper() or None
+    if jersey_size and jersey_size not in ('S', 'M', 'L', 'XL', 'XXL'):
+        return jsonify({'success': False, 'message': 'Invalid jersey size'}), 400
+
+    pronouns = (data.get('pronouns') or '').strip()[:50] or None
+    notes = (data.get('notes') or '').strip() or None
+
+    changed = [f for f, new in (('player_name', player_name), ('email', email),
+                                ('phone_number', phone_number), ('jersey_number', jersey_number),
+                                ('jersey_size', jersey_size), ('pronouns', pronouns),
+                                ('notes', notes))
+               if getattr(profile, f) != new]
+
+    profile.player_name = player_name
+    profile.email = email
+    profile.phone_number = phone_number
+    profile.jersey_number = jersey_number
+    profile.jersey_size = jersey_size
+    profile.pronouns = pronouns
+    profile.notes = notes
+
+    photo_base64 = data.get('photo_base64') or ''
+    if photo_base64:
+        old_url = profile.profile_picture_url
+        try:
+            profile.profile_picture_url = save_quick_profile_picture(photo_base64, profile.id, player_name)
+        except ValueError:
+            # Roll back so a bad image can't commit half an edit (see create_quick_profile).
+            db.session.rollback()
+            return jsonify({'success': False, 'message': 'That image could not be read'}), 400
+        if profile.profile_picture_url != old_url:
+            changed.append('photo')
+            # Never delete a file a Player is still pointing at. claim()/link_to_player()
+            # copy this exact URL onto the player, and both read it BEFORE they write —
+            # so a claim racing this edit could otherwise leave a player with a dead
+            # avatar. Losing 30KB of orphaned disk beats losing someone's photo.
+            from app.models import Player
+            if not db.session.query(Player.id).filter(
+                    Player.profile_picture_url == old_url).first():
+                _purge_qp_photo_variants(old_url)
+
+    if changed:
+        AdminAuditLog.log_action(
+            user_id=getattr(current_user, 'id', None),
+            action='update_quick_profile',
+            resource_type='quick_profile',
+            resource_id=profile.id,
+            new_value=str({'fields': changed, 'player_name': player_name}),
+        )
+        logger.info("Quick profile %s edited by %s (%s)", profile_id,
+                    getattr(current_user, 'username', '?'), ', '.join(changed))
+
+    return jsonify({'success': True, 'changed': changed, 'profile': profile.to_dict()})
 
 
 @admin_panel_bp.route('/members/quick-profile/<int:profile_id>/preapprove', methods=['POST'])

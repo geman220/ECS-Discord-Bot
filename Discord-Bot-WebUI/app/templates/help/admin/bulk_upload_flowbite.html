@@ -1,11 +1,28 @@
-{% extends "base_flowbite.html" %}
+{# Admin surface -> admin panel shell. See list_help_topics_flowbite.html. #}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, alert %}
 {% from 'macros/_modern_kit.html' import page_header, section_card %}
 
 {% block title %}Bulk Upload Help Topics{% endblock %}
-{% block page_title %}Bulk Upload Help Topics{% endblock %}
+{% block admin_title %}Bulk Upload Help Topics{% endblock %}
+{% block panel_description %}Ingest knowledge-base articles from Markdown files{% endblock %}
 
-{% block main_content %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+        <a href="{{ url_for('help.admin_help_topics') }}" class="ms-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Help Topics</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+        <span class="ms-1 text-sm font-medium text-gray-500 dark:text-gray-400">Bulk Upload</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
 {% if shell == 'console' %}
 <div class="space-y-6">
     {% call page_header("Bulk Upload", subtitle="Help Topics · Markdown ingest") %}

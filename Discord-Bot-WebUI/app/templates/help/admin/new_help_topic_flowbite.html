@@ -1,8 +1,25 @@
-{% extends "base_flowbite.html" %}
+{# Admin surface -> admin panel shell. See list_help_topics_flowbite.html. #}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button %}
 
 {% block title %}Create New Help Topic{% endblock %}
-{% block page_title %}Create New Help Topic{% endblock %}
+{% block admin_title %}New Help Topic{% endblock %}
+{% block panel_description %}Author a knowledge-base article in Markdown{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+        <a href="{{ url_for('help.admin_help_topics') }}" class="ms-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Help Topics</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+        <span class="ms-1 text-sm font-medium text-gray-500 dark:text-gray-400">New</span>
+    </div>
+</li>
+{% endblock %}
 
 {% block head_extra %}
 {{ super() }}
@@ -83,23 +100,17 @@
 </style>
 {% endblock %}
 
-{% block main_content %}
+{% block panel_content %}
 {% if shell == 'console' %}
 <form method="POST"
       enctype="multipart/form-data"
-      class="max-w-[1280px] mx-auto"
+      class="max-w-[1280px]"
       data-component="help-editor-form">
     {{ form.hidden_tag() }}
 
     {# ============ COMMAND TOOLBAR ============ #}
+    {# The shell renders the breadcrumb trail now; the page's own copy was removed. #}
     <div class="flex flex-col gap-3 mb-5 sm:mb-6">
-        <nav class="flex items-center gap-2 text-xs font-medium text-gray-500 dark:text-gray-400" aria-label="Breadcrumb">
-            <a href="{{ url_for('help.admin_help_topics') }}" class="inline-flex items-center gap-1.5 hover:text-ecs-green dark:hover:text-ecs-green transition-colors">
-                <i class="ti ti-lifebuoy" aria-hidden="true"></i> Help Topics
-            </a>
-            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
-            <span class="text-gray-900 dark:text-white font-semibold">New</span>
-        </nav>
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div class="min-w-0">
                 <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Authoring · Markdown</p>
@@ -233,23 +244,7 @@
 </div>
 {% else %}
 <div class="space-y-6">
-    <!-- Breadcrumb -->
-    <nav class="flex" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li class="inline-flex items-center">
-                <a href="{{ url_for('help.admin_help_topics') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green">
-                    <i class="ti ti-settings mr-2"></i>
-                    Admin - Help Topics
-                </a>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right text-gray-400 mx-2"></i>
-                    <span class="text-sm font-medium text-gray-900 dark:text-white">Create New Topic</span>
-                </div>
-            </li>
-        </ol>
-    </nav>
+    {# Breadcrumb removed — the admin shell renders one for both shells. #}
 
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

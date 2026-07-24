@@ -119,9 +119,12 @@ def remove_from_waitlist(user_id: int):
             # Log the action
             logger.info(f"User {user.id} ({user.username}) removed from waitlist by {current_user_safe.id} ({current_user_safe.username}). Reason: {reason}")
 
-            # Queue Discord role removal (deferred until after commit)
+            # Queue a Discord RECONCILE (deferred until after commit). Not a removal:
+            # pl-waitlist has no Discord role, so leaving the waitlist must not cost a
+            # player their team/league/sub/Referee roles. See the admin_panel twin of
+            # this route for the full write-up.
             if user.player and user.player.discord_id:
-                discord_queue.add_role_removal(user.player.id)
+                discord_queue.add_role_sync(user.player.id, only_add=False)
 
             # Commit the transaction
             db_session.commit()
@@ -143,7 +146,7 @@ def remove_from_waitlist(user_id: int):
 
     # Execute deferred Discord operations after successful commit
     discord_queue.execute_all()
-    logger.info(f"Queued Discord role removal for user {result_user_id}")
+    logger.info(f"Queued Discord role reconcile for user {result_user_id}")
 
     show_success(f'User {username} has been removed from the waitlist.')
 

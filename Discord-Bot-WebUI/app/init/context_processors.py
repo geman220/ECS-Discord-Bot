@@ -646,7 +646,21 @@ def _register_utility_processor(app):
         try:
             from flask import session, request
             nav_is_admin = bool(is_admin())
-            if nav_is_admin and has_request_context() and request.blueprint == 'admin_panel':
+            # The flag must follow the SHELL the page EXTENDS, not the blueprint that
+            # serves it. A blueprint-only test leaves any page that renders
+            # admin_panel/base_flowbite.html from another blueprint showing the admin nav
+            # inside the collapsed console RAIL (see base_flowbite.html `_console_rail`)
+            # instead of the full admin sidebar. Two such pages exist:
+            #   * /help/admin/*            (help_bp -> help/admin/*_flowbite.html)
+            #   * ai_assistant.admin_metrics (ai_assistant_bp -> admin_panel/ai_assistant/…)
+            # Both also re-inject the admin nav/search context from their own blueprint
+            # context processors — keep this list in sync with those.
+            _in_admin_shell = has_request_context() and (
+                request.blueprint == 'admin_panel'
+                or request.endpoint == 'ai_assistant.admin_metrics'
+                or (request.path or '').startswith('/help/admin')
+            )
+            if nav_is_admin and _in_admin_shell:
                 console_full_sidebar = True   # full sidebar + Modern header, not the rail
             elif session.get('ui_shell') == 'classic':
                 # Break-glass: an explicit classic override (no UI sets this anymore).

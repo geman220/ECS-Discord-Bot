@@ -19,8 +19,17 @@ export default defineConfig({
   // Root directory for source files
   root: resolve(__dirname, 'app/static'),
 
-  // Base public path - Flask will serve from /static/
-  base: '/static/',
+  // Base public path. MUST match where the build output is actually SERVED from,
+  // which is outDir (app/static/vite-dist) -> /static/vite-dist/, not /static/.
+  //
+  // This was '/static/' and only looked correct because app/vite.py hardcodes a
+  // 'vite-dist/' prefix on every tag it emits (see _vite_prod_asset). URLs Vite
+  // builds at RUNTIME get no such prefix — the __vitePreload dep list behind every
+  // dynamic import() resolved to /static/js/vendor-*.js and 404'd. The admin chunk
+  // is loaded by exactly that mechanism (main-entry.js: import('./admin-entry.js')),
+  // so every admin-only module silently failed to evaluate: no error surfaced,
+  // handlers just never registered and data-action buttons did nothing.
+  base: '/static/vite-dist/',
 
   // Plugins
   plugins: [

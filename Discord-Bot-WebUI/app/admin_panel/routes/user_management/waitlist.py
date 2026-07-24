@@ -26,7 +26,7 @@ from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
 from app.utils.deferred_discord import (
-    defer_discord_sync, defer_discord_removal, DeferredDiscordQueue
+    defer_discord_sync, DeferredDiscordQueue
 )
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
@@ -192,10 +192,19 @@ def remove_from_waitlist(user_id: int):
             # Commit the changes
             db.session.flush()
 
-            # Queue Discord role removal for AFTER transaction commits
+            # RECONCILE, never blanket-remove. There is no Discord role for the
+            # waitlist (pl-waitlist is Flask-only), so coming off the waitlist should
+            # cost a player nothing on Discord. defer_discord_removal() here was a FULL
+            # offboarding (team_id=None -> pattern_sweep=True): it stripped every team
+            # -Player/-Coach role plus CLASSIC/PREMIER/ECS-FC, the sub roles and
+            # Referee. An approved, rostered player taken off the waitlist lost their
+            # whole Discord footprint. A full reconcile re-derives the expected set from
+            # the shared calculator instead: approved players keep everything, and a
+            # still-unapproved user (who just got pl-unverified back above) converges to
+            # the UNVERIFIED role.
             if user.player and user.player.discord_id:
-                defer_discord_removal(user.player.id)
-                logger.info(f"Queued Discord role removal for user {user.id}")
+                defer_discord_sync(user.player.id, only_add=False)
+                logger.info(f"Queued Discord role reconcile for user {user.id}")
 
             username = user.username
 

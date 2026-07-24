@@ -28,6 +28,34 @@ logger = logging.getLogger(__name__)
 # Define blueprint for the help system.
 help_bp = Blueprint('help', __name__, template_folder='templates/help', static_folder='static/help')
 
+
+@help_bp.context_processor
+def inject_admin_shell_context():
+    """Feed the admin-panel shell on the /help/admin pages.
+
+    Those templates extend admin_panel/base_flowbite.html so operators stay inside the
+    admin nav instead of being dropped into the member shell. That shell's sidebar and
+    Ctrl+K search are populated by context processors registered on admin_panel_bp, which
+    do NOT run for this blueprint — so without this the ECS FC team links would silently
+    vanish from the sidebar and admin search would come up empty.
+
+    Scoped to /help/admin by path so the member-facing help pages (which use the normal
+    shell) don't pay for the search-index build.
+    """
+    if not (request.path or '').startswith('/help/admin'):
+        return {}
+    ctx = {}
+    try:
+        from app.admin_panel import inject_ecs_fc_teams, inject_admin_search_index
+        ctx.update(inject_ecs_fc_teams())
+        ctx.update(inject_admin_search_index())
+    except Exception:
+        # Never 500 the page over chrome: the nav guards `{% if ecs_fc_teams %}` and the
+        # base guards `{% if admin_search_index is defined %}`, so an empty ctx degrades
+        # to "no team links, empty search" rather than an error.
+        logger.exception("Help admin: admin shell context injection failed")
+    return ctx
+
 def get_accessible_roles(user_role_names):
     """
     Get all roles accessible to the user based on hierarchical permissions.

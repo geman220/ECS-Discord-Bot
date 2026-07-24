@@ -194,7 +194,10 @@
                     <a href="{{ url_for('admin_panel.ecs_fc_matches') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>All Matches</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>Opponents Library</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-import text-gray-400 text-xs"></i>Import Schedule</a>
-                    <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Sub Requests</a>
+                    {# Sub Requests -> the unified Substitute Command Center, pre-filtered to ECS FC.
+                       The old ecs_fc_sub_requests page duplicated this hub; its route stays LIVE as a
+                       burn-in fallback (and in the active-state list above) but is out of the nav. #}
+                    <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Sub Requests</a>
                 </div>
             </div>
 
@@ -305,7 +308,7 @@
             </div>
 
             {# Admin/System #}
-            {% set admin_active = request.endpoint and request.endpoint in ['admin_panel.system_center', 'admin_panel.feedback_list', 'admin_panel.appearance', 'admin_panel.feature_toggles', 'admin_panel.integrity_dashboard', 'admin_panel.system_health_consolidated', 'admin_panel.cache_redis_consolidated', 'admin_panel.api_management', 'admin_panel.docker_management', 'admin_panel.security_dashboard', 'admin_panel.task_monitoring_page', 'admin_panel.audit_logs', 'ai_assistant.admin_metrics', 'admin_panel.reports_center', 'admin_panel.player_stats_report', 'admin_panel.attendance_report', 'admin_panel.movement_report', 'admin_panel.retention_report', 'admin_panel.roster_history_report', 'admin_panel.leaderboards_report', 'admin_panel.jersey_report', 'admin_panel.standings_report', 'admin_panel.discipline_report', 'admin_panel.contactability_report', 'admin_panel.api_analytics', 'admin_panel.api_endpoints', 'admin_panel.navigation_settings', 'admin_panel.system_info', 'help.admin_help_topics', 'admin_panel.redis_draft_cache_stats', 'admin_panel.database_monitor', 'admin_panel.system_alerts', 'admin_panel.system_logs', 'admin_panel.system_performance', 'admin_panel.task_history', 'admin_panel.cutover_flags_page'] %}
+            {% set admin_active = request.endpoint and request.endpoint in ['admin_panel.system_center', 'admin_panel.feedback_list', 'admin_panel.appearance', 'admin_panel.feature_toggles', 'admin_panel.integrity_dashboard', 'admin_panel.system_health_consolidated', 'admin_panel.cache_redis_consolidated', 'admin_panel.api_management', 'admin_panel.docker_management', 'admin_panel.security_dashboard', 'admin_panel.task_monitoring_page', 'admin_panel.audit_logs', 'ai_assistant.admin_metrics', 'admin_panel.reports_center', 'admin_panel.player_stats_report', 'admin_panel.attendance_report', 'admin_panel.movement_report', 'admin_panel.retention_report', 'admin_panel.roster_history_report', 'admin_panel.leaderboards_report', 'admin_panel.jersey_report', 'admin_panel.standings_report', 'admin_panel.discipline_report', 'admin_panel.contactability_report', 'admin_panel.api_analytics', 'admin_panel.api_endpoints', 'admin_panel.navigation_settings', 'help.admin_help_topics', 'help.new_help_topic', 'help.edit_help_topic', 'help.bulk_upload_help_topics', 'admin_panel.redis_draft_cache_stats', 'admin_panel.database_monitor', 'admin_panel.system_alerts', 'admin_panel.system_logs', 'admin_panel.system_performance', 'admin_panel.task_history'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -328,10 +331,14 @@
                     <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-toggle-left text-gray-400 text-xs"></i>Feature Toggles</a>
                     <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-palette text-gray-400 text-xs"></i>Theme Settings</a>
                     <a href="{{ url_for('admin_panel.navigation_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-menu-2 text-gray-400 text-xs"></i>Navigation Settings</a>
-                    <a href="{{ url_for('admin_panel.system_info') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-info-circle text-gray-400 text-xs"></i>System Information</a>
-                    {% if user_roles and 'Global Admin' in user_roles %}
-                    <a href="{{ url_for('admin_panel.cutover_flags_page') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-arrows-shuffle text-gray-400 text-xs"></i>System Cutover</a>
-                    {% endif %}
+                    {# System Information retired: its 3 "critical settings" (maintenance_mode,
+                       teams_navigation_enabled, waitlist_registration_enabled) are all EDITABLE on
+                       Feature Toggles, and its counts live in Members / Access Control / System
+                       Center. The route now redirects there. #}
+                    {# System Cutover retired -- it held one flag, cutover_subs_read_from_spine,
+                       which gated sub dispatch on the league_membership spine. The spine has no
+                       bulk backfill (it is written only by per-player resync calls), so it could
+                       not be an authority for who gets contacted. substitute_pools is. #}
                     <a href="{{ url_for('help.admin_help_topics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-help text-gray-400 text-xs"></i>Help Topics</a>
                 </div>
             </div>
@@ -501,7 +508,7 @@
                             <i class="ti ti-file-import text-gray-400"></i>Import Schedule
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <a href="{{ url_for('admin_panel.unified_substitutes', league='ecs_fc') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-clipboard-list text-gray-400"></i>Sub Requests
                         </a>
                     </div>
@@ -756,14 +763,9 @@
                         <a href="{{ url_for('admin_panel.navigation_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-menu-2 text-gray-400"></i>Navigation Settings
                         </a>
-                        <a href="{{ url_for('admin_panel.system_info') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-info-circle text-gray-400"></i>System Information
-                        </a>
-                        {% if user_roles and 'Global Admin' in user_roles %}
-                        <a href="{{ url_for('admin_panel.cutover_flags_page') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-arrows-shuffle text-gray-400"></i>System Cutover
-                        </a>
-                        {% endif %}
+                        {# System Information retired -- see the sidebar note above. #}
+                        {# System Cutover retired -- the sub-dispatch cutover flag it held is gone;
+                           substitute_pools is the sole authority for sub availability. #}
                         <a href="{{ url_for('help.admin_help_topics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-help text-gray-400"></i>Help Topics
                         </a>

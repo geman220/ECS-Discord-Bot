@@ -1,10 +1,23 @@
-{% extends "base_flowbite.html" %}
+{# Help-topic ADMIN lives inside the admin panel shell (sidebar + admin search +
+   breadcrumbs), not the plain member shell. These pages are reached from Admin ->
+   Configuration -> Help Topics, so they must not drop the operator out of the panel. #}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, empty_state %}
 
 {% block title %}Admin - Help Topics{% endblock %}
-{% block page_title %}Admin - Help Topics{% endblock %}
+{% block admin_title %}Help Topics{% endblock %}
+{% block panel_description %}Manage the knowledge-base articles shown to members{% endblock %}
 
-{% block main_content %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400" aria-hidden="true"></i>
+        <span class="ms-1 text-sm font-medium text-gray-500 dark:text-gray-400">Help Topics</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
 {% if shell == 'console' %}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, empty_state as kit_empty_state %}
 {# --- Derive real metrics from the provided `topics` (HelpTopic) list --- #}
@@ -19,7 +32,8 @@
     {% set ns.public = ns.public + 1 %}
   {% endif %}
 {% endfor %}
-<div class="container mx-auto px-4 py-8 max-w-6xl space-y-6">
+{# No container/max-w wrapper: the admin shell already centres and pads the panel. #}
+<div class="space-y-6">
     {% call page_header("Help Topics", subtitle="Knowledge base") %}
         <a href="{{ url_for('help.bulk_upload_help_topics') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg

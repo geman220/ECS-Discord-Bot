@@ -520,12 +520,13 @@ def bulk_process_waitlist():
                     # Commit this user's changes
                     db.session.commit()
 
-                    # Queue Discord role sync (after successful commit)
+                    # Queue Discord role sync (after successful commit).
+                    # Both actions RECONCILE — coming off the waitlist is a Flask-role
+                    # change, not an offboarding, and pl-waitlist has no Discord role at
+                    # all. add_role_removal() here was a full pattern-sweep offboarding
+                    # that stripped an approved player's team/league/sub/Referee roles.
                     if user.player and user.player.discord_id:
-                        if action == 'move_to_pending':
-                            discord_queue.add_role_sync(user.player.id, only_add=False)
-                        else:
-                            discord_queue.add_role_removal(user.player.id)
+                        discord_queue.add_role_sync(user.player.id, only_add=False)
 
                     results['processed'].append(user_id)
 

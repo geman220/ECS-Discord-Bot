@@ -112,7 +112,7 @@
     'pending': 'Approve straight into a league (or onto the waitlist) from the row, or open the Hub for the full set of options. Approval and waitlist are <strong>independent</strong> — approving here doesn’t touch the waitlist.',
     'waitlist': 'The waitlist is a <strong>point-in-time, per-season</strong> list that clears at each season boundary. People here may be approved or not — approval is a separate axis. Denied people are <strong>hidden by default</strong>; use the <em>Approval</em> filter to reveal them (“Denied only” / “All”). Also filter by league or “Undecided”.',
     'subs': 'Subs <strong>play free</strong> and aren’t season “active” members — they help where/when needed. Set a sub Active/Resting here, or assign someone to a pool from their Hub. A sub can also sit on the waitlist for a permanent spot.',
-    'quick': 'Field-created walk-ins with a claim code. When someone registers with their code the profile becomes <strong>Claimed</strong> and they move to <strong>Pending Approval</strong> (not approved yet) — their notes follow them. Actions <strong>adapt to status</strong>: pending → link / message / extend / delete; claimed or linked → mint an account; claimed can’t be deleted. Open <em>Details</em> for the claim code, contact info, and admin notes.'
+    'quick': 'Field-created walk-ins with a claim code. When someone registers with their code the profile becomes <strong>Claimed</strong> and they move to <strong>Pending Approval</strong> (not approved yet) — their notes follow them. Actions <strong>adapt to status</strong>: pending → link / message / extend / delete; claimed or linked → mint an account; claimed can’t be deleted. Open <em>Details</em> for the claim code, contact info, and admin notes — and to <strong>edit</strong> an unclaimed profile (name, photo, contact, kit, intake note) or work its note thread. Once claimed, the details live on the player, so the modal links you there instead.'
   } %}
   <div class="rounded-lg border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 px-3.5 py-2.5 flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
     <i class="ti ti-info-circle text-ecs-green text-[16px] mt-0.5 shrink-0" aria-hidden="true"></i>
@@ -292,6 +292,9 @@
                          create-account=claimed/linked, link/email/sms=pending, extend=pending/expired,
                          delete=not-claimed) — so admins never hit an error or a dead action. -#}
                       <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                        {% if p.status in ('pending', 'expired') %}
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="qp-edit-jump" data-url="{{ url_for('admin_panel.member_qp_detail', profile_id=p.id) }}" data-name="{{ p.player_name }}"><i class="ti ti-pencil mr-2"></i>Edit profile…</a></li>
+                        {% endif %}
                         {% if p.status in ('claimed', 'linked') %}
                         <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="qp-create-account" data-url="{{ url_for('admin_panel.create_account_for_quick_profile', profile_id=p.id) }}" data-name="{{ p.player_name }}"><i class="ti ti-user-plus mr-2"></i>Create account</a></li>
                         {% endif %}
@@ -569,6 +572,25 @@
     var isDark = function () { return document.documentElement.classList.contains('dark'); };
     function swalBase(extra) { return Object.assign({ confirmButtonColor: '#1a472a', background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' }, extra || {}); }
     function toast(icon, title, text) { if (window.Swal) window.Swal.fire(swalBase({ icon: icon, title: title, text: text || '' })); else alert((title || '') + ' ' + (text || '')); }
+
+    // Every confirmation on this page goes through here so we never fall back to the
+    // browser's native confirm() chrome. Returns a promise of true/false.
+    function askConfirm(o) {
+      o = o || {};
+      if (!window.Swal) return Promise.resolve(window.confirm(o.title || 'Are you sure?'));
+      return window.Swal.fire(swalBase({
+        icon: o.icon || 'warning',
+        title: o.title || 'Are you sure?',
+        text: o.text || '',
+        showCancelButton: true,
+        reverseButtons: true,
+        focusCancel: !!o.danger,
+        confirmButtonText: o.confirmText || 'Confirm',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: o.danger ? '#dc2626' : '#1a472a',
+        cancelButtonColor: '#6b7280'
+      })).then(function (r) { return !!r.isConfirmed; });
+    }
     function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; }
 
     function postForm(url, obj) {
@@ -585,6 +607,156 @@
     }
     function openModal(id) { var m = document.getElementById(id); if (m) { m.classList.remove('hidden'); m.classList.add('flex'); } }
     function closeModal(id) { var m = document.getElementById(id); if (m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
+
+    /* ===== quick-profile modal: view + inline edit =====
+       One modal, two renders off the SAME loaded state, so an admin can read a walk-in,
+       fix their name/photo/contact, and work the note thread without leaving the list.
+       Field VALUES are always assigned via .value / .textContent (never interpolated into
+       markup) — esc() escapes < > & but not quotes, so an attribute would be injectable. */
+    var qpState = { url: '', profile: null, notes: [], waitlistOpen: true };
+    var qpEditPhoto = '';   // data-URL of a replacement photo, empty = keep current
+    var qpDirty = false;    // an edit landed → refresh the list when the modal closes
+    function qpUrl(suffix) { return (qpState.url || '').replace('/detail', suffix); }
+    function qpBody() { return document.getElementById('qpDetailsBody'); }
+    var QP_SPINNER = '<div class="text-center text-gray-400 py-8"><i class="ti ti-loader animate-spin"></i> Loading…</div>';
+    var QP_INPUT = 'w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green';
+    var QP_LABEL = 'block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1';
+
+    function qpLoad(url, name, startInEdit) {
+      qpState.url = url;
+      qpEditPhoto = '';
+      document.getElementById('qpDetailsTitle').textContent = name || 'Quick profile';
+      qpBody().innerHTML = QP_SPINNER;
+      openModal('qpDetailsModal');
+      fetch(url).then(function (r) { return r.json(); }).then(function (r) {
+        if (!r || !r.success) { qpBody().innerHTML = '<p class="text-red-500">Could not load details.</p>'; return; }
+        qpState.profile = r.profile || {};
+        qpState.notes = r.notes || [];
+        qpState.waitlistOpen = !!r.waitlist_open;
+        if (startInEdit && qpState.profile.editable) qpRenderEdit(); else qpRenderView();
+      }).catch(function () { qpBody().innerHTML = '<p class="text-red-500">Could not load details.</p>'; });
+    }
+
+    function qpAvatarHtml(p, size) {
+      if (p.profile_picture_url) return '<img src="' + encodeURI(p.profile_picture_url) + '" alt="" class="' + size + ' rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0">';
+      return '<div class="' + size + ' rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-bold shrink-0">' + esc((p.player_name || '?').charAt(0).toUpperCase()) + '</div>';
+    }
+
+    function qpNoteHtml(n) {
+      return '<li class="p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60" data-note-id="' + esc(n.id) + '">'
+        + '<div class="flex items-start gap-2">'
+        + '<p class="flex-1 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">' + esc(n.content) + '</p>'
+        + '<div class="flex items-center gap-0.5 shrink-0">'
+        + '<button type="button" data-action="qp-note-edit" data-note-id="' + esc(n.id) + '" title="Edit note" class="p-1 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><i class="ti ti-pencil text-xs"></i></button>'
+        + '<button type="button" data-action="qp-note-delete" data-note-id="' + esc(n.id) + '" title="Delete note" class="p-1 rounded text-gray-400 hover:text-red-600"><i class="ti ti-trash text-xs"></i></button>'
+        + '</div></div>'
+        + '<p class="text-[11px] text-gray-400 mt-0.5">' + esc(n.author) + ' · ' + esc(n.created_at) + (n.edited ? ' · edited' : '') + '</p></li>';
+    }
+
+    function qpRenderView() {
+      var p = qpState.profile || {};
+      var html = '<div class="flex items-center gap-3 mb-4">' + qpAvatarHtml(p, 'w-14 h-14')
+        + '<div class="min-w-0 flex-1"><div class="font-semibold text-gray-900 dark:text-white truncate">' + esc(p.player_name) + '</div>'
+        + '<div class="text-[11px] text-gray-500 dark:text-gray-400">' + esc(p.status) + (p.claim_code ? ' · <span class="font-mono">' + esc(p.claim_code) + '</span>' : '') + '</div></div>';
+      if (p.editable) {
+        html += '<button type="button" data-action="qp-edit-open" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 shrink-0"><i class="ti ti-pencil"></i>Edit</button>';
+      }
+      html += '</div>';
+
+      var rows = [['Email', p.email], ['Phone', p.phone_number], ['Jersey #', p.jersey_number],
+                  ['Jersey size', p.jersey_size], ['Pronouns', p.pronouns]];
+      var dl = '';
+      rows.forEach(function (kv) { if (kv[1] !== null && kv[1] !== undefined && kv[1] !== '') dl += '<div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">' + esc(kv[0]) + '</dt><dd class="text-gray-900 dark:text-white text-right break-words">' + esc(kv[1]) + '</dd></div>'; });
+      html += dl ? '<dl class="space-y-1.5">' + dl + '</dl>' : '<p class="text-sm text-gray-400">No contact or kit details captured.</p>';
+
+      if (p.notes) {
+        var iby = (p.created_by && (p.created_by.username || p.created_by.name)) || 'admin';
+        var ion = p.created_at ? String(p.created_at).slice(0, 16).replace('T', ' ') : '';
+        html += '<div class="mt-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40"><p class="text-[10px] uppercase tracking-wide text-gray-400">Intake note</p><p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">' + esc(p.notes) + '</p><p class="text-[11px] text-gray-400 mt-1">by ' + esc(iby) + (ion ? ' · ' + esc(ion) : '') + '</p></div>';
+      }
+
+      // Claimed / linked: the profile's data already merged into the Player, so edits here
+      // would be invisible to the person — point at the surfaces that do change them.
+      if (p.linked_player) {
+        html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">'
+          + '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">This profile belongs to a real player now</p>'
+          + '<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Name, photo and details live on <strong>' + esc(p.linked_player.name) + '</strong> — edit them there.</p>'
+          + '<div class="flex flex-wrap gap-2">'
+          + '<a href="' + esc(p.linked_player.edit_url) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-pencil"></i>Edit player</a>'
+          + (p.linked_player.hub_url ? '<a href="' + esc(p.linked_player.hub_url) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"><i class="ti ti-user"></i>Member Hub</a>' : '')
+          + '</div></div>';
+      }
+
+      if (p.status === 'pending' || p.status === 'expired') {
+        var preUrl = qpUrl('/preapprove');
+        html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
+        html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Pre-approval <span class="normal-case text-gray-400">· auto-approves them the moment they claim</span></p>';
+        if (p.pre_approved_league) {
+          html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
+          html += '<button data-action="qp-preapprove" data-url="' + esc(preUrl) + '" data-league="" class="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button></div>';
+        } else {
+          var preOpts = '<option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option><option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option>';
+          if (qpState.waitlistOpen) {
+            preOpts += '<optgroup label="Waitlist"><option value="waitlist-classic">Waitlist · Classic</option><option value="waitlist-premier">Waitlist · Premier</option><option value="waitlist-ecs-fc">Waitlist · ECS FC</option></optgroup>';
+          }
+          html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">' + preOpts + '</select>';
+          html += '<button data-action="qp-preapprove-set" data-url="' + esc(preUrl) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-user-check"></i>Pre-approve</button></div>';
+        }
+        html += '</div>';
+      }
+
+      html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
+      html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Notes <span class="normal-case text-gray-400">· admin / coach — not visible to the member</span></p>';
+      html += '<div class="flex items-start gap-2 mb-3"><textarea id="qpNoteInput" rows="2" placeholder="Add a note…" class="flex-1 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"></textarea>';
+      html += '<button data-action="qp-note-add" data-url="' + esc(qpUrl('/note')) + '" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 shrink-0"><i class="ti ti-plus"></i>Add</button></div>';
+      html += '<ul id="qpNotesList" class="space-y-2">';
+      qpState.notes.forEach(function (n) { html += qpNoteHtml(n); });
+      if (!qpState.notes.length) html += '<li class="text-sm text-gray-400" id="qpNotesEmpty">No notes yet.</li>';
+      html += '</ul></div>';
+      qpBody().innerHTML = html;
+    }
+
+    function qpRenderEdit() {
+      var p = qpState.profile || {};
+      qpEditPhoto = '';
+      var html = '<div class="space-y-3">'
+        + '<div class="flex items-center gap-3">'
+        + '<img id="qpePreview" alt="" class="w-16 h-16 rounded-full object-cover border border-gray-200 dark:border-gray-600 shrink-0' + (p.profile_picture_url ? '' : ' hidden') + '">'
+        + '<div class="min-w-0 flex-1"><label class="' + QP_LABEL + '">Photo</label>'
+        + '<input id="qpePhoto" type="file" accept="image/*" capture="environment" class="block w-full text-xs text-gray-500 dark:text-gray-400 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-ecs-green/10 file:text-ecs-green hover:file:bg-ecs-green/20">'
+        + '<p class="text-[11px] text-gray-400 mt-1">Leave empty to keep the current photo.</p></div></div>'
+        + '<div><label class="' + QP_LABEL + '">Name <span class="text-red-500">*</span></label><input id="qpeName" type="text" maxlength="100" class="' + QP_INPUT + '"></div>'
+        + '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">'
+        + '<div><label class="' + QP_LABEL + '">Email</label><input id="qpeEmail" type="email" class="' + QP_INPUT + '"></div>'
+        + '<div><label class="' + QP_LABEL + '">Phone</label><input id="qpePhone" type="tel" class="' + QP_INPUT + '"></div>'
+        + '<div><label class="' + QP_LABEL + '">Jersey #</label><input id="qpeJerseyNum" type="number" min="1" max="99" class="' + QP_INPUT + '"></div>'
+        + '<div><label class="' + QP_LABEL + '">Jersey size</label><select id="qpeJerseySize" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green"><option value="">—</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></div>'
+        + '<div class="sm:col-span-2"><label class="' + QP_LABEL + '">Pronouns</label><input id="qpePronouns" type="text" maxlength="50" class="' + QP_INPUT + '"></div>'
+        + '</div>'
+        + '<div><label class="' + QP_LABEL + '">Intake note</label><textarea id="qpeNotes" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green"></textarea></div>'
+        + '<div class="flex justify-end gap-2 pt-1">'
+        + '<button type="button" data-action="qp-edit-cancel" class="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>'
+        + '<button type="button" data-action="qp-edit-save" class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white"><i class="ti ti-device-floppy"></i>Save</button>'
+        + '</div></div>';
+      qpBody().innerHTML = html;
+
+      var pv = document.getElementById('qpePreview');
+      if (p.profile_picture_url) pv.src = p.profile_picture_url;
+      document.getElementById('qpeName').value = p.player_name || '';
+      document.getElementById('qpeEmail').value = p.email || '';
+      document.getElementById('qpePhone').value = p.phone_number || '';
+      document.getElementById('qpeJerseyNum').value = (p.jersey_number === null || p.jersey_number === undefined) ? '' : p.jersey_number;
+      document.getElementById('qpeJerseySize').value = p.jersey_size || '';
+      document.getElementById('qpePronouns').value = p.pronouns || '';
+      document.getElementById('qpeNotes').value = p.notes || '';
+      document.getElementById('qpePhoto').addEventListener('change', function () {
+        var f = this.files && this.files[0];
+        if (!f) { qpEditPhoto = ''; return; }
+        var reader = new FileReader();
+        reader.onload = function (ev) { qpEditPhoto = ev.target.result; pv.src = qpEditPhoto; pv.classList.remove('hidden'); };
+        reader.readAsDataURL(f);
+      });
+    }
 
     // Fixed-position row menus (approve dropdown, quick-profile kebab). position:fixed +
     // computed coords ESCAPE the table's overflow-x/overflow-hidden clipping so the menu
@@ -644,14 +816,20 @@
         e.preventDefault();
         var go = function (notes) { postForm(t.dataset.url, { notes: notes || '' }).then(done); };
         if (window.Swal) {
-          window.Swal.fire(swalBase({ icon: 'warning', title: 'Deny ' + (t.dataset.name || 'this applicant') + '?', input: 'text', inputPlaceholder: 'Reason (optional)', showCancelButton: true, confirmButtonText: 'Deny' }))
+          window.Swal.fire(swalBase({ icon: 'warning', title: 'Deny ' + (t.dataset.name || 'this applicant') + '?', input: 'text', inputPlaceholder: 'Reason (optional)', showCancelButton: true, reverseButtons: true, cancelButtonText: 'Cancel', cancelButtonColor: '#6b7280', confirmButtonText: 'Deny', confirmButtonColor: '#dc2626' }))
             .then(function (res) { if (res.isConfirmed) go(res.value); });
         } else if (confirm('Deny this applicant?')) { go(''); }
 
       } else if (action === 'member-waitlist-remove') {
         e.preventDefault();
-        if (!window.confirm('Remove ' + (t.dataset.name || 'this person') + ' from the waitlist? They move to the normal pool.')) return;
-        postJson(t.dataset.url, { reason: 'Removed via Members waitlist' }).then(done);
+        askConfirm({
+          title: 'Remove ' + (t.dataset.name || 'this person') + ' from the waitlist?',
+          text: 'They keep their account, approval, team and roles — they just come off the waitlist.',
+          confirmText: 'Remove from waitlist', danger: true
+        }).then(function (ok) {
+          if (!ok) return;
+          postJson(t.dataset.url, { reason: 'Removed via Members waitlist' }).then(done);
+        });
 
       } else if (action === 'qp-create-account') {
         e.preventDefault(); postJson(t.dataset.url, {}).then(done);
@@ -667,58 +845,50 @@
 
       } else if (action === 'qp-delete') {
         e.preventDefault();
-        var del = function () { postJson(t.dataset.url, {}).then(done); };
-        if (window.Swal) { window.Swal.fire(swalBase({ icon: 'warning', title: 'Delete this quick profile?', text: t.dataset.name || '', showCancelButton: true, confirmButtonText: 'Delete', confirmButtonColor: '#dc2626' })).then(function (r) { if (r.isConfirmed) del(); }); }
-        else if (confirm('Delete this quick profile?')) { del(); }
+        askConfirm({ title: 'Delete this quick profile?', text: t.dataset.name || '', confirmText: 'Delete', danger: true })
+          .then(function (ok) { if (ok) postJson(t.dataset.url, {}).then(done); });
 
       } else if (action === 'qp-details') {
         e.preventDefault();
-        var noteUrl = t.dataset.url.replace('/detail', '/note');
-        document.getElementById('qpDetailsTitle').textContent = t.dataset.name || 'Quick profile';
-        var body = document.getElementById('qpDetailsBody');
-        body.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="ti ti-loader animate-spin"></i> Loading…</div>';
-        openModal('qpDetailsModal');
-        fetch(t.dataset.url).then(function (r) { return r.json(); }).then(function (r) {
-          if (!r || !r.success) { body.innerHTML = '<p class="text-red-500">Could not load details.</p>'; return; }
-          var p = r.profile || {};
-          var rows = [['Name', p.player_name], ['Claim code', p.claim_code], ['Status', p.status], ['Email', p.email], ['Phone', p.phone_number], ['Jersey', p.jersey_size], ['Pronouns', p.pronouns]];
-          var html = '<dl class="space-y-1.5">';
-          rows.forEach(function (kv) { if (kv[1]) html += '<div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">' + esc(kv[0]) + '</dt><dd class="text-gray-900 dark:text-white text-right break-words">' + esc(kv[1]) + '</dd></div>'; });
-          html += '</dl>';
-          if (p.notes) {
-            var iby = (p.created_by && (p.created_by.username || p.created_by.name)) || 'admin';
-            var ion = p.created_at ? String(p.created_at).slice(0, 16).replace('T', ' ') : '';
-            html += '<div class="mt-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40"><p class="text-[10px] uppercase tracking-wide text-gray-400">Intake note</p><p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">' + esc(p.notes) + '</p><p class="text-[11px] text-gray-400 mt-1">by ' + esc(iby) + (ion ? ' · ' + esc(ion) : '') + '</p></div>';
-          }
-          if (p.status === 'pending' || p.status === 'expired') {
-            var preUrl = t.dataset.url.replace('/detail', '/preapprove');
-            html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
-            html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Pre-approval <span class="normal-case text-gray-400">· auto-approves them the moment they claim</span></p>';
-            if (p.pre_approved_league) {
-              html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
-              html += '<button data-action="qp-preapprove" data-url="' + esc(preUrl) + '" data-league="" class="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button></div>';
-            } else {
-              var preOpts = '<option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option><option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option>';
-              if (r.waitlist_open) {
-                preOpts += '<optgroup label="Waitlist"><option value="waitlist-classic">Waitlist · Classic</option><option value="waitlist-premier">Waitlist · Premier</option><option value="waitlist-ecs-fc">Waitlist · ECS FC</option></optgroup>';
-              }
-              html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">' + preOpts + '</select>';
-              html += '<button data-action="qp-preapprove-set" data-url="' + esc(preUrl) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-user-check"></i>Pre-approve</button></div>';
-            }
-            html += '</div>';
-          }
-          html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
-          html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Notes <span class="normal-case text-gray-400">· admin / coach — not visible to the member</span></p>';
-          html += '<div class="flex items-start gap-2 mb-3"><textarea id="qpNoteInput" rows="2" placeholder="Add a note…" class="flex-1 text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"></textarea>';
-          html += '<button data-action="qp-note-add" data-url="' + esc(noteUrl) + '" class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 shrink-0"><i class="ti ti-plus"></i>Add</button></div>';
-          html += '<ul id="qpNotesList" class="space-y-2">';
-          (r.notes || []).forEach(function (n) {
-            html += '<li class="p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60"><p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">' + esc(n.content) + '</p><p class="text-[11px] text-gray-400 mt-0.5">' + esc(n.author) + ' · ' + esc(n.created_at) + '</p></li>';
-          });
-          if (!(r.notes || []).length) html += '<li class="text-sm text-gray-400" id="qpNotesEmpty">No notes yet.</li>';
-          html += '</ul></div>';
-          body.innerHTML = html;
-        }).catch(function () { body.innerHTML = '<p class="text-red-500">Could not load details.</p>'; });
+        qpLoad(t.dataset.url, t.dataset.name);
+
+      } else if (action === 'qp-edit-jump') {
+        e.preventDefault();
+        qpLoad(t.dataset.url, t.dataset.name, true);
+
+      } else if (action === 'qp-edit-open') {
+        e.preventDefault(); qpRenderEdit();
+
+      } else if (action === 'qp-edit-cancel') {
+        e.preventDefault(); qpRenderView();
+
+      } else if (action === 'qp-edit-save') {
+        e.preventDefault();
+        var ename = (document.getElementById('qpeName').value || '').trim();
+        if (!ename) { toast('error', 'Name is required'); return; }
+        var payload = {
+          player_name: ename,
+          email: (document.getElementById('qpeEmail').value || '').trim(),
+          phone_number: (document.getElementById('qpePhone').value || '').trim(),
+          jersey_number: (document.getElementById('qpeJerseyNum').value || '').trim(),
+          jersey_size: document.getElementById('qpeJerseySize').value || '',
+          pronouns: (document.getElementById('qpePronouns').value || '').trim(),
+          notes: (document.getElementById('qpeNotes').value || '').trim()
+        };
+        if (qpEditPhoto) payload.photo_base64 = qpEditPhoto;
+        t.disabled = true;
+        postJson(qpUrl('/update'), payload).then(function (r) {
+          t.disabled = false;
+          if (!r || !r.success) { toast('error', 'Could not save', (r && (r.error || r.message)) || ''); return; }
+          // Keep the modal open on the refreshed profile; the row behind it is stale, so
+          // reload the list once the admin closes out.
+          qpState.profile = r.profile || qpState.profile;
+          qpState.profile.editable = true;
+          qpDirty = qpDirty || !!(r.changed && r.changed.length);
+          document.getElementById('qpDetailsTitle').textContent = qpState.profile.player_name || 'Quick profile';
+          qpRenderView();
+          if (window.Swal) window.Swal.fire(swalBase({ icon: 'success', title: 'Saved', timer: 900, showConfirmButton: false }));
+        }).catch(function () { t.disabled = false; toast('error', 'Could not save'); });
 
       } else if (action === 'qp-note-add') {
         e.preventDefault();
@@ -727,15 +897,46 @@
         if (!ncontent) { toast('error', 'Write a note first'); return; }
         postJson(t.dataset.url, { content: ncontent }).then(function (r) {
           if (!r || !r.success) { toast('error', 'Could not add note', (r && (r.error || r.message)) || ''); return; }
-          var empty = document.getElementById('qpNotesEmpty'); if (empty) empty.remove();
-          var list = document.getElementById('qpNotesList');
-          var li = document.createElement('li');
-          li.className = 'p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60';
-          li.innerHTML = '<p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words"></p><p class="text-[11px] text-gray-400 mt-0.5"></p>';
-          li.children[0].textContent = r.note.content;
-          li.children[1].textContent = r.note.author + ' · ' + r.note.created_at;
-          list.insertBefore(li, list.firstChild);
-          nta.value = '';
+          qpState.notes.unshift(r.note);
+          qpRenderView();
+        });
+
+      } else if (action === 'qp-note-edit') {
+        e.preventDefault();
+        var li = t.closest('li[data-note-id]'); if (!li) return;
+        var cur = (qpState.notes.filter(function (n) { return String(n.id) === String(t.dataset.noteId); })[0] || {});
+        li.innerHTML = '<textarea rows="3" class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"></textarea>'
+          + '<div class="flex justify-end gap-2 mt-2">'
+          + '<button type="button" data-action="qp-note-edit-cancel" class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">Cancel</button>'
+          + '<button type="button" data-action="qp-note-edit-save" data-note-id="' + esc(t.dataset.noteId) + '" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90">Save note</button></div>';
+        var ta = li.querySelector('textarea');
+        ta.value = cur.content || '';
+        ta.focus();
+
+      } else if (action === 'qp-note-edit-cancel') {
+        e.preventDefault(); qpRenderView();
+
+      } else if (action === 'qp-note-edit-save') {
+        e.preventDefault();
+        var eli = t.closest('li[data-note-id]');
+        var econtent = eli ? (eli.querySelector('textarea').value || '').trim() : '';
+        if (!econtent) { toast('error', 'Note cannot be empty'); return; }
+        postJson(qpUrl('/note/' + encodeURIComponent(t.dataset.noteId) + '/edit'), { content: econtent }).then(function (r) {
+          if (!r || !r.success) { toast('error', 'Could not save note', (r && (r.error || r.message)) || ''); return; }
+          qpState.notes.forEach(function (n) { if (String(n.id) === String(t.dataset.noteId)) { n.content = econtent; n.edited = true; } });
+          qpRenderView();
+        });
+
+      } else if (action === 'qp-note-delete') {
+        e.preventDefault();
+        var delId = t.dataset.noteId;
+        askConfirm({ title: 'Delete this note?', confirmText: 'Delete', danger: true }).then(function (ok) {
+          if (!ok) return;
+          postJson(qpUrl('/note/' + encodeURIComponent(delId) + '/delete'), {}).then(function (r) {
+            if (!r || !r.success) { toast('error', 'Could not delete note', (r && (r.error || r.message)) || ''); return; }
+            qpState.notes = qpState.notes.filter(function (n) { return String(n.id) !== String(delId); });
+            qpRenderView();
+          });
         });
 
       } else if (action === 'qp-preapprove-set') {
@@ -792,6 +993,9 @@
 
       } else if (action === 'qp-modal-close') {
         e.preventDefault(); closeModal('qpDetailsModal'); closeModal('qpLinkModal'); closeModal('qpCreateModal');
+        // An edit changed the row behind the modal (name/photo/contact) — refresh the list
+        // once, on close, so what's on screen matches what was just saved.
+        if (qpDirty) { qpDirty = false; location.reload(); }
       }
     });
 
