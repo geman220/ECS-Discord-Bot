@@ -80,9 +80,16 @@ function readJsonScript(id, fallback) {
 }
 
 function buildTriggerOptions(catalog) {
-    return Object.keys(catalog)
-        .map((key) => `<option value="${escapeHtml(key)}">${escapeHtml(catalog[key].label)}</option>`)
-        .join('');
+    const groups = {};
+    Object.keys(catalog).forEach((k) => {
+        const g = catalog[k].group || 'Other';
+        (groups[g] = groups[g] || []).push(k);
+    });
+    return Object.keys(groups).sort().map((g) =>
+        `<optgroup label="${escapeHtml(g)}">` +
+        groups[g].map((k) =>
+            `<option value="${escapeHtml(k)}">${escapeHtml(catalog[k].label)}</option>`).join('') +
+        '</optgroup>').join('');
 }
 
 function buildAudienceOptions(audiences) {
@@ -94,49 +101,45 @@ function buildAudienceOptions(audiences) {
 // Fields that only make sense for particular triggers. Rendered once and shown
 // or hidden as the trigger dropdown changes, so the modal stays one round-trip.
 function conditionalFieldsHtml() {
-    return (
-        '<div id="afPhase" class="hidden mt-3">' +
-        '<label class="block mb-1 text-sm font-medium">Fires when the season enters</label>' +
-        '<select id="afPhaseValue" class="swal2-select-like w-full rounded-lg border border-gray-300 p-2 text-sm">' +
-        '<option value="preseason">Preseason</option>' +
-        '<option value="in_season">In season</option>' +
-        '<option value="break">Break</option>' +
-        '<option value="offseason" selected>Offseason</option>' +
-        '</select></div>' +
+    // Filled by syncConditionalFields from the server's field specs.
+    return '<div id="afFields"></div>';
+}
 
-        '<div id="afDate" class="hidden mt-3 grid grid-cols-2 gap-2">' +
-        '<div><label class="block mb-1 text-sm font-medium">Anchor</label>' +
-        '<select id="afDateAnchor" class="w-full rounded-lg border border-gray-300 p-2 text-sm">' +
-        '<option value="start">Season start date</option>' +
-        '<option value="end">Season end date</option>' +
-        '</select></div>' +
-        '<div><label class="block mb-1 text-sm font-medium">Days offset</label>' +
-        '<input type="number" id="afDaysOffset" value="0" class="w-full rounded-lg border border-gray-300 p-2 text-sm">' +
-        '<p class="mt-1 text-[11px] text-gray-500">-3 = 3 days before, +1 = day after</p></div>' +
-        '</div>' +
-
-        '<div id="afStuck" class="hidden mt-3">' +
-        '<label class="block mb-1 text-sm font-medium">Waiting longer than (days)</label>' +
-        '<input type="number" id="afStuckDays" value="14" min="1" class="w-full rounded-lg border border-gray-300 p-2 text-sm"></div>' +
-
-        '<div id="afSilence" class="hidden mt-3">' +
-        '<label class="block mb-1 text-sm font-medium">Silent for (hours)</label>' +
-        '<input type="number" id="afSilenceHours" value="24" min="1" class="w-full rounded-lg border border-gray-300 p-2 text-sm"></div>'
-    );
+function buildTriggerFieldsHtml(specs, catalog, trigger) {
+    const fields = ((catalog[trigger] || {}).fields) || [];
+    return fields.map((name) => {
+        const spec = specs[name];
+        if (!spec) return '';
+        const id = `af_${name}`;
+        if (spec.type === 'choice') {
+            const opts = (spec.choices || []).map(([v, l]) =>
+                `<option value="${escapeHtml(v)}" ${v === spec.default ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('');
+            return `<div class="mt-3"><label class="block mb-1 text-sm font-medium">${escapeHtml(spec.label)}</label>` +
+                   `<select id="${id}" data-af-field="${escapeHtml(name)}" class="w-full rounded-lg border border-gray-300 p-2 text-sm">${opts}</select></div>`;
+        }
+        return `<div class="mt-3"><label class="block mb-1 text-sm font-medium">${escapeHtml(spec.label)}</label>` +
+               `<input type="number" id="${id}" data-af-field="${escapeHtml(name)}" value="${spec.default}" ` +
+               `${spec.min !== null && spec.min !== undefined ? `min="${spec.min}"` : ''} ` +
+               `${spec.max !== null && spec.max !== undefined ? `max="${spec.max}"` : ''} ` +
+               `class="w-full rounded-lg border border-gray-300 p-2 text-sm"></div>`;
+    }).join('');
 }
 
 function syncConditionalFields(catalog) {
     const trigger = document.getElementById('afTrigger')?.value;
     const meta = catalog[trigger] || {};
-    const fields = meta.fields || [];
+    const specs = readJsonScript('automationTriggerFieldSpecs', {});
 
-    document.getElementById('afPhase')?.classList.toggle('hidden', !fields.includes('phase'));
-    document.getElementById('afDate')?.classList.toggle('hidden', !fields.includes('date_anchor'));
-    document.getElementById('afStuck')?.classList.toggle('hidden', !fields.includes('stuck_days'));
-    document.getElementById('afSilence')?.classList.toggle('hidden', !fields.includes('silence_hours'));
+    const holder = document.getElementById('afFields');
+    if (holder) holder.innerHTML = buildTriggerFieldsHtml(specs, catalog, trigger);
 
-    // Per-person triggers can only ever target the person they fired for, so
-    // pin the audience rather than letting the admin pick an impossible one.
+    const helpEl = document.getElementById('afHelp');
+    if (helpEl) helpEl.textContent = meta.help || '';
+    const scopeEl = document.getElementById('afScope');
+    if (scopeEl) scopeEl.textContent = meta.scope ? `Scope: ${meta.scope}` : '';
+
+    // A per-person trigger can only ever target the person it fired for, so pin
+    // the audience rather than letting an impossible one be chosen.
     const audienceEl = document.getElementById('afAudience');
     if (audienceEl && meta.default_audience) {
         const perPerson = meta.default_audience === 'the_subject';
@@ -145,15 +148,6 @@ function syncConditionalFields(catalog) {
         audienceEl.title = perPerson
             ? 'A per-person trigger always sends to the person it fired for.'
             : '';
-    }
-
-    const helpEl = document.getElementById('afHelp');
-    if (helpEl) {
-        helpEl.textContent = meta.help || '';
-    }
-    const scopeEl = document.getElementById('afScope');
-    if (scopeEl) {
-        scopeEl.textContent = meta.scope ? `Scope: ${meta.scope}` : '';
     }
 }
 
@@ -218,8 +212,14 @@ async function handleNewAutomation() {
                 phase: document.getElementById('afPhaseValue')?.value,
                 date_anchor: document.getElementById('afDateAnchor')?.value,
                 days_offset: parseInt(document.getElementById('afDaysOffset')?.value || '0', 10),
-                stuck_days: parseInt(document.getElementById('afStuckDays')?.value || '14', 10),
-                silence_hours: parseInt(document.getElementById('afSilenceHours')?.value || '24', 10),
+                ...(function () {
+                    const out = {};
+                    document.querySelectorAll('[data-af-field]').forEach((el) => {
+                        out[el.dataset.afField] = el.type === 'number'
+                            ? parseInt(el.value || '0', 10) : el.value;
+                    });
+                    return out;
+                }()),
             };
         },
     });
@@ -236,6 +236,306 @@ async function handleNewAutomation() {
         toastError(e.message);
     }
 }
+
+/* ========================================================================
+   RICH TEXT EDITOR + EMAIL PREVIEW
+   ======================================================================== */
+
+// Read the body from TinyMCE when it is running, falling back to the raw
+// textarea. TinyMCE does not write back to the textarea until it is asked to,
+// so reading .value directly would save stale content.
+function getBodyHtml() {
+    const ed = window.tinymce && window.tinymce.get('ruleBody');
+    if (ed) return ed.getContent();
+    return document.getElementById('ruleBody')?.value ?? '';
+}
+
+function initEditor() {
+    if (!window.tinymce || !document.getElementById('ruleBody')) return;
+    const isDark = document.documentElement.classList.contains('dark');
+    const isPhone = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+
+    window.tinymce.init({
+        selector: '#ruleBody',
+        width: '100%',
+        height: isPhone ? 300 : 460,
+        menubar: false,
+        plugins: 'lists link image table code wordcount autolink',
+        toolbar: isPhone
+            ? 'undo redo | bold italic | bullist numlist | link inserttokens'
+            : 'undo redo | blocks | bold italic underline | forecolor | alignleft aligncenter alignright | bullist numlist | link image table | inserttokens | code',
+        toolbar_mode: 'sliding',
+        content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+        skin: isDark ? 'oxide-dark' : 'oxide',
+        content_css: isDark ? 'dark' : 'default',
+        branding: false,
+        promotion: false,
+        // Email bodies rely on inline styles (buttons, spacing) that TinyMCE's
+        // cleanup would otherwise strip, which would silently wreck the seeded
+        // templates the moment someone opened and saved them.
+        verify_html: false,
+        valid_elements: '*[*]',
+        extended_valid_elements: 'style,link[href|rel]',
+        setup: function (editor) {
+            editor.ui.registry.addMenuButton('inserttokens', {
+                text: 'Insert',
+                fetch: function (callback) {
+                    const tokens = ['{first_name}', '{name}', '{team}', '{league}', '{season}',
+                                    '{discord_invite_url}', '{support_email}'];
+                    callback(tokens.map((t) => ({
+                        type: 'menuitem', text: t,
+                        onAction: () => editor.insertContent(t),
+                    })));
+                },
+            });
+        },
+    });
+}
+
+async function handlePreviewEmail(element) {
+    const ruleId = element.dataset.ruleId;
+    if (!ruleId) return;
+
+    window.Swal.fire({ title: 'Rendering…', allowOutsideClick: false,
+                       didOpen: () => window.Swal.showLoading() });
+    try {
+        const data = await apiCall(`${API_BASE}/${ruleId}/preview-email`, {
+            method: 'POST',
+            body: JSON.stringify({
+                body_html: getBodyHtml(),
+                subject: document.getElementById('ruleSubject')?.value || '',
+                template_id: document.getElementById('ruleTemplateId')?.value || null,
+            }),
+        });
+
+        const warn = data.unresolved && data.unresolved.length
+            ? `<div style="margin:0 0 10px;padding:8px 10px;border-radius:6px;background:#fef3c7;color:#92400e;font-size:12px;text-align:left;">
+                 <strong>These will send literally:</strong> ${escapeHtml(data.unresolved.map((u) => '{' + u + '}').join(', '))}
+               </div>`
+            : '';
+
+        // srcdoc keeps the email's own CSS from leaking into the admin page.
+        window.Swal.fire({
+            title: false,
+            width: 720,
+            html:
+                `<p style="text-align:left;font-size:12px;color:#6b7280;margin:0 0 4px;">Subject</p>` +
+                `<p style="text-align:left;font-weight:600;margin:0 0 10px;">${escapeHtml(data.subject)}</p>` +
+                warn +
+                `<iframe srcdoc="${escapeHtml(data.html)}" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff;" sandbox=""></iframe>` +
+                `<p style="text-align:left;font-size:11px;color:#9ca3af;margin:8px 0 0;">` +
+                `Personalised with your own details. ${data.wrapper ? 'Layout: ' + escapeHtml(data.wrapper) : 'No wrapper layout'}.</p>`,
+            confirmButtonText: 'Close',
+        });
+    } catch (e) {
+        toastError(e.message);
+    }
+}
+
+/* ========================================================================
+   PLAIN-TEXT CHANNEL PREVIEW (push / Discord / in-app)
+   ======================================================================== */
+
+// Practical limits: Android collapses a notification body around 240 chars and
+// iOS shows ~178 on the lock screen. Discord DMs allow 2000.
+const PUSH_SAFE_CHARS = 178;
+const DISCORD_MAX_CHARS = 2000;
+
+function syncShortMessagePreview() {
+    const box = document.getElementById('ruleShortMessage');
+    if (!box) return;
+    const text = box.value || '';
+    const subject = document.getElementById('ruleSubject')?.value || '';
+
+    const count = document.getElementById('shortMessageCount');
+    if (count) count.textContent = String(text.length);
+
+    const warn = document.getElementById('shortMessageWarn');
+    if (warn) {
+        let msg = '';
+        if (text.length > DISCORD_MAX_CHARS) {
+            msg = `Over Discord's ${DISCORD_MAX_CHARS}-character limit — the DM will fail.`;
+        } else if (text.length > PUSH_SAFE_CHARS) {
+            msg = `Past ~${PUSH_SAFE_CHARS} characters a push notification gets cut off. Front-load the important part.`;
+        } else if (/<[a-z][\s\S]*>/i.test(text)) {
+            msg = 'That looks like HTML. These channels show it as raw text — use plain words and bare URLs.';
+        }
+        warn.textContent = msg;
+        warn.classList.toggle('hidden', !msg);
+    }
+
+    const t = document.getElementById('pushPreviewTitle');
+    const b = document.getElementById('pushPreviewBody');
+    const d = document.getElementById('discordPreviewBody');
+    if (t) t.textContent = subject || '—';
+    if (b) b.textContent = text ? text.slice(0, PUSH_SAFE_CHARS) + (text.length > PUSH_SAFE_CHARS ? '…' : '') : '—';
+    if (d) d.textContent = text || '—';
+}
+
+
+/* ========================================================================
+   TRACE — "why didn't this person get it?"
+   ======================================================================== */
+
+async function handleExplain(element) {
+    const ruleId = element.dataset.ruleId;
+    if (!ruleId) return;
+
+    const picked = await window.Swal.fire({
+        title: 'Who are you checking?',
+        input: 'text',
+        inputPlaceholder: 'Start typing a name…',
+        inputAttributes: { autocomplete: 'off' },
+        showCancelButton: true,
+        confirmButtonText: 'Search',
+        inputValidator: (v) => (!v || v.trim().length < 2)
+            ? 'Type at least two characters' : undefined,
+    });
+    if (!picked.isConfirmed) return;
+
+    let people = [];
+    try {
+        const r = await fetch(
+            `${API_BASE}/search-people?q=${encodeURIComponent(picked.value.trim())}`);
+        people = (await r.json()).people || [];
+    } catch (e) {
+        toastError('Could not search for people.');
+        return;
+    }
+    if (!people.length) {
+        toastError('Nobody matched that name.');
+        return;
+    }
+
+    const chosen = await window.Swal.fire({
+        title: 'Pick the person',
+        input: 'select',
+        inputOptions: people.reduce((a, p) => { a[p.user_id] = p.label; return a; }, {}),
+        showCancelButton: true,
+        confirmButtonText: 'Explain',
+    });
+    if (!chosen.isConfirmed) return;
+
+    window.Swal.fire({ title: 'Working it out…', allowOutsideClick: false,
+                       didOpen: () => window.Swal.showLoading() });
+    try {
+        const data = await apiCall(`${API_BASE}/${ruleId}/explain`, {
+            method: 'POST',
+            body: JSON.stringify({ user_id: parseInt(chosen.value, 10) }),
+        });
+        const rows = (data.stages || []).map((st) => {
+            const icon = st.ok ? '✅' : '⛔';
+            return '<li style="margin:0 0 8px;list-style:none;">' +
+                   `<strong>${icon} ${escapeHtml(st.name)}</strong>` +
+                   `<div style="font-size:12px;color:#6b7280;margin-top:2px;">${escapeHtml(st.detail)}</div>` +
+                   '</li>';
+        }).join('');
+        window.Swal.fire({
+            title: false,
+            width: 620,
+            html: `<p style="text-align:left;font-weight:600;margin:0 0 12px;">${escapeHtml(data.verdict)}</p>` +
+                  `<ul style="text-align:left;padding:0;margin:0;">${rows}</ul>` +
+                  '<p style="text-align:left;font-size:11px;color:#9ca3af;margin:12px 0 0;">' +
+                  'Worked out live against the rule as it is saved right now.</p>',
+            confirmButtonText: 'Close',
+        });
+    } catch (e) {
+        toastError(e.message);
+    }
+}
+
+
+/* ========================================================================
+   ACTION SEQUENCE (follow-up steps)
+   ======================================================================== */
+
+const STEP_CHANNELS = [
+    ['email', 'Email'], ['push', 'Push'], ['discord', 'Discord DM'], ['in_app', 'In-app'],
+];
+
+function num(id) {
+    const el = document.getElementById(id);
+    return el && el.value !== '' ? parseInt(el.value, 10) : null;
+}
+
+function stepRowHtml(step, index) {
+    const chans = step.channels || ['email'];
+    const boxes = STEP_CHANNELS.map(([v, lbl]) =>
+        `<label class="inline-flex items-center gap-1 text-xs mr-2">` +
+        `<input type="checkbox" class="step-channel w-3.5 h-3.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green" ` +
+        `value="${escapeHtml(v)}" ${chans.includes(v) ? 'checked' : ''}>` +
+        `<span>${escapeHtml(lbl)}</span></label>`).join('');
+
+    return (
+        '<div class="step-row rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 space-y-2">' +
+        '<div class="flex items-center justify-between gap-2">' +
+        `<span class="text-xs font-bold uppercase tracking-wide text-ecs-green">Follow-up ${index + 2}</span>` +
+        '<button type="button" data-action="automation-remove-step" class="px-1.5 py-0.5 rounded text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15"><i class="ti ti-x"></i></button>' +
+        '</div>' +
+        '<div class="flex items-center gap-1.5">' +
+        '<span class="text-xs text-gray-500 dark:text-gray-400">Send</span>' +
+        `<input type="number" min="0" max="1440" class="step-wait w-20 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1" value="${parseInt(step.wait_hours || 0, 10)}">` +
+        '<span class="text-xs text-gray-500 dark:text-gray-400">hours after the previous message</span>' +
+        '</div>' +
+        `<input type="text" class="step-subject w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Subject line" value="${escapeHtml(step.subject || '')}">` +
+        `<textarea rows="3" class="step-body w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Message (HTML allowed for email)">${escapeHtml(step.body_html || '')}</textarea>` +
+        `<textarea rows="2" class="step-short w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Short plain-text version (needed for push / Discord / in-app)">${escapeHtml(step.short_message || '')}</textarea>` +
+        `<div>${boxes}</div>` +
+        '</div>'
+    );
+}
+
+function renderSteps() {
+    const wrap = document.getElementById('stepRows');
+    if (!wrap) return;
+    // Step 1 is the main editor above; only follow-ups render here.
+    const stored = readJsonScript('automationSteps', []);
+    const followUps = stored.length > 1 ? stored.slice(1) : [];
+    wrap.innerHTML = followUps.map(stepRowHtml).join('');
+}
+
+function handleAddStep() {
+    const wrap = document.getElementById('stepRows');
+    if (!wrap) return;
+    const count = wrap.querySelectorAll('.step-row').length;
+    if (count >= 5) {
+        toastError('Five follow-ups is the maximum.');
+        return;
+    }
+    wrap.insertAdjacentHTML('beforeend',
+        stepRowHtml({ wait_hours: 72, channels: ['email'] }, count));
+}
+
+function handleRemoveStep(element) {
+    element.closest('.step-row')?.remove();
+    // Renumber so the labels stay in order after a removal.
+    document.querySelectorAll('#stepRows .step-row').forEach((row, i) => {
+        const badge = row.querySelector('span');
+        if (badge) badge.textContent = `Follow-up ${i + 2}`;
+    });
+}
+
+// Step 1 is always the main editor; follow-ups are appended.
+function collectSteps() {
+    const first = {
+        wait_hours: num('ruleDelayHours') ?? 0,
+        channels: Array.from(document.querySelectorAll('.rule-channel:checked')).map((e) => e.value),
+        subject: document.getElementById('ruleSubject')?.value || '',
+        body_html: getBodyHtml(),
+        short_message: document.getElementById('ruleShortMessage')?.value || '',
+    };
+    if (!first.channels.length) first.channels = ['email'];
+
+    const rest = Array.from(document.querySelectorAll('#stepRows .step-row')).map((row) => ({
+        wait_hours: parseInt(row.querySelector('.step-wait')?.value || '0', 10),
+        channels: Array.from(row.querySelectorAll('.step-channel:checked')).map((e) => e.value),
+        subject: row.querySelector('.step-subject')?.value || '',
+        body_html: row.querySelector('.step-body')?.value || '',
+        short_message: row.querySelector('.step-short')?.value || '',
+    }));
+    return [first, ...rest];
+}
+
 
 /* ========================================================================
    CONDITIONS BUILDER
@@ -384,10 +684,7 @@ async function handleToggle(element) {
 
 function collectRuleForm() {
     const val = (id) => document.getElementById(id)?.value ?? '';
-    const num = (id) => {
-        const el = document.getElementById(id);
-        return el && el.value !== '' ? parseInt(el.value, 10) : null;
-    };
+    // num() is module-level (shared with collectSteps).
 
     const channels = Array.from(document.querySelectorAll('.rule-channel:checked'))
         .map((el) => el.value);
@@ -396,52 +693,30 @@ function collectRuleForm() {
         name: val('ruleName'),
         description: val('ruleDescription'),
         subject: val('ruleSubject'),
-        body_html: val('ruleBody'),
+        body_html: getBodyHtml(),
         short_message: val('ruleShortMessage'),
         channels: channels.length ? channels : ['email'],
         conditions: collectConditions(),
+        steps: collectSteps(),
+        stop_when_resolved: document.getElementById('ruleStopWhenResolved')?.checked ?? true,
         delay_hours: num('ruleDelayHours'),
         audience_type: val('ruleAudienceType'),
         send_mode: val('ruleSendMode'),
         force_send: document.getElementById('ruleForceSend')?.checked ?? false,
         template_id: val('ruleTemplateId') || null,
+        ...(document.getElementById('ruleTriggerType')
+            ? { trigger_type: document.getElementById('ruleTriggerType').value } : {}),
     };
 
-    // Only submit trigger fields belonging to THIS rule's trigger. Every block
-    // is present in the DOM and merely CSS-hidden, so reading them all would
-    // write e.g. min_players_per_team into a season_phase rule's config.
-    const activeTrigger = document.querySelector('[data-trigger-type]')?.dataset.triggerType;
-    const visible = (id) => {
-        const el = document.getElementById(id);
-        if (!el) return false;
-        const block = el.closest('[data-trigger-fields]');
-        return !block || block.dataset.triggerFields === activeTrigger;
-    };
-
-    // Applies to every trigger type. Send the key even when the box was cleared
-    // (num() -> null): dropping it made Save report success while the old value
-    // silently came back. The server validates and returns a real error.
-    if (document.getElementById('ruleMaxEventAge')) {
-        payload.max_event_age_days = num('ruleMaxEventAge');
-    }
-
-    if (visible('ruleMinPlayers')) {
-        payload.min_players_per_team = num('ruleMinPlayers');
-    }
-    if (visible('rulePhase')) {
-        const phase = document.getElementById('rulePhase')?.value;
-        if (phase) payload.phase = phase;
-    }
-    for (const [id, key] of [['ruleStuckDays', 'stuck_days'],
-                             ['ruleSilenceHours', 'silence_hours']]) {
-        if (visible(id)) {
-            payload[key] = num(id);
-        }
-    }
-    if (visible('ruleDateAnchor')) {
-        payload.date_anchor = document.getElementById('ruleDateAnchor')?.value;
-        payload.days_offset = num('ruleDaysOffset') ?? 0;
-    }
+    // Trigger knobs are rendered from TRIGGER_FIELD_SPECS and tagged with
+    // data-trigger-field, so this needs no per-knob code.
+    document.querySelectorAll('[data-trigger-field]').forEach((el) => {
+        const name = el.dataset.triggerField;
+        if (!name) return;
+        payload[name] = el.type === 'number'
+            ? (el.value === '' ? null : parseInt(el.value, 10))
+            : el.value;
+    });
 
     return payload;
 }
@@ -674,6 +949,17 @@ async function handleForceRun(element) {
     }
 }
 
+async function handleDuplicateRule(element) {
+    const ruleId = element.dataset.ruleId;
+    if (!ruleId) return;
+    try {
+        const data = await apiCall(`${API_BASE}/${ruleId}/duplicate`, { method: 'POST' });
+        window.location.href = data.redirect;
+    } catch (e) {
+        toastError(e.message);
+    }
+}
+
 async function handleDeleteRule(element) {
     const ruleId = element.dataset.ruleId;
     const ruleName = element.dataset.ruleName || 'this automation';
@@ -733,6 +1019,11 @@ window.EventDelegation.register('automation-run-now', handleRunNow, { preventDef
 window.EventDelegation.register('automation-force-run', handleForceRun, { preventDefault: true });
 window.EventDelegation.register('automation-cancel-run', handleCancelRun, { preventDefault: true });
 window.EventDelegation.register('automation-delete', handleDeleteRule, { preventDefault: true });
+window.EventDelegation.register('automation-preview-email', handlePreviewEmail, { preventDefault: true });
+window.EventDelegation.register('automation-duplicate', handleDuplicateRule, { preventDefault: true });
+window.EventDelegation.register('automation-explain', handleExplain, { preventDefault: true });
+window.EventDelegation.register('automation-add-step', handleAddStep, { preventDefault: true });
+window.EventDelegation.register('automation-remove-step', handleRemoveStep, { preventDefault: true });
 window.EventDelegation.register('automation-add-condition', handleAddCondition, { preventDefault: true });
 window.EventDelegation.register('automation-remove-condition', handleRemoveCondition, { preventDefault: true });
 
@@ -762,6 +1053,13 @@ function initAutomations() {
     });
     syncShortMessageVisibility();
     renderConditions();
+    renderSteps();
+    initEditor();
+
+    const shortBox = document.getElementById('ruleShortMessage');
+    if (shortBox) shortBox.addEventListener('input', syncShortMessagePreview);
+    document.getElementById('ruleSubject')?.addEventListener('input', syncShortMessagePreview);
+    syncShortMessagePreview();
 }
 
 window.InitSystem.register('automations', initAutomations, {

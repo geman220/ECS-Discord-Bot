@@ -46,11 +46,31 @@
       <i class="ti ti-bolt" aria-hidden="true"></i><span>Force run</span>
     </button>
     {% endif %}
+    <button type="button" data-action="automation-explain" data-rule-id="{{ rule.id }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+      <i class="ti ti-help-circle" aria-hidden="true"></i><span>Why didn't someone get this?</span>
+    </button>
+    <button type="button" data-action="automation-duplicate" data-rule-id="{{ rule.id }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+      <i class="ti ti-copy" aria-hidden="true"></i><span>Duplicate</span>
+    </button>
     <button type="button" data-action="automation-save" data-rule-id="{{ rule.id }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors">
       <i class="ti ti-device-floppy" aria-hidden="true"></i><span>Save</span>
     </button>
   {% endcall %}
+
+  {# Plain-English read-back of the whole rule, assembled from the same metadata
+     the form uses so it cannot drift from actual behaviour. #}
+  <div class="rounded-xl border-2 border-ecs-green/40 dark:border-ecs-green/50 bg-ecs-green/5 dark:bg-ecs-green/10 p-4 sm:p-5">
+    <p class="text-xs font-bold uppercase tracking-wide text-ecs-green mb-1.5">In plain English</p>
+    <p class="text-base sm:text-lg font-medium text-gray-900 dark:text-white leading-relaxed">{{ rule_summary }}</p>
+    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      Every automation is three parts: <strong>the event</strong> that starts it,
+      <strong>the conditions</strong> that must hold, and <strong>the action</strong> it takes.
+      Change any of them below and this sentence updates when you save.
+    </p>
+  </div>
 
   {% if rule.enabled %}
   <div class="rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-4 flex gap-3">
@@ -74,7 +94,7 @@
     <!-- ============ LEFT: trigger + audience ============ -->
     <div class="lg:col-span-1 space-y-5">
 
-      {% call section_card('When it fires', icon='ti-bolt') %}
+      {% call section_card('1 · The event — when it fires', icon='ti-bolt') %}
       <div class="p-4 sm:p-5 space-y-4">
         <div>
           <label for="ruleName" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Rule name</label>
@@ -88,92 +108,58 @@
                     class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.description or '' }}</textarea>
         </div>
 
-        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 p-3">
-          <p class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Trigger</p>
-          <p class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{{ rule.trigger_label }}</p>
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            The trigger type is fixed for a rule &mdash; it decides which detector runs.
-          </p>
-        </div>
-
-        <!-- Draft-specific tuning -->
-        <div data-trigger-fields="draft_complete" class="space-y-4 hidden">
-          <div>
-            <label for="ruleMinPlayers" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-              Players per team before the draft counts as done
-            </label>
-            <input type="number" id="ruleMinPlayers" min="1" max="30"
-                   value="{{ cfg.get('min_players_per_team', 6) }}"
-                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <strong>Every</strong> active team in the league must reach this many non-coach
-              players. Coaches are drafted onto teams about a week early, so a low number here
-              risks firing on the coach draft instead of the real one.
+        <div>
+          <label for="ruleTriggerType" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Trigger</label>
+          {% if has_run %}
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 p-3">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ rule.trigger_label }}</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              This automation has already run, so its trigger is locked &mdash; changing it
+              would leave the history pointing at something else.
+              <strong>Duplicate</strong> it to try a different trigger.
             </p>
           </div>
-
-        </div>
-
-        <!-- Season date tuning -->
-        <div data-trigger-fields="season_date" class="grid grid-cols-2 gap-3 hidden">
-          <div>
-            <label for="ruleDateAnchor" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Anchor</label>
-            <select id="ruleDateAnchor"
-                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-              <option value="start" {% if cfg.get('date_anchor', 'start') == 'start' %}selected{% endif %}>Season start date</option>
-              <option value="end" {% if cfg.get('date_anchor') == 'end' %}selected{% endif %}>Season end date</option>
-            </select>
-          </div>
-          <div>
-            <label for="ruleDaysOffset" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Days offset</label>
-            <input type="number" id="ruleDaysOffset" value="{{ cfg.get('days_offset', 0) }}"
-                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">-3 = three days before, +1 = day after. Counted from local midnight.</p>
-          </div>
-        </div>
-
-        <!-- Per-person thresholds -->
-        <div data-trigger-fields="waitlist_stuck" class="hidden">
-          <label for="ruleStuckDays" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Waiting longer than (days)</label>
-          <input type="number" id="ruleStuckDays" min="1" max="365" value="{{ cfg.get('stuck_days', 14) }}"
-                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">The wait below is counted from the moment they cross this line, not from when they joined.</p>
-        </div>
-        <div data-trigger-fields="sub_no_reply" class="hidden">
-          <label for="ruleSilenceHours" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Silent for (hours)</label>
-          <input type="number" id="ruleSilenceHours" min="1" max="8760" value="{{ cfg.get('silence_hours', 24) }}"
-                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-        </div>
-        
-        <!-- Season-phase tuning -->
-        <div data-trigger-fields="season_phase" class="space-y-4 hidden">
-          <div>
-            <label for="rulePhase" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Fires when the season enters</label>
-            <select id="rulePhase"
-                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-              {% for p in ['preseason', 'in_season', 'break', 'offseason'] %}
-              <option value="{{ p }}" {% if cfg.get('phase', 'offseason') == p %}selected{% endif %}>{{ p.replace('_', ' ')|title }}</option>
+          {% else %}
+          <select id="ruleTriggerType"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            {% for grp in trigger_catalog.values()|map(attribute='group')|unique|sort %}
+            <optgroup label="{{ grp }}">
+              {% for key, meta in trigger_catalog.items() if meta.group == grp %}
+              <option value="{{ key }}" {% if rule.trigger_type == key %}selected{% endif %}>{{ meta.label }}</option>
               {% endfor %}
-            </select>
-          </div>
+            </optgroup>
+            {% endfor %}
+          </select>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            {{ trigger_catalog.get(rule.trigger_type, {}).get('help', '') }}
+          </p>
+          {% endif %}
         </div>
 
-        {# Applies to every trigger type, so it lives OUTSIDE the per-trigger
-           blocks — having one copy per block produced duplicate element ids and
-           getElementById would read whichever came first, hidden or not. #}
+        {# Trigger knobs, rendered from TRIGGER_FIELD_SPECS. Adding a knob to that
+           dict is the ONLY change needed for it to appear here, validate and save. #}
+        {% for name, spec in trigger_fields %}
         <div>
-          <label for="ruleMaxEventAge" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-            Freshness window (days)
-          </label>
-          <input type="number" id="ruleMaxEventAge" min="1" max="365"
-                 value="{{ cfg.get('max_event_age_days', 14) }}"
+          <label for="tf_{{ name }}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">{{ spec.label }}</label>
+          {% if spec.type == 'choice' %}
+          <select id="tf_{{ name }}" data-trigger-field="{{ name }}"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            {% for value, label in spec.choices %}
+            <option value="{{ value }}" {% if cfg.get(name, spec.default) == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% else %}
+          <input type="number" id="tf_{{ name }}" data-trigger-field="{{ name }}"
+                 {% if spec.min is not none %}min="{{ spec.min }}"{% endif %}
+                 {% if spec.max is not none %}max="{{ spec.max }}"{% endif %}
+                 value="{{ cfg.get(name, spec.default) }}"
                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-            Safety valve. If you enable this rule long after the trigger already happened,
-            the stale event is recorded as <em>skipped</em> instead of blasting everyone.
-            You can still send it by hand with <em>Force run</em>.
-          </p>
+          {% endif %}
+          {% if spec.help %}
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ spec.help }}</p>
+          {% endif %}
         </div>
+        {% endfor %}
 
         <div>
           <label for="ruleDelayHours" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Wait before sending (hours)</label>
@@ -187,7 +173,7 @@
       </div>
       {% endcall %}
 
-      {% call section_card('Who gets it', icon='ti-users') %}
+      {% call section_card('2 · The conditions — who gets it', icon='ti-users') %}
       <div class="p-4 sm:p-5 space-y-4">
         <div>
           <label for="ruleAudienceType" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Audience</label>
@@ -255,10 +241,32 @@
           </label>
           <textarea id="ruleShortMessage" rows="3" maxlength="1000"
                     class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.short_message or '' }}</textarea>
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-            Plain text, no HTML &mdash; a push notification cannot render it. Leave blank and the
-            HTML body gets stripped to text automatically, which usually reads badly.
-          </p>
+          <div class="mt-1.5 flex items-start justify-between gap-3">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              <strong>Plain text only.</strong> Push notifications, Discord DMs and in-app alerts
+              cannot render HTML &mdash; bold, links and buttons simply do not exist there, so
+              these channels get their own short version. Put any link in as a bare URL.
+            </p>
+            <span id="shortMessageCount" class="shrink-0 text-xs font-mono text-gray-400 dark:text-gray-500">0</span>
+          </div>
+          <p id="shortMessageWarn" class="mt-1 text-xs text-amber-700 dark:text-amber-400 hidden"></p>
+
+          <div class="mt-3 space-y-2">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">How it will look</p>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-2.5">
+              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                <i class="ti ti-bell" aria-hidden="true"></i>Push notification
+              </div>
+              <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="pushPreviewTitle">&mdash;</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2" id="pushPreviewBody">&mdash;</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-2.5">
+              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                <i class="ti ti-brand-discord" aria-hidden="true"></i>Discord DM
+              </div>
+              <p class="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words" id="discordPreviewBody">&mdash;</p>
+            </div>
+          </div>
         </div>
 
         {# ── Conditions: extra narrowing on top of the audience ──────────── #}
@@ -308,7 +316,7 @@
 
     <!-- ============ RIGHT: the message ============ -->
     <div class="lg:col-span-2 space-y-5">
-      {% call section_card('What it says', icon='ti-message') %}
+      {% call section_card('3 · The action — what it sends', icon='ti-message') %}
       <div class="p-4 sm:p-5 space-y-4">
         <div>
           <label for="ruleSubject" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Subject line</label>
@@ -316,13 +324,52 @@
                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
         </div>
 
+        {# ── Action sequence ─────────────────────────────────────────────── #}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium text-gray-900 dark:text-white">Follow-up messages</p>
+            <button type="button" data-action="automation-add-step"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+              <i class="ti ti-plus" aria-hidden="true"></i><span>Add a follow-up</span>
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            An automation can send more than once. Add follow-ups to build a ladder &mdash;
+            ask, wait, ask more widely, wait, final call. The message above is step 1.
+          </p>
+          <div id="stepRows" class="mt-2 space-y-2"></div>
+          <script type="application/json" id="automationSteps">{{ (rule.steps or [])|tojson }}</script>
+
+          <label class="mt-3 flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="ruleStopWhenResolved"
+                   {% if rule.stop_when_resolved %}checked{% endif %}
+                   class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+            <span class="text-sm text-gray-900 dark:text-white">
+              Stop early if the situation sorts itself out
+              <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Before each follow-up, re-check the trigger. If the sub slot got filled or
+                the player joined Discord, the rest of the ladder is cancelled. Strongly
+                recommended &mdash; without it you will nag people who already acted.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div>
-          <label for="ruleBody" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Message body (HTML)</label>
-          <textarea id="ruleBody" rows="24" spellcheck="false"
-                    class="w-full font-mono text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white p-3 focus:ring-ecs-green focus:border-ecs-green">{{ rule.body_html }}</textarea>
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <label for="ruleBody" class="block text-sm font-medium text-gray-900 dark:text-white">
+              Email message <span class="text-gray-400 dark:text-gray-500 font-normal">&mdash; rich formatting</span>
+            </label>
+            <button type="button" data-action="automation-preview-email" data-rule-id="{{ rule.id }}"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+              <i class="ti ti-eye" aria-hidden="true"></i><span>Preview email</span>
+            </button>
+          </div>
+          <textarea id="ruleBody" rows="20">{{ rule.body_html }}</textarea>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-            This is the inner content only &mdash; the wrapper layout adds the ECS header and
-            footer. Use <em>Test to me</em> to see the finished email.
+            Write it like a document &mdash; no HTML knowledge needed. The ECS header and footer
+            are added automatically by the wrapper layout, so start straight into the message.
+            Use <strong>Preview email</strong> to see exactly what lands in someone's inbox.
           </p>
         </div>
 
@@ -378,4 +425,8 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/tinymce/tinymce.min.js') }}"></script>
 {% endblock %}

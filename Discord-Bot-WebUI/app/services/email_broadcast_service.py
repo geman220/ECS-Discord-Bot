@@ -196,6 +196,25 @@ class EmailBroadcastService:
                 else:
                     users = []
 
+        elif filter_type == 'rostered_this_season':
+            user_ids = self._resolve_rostered(session, filter_criteria, coaches_only=False)
+            users = base_query.filter(User.id.in_(user_ids)).all() if user_ids else []
+
+        elif filter_type == 'coaches_this_season':
+            user_ids = self._resolve_rostered(session, filter_criteria, coaches_only=True)
+            users = base_query.filter(User.id.in_(user_ids)).all() if user_ids else []
+
+        elif filter_type == 'no_discord_linked':
+            # Deliberately simpler than drafted_not_in_discord: no roster join and
+            # no bot round-trip. Catches registered-but-undrafted people that the
+            # roster-based audience misses by construction.
+            sub = session.query(Player.user_id).filter(
+                Player.discord_id.is_(None),
+                Player.is_current_player == True,  # noqa: E712
+                Player.user_id.isnot(None),
+            )
+            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
+
         elif filter_type == 'drafted_not_in_discord':
             user_ids = self._resolve_drafted_not_in_discord(session, filter_criteria)
             if user_ids:
@@ -208,6 +227,45 @@ class EmailBroadcastService:
             users = []
 
         return [{'user_id': u.id, 'name': u.username} for u in users]
+
+    def _resolve_rostered(self, session, filter_criteria, coaches_only=False):
+        """User ids of people on a team this season.
+
+        Roster source is player_teams (the live roster) joined through
+        Team -> League -> Season, which is the same shape
+        _resolve_drafted_not_in_discord uses. PlayerTeamSeason is a snapshot that
+        drifts when a mid-season move only touches player_teams, so it is not
+        used here.
+
+        coaches_only flips to player_teams.is_coach, which is the per-TEAM coach
+        flag rather than Player.is_coach.
+        """
+        league_ids = filter_criteria.get('league_ids', [])
+        if not league_ids and filter_criteria.get('league_id'):
+            league_ids = [filter_criteria['league_id']]
+        league_ids = [int(lid) for lid in league_ids]
+        season_id = filter_criteria.get('season_id')
+
+        q = (session.query(Player.user_id)
+             .join(player_teams, player_teams.c.player_id == Player.id)
+             .join(Team, Team.id == player_teams.c.team_id)
+             .join(League, League.id == Team.league_id)
+             .filter(Player.user_id.isnot(None)))
+
+        if league_ids:
+            q = q.filter(League.id.in_(league_ids))
+        if season_id:
+            q = q.filter(League.season_id == int(season_id))
+        if not league_ids and not season_id:
+            # Fall back to the CURRENT season rather than "everyone ever
+            # rostered" -- this audience runs unattended.
+            q = (q.join(Season, Season.id == League.season_id)
+                 .filter(Season.is_current.is_(True)))
+
+        if coaches_only:
+            q = q.filter(player_teams.c.is_coach.is_(True))
+
+        return [r[0] for r in q.distinct().all()]
 
     def _resolve_drafted_not_in_discord(self, session, filter_criteria):
         """User IDs of players rostered this season who are NOT in the Discord server.
@@ -466,6 +524,12 @@ class EmailBroadcastService:
             return 'By role'
         elif filter_type == 'by_discord_role':
             return f'Discord role: {filter_criteria.get("discord_role", "Unknown")}'
+        elif filter_type == 'rostered_this_season':
+            return 'Everyone on a team this season'
+        elif filter_type == 'coaches_this_season':
+            return 'Coaches of teams this season'
+        elif filter_type == 'no_discord_linked':
+            return 'Active players with no Discord account linked'
         elif filter_type == 'drafted_not_in_discord':
             league_ids = filter_criteria.get('league_ids', [])
             if not league_ids and filter_criteria.get('league_id'):

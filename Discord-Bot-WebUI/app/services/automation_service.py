@@ -41,14 +41,18 @@ import re
 from datetime import datetime, timedelta, time
 from types import SimpleNamespace
 
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 
 from app.models.automation import (
-    AutomationRule, AutomationRun, build_scope_key,
+    AutomationRule, AutomationRun, build_scope_key, describe_condition,
     TRIGGER_DRAFT_COMPLETE, TRIGGER_DRAFT_SESSION_COMPLETE,
     TRIGGER_SEASON_PHASE, TRIGGER_SEASON_DATE,
     TRIGGER_USER_APPROVED, TRIGGER_WAITLIST_STUCK, TRIGGER_SUB_NO_REPLY,
+    TRIGGER_PLAYER_INACTIVE, TRIGGER_PROFILE_STALE,
+    TRIGGER_PASS_NEVER_DOWNLOADED, TRIGGER_PASS_EXPIRING,
+    TRIGGER_FEEDBACK_OPEN, TRIGGER_SUB_REQUEST_UNFILLED,
+    TRIGGER_SUB_POOL_PENDING, TRIGGER_MATCH_RESCHEDULED,
 )
 from app.models.core import Season, League, User, Role, user_roles
 from app.models.players import Player, Team, player_teams
@@ -483,6 +487,303 @@ def detect_sub_no_reply(session, rule):
     } for resp_id, player_id, request_id, sent_at in rows]
 
 
+def _horizon(cfg, extra_days=0, extra_hours=0):
+    """Lower bound for a detector query.
+
+    Every per-subject detector needs one. Without it the first evaluation sweeps
+    up years of history, and evaluate_rule files each one as a 'skipped' run --
+    200 junk rows an hour until the backlog drains, plus a heavy query forever.
+    """
+    max_age = int(cfg.get('max_event_age_days', 14))
+    return (datetime.utcnow()
+            - timedelta(days=max_age + extra_days)
+            - timedelta(hours=extra_hours))
+
+
+def detect_player_inactive(session, rule):
+    """Players who have not turned out for a while this season.
+
+    Anchored to PlayerSeasonParticipation.last_played_date, refreshed nightly at
+    03:30 by refresh-participation-rollup.
+
+    Honest caveat, reflected in the copy: that column means "last match they
+    RSVP'd yes to", not "last match they physically attended" -- someone who
+    shows up without RSVPing looks inactive. matches_played > 0 excludes people
+    who have never played at all, who need a different message.
+    """
+    from app.models.participation import PlayerSeasonParticipation
+
+    cfg = rule.trigger_config or {}
+    inactive_days = int(cfg.get('inactive_days', 28))
+    now = datetime.utcnow()
+    cutoff = (now - timedelta(days=inactive_days)).date()
+    floor = _horizon(cfg, extra_days=inactive_days).date()
+
+    season = _current_season(session, cfg.get('league_type', 'Pub League'))
+    if not season:
+        return []
+
+    rows = (session.query(PlayerSeasonParticipation.player_id,
+                          PlayerSeasonParticipation.last_played_date)
+            .join(Player, Player.id == PlayerSeasonParticipation.player_id)
+            .join(User, User.id == Player.user_id)
+            .filter(PlayerSeasonParticipation.season_id == season.id,
+                    PlayerSeasonParticipation.matches_played > 0,
+                    PlayerSeasonParticipation.last_played_date.isnot(None),
+                    PlayerSeasonParticipation.last_played_date <= cutoff,
+                    PlayerSeasonParticipation.last_played_date >= floor,
+                    User.is_active.is_(True))
+            .order_by(PlayerSeasonParticipation.last_played_date)
+            .all())
+
+    return [{
+        'season_id': season.id, 'league_id': None,
+        'subject_type': 'player', 'subject_id': pid,
+        'event_at': datetime.combine(last_played, time.min) + timedelta(days=inactive_days),
+        'label': f'Player {pid} last played {last_played}',
+    } for pid, last_played in rows]
+
+
+def detect_profile_stale(session, rule):
+    """Rostered players whose profile has not been touched in a long time.
+
+    Scoped to players on a team THIS season -- otherwise it would sweep up every
+    ex-player in the database. profile_last_updated is bumped by admin edits and
+    merges too, so it means "nobody has touched this record", not strictly "the
+    player has not reviewed it".
+    """
+    cfg = rule.trigger_config or {}
+    stale_days = int(cfg.get('stale_days', 180))
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=stale_days)
+    floor = _horizon(cfg, extra_days=stale_days)
+
+    season = _current_season(session, cfg.get('league_type', 'Pub League'))
+    if not season:
+        return []
+
+    rows = (session.query(Player.id, Player.profile_last_updated)
+            .join(User, User.id == Player.user_id)
+            .join(player_teams, player_teams.c.player_id == Player.id)
+            .join(Team, Team.id == player_teams.c.team_id)
+            .join(League, League.id == Team.league_id)
+            .filter(League.season_id == season.id,
+                    Player.profile_last_updated.isnot(None),
+                    Player.profile_last_updated <= cutoff,
+                    Player.profile_last_updated >= floor,
+                    User.is_active.is_(True))
+            .distinct()
+            .order_by(Player.profile_last_updated)
+            .all())
+
+    return [{
+        'season_id': season.id, 'league_id': None,
+        'subject_type': 'player', 'subject_id': pid,
+        'event_at': updated + timedelta(days=stale_days),
+        'label': f'Player {pid} profile untouched since {updated:%Y-%m-%d}',
+    } for pid, updated in rows]
+
+
+def detect_pass_never_downloaded(session, rule):
+    """Membership passes issued but never added to a phone.
+
+    download_count is written by record_download() on both the Apple and Google
+    paths, so 0 genuinely means never downloaded. It is nullable with a
+    Python-side default, hence the NULL-tolerant test.
+    """
+    from app.models.wallet import WalletPass
+
+    cfg = rule.trigger_config or {}
+    wait_days = int(cfg.get('wait_days', 3))
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=wait_days)
+    floor = _horizon(cfg, extra_days=wait_days)
+
+    rows = (session.query(WalletPass.id, WalletPass.created_at)
+            .filter(WalletPass.status == 'active',
+                    WalletPass.created_at.isnot(None),
+                    WalletPass.created_at <= cutoff,
+                    WalletPass.created_at >= floor,
+                    or_(WalletPass.download_count.is_(None),
+                        WalletPass.download_count == 0))
+            .order_by(WalletPass.created_at)
+            .all())
+
+    return [{
+        'season_id': None, 'league_id': None,
+        'subject_type': 'wallet_pass', 'subject_id': pid,
+        'event_at': created + timedelta(days=wait_days),
+        'label': f'Pass {pid} never downloaded',
+    } for pid, created in rows]
+
+
+def detect_pass_expiring(session, rule):
+    """Membership passes about to lapse.
+
+    Keyed on valid_until, NOT on status == 'expired' -- nothing in the codebase
+    ever writes that status, so it would never fire.
+    """
+    from app.models.wallet import WalletPass
+
+    cfg = rule.trigger_config or {}
+    lead_days = int(cfg.get('lead_days', 14))
+    now = datetime.utcnow()
+    window_end = now + timedelta(days=lead_days)
+
+    rows = (session.query(WalletPass.id, WalletPass.valid_until)
+            .filter(WalletPass.status == 'active',
+                    WalletPass.valid_until.isnot(None),
+                    WalletPass.valid_until > now,
+                    WalletPass.valid_until <= window_end)
+            .order_by(WalletPass.valid_until)
+            .all())
+
+    # Event = the moment the pass entered the notice window, so the delay stacks
+    # on top of lead_days rather than being swallowed by it.
+    return [{
+        'season_id': None, 'league_id': None,
+        'subject_type': 'wallet_pass', 'subject_id': pid,
+        'event_at': valid_until - timedelta(days=lead_days),
+        'label': f'Pass {pid} expires {valid_until:%Y-%m-%d}',
+    } for pid, valid_until in rows]
+
+
+def detect_feedback_open(session, rule):
+    """Feedback tickets left open too long.
+
+    Status vocabulary is Title Case with a space: 'Open' | 'In Progress' |
+    'Closed'. Anonymous submissions have a NULL user_id and are skipped -- there
+    is nobody to reply to.
+    """
+    from app.models.communication import Feedback
+
+    cfg = rule.trigger_config or {}
+    open_days = int(cfg.get('open_days', 7))
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=open_days)
+    floor = _horizon(cfg, extra_days=open_days)
+
+    rows = (session.query(Feedback.id, Feedback.created_at)
+            .join(User, User.id == Feedback.user_id)
+            .filter(Feedback.status.in_(('Open', 'In Progress')),
+                    Feedback.closed_at.is_(None),
+                    Feedback.user_id.isnot(None),
+                    Feedback.created_at <= cutoff,
+                    Feedback.created_at >= floor,
+                    User.is_active.is_(True))
+            .order_by(Feedback.created_at)
+            .all())
+
+    return [{
+        'season_id': None, 'league_id': None,
+        'subject_type': 'feedback', 'subject_id': fid,
+        'event_at': created + timedelta(days=open_days),
+        'label': f'Feedback #{fid} still open',
+    } for fid, created in rows]
+
+
+def detect_sub_request_unfilled(session, rule):
+    """Substitute requests still open and short of players.
+
+    Status vocabulary is uppercase and only OPEN / FILLED / CANCELLED / EXPIRED
+    are ever written -- the 'PENDING'/'APPROVED' filters elsewhere in the app are
+    dead. assignments_count is deliberately ignored: its only maintainer counts
+    rows from the wrong table, so assignments are counted directly.
+    """
+    from app.models.substitutes import SubstituteRequest, SubstituteAssignment
+
+    cfg = rule.trigger_config or {}
+    unfilled_hours = int(cfg.get('unfilled_hours', 24))
+    now = datetime.utcnow()
+    cutoff = now - timedelta(hours=unfilled_hours)
+    floor = _horizon(cfg, extra_hours=unfilled_hours)
+
+    filled = (session.query(SubstituteAssignment.request_id,
+                            func.count(SubstituteAssignment.id).label('n'))
+              .group_by(SubstituteAssignment.request_id).subquery())
+
+    rows = (session.query(SubstituteRequest.id,
+                          SubstituteRequest.created_at,
+                          SubstituteRequest.substitutes_needed,
+                          func.coalesce(filled.c.n, 0))
+            .outerjoin(filled, filled.c.request_id == SubstituteRequest.id)
+            .filter(SubstituteRequest.status == 'OPEN',
+                    SubstituteRequest.filled_at.is_(None),
+                    SubstituteRequest.cancelled_at.is_(None),
+                    SubstituteRequest.requested_by.isnot(None),
+                    SubstituteRequest.created_at <= cutoff,
+                    SubstituteRequest.created_at >= floor)
+            .order_by(SubstituteRequest.created_at)
+            .all())
+
+    return [{
+        'season_id': None, 'league_id': None,
+        'subject_type': 'sub_request', 'subject_id': rid,
+        'event_at': created + timedelta(hours=unfilled_hours),
+        'label': f'Sub request #{rid} still needs {needed - got} player(s)',
+    } for rid, created, needed, got in rows if (needed or 1) > (got or 0)]
+
+
+def detect_sub_pool_pending(session, rule):
+    """Substitute-pool applications waiting on approval.
+
+    Pending is approved_at IS NULL -- NOT is_active == False. New rows are
+    created with is_active defaulting to True, so is_active alone would match
+    approved members too.
+    """
+    from app.models.substitutes import SubstitutePool
+
+    cfg = rule.trigger_config or {}
+    waiting_days = int(cfg.get('waiting_days', 3))
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=waiting_days)
+    floor = _horizon(cfg, extra_days=waiting_days)
+
+    rows = (session.query(SubstitutePool.id, SubstitutePool.created_at)
+            .join(Player, Player.id == SubstitutePool.player_id)
+            .join(User, User.id == Player.user_id)
+            .filter(SubstitutePool.approved_at.is_(None),
+                    SubstitutePool.is_active.is_(True),
+                    SubstitutePool.created_at <= cutoff,
+                    SubstitutePool.created_at >= floor,
+                    User.is_active.is_(True))
+            .order_by(SubstitutePool.created_at)
+            .all())
+
+    return [{
+        'season_id': None, 'league_id': None,
+        'subject_type': 'substitute_pool', 'subject_id': pid,
+        'event_at': created + timedelta(days=waiting_days),
+        'label': f'Sub pool application #{pid} awaiting approval',
+    } for pid, created in rows]
+
+
+def detect_match_rescheduled(session, rule):
+    """Matches whose date or time was changed.
+
+    rescheduled_at has a single writer (the admin-panel single-match time edit),
+    so this covers that path only -- a bulk schedule regeneration does not stamp
+    it and will not fire this.
+    """
+    from app.models.matches import Match
+
+    cfg = rule.trigger_config or {}
+    floor = _horizon(cfg)
+
+    rows = (session.query(Match.id, Match.rescheduled_at)
+            .filter(Match.rescheduled_at.isnot(None),
+                    Match.rescheduled_at >= floor)
+            .order_by(Match.rescheduled_at)
+            .all())
+
+    return [{
+        'season_id': None, 'league_id': None,
+        'subject_type': 'match', 'subject_id': mid,
+        'event_at': changed,
+        'label': f'Match #{mid} rescheduled',
+    } for mid, changed in rows]
+
+
 DETECTORS = {
     TRIGGER_DRAFT_COMPLETE: detect_draft_complete,
     TRIGGER_DRAFT_SESSION_COMPLETE: detect_draft_session_complete,
@@ -491,6 +792,14 @@ DETECTORS = {
     TRIGGER_USER_APPROVED: detect_user_approved,
     TRIGGER_WAITLIST_STUCK: detect_waitlist_stuck,
     TRIGGER_SUB_NO_REPLY: detect_sub_no_reply,
+    TRIGGER_PLAYER_INACTIVE: detect_player_inactive,
+    TRIGGER_PROFILE_STALE: detect_profile_stale,
+    TRIGGER_PASS_NEVER_DOWNLOADED: detect_pass_never_downloaded,
+    TRIGGER_PASS_EXPIRING: detect_pass_expiring,
+    TRIGGER_FEEDBACK_OPEN: detect_feedback_open,
+    TRIGGER_SUB_REQUEST_UNFILLED: detect_sub_request_unfilled,
+    TRIGGER_SUB_POOL_PENDING: detect_sub_pool_pending,
+    TRIGGER_MATCH_RESCHEDULED: detect_match_rescheduled,
 }
 
 
@@ -672,40 +981,118 @@ def refresh_membership_for_scope(session, season_id, league_ids=None,
 # Dispatch
 # ─────────────────────────────────────────────────────────────────────────────
 
-def resolve_subject_user_id(session, run):
-    """The User this per-subject run is about, or None.
+def resolve_subject_user_ids(session, run):
+    """Every User this run is about.
 
-    Subjects come in three flavours because the triggers anchor to whatever row
-    actually carries the timestamp: a User directly, or a substitute-response /
-    survey-response row that points at a Player.
+    Returns a LIST, not a single id: most subjects are one person, but a match
+    is about two whole teams and a sub request is about whoever asked. Subjects
+    anchor to whichever row actually carries the trigger's timestamp, so getting
+    from there to a User differs per type.
+
+    An unknown subject_type returns [] -- the run then resolves to nobody and is
+    recorded as skipped, rather than silently mailing the wrong audience.
     """
-    if run.subject_type == 'user':
-        return run.subject_id
+    st, sid = run.subject_type, run.subject_id
+    if not st or not sid:
+        return []
 
-    player_id = None
-    if run.subject_type == 'player':
-        player_id = run.subject_id
-    elif run.subject_type == 'sub_response':
+    def _from_player(player_id):
+        if not player_id:
+            return []
+        uid = session.query(Player.user_id).filter(Player.id == player_id).scalar()
+        return [uid] if uid else []
+
+    if st == 'user':
+        return [sid]
+
+    if st == 'player':
+        return _from_player(sid)
+
+    if st == 'sub_response':
         from app.models.substitutes import SubstituteResponse
-        player_id = (session.query(SubstituteResponse.player_id)
-                     .filter(SubstituteResponse.id == run.subject_id).scalar())
-    elif run.subject_type == 'survey_response':
-        from app.models.surveys import SurveyResponse
-        player_id = (session.query(SurveyResponse.player_id)
-                     .filter(SurveyResponse.id == run.subject_id).scalar())
+        return _from_player(session.query(SubstituteResponse.player_id)
+                            .filter(SubstituteResponse.id == sid).scalar())
 
-    if not player_id:
-        return None
-    return (session.query(Player.user_id)
-            .filter(Player.id == player_id).scalar())
+    if st == 'substitute_pool':
+        from app.models.substitutes import SubstitutePool
+        return _from_player(session.query(SubstitutePool.player_id)
+                            .filter(SubstitutePool.id == sid).scalar())
 
+    if st == 'sub_request':
+        # requested_by is already a users.id -- the coach who asked for cover.
+        from app.models.substitutes import SubstituteRequest
+        uid = (session.query(SubstituteRequest.requested_by)
+               .filter(SubstituteRequest.id == sid).scalar())
+        return [uid] if uid else []
+
+    if st == 'feedback':
+        # Feedback.user_id is a users.id and is nullable (anonymous submissions).
+        from app.models.communication import Feedback
+        uid = session.query(Feedback.user_id).filter(Feedback.id == sid).scalar()
+        return [uid] if uid else []
+
+    if st == 'wallet_pass':
+        from app.models.wallet import WalletPass
+        row = (session.query(WalletPass.user_id, WalletPass.player_id)
+               .filter(WalletPass.id == sid).first())
+        if not row:
+            return []
+        return [row[0]] if row[0] else _from_player(row[1])
+
+    if st == 'match':
+        # Both teams' current rosters.
+        from app.models.matches import Match
+        match = (session.query(Match.home_team_id, Match.away_team_id)
+                 .filter(Match.id == sid).first())
+        if not match:
+            return []
+        team_ids = [t for t in match if t]
+        if not team_ids:
+            return []
+        rows = (session.query(Player.user_id)
+                .join(player_teams, player_teams.c.player_id == Player.id)
+                .filter(player_teams.c.team_id.in_(team_ids),
+                        Player.user_id.isnot(None))
+                .distinct().all())
+        return [r[0] for r in rows]
+
+    logger.warning("Unknown subject_type %r on run %s", st, run.id)
+    return []
+
+
+
+def scope_still_applies(session, rule, run):
+    """Re-run the trigger and ask whether THIS run's scope is still in the results.
+
+    This is what stops an escalation ladder nagging someone who already acted --
+    the sub request got filled, the player joined Discord, the profile was
+    updated. Generic by construction: it reuses the detector, so it works for
+    every trigger without per-trigger resolve logic.
+
+    On any error it returns True (keep going) rather than silently cancelling a
+    send an admin is expecting.
+    """
+    detector = DETECTORS.get(rule.trigger_type)
+    if not detector:
+        return True
+    try:
+        events = detector(session, rule)
+    except Exception:
+        logger.exception("Re-check failed for rule %s; continuing the sequence", rule.key)
+        return True
+    for event in events:
+        key = build_scope_key(event['season_id'], event['league_id'],
+                              event.get('subject_type'), event.get('subject_id'))
+        if key == run.scope_key:
+            return True
+    return False
 
 def build_filter_criteria(session, rule, run):
     """Assemble the email_broadcast_service filter_criteria for a run."""
     # Per-subject rules target exactly one person: the one the trigger is about.
     if rule.audience_type == 'the_subject':
-        user_id = resolve_subject_user_id(session, run)
-        return {'type': 'specific_users', 'user_ids': [user_id] if user_id else []}
+        return {'type': 'specific_users',
+                'user_ids': resolve_subject_user_ids(session, run)}
 
     criteria = dict(rule.audience_config or {})
     criteria['type'] = rule.audience_type
@@ -713,111 +1100,195 @@ def build_filter_criteria(session, rule, run):
         criteria['season_id'] = run.season_id
     if run.league_id:
         criteria['league_ids'] = [run.league_id]
+
+    # by_league defaults active_only=False, which would mail every player EVER
+    # assigned to that league, including people who left seasons ago. An
+    # unattended rule must not do that.
+    if rule.audience_type == 'by_league':
+        criteria.setdefault('active_only', True)
+
     return criteria
+
+
+def _condition_test(actual, op, expected, now):
+    """Evaluate one operator. Unknown operators fail closed."""
+    if op == 'is_true':
+        return actual is True
+    if op == 'is_false':
+        # Only an explicit True fails. NULL counts as "not yes", matching how
+        # every other nullable boolean is treated in this engine.
+        return actual is not True
+    if op == 'exists':
+        return actual not in (None, '', [])
+    if op == 'missing':
+        return actual in (None, '', [])
+    if op == 'eq':
+        return str(actual) == str(expected)
+    if op == 'neq':
+        return str(actual) != str(expected)
+    if op in ('gt', 'lt'):
+        try:
+            a, b = float(actual), float(expected)
+        except (TypeError, ValueError):
+            return False
+        return a > b if op == 'gt' else a < b
+    if op == 'never':
+        return actual is None
+    if op in ('older_than_days', 'newer_than_days'):
+        if actual is None:
+            # "Never happened" is genuinely older than any window, and is
+            # definitely not within a recent one.
+            return op == 'older_than_days'
+        try:
+            days = float(expected)
+        except (TypeError, ValueError):
+            return False
+        age = (now - actual).total_seconds() / 86400.0
+        return age > days if op == 'older_than_days' else age <= days
+    if op == 'has':
+        return str(expected) in (actual or set())
+    if op == 'not_has':
+        return str(expected) not in (actual or set())
+    logger.warning("Unknown condition operator %r; failing closed", op)
+    return False
 
 
 def apply_conditions(session, rule, recipients):
     """Narrow a resolved recipient list by the rule's conditions.
 
     Every condition must pass. Evaluated in Python rather than SQL because the
-    fields span Player and User and the lists here are hundreds of rows, so one
-    extra query beats a pile of conditional joins.
+    fields span User, Player, roles and league membership, and the lists here are
+    hundreds of rows -- one extra query beats a pile of conditional joins.
 
-    A condition naming an unknown field is treated as FAILING CLOSED (nobody
-    passes) rather than being ignored -- silently dropping a condition an admin
-    wrote could send to an audience they explicitly excluded.
+    Failure modes are deliberately CLOSED: an unknown field, an unknown operator
+    or a malformed entry excludes everyone rather than being ignored. Silently
+    dropping a condition an admin wrote could mail people they explicitly
+    excluded, which is the worse mistake.
     """
-    from app.models.automation import CONDITION_FIELDS
+    from app.models.automation import CONDITION_FIELDS, CONDITION_NEGATIVE_OPS
 
-    conditions = rule.conditions or []
+    conditions = [c for c in (rule.conditions or [])]
     if not conditions or not recipients:
         return recipients
 
+    now = datetime.utcnow()
     user_ids = [r['user_id'] for r in recipients]
-    rows = (session.query(User.id, User.approval_status, User.email_notifications,
-                          Player.discord_in_server, Player.discord_id,
-                          Player.is_current_player, Player.is_coach, Player.is_sub)
-            .outerjoin(Player, Player.user_id == User.id)
-            .filter(User.id.in_(user_ids))
-            .all())
-    # A User can legitimately have MORE THAN ONE Player row in this database
-    # (known duplicate/orphan player records), so the outer join fans out. A
-    # plain dict comprehension would keep whichever row happened to come last.
-    # Collect every player row per user instead and satisfy a player condition
-    # if ANY of them does: duplicates are a data defect, and someone should not
-    # be excluded from a mailing because of one.
-    facts = {}
-    for r in rows:
-        entry = facts.setdefault(r[0], {
+
+    # ── User-level facts ────────────────────────────────────────────────
+    user_rows = (session.query(
+        User.id, User.approval_status, User.is_active, User.last_login,
+        User.created_at, User.has_completed_onboarding,
+        User.email_notifications, User.discord_notifications, User.push_notifications,
+    ).filter(User.id.in_(user_ids)).all())
+    facts = {
+        r[0]: {
             'user.approval_status': r[1],
-            'user.email_notifications': r[2],
+            'user.is_active': r[2],
+            'user.last_login': r[3],
+            'user.created_at': r[4],
+            'user.has_completed_onboarding': r[5],
+            'user.email_notifications': r[6],
+            'user.discord_notifications': r[7],
+            'user.push_notifications': r[8],
             'players': [],
-        })
+            'membership.role': set(),
+            'membership.league': set(),
+        } for r in user_rows
+    }
+
+    # ── Player-level facts (a user may have MORE THAN ONE Player row) ───
+    player_rows = (session.query(
+        Player.user_id, Player.discord_in_server, Player.discord_id,
+        Player.discord_roles_synced, Player.discord_last_checked,
+        Player.is_current_player, Player.is_coach, Player.is_sub, Player.is_ref,
+        Player.primary_team_id, Player.profile_last_updated, Player.is_phone_verified,
+    ).filter(Player.user_id.in_(user_ids)).all())
+    for r in player_rows:
+        entry = facts.get(r[0])
+        if entry is None:
+            continue
         entry['players'].append({
-            'player.discord_in_server': r[3],
-            'player.discord_id': r[4],
+            'player.discord_in_server': r[1],
+            'player.discord_id': r[2],
+            'player.discord_roles_synced': r[3],
+            'player.discord_last_checked': r[4],
             'player.is_current_player': r[5],
             'player.is_coach': r[6],
             'player.is_sub': r[7],
+            'player.is_ref': r[8],
+            'player.primary_team_id': r[9],
+            'player.profile_last_updated': r[10],
+            'player.is_phone_verified': r[11],
         })
 
-    def _test(actual, op, expected):
-        if op == 'is_true':
-            return actual is True
-        if op == 'is_false':
-            # Only an explicit True fails. NULL counts as "not true", matching
-            # how every other nullable boolean is treated in this engine.
-            return actual is not True
-        if op == 'exists':
-            return actual not in (None, '')
-        if op == 'missing':
-            return actual in (None, '')
-        if op == 'eq':
-            return str(actual) == str(expected)
-        if op == 'neq':
-            return str(actual) != str(expected)
-        return False
+    # ── Roles, only if a rule actually asks about them ──────────────────
+    wanted = {c.get('field') for c in conditions if isinstance(c, dict)}
+    if 'membership.role' in wanted:
+        for uid, name in (session.query(user_roles.c.user_id, Role.name)
+                          .join(Role, Role.id == user_roles.c.role_id)
+                          .filter(user_roles.c.user_id.in_(user_ids)).all()):
+            if uid in facts:
+                facts[uid]['membership.role'].add(name)
+
+    # ── League membership this season, via the live roster ──────────────
+    if 'membership.league' in wanted:
+        rows = (session.query(Player.user_id, League.name)
+                .join(player_teams, player_teams.c.player_id == Player.id)
+                .join(Team, Team.id == player_teams.c.team_id)
+                .join(League, League.id == Team.league_id)
+                .join(Season, Season.id == League.season_id)
+                .filter(Player.user_id.in_(user_ids), Season.is_current.is_(True))
+                .distinct().all())
+        for uid, name in rows:
+            if uid in facts:
+                facts[uid]['membership.league'].add(name)
 
     def passes(user_id):
         row = facts.get(user_id)
         if row is None:
             return False
         for cond in conditions:
-            if not isinstance(cond, dict):
-                logger.warning("Rule %s has a malformed condition %r; failing closed",
-                               rule.key, cond)
-                return False
-            field = cond.get('field')
-            op = cond.get('op')
-            if field not in CONDITION_FIELDS:
-                logger.warning("Rule %s has an unknown condition field %r; "
-                               "failing closed", rule.key, field)
-                return False
-            expected = cond.get('value')
-
-            if field.startswith('player.'):
-                # POSITIVE tests (is_true / exists / eq) use any(): with a
-                # duplicate/orphan Player row alongside the real one, the person
-                # still qualifies.
-                #
-                # NEGATIVE tests (is_false / missing / neq) MUST use all().
-                # any() here inverted them -- an all-NULL orphan row would
-                # satisfy "is not in the Discord server" for someone who
-                # demonstrably is, which is exactly the audience this engine's
-                # flagship rule targets.
-                players = row['players']
-                if op in ('is_false', 'missing', 'neq'):
-                    ok = all(_test(p.get(field), op, expected) for p in players)
-                else:
-                    ok = any(_test(p.get(field), op, expected) for p in players)
-                if not ok:
-                    return False
-                continue
-
-            actual = row.get(field)
-            if not _test(actual, op, expected):
+            if not _eval_condition(cond, row, now, rule):
                 return False
         return True
+
+    def _eval_condition(cond, row, now, rule):
+        """One condition, or a nested any/all group."""
+        if not isinstance(cond, dict):
+            logger.warning("Rule %s has a malformed condition %r; failing closed",
+                           rule.key, cond)
+            return False
+
+        # Groups. 'any' is how an admin expresses OR; 'all' nests an AND.
+        # An EMPTY group fails closed -- an admin who added a group and left it
+        # blank has expressed nothing, and guessing "match everyone" would be
+        # the dangerous reading.
+        if 'any' in cond or 'all' in cond:
+            inner = cond.get('any') if 'any' in cond else cond.get('all')
+            if not isinstance(inner, list) or not inner:
+                logger.warning("Rule %s has an empty condition group; failing closed",
+                               rule.key)
+                return False
+            results = (_eval_condition(c, row, now, rule) for c in inner)
+            return any(results) if 'any' in cond else all(results)
+
+        field, op = cond.get('field'), cond.get('op')
+        if field not in CONDITION_FIELDS:
+            logger.warning("Rule %s has an unknown condition field %r; failing closed",
+                           rule.key, field)
+            return False
+        expected = cond.get('value')
+
+        if field.startswith('player.'):
+            # POSITIVE tests use any(): a duplicate/orphan Player row alongside
+            # the real one should not disqualify someone. NEGATIVE tests MUST use
+            # all(), or an all-NULL orphan row would satisfy "is not in the
+            # Discord server" for someone who is.
+            players = row['players'] or [{}]
+            results = [_condition_test(pl.get(field), op, expected, now) for pl in players]
+            return all(results) if op in CONDITION_NEGATIVE_OPS else any(results)
+
+        return _condition_test(row.get(field), op, expected, now)
 
     kept = [r for r in recipients if passes(r['user_id'])]
     if len(kept) != len(recipients):
@@ -860,9 +1331,27 @@ def dispatch_run(session, run, force=False):
     from app.tasks.tasks_email_broadcast import send_email_broadcast
 
     rule = run.rule
+    steps = rule.action_steps()
+    step_index = min(run.current_step or 0, len(steps) - 1)
+    step = steps[step_index]
+
     if not force:
-        if run.scheduled_for > datetime.utcnow():
+        due_at = run.next_step_at or run.scheduled_for
+        if due_at > datetime.utcnow():
             return {'success': False, 'error': 'Not due yet'}
+
+    # Before any step AFTER the first, check the situation has not resolved
+    # itself. Nagging someone who already filled the sub slot is worse than
+    # sending nothing.
+    if step_index > 0 and rule.stop_when_resolved:
+        if not scope_still_applies(session, rule, run):
+            run.status = 'sent'
+            run.error_message = (f'Stopped after step {step_index} — the trigger no '
+                                 f'longer applies, so the rest was not sent.')
+            session.commit()
+            logger.info("Automation %s stopped early for scope %s (resolved)",
+                        rule.key, run.scope_key)
+            return {'success': True, 'stopped_early': True}
 
     # CLAIM the run atomically before doing anything expensive. The work below
     # (up to 400 sequential bot calls, then campaign creation) can outlast the
@@ -929,14 +1418,16 @@ def dispatch_run(session, run, force=False):
         filter_description = f'{filter_description} + {len(rule.conditions)} condition(s)'
 
     creator_id = _fallback_creator_id(session, rule)
-    channels = [c for c in (rule.channels or ['email']) if c != 'sms']
+    channels = [c for c in (step.get('channels') or rule.channels or ['email'])
+                if c != 'sms']
     if not channels:
         channels = ['email']
 
     # Anything beyond plain email goes through the orchestrator instead of the
     # email-campaign spine.
     if channels != ['email']:
-        return _dispatch_multichannel(session, rule, run, criteria, creator_id, channels)
+        return _dispatch_multichannel(session, rule, run, criteria, creator_id,
+                                      channels, step, step_index, len(steps))
 
     if not creator_id:
         run.status = 'failed'
@@ -960,13 +1451,15 @@ def dispatch_run(session, run, force=False):
 
     # EmailCampaign.name is String(200); prefix + a 200-char rule name + scope
     # key overflows it and Postgres raises StringDataRightTruncation.
-    campaign_name = f'[Auto] {rule.name} — {run.scope_key}'[:200]
+    _step_tag = f' (step {step_index + 1}/{len(steps)})' if len(steps) > 1 else ''
+    campaign_name = f'[Auto] {rule.name}{_step_tag} — {run.scope_key}'[:200]
 
     try:
         campaign = service.create_campaign(session, {
             'name': campaign_name,
-            'subject': substitute_placeholders(session, rule.subject),
-            'body_html': substitute_placeholders(session, rule.body_html),
+            'subject': substitute_placeholders(session, step.get('subject') or rule.subject),
+            'body_html': substitute_placeholders(
+                session, step.get('body_html') or rule.body_html),
             'template_id': template_id,
             'send_mode': rule.send_mode or 'individual',
             'force_send': bool(rule.force_send),
@@ -1015,7 +1508,7 @@ def dispatch_run(session, run, force=False):
         return {'success': False, 'error': run.error_message}
 
     campaign.celery_task_id = task.id
-    run.status = 'sent'
+    _advance_or_finish(session, run, rule, step_index, steps)
     session.commit()
 
     logger.info("Automation %s dispatched campaign %s to %d recipients",
@@ -1024,7 +1517,8 @@ def dispatch_run(session, run, force=False):
             'campaign_id': campaign.id}
 
 
-def _dispatch_multichannel(session, rule, run, criteria, creator_id, channels):
+def _dispatch_multichannel(session, rule, run, criteria, creator_id, channels,
+                           step=None, step_index=0, total_steps=1):
     """Send a run across several channels via ComposedMessage + the orchestrator.
 
     The audience is resolved HERE (using the email service's richer filter set,
@@ -1059,14 +1553,18 @@ def _dispatch_multichannel(session, rule, run, criteria, creator_id, channels):
         session.commit()
         return {'success': True, 'recipients': 0}
 
-    body = substitute_placeholders(session, rule.short_message or '')
+    step = step or {}
+    body = substitute_placeholders(
+        session, step.get('short_message') or rule.short_message or '')
     if not body:
         # Never push raw HTML to a phone notification.
-        body = re.sub(r'<[^>]+>', ' ', substitute_placeholders(session, rule.body_html or ''))
+        body = re.sub(r'<[^>]+>', ' ', substitute_placeholders(
+            session, step.get('body_html') or rule.body_html or ''))
         body = re.sub(r'\s+', ' ', body).strip()[:900]
 
     msg = ComposedMessage(
-        title=substitute_placeholders(session, rule.subject or rule.name)[:100],
+        title=substitute_placeholders(
+            session, step.get('subject') or rule.subject or rule.name)[:100],
         message=body,
         channels=channels,
         audience_type='users',
@@ -1092,7 +1590,7 @@ def _dispatch_multichannel(session, rule, run, criteria, creator_id, channels):
         return {'success': False, 'error': run.error_message}
 
     msg.celery_task_id = task.id
-    run.status = 'sent'
+    _advance_or_finish(session, run, rule, step_index, rule.action_steps())
     session.commit()
 
     logger.info("Automation %s dispatched composed message %s on %s to %d users",
@@ -1184,11 +1682,29 @@ def force_run_rule(session, rule, scope_key=None):
     return {'success': any(r.get('success') for r in results), 'results': results}
 
 
+
+def _advance_or_finish(session, run, rule, step_index, steps):
+    """Move a run to its next step, or mark it done after the last one."""
+    if step_index + 1 < len(steps):
+        gap = int(steps[step_index + 1].get('wait_hours') or 0)
+        run.current_step = step_index + 1
+        run.next_step_at = datetime.utcnow() + timedelta(hours=gap)
+        run.status = 'pending'          # back in the queue for the next step
+        logger.info("Automation %s scope %s advanced to step %d/%d, due %s",
+                    rule.key, run.scope_key, step_index + 2, len(steps),
+                    run.next_step_at)
+    else:
+        run.status = 'sent'
+
 def dispatch_due_runs(session):
     """Send every pending run whose scheduled_for has passed."""
+    now = datetime.utcnow()
+    # next_step_at drives a multi-step ladder; it is NULL on rows created before
+    # sequences existed, which fall back to scheduled_for.
     due = (session.query(AutomationRun)
            .filter(AutomationRun.status == 'pending',
-                   AutomationRun.scheduled_for <= datetime.utcnow())
+                   func.coalesce(AutomationRun.next_step_at,
+                                 AutomationRun.scheduled_for) <= now)
            .all())
     sent = 0
     for run in due:
@@ -1217,6 +1733,129 @@ def dispatch_due_runs(session):
 # ─────────────────────────────────────────────────────────────────────────────
 # Admin-facing preview
 # ─────────────────────────────────────────────────────────────────────────────
+
+
+def explain_for_user(session, rule, user_id):
+    """Walk the whole pipeline for ONE person and say what happened.
+
+    Computed live rather than stored, so it is always accurate even after a rule
+    is edited. Mirrors the real dispatch order exactly -- trigger, audience,
+    conditions, delivery -- so each stage answers the question the previous one
+    raises.
+
+    Returns {'stages': [{'name', 'ok', 'detail'}], 'verdict': str}.
+    """
+    from app.services.email_broadcast_service import EmailBroadcastService
+
+    service = EmailBroadcastService()
+    stages = []
+
+    def add(name, ok, detail):
+        stages.append({'name': name, 'ok': bool(ok), 'detail': detail})
+
+    user = session.query(User).filter(User.id == user_id).first()
+    if not user:
+        return {'stages': [], 'verdict': 'That person could not be found.'}
+    who = user.username
+
+    # ── 0. Is the rule even switched on? ────────────────────────────────
+    add('Automation is on', rule.enabled,
+        'This automation is switched on.' if rule.enabled else
+        'This automation is switched OFF, so it never sends on its own. '
+        '(You can still test it with Force run.)')
+
+    # ── 1. Did the trigger fire at all? ─────────────────────────────────
+    detector = DETECTORS.get(rule.trigger_type)
+    events = []
+    if detector:
+        try:
+            events = detector(session, rule)
+        except Exception:
+            logger.exception("Trace detection failed for rule %s", rule.key)
+            add('Trigger fires', False, 'The trigger could not be evaluated — check the logs.')
+            return {'stages': stages, 'verdict': f'{who} would not be messaged.'}
+
+    if not events:
+        add('Trigger fires', False,
+            'The trigger condition is not met right now, so nothing would send to anyone.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged — the trigger is not firing.'}
+    add('Trigger fires', True,
+        f'The trigger currently fires for {len(events)} scope(s).')
+
+    # ── 2. Is this person in the audience, for any firing scope? ───────
+    from types import SimpleNamespace
+    matched_scope = None
+    audience_ids = set()
+    for event in events:
+        pseudo = SimpleNamespace(
+            season_id=event['season_id'], league_id=event['league_id'],
+            subject_type=event.get('subject_type'), subject_id=event.get('subject_id'))
+        criteria = build_filter_criteria(session, rule, pseudo)
+        ids = {r['user_id'] for r in
+               service.resolve_recipients(session, criteria, bool(rule.force_send))}
+        audience_ids |= ids
+        if user_id in ids:
+            matched_scope = event
+            break
+
+    if not matched_scope:
+        desc = service.build_filter_description(
+            session, build_filter_criteria(session, rule, SimpleNamespace(
+                season_id=events[0]['season_id'], league_id=events[0]['league_id'],
+                subject_type=events[0].get('subject_type'),
+                subject_id=events[0].get('subject_id'))))
+        add('In the audience', False,
+            f'{who} is not in "{desc}". That is the audience this automation targets, '
+            f'so they are excluded before conditions are even checked.')
+        return {'stages': stages,
+                'verdict': f'{who} would NOT be messaged — they are not in the audience.'}
+    add('In the audience', True,
+        f'{who} is one of {len(audience_ids)} people the audience resolves to.')
+
+    # ── 3. Which condition, if any, excludes them? ─────────────────────
+    conditions = rule.conditions or []
+    if not conditions:
+        add('Passes conditions', True, 'This automation has no extra conditions.')
+    else:
+        recipients = [{'user_id': user_id, 'name': who}]
+        kept = apply_conditions(session, rule, recipients)
+        if kept:
+            add('Passes conditions', True,
+                f'{who} passes all {len(conditions)} condition(s).')
+        else:
+            # Re-test one at a time to name the culprit rather than just "failed".
+            failed = []
+            for cond in conditions:
+                probe = SimpleNamespace(
+                    key=rule.key, conditions=[cond],
+                    audience_type=rule.audience_type, force_send=rule.force_send)
+                if not apply_conditions(session, probe, list(recipients)):
+                    failed.append(describe_condition(cond))
+            detail = ('Excluded by: ' + '; '.join(failed)) if failed else \
+                     'Excluded by the conditions.'
+            add('Passes conditions', False, detail)
+            return {'stages': stages,
+                    'verdict': f'{who} would NOT be messaged — a condition excludes them.'}
+
+    # ── 4. Has it already gone out to them? ────────────────────────────
+    scope_key = build_scope_key(
+        matched_scope['season_id'], matched_scope['league_id'],
+        matched_scope.get('subject_type'), matched_scope.get('subject_id'))
+    run = (session.query(AutomationRun)
+           .filter(AutomationRun.rule_id == rule.id,
+                   AutomationRun.scope_key == scope_key).first())
+    if run:
+        add('Already sent', run.status == 'sent',
+            f'This scope already has a run, currently "{run.status}"'
+            + (f' — {run.error_message}' if run.error_message else '.'))
+    else:
+        add('Already sent', True,
+            'No run yet for this scope; it would be created on the next hourly pass.')
+
+    verdict = (f'{who} WOULD be messaged.' if not run or run.status != 'sent'
+               else f'{who} is in the audience and this scope has already been sent.')
+    return {'stages': stages, 'verdict': verdict}
+
 
 def preview_rule(session, rule, refresh=False):
     """What this rule would do right now, without sending anything.

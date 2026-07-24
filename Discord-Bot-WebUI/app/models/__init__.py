@@ -208,7 +208,10 @@ from .automation import (
     TRIGGER_SEASON_PHASE, TRIGGER_SEASON_DATE, TRIGGER_TYPES, TRIGGER_CATALOG,
     TRIGGER_USER_APPROVED, TRIGGER_WAITLIST_STUCK, TRIGGER_SUB_NO_REPLY,
     PER_SUBJECT_TRIGGERS,
-    CONDITION_FIELDS, CONDITION_OPS
+    CONDITION_FIELDS, CONDITION_OPS, CONDITION_OPS_BY_TYPE,
+    CONDITION_OPS_NEEDING_VALUE, CONDITION_NEGATIVE_OPS,
+    condition_ops_for, describe_condition, summarize_rule,
+    TRIGGER_FIELD_SPECS, trigger_fields_for, default_trigger_config
 )
 
 from .mobile_telemetry import (
@@ -388,7 +391,10 @@ __all__ = [
     'TRIGGER_SEASON_PHASE', 'TRIGGER_SEASON_DATE', 'TRIGGER_TYPES', 'TRIGGER_CATALOG',
     'TRIGGER_USER_APPROVED', 'TRIGGER_WAITLIST_STUCK', 'TRIGGER_SUB_NO_REPLY',
     'PER_SUBJECT_TRIGGERS',
-    'CONDITION_FIELDS', 'CONDITION_OPS',
+    'CONDITION_FIELDS', 'CONDITION_OPS', 'CONDITION_OPS_BY_TYPE',
+    'CONDITION_OPS_NEEDING_VALUE', 'CONDITION_NEGATIVE_OPS',
+    'condition_ops_for', 'describe_condition', 'summarize_rule',
+    'TRIGGER_FIELD_SPECS', 'trigger_fields_for', 'default_trigger_config',
 
     # Mobile telemetry models
     'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',

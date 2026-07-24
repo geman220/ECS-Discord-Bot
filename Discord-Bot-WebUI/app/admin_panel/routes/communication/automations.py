@@ -18,11 +18,16 @@ import re
 from flask import render_template, request, jsonify, g, url_for, abort
 from flask_login import login_required, current_user
 
+from sqlalchemy import or_
+
 from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
-from app.models import (AutomationRule, AutomationRun, TRIGGER_TYPES,
+from app.models import (AutomationRule, AutomationRun, User, TRIGGER_TYPES,
                         TRIGGER_CATALOG, PER_SUBJECT_TRIGGERS,
-                        CONDITION_FIELDS, CONDITION_OPS, EmailTemplate)
+                        CONDITION_FIELDS, CONDITION_OPS,
+                        CONDITION_OPS_NEEDING_VALUE, condition_ops_for,
+                        TRIGGER_FIELD_SPECS, trigger_fields_for,
+                        default_trigger_config, EmailTemplate)
 from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
@@ -38,6 +43,24 @@ VALID_CHANNELS = ('email', 'push', 'discord', 'in_app')
 # carry league_id = NULL, so a per-league audience would resolve to nobody.
 _SEASON_WIDE_TRIGGERS = ('season_phase', 'season_date')
 _PER_LEAGUE_AUDIENCES = ('by_league',)
+
+
+
+def _coerce_field(name, spec, raw, fallback):
+    """Best-effort coerce one trigger-config value, falling back to the default."""
+    if spec['type'] == 'int':
+        try:
+            val = int(raw)
+        except (TypeError, ValueError):
+            return fallback
+        lo, hi = spec.get('min'), spec.get('max')
+        if lo is not None:
+            val = max(lo, val)
+        if hi is not None:
+            val = min(hi, val)
+        return val
+    valid = {c[0] for c in spec.get('choices', [])}
+    return str(raw) if str(raw) in valid else fallback
 
 
 def _audience_trigger_conflict(trigger_type, audience_type):
@@ -69,6 +92,12 @@ AUDIENCE_TYPES = [
      'Everyone flagged as an active player this season.'),
     ('by_league', 'Players in the triggering league',
      'All players whose primary league is the one that triggered the rule.'),
+    ('rostered_this_season', 'Everyone on a team this season',
+     'Every player with a place on a roster right now. Use for "you\'re on a team" news.'),
+    ('coaches_this_season', 'Coaches this season',
+     'Just the coaches. Use to chase reports, line-ups or roster admin.'),
+    ('no_discord_linked', 'Active players with no Discord linked',
+     'Players who have never connected a Discord account at all, drafted or not.'),
 ]
 
 
@@ -144,10 +173,16 @@ def automations_list():
                          .limit(10).all()),
         }
 
+    from app.models import summarize_rule
+    _labels = {v: l for v, l, _ in AUDIENCE_TYPES}
+    summaries = {r.id: summarize_rule(r, _labels.get(r.audience_type, r.audience_type).lower())
+                 for r in rules}
+
     return render_template(
         'admin_panel/communication/automations_flowbite.html',
         tab=tab,
         rules=rules,
+        summaries=summaries,
         runs=runs,
         counts=counts,
         status=status,
@@ -155,6 +190,7 @@ def automations_list():
         condition_ops=CONDITION_OPS,
         trigger_types=TRIGGER_TYPES,
         trigger_catalog=TRIGGER_CATALOG,
+        trigger_field_specs=TRIGGER_FIELD_SPECS,
         audience_types=AUDIENCE_TYPES,
         page_title='Automated Messaging',
     )
@@ -184,9 +220,18 @@ def automation_edit(rule_id):
             .limit(25)
             .all())
 
+    from app.models import summarize_rule
+    audience_label = next((lbl for val, lbl, _ in AUDIENCE_TYPES
+                           if val == rule.audience_type), rule.audience_type)
+
     return render_template(
         'admin_panel/communication/automation_edit_flowbite.html',
         rule=rule,
+        rule_summary=summarize_rule(rule, audience_label.lower()),
+        trigger_catalog=TRIGGER_CATALOG,
+        trigger_field_specs=TRIGGER_FIELD_SPECS,
+        trigger_fields=trigger_fields_for(rule.trigger_type),
+        has_run=bool(rule.runs.count()),
         runs=runs,
         templates=templates,
         trigger_types=TRIGGER_TYPES,
@@ -238,30 +283,14 @@ def automation_create():
         key = f'{base_key}_{suffix}'
         suffix += 1
 
-    cfg = {'league_type': data.get('league_type') or 'Pub League',
-           'max_event_age_days': 14}
-    if trigger_type == 'draft_complete':
-        cfg['min_players_per_team'] = 6
-    if trigger_type == 'season_phase':
-        cfg['phase'] = data.get('phase') or 'offseason'
-    if trigger_type == 'season_date':
-        cfg['date_anchor'] = data.get('date_anchor') or 'start'
-        try:
-            cfg['days_offset'] = int(data.get('days_offset') or 0)
-        except (TypeError, ValueError):
-            cfg['days_offset'] = 0
-    def _pos_int(key, default):
-        """Positive int from the payload, tolerating junk (the update path does
-        the same; a bare int() here 500s on a crafted POST)."""
-        try:
-            return max(1, int(data.get(key) or default))
-        except (TypeError, ValueError):
-            return default
-
-    if trigger_type == 'waitlist_stuck':
-        cfg['stuck_days'] = _pos_int('stuck_days', 14)
-    if trigger_type == 'sub_no_reply':
-        cfg['silence_hours'] = _pos_int('silence_hours', 24)
+    # Whole config comes from the specs, then anything the builder actually sent
+    # overrides it. Adding a knob to TRIGGER_FIELD_SPECS is now the only change
+    # needed for it to appear, validate and persist.
+    cfg = default_trigger_config(trigger_type, data.get('league_type') or 'Pub League')
+    for _name, _spec in trigger_fields_for(trigger_type):
+        if _name not in data or data.get(_name) in (None, ''):
+            continue
+        cfg[_name] = _coerce_field(_name, _spec, data.get(_name), cfg[_name])
 
     rule = AutomationRule(
         key=key,
@@ -270,7 +299,9 @@ def automation_create():
         enabled=False,
         trigger_type=trigger_type,
         trigger_config=cfg,
-        delay_hours=_pos_int('delay_hours', 24),
+        delay_hours=_coerce_field(
+            'delay_hours', {'type': 'int', 'min': 0, 'max': 720},
+            data.get('delay_hours'), 24),
         audience_type=audience,
         audience_config={},
         subject=(data.get('subject') or name)[:500],
@@ -288,6 +319,56 @@ def automation_create():
         'rule_id': rule.id,
         'redirect': url_for('admin_panel.automation_edit', rule_id=rule.id),
     })
+
+
+@admin_panel_bp.route('/api/automations/<int:rule_id>/duplicate', methods=['POST'])
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_duplicate(rule_id):
+    """Copy an automation, disabled, with a fresh key.
+
+    The main way a non-technical admin builds their own: open an example, copy
+    it, change the bits they care about. Run history is deliberately NOT copied
+    -- the copy has never fired.
+    """
+    import re as _re
+
+    session = g.db_session
+    src = session.query(AutomationRule).get(rule_id)
+    if not src:
+        return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    name = f'{src.name} (copy)'[:200]
+    base_key = _re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')[:48] or 'automation'
+    key, suffix = base_key, 2
+    while session.query(AutomationRule.id).filter(AutomationRule.key == key).first():
+        key = f'{base_key}_{suffix}'
+        suffix += 1
+
+    copy = AutomationRule(
+        key=key, name=name, description=src.description,
+        enabled=False,                      # a copy never inherits "live"
+        trigger_type=src.trigger_type,
+        trigger_config=dict(src.trigger_config or {}),
+        delay_hours=src.delay_hours,
+        audience_type=src.audience_type,
+        audience_config=dict(src.audience_config or {}),
+        conditions=list(src.conditions or []),
+        channels=list(src.channels or ['email']),
+        steps=list(src.steps) if src.steps else None,
+        stop_when_resolved=src.stop_when_resolved,
+        subject=src.subject, short_message=src.short_message,
+        body_html=src.body_html, template_id=src.template_id,
+        send_mode=src.send_mode, force_send=src.force_send,
+        created_by_id=current_user.id,
+    )
+    session.add(copy)
+    session.commit()
+    logger.info("Automation %s duplicated to %s by user %s",
+                src.key, copy.key, current_user.id)
+    return jsonify({'success': True, 'rule_id': copy.id,
+                    'redirect': url_for('admin_panel.automation_edit', rule_id=copy.id)})
 
 
 @admin_panel_bp.route('/api/automations/<int:rule_id>', methods=['DELETE'])
@@ -357,15 +438,91 @@ def automation_update(rule_id):
             if op not in CONDITION_OPS:
                 return jsonify({'success': False,
                                 'error': f'Unknown condition test: {op}'}), 400
+            # Every value-taking operator must persist its value, not just
+            # eq/neq -- a date or role condition was losing its value on save
+            # and then matching nobody.
             entry = {'field': field, 'op': op}
-            if op in ('eq', 'neq'):
-                val = (c.get('value') or '').strip()
+            if op in CONDITION_OPS_NEEDING_VALUE:
+                val = str(c.get('value') or '').strip()
                 if not val:
                     return jsonify({'success': False,
-                                    'error': 'That condition needs a value to compare against'}), 400
+                                    'error': 'That condition needs a value'}), 400
+                if op in ('gt', 'lt', 'older_than_days', 'newer_than_days'):
+                    try:
+                        float(val)
+                    except ValueError:
+                        return jsonify({'success': False,
+                                        'error': 'That condition needs a number'}), 400
                 entry['value'] = val[:100]
+            # Reject an operator the field's type cannot support, e.g. testing a
+            # status string with "is yes" -- savable today, matches nobody ever.
+            if op not in condition_ops_for(field):
+                return jsonify({
+                    'success': False,
+                    'error': f'"{CONDITION_OPS.get(op, op)}" cannot be used with '
+                             f'"{CONDITION_FIELDS[field][0]}".'}), 400
             cleaned.append(entry)
         rule.conditions = cleaned
+
+    if 'steps' in data:
+        raw_steps = data.get('steps') or []
+        if not isinstance(raw_steps, list) or not raw_steps:
+            return jsonify({'success': False,
+                            'error': 'An automation needs at least one message'}), 400
+        if len(raw_steps) > 6:
+            return jsonify({'success': False,
+                            'error': 'Six steps is the maximum'}), 400
+        cleaned_steps = []
+        for i, st in enumerate(raw_steps, start=1):
+            if not isinstance(st, dict):
+                return jsonify({'success': False,
+                                'error': f'Step {i} is malformed'}), 400
+            subj = (st.get('subject') or '').strip()
+            body = (st.get('body_html') or '').strip()
+            if not subj:
+                return jsonify({'success': False,
+                                'error': f'Step {i} needs a subject line'}), 400
+            if not body:
+                return jsonify({'success': False,
+                                'error': f'Step {i} needs a message'}), 400
+            chans = [c for c in (st.get('channels') or ['email']) if c in VALID_CHANNELS]
+            if not chans:
+                return jsonify({'success': False,
+                                'error': f'Step {i} needs at least one channel'}), 400
+            short = (st.get('short_message') or '').strip()
+            if chans != ['email'] and not short:
+                return jsonify({
+                    'success': False,
+                    'error': (f'Step {i} sends on push, Discord or in-app, so it needs a '
+                              f'short plain-text message — those channels cannot show HTML.'),
+                }), 400
+            try:
+                wait = int(st.get('wait_hours') or 0)
+            except (TypeError, ValueError):
+                return jsonify({'success': False,
+                                'error': f'Step {i} wait must be a whole number of hours'}), 400
+            if wait < 0 or wait > 24 * 60:
+                return jsonify({'success': False,
+                                'error': f'Step {i} wait must be between 0 and 1440 hours'}), 400
+            cleaned_steps.append({
+                'wait_hours': wait,
+                'channels': chans,
+                'subject': subj[:500],
+                'body_html': body,
+                'short_message': short[:1000] or None,
+            })
+        rule.steps = cleaned_steps
+        # Keep the flat columns in step with step 1 so anything still reading
+        # them (the summary sentence, legacy code) stays truthful.
+        first = cleaned_steps[0]
+        rule.delay_hours = first['wait_hours']
+        rule.channels = first['channels']
+        rule.subject = first['subject']
+        rule.body_html = first['body_html']
+        rule.short_message = first['short_message']
+
+    if 'stop_when_resolved' in data:
+        rule.stop_when_resolved = bool(data.get('stop_when_resolved'))
 
     if 'short_message' in data:
         rule.short_message = (data.get('short_message') or '').strip()[:1000] or None
@@ -398,6 +555,33 @@ def automation_update(rule_id):
                             'error': 'Delay must be between 0 and 720 hours (30 days)'}), 400
         rule.delay_hours = delay
 
+    if 'trigger_type' in data and data.get('trigger_type') != rule.trigger_type:
+        new_trigger = data.get('trigger_type')
+        if new_trigger not in TRIGGER_CATALOG:
+            return jsonify({'success': False, 'error': 'Unknown trigger'}), 400
+        # Changing the trigger changes what a "scope" even means, so old runs
+        # would no longer correspond to anything. Refuse rather than silently
+        # orphan them or, worse, let the rule re-fire for scopes it already sent.
+        if rule.runs.count():
+            return jsonify({
+                'success': False,
+                'error': ('This automation has already run, so its trigger cannot be '
+                          'changed — the history would no longer line up. Duplicate it '
+                          'instead and change the trigger on the copy.'),
+            }), 400
+        rule.trigger_type = new_trigger
+        # Keep only the config keys the new trigger understands.
+        allowed = set(TRIGGER_CATALOG[new_trigger].get('fields', []))
+        cfg_now = {k: v for k, v in (rule.trigger_config or {}).items()
+                   if k in allowed or k == 'league_type'}
+        cfg_now.setdefault('max_event_age_days', 14)
+        rule.trigger_config = cfg_now
+        # A per-person trigger can only ever target the person it fired for.
+        if new_trigger in PER_SUBJECT_TRIGGERS:
+            rule.audience_type = 'the_subject'
+        elif rule.audience_type == 'the_subject':
+            rule.audience_type = TRIGGER_CATALOG[new_trigger]['default_audience']
+
     if 'audience_type' in data:
         audience = data.get('audience_type')
         if audience not in {a[0] for a in AUDIENCE_TYPES}:
@@ -421,57 +605,33 @@ def automation_update(rule_id):
         rule.template_id = int(tid) if tid else None
 
     # Trigger tuning. Merged into the existing JSON so untouched keys survive.
+    # Validated from TRIGGER_FIELD_SPECS, so a new knob needs no code here.
     cfg = dict(rule.trigger_config or {})
-    if 'min_players_per_team' in data:
-        try:
-            minimum = int(data.get('min_players_per_team'))
-        except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Players per team must be a whole number'}), 400
-        if minimum < 1 or minimum > 30:
+    for _name, _spec in trigger_fields_for(rule.trigger_type):
+        if _name not in data:
+            continue
+        raw = data.get(_name)
+        if raw in (None, ''):
             return jsonify({'success': False,
-                            'error': 'Players per team must be between 1 and 30'}), 400
-        cfg['min_players_per_team'] = minimum
-    if 'max_event_age_days' in data:
-        try:
-            age = int(data.get('max_event_age_days'))
-        except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Freshness window must be a whole number'}), 400
-        if age < 1 or age > 365:
-            return jsonify({'success': False,
-                            'error': 'Freshness window must be between 1 and 365 days'}), 400
-        cfg['max_event_age_days'] = age
-    if 'phase' in data and data.get('phase'):
-        phase = data.get('phase')
-        if phase not in ('preseason', 'in_season', 'break', 'offseason'):
-            return jsonify({'success': False, 'error': 'Unknown season phase'}), 400
-        cfg['phase'] = phase
-    if 'date_anchor' in data and data.get('date_anchor'):
-        anchor = data.get('date_anchor')
-        if anchor not in ('start', 'end'):
-            return jsonify({'success': False, 'error': 'Anchor must be start or end'}), 400
-        cfg['date_anchor'] = anchor
-    for _key, _lo, _hi in (('stuck_days', 1, 365),
-                           ('silence_hours', 1, 8760)):
-        if _key in data:
+                            'error': f"{_spec['label']} needs a value"}), 400
+        if _spec['type'] == 'int':
             try:
-                _v = int(data.get(_key))
+                val = int(raw)
             except (TypeError, ValueError):
                 return jsonify({'success': False,
-                                'error': f'{_key.replace("_", " ").capitalize()} must be a whole number'}), 400
-            if _v < _lo or _v > _hi:
+                                'error': f"{_spec['label']} must be a whole number"}), 400
+            lo, hi = _spec.get('min'), _spec.get('max')
+            if (lo is not None and val < lo) or (hi is not None and val > hi):
                 return jsonify({'success': False,
-                                'error': f'{_key.replace("_", " ").capitalize()} must be between {_lo} and {_hi}'}), 400
-            cfg[_key] = _v
+                                'error': f"{_spec['label']} must be between {lo} and {hi}"}), 400
+            cfg[_name] = val
+        else:
+            valid = {c[0] for c in _spec.get('choices', [])}
+            if str(raw) not in valid:
+                return jsonify({'success': False,
+                                'error': f"{_spec['label']}: unknown option"}), 400
+            cfg[_name] = str(raw)
 
-    if 'days_offset' in data:
-        try:
-            offset = int(data.get('days_offset'))
-        except (TypeError, ValueError):
-            return jsonify({'success': False, 'error': 'Days offset must be a whole number'}), 400
-        if offset < -365 or offset > 365:
-            return jsonify({'success': False,
-                            'error': 'Days offset must be between -365 and 365'}), 400
-        cfg['days_offset'] = offset
     rule.trigger_config = cfg
 
     if not rule.created_by_id:
@@ -671,6 +831,130 @@ def automation_run_cancel(run_id):
     session.commit()
     logger.info("Automation run %s cancelled by user %s", run.id, current_user.id)
     return jsonify({'success': True})
+
+
+@admin_panel_bp.route('/api/automations/<int:rule_id>/preview-email', methods=['POST'])
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_preview_email(rule_id):
+    """Render the email exactly as a recipient would see it.
+
+    Takes the UNSAVED editor content so an admin can look before committing.
+    Runs the same three substitution steps the real send does:
+      1. {discord_invite_url} / {support_email} from admin config
+      2. per-recipient tokens, personalised against the viewing admin so the
+         preview shows a real name rather than a raw {first_name}
+      3. the wrapper layout that supplies the ECS header and footer
+    """
+    from app.services import automation_service
+    from app.services.email_broadcast_service import EmailBroadcastService
+
+    session = g.db_session
+    rule = session.query(AutomationRule).get(rule_id)
+    if not rule:
+        return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    body_html = (data.get('body_html') or rule.body_html or '').strip()
+    subject = (data.get('subject') or rule.subject or '').strip()
+    if not body_html:
+        return jsonify({'success': False, 'error': 'Nothing to preview yet'}), 400
+
+    template_id = data.get('template_id') if 'template_id' in data else rule.template_id
+
+    service = EmailBroadcastService()
+    subject = automation_service.substitute_placeholders(session, subject)
+    body_html = automation_service.substitute_placeholders(session, body_html)
+    try:
+        subject, body_html = service.personalize_content(
+            session, subject, body_html, current_user.id)
+    except Exception:
+        logger.debug("Preview personalization failed; showing raw tokens", exc_info=True)
+
+    template = None
+    if template_id:
+        template = session.query(EmailTemplate).get(int(template_id))
+    if not template:
+        template = (session.query(EmailTemplate)
+                    .filter(EmailTemplate.is_default.is_(True),
+                            EmailTemplate.is_deleted.is_(False))
+                    .order_by(EmailTemplate.id)
+                    .first())
+
+    html = template.render(body_html, subject) if template else body_html
+
+    # Flag anything that will ship literally, so a dead {survey_url} button is
+    # obvious in the preview rather than in someone's inbox.
+    known = {'discord_invite_url', 'support_email',
+             'name', 'first_name', 'team', 'league', 'season'}
+    unresolved = sorted({m for m in re.findall(r'\{(\w+)\}', html)} - known)
+
+    return jsonify({
+        'success': True,
+        'html': html,
+        'subject': subject,
+        'wrapper': template.name if template else None,
+        'unresolved': unresolved,
+    })
+
+
+@admin_panel_bp.route('/api/automations/<int:rule_id>/explain', methods=['POST'])
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_explain(rule_id):
+    """Why would (or wouldn't) one specific person get this?
+
+    The automation equivalent of a trace: walks trigger -> audience -> conditions
+    -> already-sent for a single user and names the stage that stops them.
+    Computed live, so it stays accurate after the rule is edited.
+    """
+    from app.services import automation_service
+
+    session = g.db_session
+    rule = session.query(AutomationRule).get(rule_id)
+    if not rule:
+        return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    try:
+        user_id = int(data.get('user_id'))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Pick a person first'}), 400
+
+    try:
+        result = automation_service.explain_for_user(session, rule, user_id)
+    except Exception:
+        logger.exception("Explain failed for rule %s user %s", rule.key, user_id)
+        return jsonify({'success': False,
+                        'error': 'Could not work that out — check the logs.'}), 500
+
+    return jsonify({'success': True, **result})
+
+
+@admin_panel_bp.route('/api/automations/search-people', methods=['GET'])
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_search_people():
+    """Typeahead for the trace picker."""
+    from app.models import Player
+
+    session = g.db_session
+    q = (request.args.get('q') or '').strip()
+    if len(q) < 2:
+        return jsonify({'success': True, 'people': []})
+
+    like = f'%{q}%'
+    rows = (session.query(User.id, User.username, Player.name)
+            .outerjoin(Player, Player.user_id == User.id)
+            .filter(or_(User.username.ilike(like), Player.name.ilike(like)))
+            .order_by(User.username)
+            .limit(15).all())
+    return jsonify({'success': True, 'people': [
+        {'user_id': r[0], 'label': (r[2] or r[1]) + (f' ({r[1]})' if r[2] else '')}
+        for r in rows]})
 
 
 @admin_panel_bp.route('/api/automations/<int:rule_id>/send-test', methods=['POST'])
