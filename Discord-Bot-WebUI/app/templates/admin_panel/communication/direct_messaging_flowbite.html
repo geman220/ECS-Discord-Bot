@@ -1,9 +1,8 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
-{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
 
-{% block admin_title %}Direct Messaging{% endblock %}
-{% block panel_description %}Send direct messages to players{% endblock %}
+{% block admin_title %}Message One Person{% endblock %}
+{% block panel_description %}Send a direct SMS, Discord DM or email to a single member{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -25,8 +24,18 @@
 {% set total = stats.total_players or 0 %}
 {% set sms_pct = ((stats.players_with_phone / total) * 100) | round | int if total else 0 %}
 {% set discord_pct = ((stats.players_with_discord / total) * 100) | round | int if total else 0 %}
+{% set email_pct = ((stats.players_with_email / total) * 100) | round | int if total else 0 %}
 
-{{ page_header("Direct Messaging", subtitle="Send an SMS or Discord DM to one player at a time") }}
+{% call page_header("Message One Person", subtitle="One member, one channel — for individual follow-ups") %}
+<a href="{{ url_for('admin_panel.communication_hub') }}"
+   class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+  <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Communication</span>
+</a>
+<a href="{{ url_for('admin_panel.message_composer') }}"
+   class="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800">
+  <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">Message a group</span>
+</a>
+{% endcall %}
 
 <!-- Reachability KPI band -->
 <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
@@ -46,7 +55,7 @@
         </div>
         <div class="p-4 sm:p-5">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">SMS Reachable</span>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Has Phone</span>
                 <i class="ti ti-phone text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
             </div>
             <div class="mt-3 flex items-end gap-2">
@@ -56,6 +65,7 @@
             <div class="mt-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5" role="presentation">
                 <div class="h-1.5 rounded-full bg-green-500" style="width: {{ sms_pct }}%"></div>
             </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">{{ stats.sms_enabled_users }}</span> opted in to SMS</p>
         </div>
         <div class="p-4 sm:p-5">
             <div class="flex items-center justify-between">
@@ -69,34 +79,34 @@
             <div class="mt-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5" role="presentation">
                 <div class="h-1.5 rounded-full bg-indigo-500" style="width: {{ discord_pct }}%"></div>
             </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">{{ stats.discord_enabled_users }}</span> opted in to DMs</p>
         </div>
         <div class="p-4 sm:p-5">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Opted In</span>
-                <i class="ti ti-bell-ringing text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Has Email</span>
+                <i class="ti ti-mail text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
             </div>
-            <div class="mt-3 flex items-end gap-2 flex-wrap">
-                <span class="font-mono text-2xl sm:text-3xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ stats.sms_enabled_users }}</span>
-                <span class="text-xs text-gray-500 dark:text-gray-400 mb-0.5">SMS</span>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ stats.players_with_email }}</span>
+                <span class="font-mono text-xs text-gray-500 dark:text-gray-400 mb-1">{{ email_pct }}%</span>
             </div>
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                <i class="ti ti-brand-discord text-indigo-400 mr-0.5" aria-hidden="true"></i>
-                <span class="font-mono">{{ stats.discord_enabled_users }}</span> Discord opt-ins
-            </p>
+            <div class="mt-2 w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1.5" role="presentation">
+                <div class="h-1.5 rounded-full bg-ecs-gold-500" style="width: {{ email_pct }}%"></div>
+            </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">{{ stats.email_enabled_users }}</span> opted in to email</p>
         </div>
     </div>
 </div>
 
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
     <!-- Composer (primary object) -->
-    <div class="xl:col-span-2">
+    <div class="xl:col-span-2 space-y-6">
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-            <!-- Header bar with recipient pill -->
             <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
                 <i class="ti ti-send text-ecs-green" aria-hidden="true"></i>
                 <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Compose Message</h2>
                 <span class="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
-                    <i class="ti ti-shield-lock text-[12px]" aria-hidden="true"></i> Direct to one player
+                    <i class="ti ti-shield-lock text-[12px]" aria-hidden="true"></i> Direct to one member
                 </span>
             </div>
 
@@ -110,7 +120,7 @@
                         <i class="ti ti-search text-gray-400" aria-hidden="true"></i>
                     </div>
                     <input type="text" id="playerSearch" placeholder="Search a player by name..." autocomplete="off" class="input-ecs block w-full pl-10 pr-3 py-2.5 text-sm">
-                    <div id="searchResults" class="hidden mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+                    <div id="searchResults" class="hidden absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
                 </div>
 
                 <!-- Selected recipient — feature treatment -->
@@ -122,14 +132,8 @@
                             </span>
                             <div class="min-w-0">
                                 <h6 id="selectedPlayerName" class="font-semibold text-gray-900 dark:text-white truncate"></h6>
-                                <div class="text-sm text-gray-500 dark:text-gray-400 flex flex-wrap gap-x-4 gap-y-0.5 mt-0.5">
-                                    <span id="playerPhone" class="font-mono"></span>
-                                    <span id="playerDiscord"></span>
-                                </div>
-                                <div class="mt-2 flex flex-wrap items-center gap-2">
-                                    <span id="smsStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
-                                    <span id="discordStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
-                                </div>
+                                {# One row per channel: the contact detail AND whether it can actually be used. #}
+                                <ul id="channelStatusList" class="mt-2 space-y-1 text-sm"></ul>
                             </div>
                         </div>
                         <button type="button" id="clearSelection" class="shrink-0 p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-lg" aria-label="Clear selection">
@@ -138,81 +142,126 @@
                     </div>
                     <div id="noMessagingWarning" class="hidden m-4 mt-0 flex items-start gap-2 p-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm">
                         <i class="ti ti-alert-triangle mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-                        <span><strong>Cannot message this player.</strong> All notification preferences are disabled.</span>
+                        <span><strong>No usable channel.</strong> This member has no reachable contact method with notifications turned on.</span>
                     </div>
                 </div>
 
-                <!-- Step 2: channel + body -->
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
-                    <span class="font-mono text-ecs-green mr-1">02</span> Channel &amp; Message
-                </p>
-                <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
-                    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="messageTabs" role="tablist">
-                        <li class="mr-2" role="presentation" id="sms-tab-container">
-                            <button class="inline-flex items-center p-4 border-b-2 border-blue-600 text-blue-600 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="sms-tab" data-tabs-target="#sms-panel" type="button" role="tab" aria-controls="sms-panel" aria-selected="true">
-                                <i class="ti ti-phone mr-2" aria-hidden="true"></i>SMS
-                            </button>
-                        </li>
-                        <li class="mr-2" role="presentation" id="discord-tab-container">
-                            <button class="inline-flex items-center p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300 dark:text-gray-400 dark:hover:text-white rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="discord-tab" data-tabs-target="#discord-panel" type="button" role="tab" aria-controls="discord-panel" aria-selected="false">
-                                <i class="ti ti-brand-discord mr-2" aria-hidden="true"></i>Discord DM
-                            </button>
-                        </li>
-                    </ul>
-                </div>
-
-                <div id="messageTabContent">
-                    <!-- SMS Panel -->
-                    <div class="block" id="sms-panel" role="tabpanel" aria-labelledby="sms-tab">
-                        <form id="smsForm" method="POST" action="{{ url_for('admin_panel.send_sms') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="player_id" id="smsPlayerId">
-                            <input type="hidden" name="phone" id="smsPhone">
-
-                            <div class="mb-3">
-                                <label for="smsMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                                <textarea id="smsMessage" name="message" rows="4" required placeholder="Enter your SMS message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
-                                <p class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                                    <i class="ti ti-ruler-measure text-[12px]" aria-hidden="true"></i>
-                                    <span id="smsCharCount" class="font-mono">0</span>/<span class="font-mono">160</span> chars
-                                    <span id="smsSegments" class="text-gray-400 font-mono">(1 segment)</span>
-                                </p>
-                            </div>
-
-                            <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
-                                <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-                                <span>SMS is rate limited. The player must have SMS notifications enabled.</span>
-                            </div>
-
-                            <button type="submit" id="sendSmsBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                                <i class="ti ti-send" aria-hidden="true"></i>Send SMS
-                            </button>
-                        </form>
+                <div id="composerBody" class="opacity-40 pointer-events-none transition-opacity">
+                    <!-- Step 2: channel + body -->
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                        <span class="font-mono text-ecs-green mr-1">02</span> Channel &amp; Message
+                    </p>
+                    <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                        <ul class="flex flex-wrap -mb-px text-sm font-medium" id="messageTabs" role="tablist">
+                            <li role="presentation" id="sms-tab-container">
+                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="sms-tab" data-channel="sms" type="button" role="tab" aria-controls="sms-panel" aria-selected="true">
+                                    <i class="ti ti-message-2" aria-hidden="true"></i>SMS
+                                </button>
+                            </li>
+                            <li role="presentation" id="discord-tab-container">
+                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="discord-tab" data-channel="discord" type="button" role="tab" aria-controls="discord-panel" aria-selected="false">
+                                    <i class="ti ti-brand-discord" aria-hidden="true"></i>Discord DM
+                                </button>
+                            </li>
+                            <li role="presentation" id="email-tab-container">
+                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="email-tab" data-channel="email" type="button" role="tab" aria-controls="email-panel" aria-selected="false">
+                                    <i class="ti ti-mail" aria-hidden="true"></i>Email
+                                </button>
+                            </li>
+                        </ul>
                     </div>
 
-                    <!-- Discord Panel -->
-                    <div class="hidden" id="discord-panel" role="tabpanel" aria-labelledby="discord-tab">
-                        <form id="discordForm" method="POST" action="{{ url_for('admin_panel.send_discord_dm') }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="player_id" id="discordPlayerId">
+                    {# Why the currently-selected channel can't be used, in plain language. #}
+                    <div id="channelBlockedNote" class="hidden mb-4 flex items-start gap-2 p-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm">
+                        <i class="ti ti-alert-triangle mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                        <span id="channelBlockedText"></span>
+                    </div>
 
-                            <div class="mb-3">
-                                <label for="discordMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                                <textarea id="discordMessage" name="message" rows="4" required placeholder="Enter your Discord DM message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
-                                <p class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-                                    <i class="ti ti-markdown text-[12px]" aria-hidden="true"></i> Markdown formatting supported
-                                </p>
-                            </div>
+                    <div id="messageTabContent">
+                        <!-- SMS Panel -->
+                        <div class="block" id="sms-panel" role="tabpanel" aria-labelledby="sms-tab">
+                            <form id="smsForm" method="POST" action="{{ url_for('admin_panel.send_sms') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="player_id" id="smsPlayerId">
+                                <input type="hidden" name="phone" id="smsPhone">
 
-                            <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
-                                <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
-                                <span>The bot must share a server with the user. The player must have Discord notifications enabled.</span>
-                            </div>
+                                <div class="mb-3">
+                                    <label for="smsMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                                    <textarea id="smsMessage" name="message" rows="4" required placeholder="Enter your SMS message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
+                                    <p class="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                        <i class="ti ti-ruler-measure text-[12px]" aria-hidden="true"></i>
+                                        <span id="smsCharCount" class="font-mono">0</span>/<span class="font-mono">160</span> chars
+                                        <span id="smsSegments" class="text-gray-400 font-mono">(1 segment)</span>
+                                        <span class="text-gray-400">·</span>
+                                        <span class="text-gray-400">+24 for the required opt-out line</span>
+                                    </p>
+                                </div>
 
-                            <button type="submit" id="sendDiscordBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                                <i class="ti ti-send" aria-hidden="true"></i>Send Discord DM
-                            </button>
-                        </form>
+                                <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
+                                    <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                                    <span>Sends immediately and costs money per segment. "Reply STOP to opt out." is appended automatically for TCPA compliance. Requires a <strong>verified</strong> phone with consent on file.</span>
+                                </div>
+
+                                <button type="submit" id="sendSmsBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    <i class="ti ti-send" aria-hidden="true"></i>Send SMS
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Discord Panel -->
+                        <div class="hidden" id="discord-panel" role="tabpanel" aria-labelledby="discord-tab">
+                            <form id="discordForm" method="POST" action="{{ url_for('admin_panel.send_discord_dm') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="player_id" id="discordPlayerId">
+
+                                <div class="mb-3">
+                                    <label for="discordMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                                    <textarea id="discordMessage" name="message" rows="4" required placeholder="Enter your Discord DM message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
+                                    <p class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                        <i class="ti ti-markdown text-[12px]" aria-hidden="true"></i> Markdown supported — <code class="font-mono">**bold**</code>, <code class="font-mono">*italic*</code>, <code class="font-mono">`code`</code>
+                                    </p>
+                                </div>
+
+                                <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
+                                    <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                                    <span>Free and instant. The bot must share a server with the member, and they must allow DMs from server members — if their privacy settings block it, the send reports as failed.</span>
+                                </div>
+
+                                <button type="submit" id="sendDiscordBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    <i class="ti ti-send" aria-hidden="true"></i>Send Discord DM
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Email Panel -->
+                        <div class="hidden" id="email-panel" role="tabpanel" aria-labelledby="email-tab">
+                            <form id="emailForm" method="POST" action="{{ url_for('admin_panel.send_direct_email') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="player_id" id="emailPlayerId">
+
+                                <div class="mb-3">
+                                    <label for="emailSubject" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Subject</label>
+                                    <input type="text" id="emailSubject" name="subject" maxlength="200" required placeholder="e.g. Quick question about Sunday" class="input-ecs block w-full p-2.5 text-sm">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="emailMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                                    <textarea id="emailMessage" name="message" rows="7" required placeholder="Write your email. Blank lines start a new paragraph, and links become clickable automatically." class="input-ecs block w-full p-2.5 text-sm"></textarea>
+                                    <p class="mt-1.5 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                                        <i class="ti ti-text-wrap text-[12px]" aria-hidden="true"></i> Plain text — blank lines become paragraphs, bare URLs become links.
+                                    </p>
+                                </div>
+
+                                <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
+                                    <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                                    <span>Sent from <span class="font-mono">donotreply@weareecs.com</span>, so replies won't reach you.{% if has_email_layout %} Wrapped in the default league layout.{% else %} <strong>No default email layout is set</strong>, so this goes out unbranded — set one under Email Blasts → Layouts.{% endif %} Queued in the background — it lands within a few seconds.</span>
+                                </div>
+
+                                <button type="submit" id="sendEmailBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    <i class="ti ti-send" aria-hidden="true"></i>Send Email
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -221,6 +270,19 @@
 
     <!-- Sidebar -->
     <div class="space-y-6">
+        <!-- Live preview — what the member actually receives -->
+        <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden xl:sticky xl:top-4">
+            <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+                <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Preview</h2>
+                <span id="previewChannelLabel" class="ml-auto text-xs font-medium text-gray-500 dark:text-gray-400">SMS</span>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-900/40">
+                <div id="previewSurface"></div>
+                <p class="mt-3 text-[11px] text-gray-500 dark:text-gray-400 leading-snug" id="previewNote"></p>
+            </div>
+        </section>
+
         <!-- SMS Rate Limit Status -->
         {% if current_user.has_role('Global Admin') %}
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
@@ -241,7 +303,7 @@
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
             <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
                 <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i>
-                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Recent Players</h2>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Newest Members</h2>
                 <span class="ml-auto text-xs font-mono text-gray-500 dark:text-gray-400">{{ recent_players[:10] | length }}</span>
             </div>
             <div class="max-h-80 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
@@ -251,15 +313,17 @@
                    data-name="{{ player.name }}"
                    data-phone="{{ player.phone or '' }}"
                    data-discord="{{ player.discord_id or '' }}"
-                   data-sms="{{ player.user.sms_notifications if player.user else false }}"
-                   data-discord-enabled="{{ player.user.discord_notifications if player.user else false }}">
+                   data-email="{{ (player.user.email if player.user else '') or '' }}"
+                   data-sms="{{ 'true' if player.user and player.user.sms_notifications else 'false' }}"
+                   data-discord-enabled="{{ 'true' if player.user and player.user.discord_notifications else 'false' }}"
+                   data-email-enabled="{{ 'true' if player.user and player.user.email_notifications != false else 'false' }}">
                     <span class="shrink-0 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center text-xs font-mono font-semibold">#{{ player.id }}</span>
                     <div class="min-w-0 flex-1">
                         <div class="font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</div>
                         <div class="flex items-center gap-2 mt-0.5">
                             {% if player.phone %}
                             <span class="inline-flex items-center gap-0.5 text-xs text-green-600 dark:text-green-400">
-                                <i class="ti ti-phone text-[12px]" aria-hidden="true"></i> SMS
+                                <i class="ti ti-message-2 text-[12px]" aria-hidden="true"></i> SMS
                             </span>
                             {% endif %}
                             {% if player.discord_id %}
@@ -267,7 +331,12 @@
                                 <i class="ti ti-brand-discord text-[12px]" aria-hidden="true"></i> Discord
                             </span>
                             {% endif %}
-                            {% if not player.phone and not player.discord_id %}
+                            {% if player.user and player.user.email %}
+                            <span class="inline-flex items-center gap-0.5 text-xs text-ecs-gold-500 dark:text-ecs-gold-400">
+                                <i class="ti ti-mail text-[12px]" aria-hidden="true"></i> Email
+                            </span>
+                            {% endif %}
+                            {% if not player.phone and not player.discord_id and not (player.user and player.user.email) %}
                             <span class="text-xs text-gray-400 dark:text-gray-500">No channels</span>
                             {% endif %}
                         </div>
@@ -275,7 +344,7 @@
                     <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
                 </a>
                 {% else %}
-                {{ empty_state("ti-clock-off", "No recent players", "Players you message will appear here for quick access.") }}
+                {{ empty_state("ti-clock-off", "No members yet", "Members will appear here for quick access.") }}
                 {% endfor %}
             </div>
         </section>
@@ -284,16 +353,16 @@
         <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
             <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
                 <i class="ti ti-help text-ecs-green" aria-hidden="true"></i>
-                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Channel Notes</h2>
+                <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Which channel?</h2>
             </div>
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
                 <div class="flex items-start gap-3 p-4">
                     <span class="shrink-0 w-8 h-8 rounded-lg bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center">
-                        <i class="ti ti-phone" aria-hidden="true"></i>
+                        <i class="ti ti-message-2" aria-hidden="true"></i>
                     </span>
                     <div>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white">SMS</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Standard rates apply. Over 160 chars splits into multiple segments.</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">SMS <span class="ml-1 text-xs font-normal text-gray-400">costs money</span></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Highest chance of being read. Use for time-critical things only — over 160 chars splits into multiple paid segments.</p>
                     </div>
                 </div>
                 <div class="flex items-start gap-3 p-4">
@@ -301,8 +370,17 @@
                         <i class="ti ti-brand-discord" aria-hidden="true"></i>
                     </span>
                     <div>
-                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Discord DM</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Sent via the bot. Player must allow DMs from server members.</p>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Discord DM <span class="ml-1 text-xs font-normal text-gray-400">free</span></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Best default for active members. Instant, conversational, and they can reply to the bot.</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3 p-4">
+                    <span class="shrink-0 w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 text-ecs-gold-500 dark:text-ecs-gold-400 flex items-center justify-center">
+                        <i class="ti ti-mail" aria-hidden="true"></i>
+                    </span>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">Email <span class="ml-1 text-xs font-normal text-gray-400">free</span></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Best for anything long or worth keeping — receipts, instructions, links. No reply address.</p>
                     </div>
                 </div>
             </div>
@@ -318,32 +396,152 @@ document.addEventListener('DOMContentLoaded', function() {
     const playerSearch = document.getElementById('playerSearch');
     const searchResults = document.getElementById('searchResults');
     const selectedPlayerCard = document.getElementById('selectedPlayerCard');
+    const composerBody = document.getElementById('composerBody');
     let searchTimeout;
     let selectedPlayer = null;
+    let activeChannel = 'sms';
 
-    // Tab functionality
-    const tabs = document.querySelectorAll('[role="tab"]');
-    const tabPanels = document.querySelectorAll('[role="tabpanel"]');
+    const TAB_ON = 'border-ecs-green text-ecs-green';
+    const TAB_OFF = 'border-transparent text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white';
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            tabs.forEach(t => {
-                t.classList.remove('border-blue-600', 'text-blue-600');
-                t.classList.add('border-transparent', 'text-gray-500');
-                t.setAttribute('aria-selected', 'false');
-            });
-            tabPanels.forEach(p => p.classList.add('hidden'));
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    }
 
-            this.classList.remove('border-transparent', 'text-gray-500');
-            this.classList.add('border-blue-600', 'text-blue-600');
-            this.setAttribute('aria-selected', 'true');
+    // ---- channel definitions: one place that knows each channel's rules ----
+    const CHANNELS = {
+        sms: {
+            label: 'SMS',
+            btn: 'sendSmsBtn',
+            panel: 'sms-panel',
+            tab: 'sms-tab',
+            container: 'sms-tab-container',
+            can: p => p.has_phone && p.sms_enabled,
+            reason: p => !p.has_phone
+                ? 'No phone number on file for this member.'
+                : 'This member has turned SMS notifications off in their profile.',
+            note: 'Sent from the league short code. The opt-out line is added by the system, so the real message is slightly longer than what you typed.'
+        },
+        discord: {
+            label: 'Discord DM',
+            btn: 'sendDiscordBtn',
+            panel: 'discord-panel',
+            tab: 'discord-tab',
+            container: 'discord-tab-container',
+            can: p => p.has_discord && p.discord_enabled,
+            reason: p => !p.has_discord
+                ? 'This member has not linked a Discord account.'
+                : 'This member has turned Discord DMs off in their profile.',
+            note: 'Delivered by the ECS bot as a private message. Markdown renders; this preview shows it raw.'
+        },
+        email: {
+            label: 'Email',
+            btn: 'sendEmailBtn',
+            panel: 'email-panel',
+            tab: 'email-tab',
+            container: 'email-tab-container',
+            can: p => p.has_email && p.email_enabled,
+            reason: p => !p.has_email
+                ? 'No email address on file for this member.'
+                : 'This member has turned email notifications off in their profile.',
+            note: {% if has_email_layout %}'Wrapped in the league email layout before sending, so the real thing also carries the ECS header and footer.'{% else %}'No default email layout is set, so this sends as plain formatted text — exactly what you see here.'{% endif %}
+        }
+    };
 
-            const panelId = this.getAttribute('data-tabs-target');
-            document.querySelector(panelId).classList.remove('hidden');
+    // ---- previews: show what the member receives, per channel ----
+    function renderPreview() {
+        const surface = document.getElementById('previewSurface');
+        const note = document.getElementById('previewNote');
+        const label = document.getElementById('previewChannelLabel');
+        const ch = CHANNELS[activeChannel];
+        label.textContent = ch.label;
+        note.textContent = ch.note;
+
+        const who = selectedPlayer ? selectedPlayer.name : 'the member';
+
+        if (activeChannel === 'sms') {
+            const body = document.getElementById('smsMessage').value;
+            const full = (body || 'Your message will appear here as you type.') +
+                (body ? '\n\nReply STOP to opt out.' : '');
+            surface.innerHTML =
+                '<div class="mx-auto max-w-[260px] rounded-[1.75rem] border-4 border-gray-800 dark:border-gray-600 bg-white dark:bg-gray-900 p-3 shadow-inner">' +
+                  '<p class="text-center text-[10px] text-gray-400 mb-2">' + esc(who) + '</p>' +
+                  '<div class="rounded-2xl rounded-bl-md bg-gray-100 dark:bg-gray-700 px-3 py-2">' +
+                    '<p class="text-[12px] leading-snug text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">' + esc(full) + '</p>' +
+                  '</div>' +
+                  '<p class="mt-1.5 text-right text-[9px] text-gray-400">Delivered</p>' +
+                '</div>';
+            return;
+        }
+
+        if (activeChannel === 'discord') {
+            const body = document.getElementById('discordMessage').value ||
+                'Your message will appear here as you type.';
+            surface.innerHTML =
+                '<div class="rounded-lg bg-[#313338] p-3">' +
+                  '<p class="text-[10px] text-gray-400 mb-2">Direct message · ECS Bot → ' + esc(who) + '</p>' +
+                  '<div class="flex items-start gap-2.5">' +
+                    '<div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>' +
+                    '<div class="min-w-0 flex-1">' +
+                      '<p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded bg-indigo-500 text-white text-[9px] uppercase">App</span></p>' +
+                      '<p class="mt-0.5 text-[13px] leading-snug text-gray-200 whitespace-pre-wrap break-words">' + esc(body) + '</p>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>';
+            return;
+        }
+
+        const subject = document.getElementById('emailSubject').value || '(no subject)';
+        const body = document.getElementById('emailMessage').value ||
+            'Your message will appear here as you type.';
+        const to = selectedPlayer && selectedPlayer.email ? selectedPlayer.email : 'member@example.com';
+        surface.innerHTML =
+            '<div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">' +
+              '<div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">' +
+                '<p class="text-[13px] font-semibold text-gray-900 dark:text-white break-words">' + esc(subject) + '</p>' +
+                '<p class="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 break-all">ECS &lt;donotreply@weareecs.com&gt; → ' + esc(to) + '</p>' +
+              '</div>' +
+              {% if has_email_layout %}'<div class="px-3 py-2.5 bg-ecs-green"><p class="text-[11px] font-bold uppercase tracking-wide text-white">Emerald City Supporters</p></div>' +{% endif %}
+              '<div class="p-3">' +
+                '<p class="text-[12px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">' + esc(body) + '</p>' +
+              '</div>' +
+            '</div>';
+    }
+
+    // ---- tabs ----
+    function setChannel(channel) {
+        activeChannel = channel;
+        Object.keys(CHANNELS).forEach(key => {
+            const c = CHANNELS[key];
+            const tab = document.getElementById(c.tab);
+            const on = key === channel;
+            tab.className = 'channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed ' +
+                (on ? TAB_ON : TAB_OFF);
+            tab.setAttribute('aria-selected', on ? 'true' : 'false');
+            document.getElementById(c.panel).classList.toggle('hidden', !on);
         });
+        updateChannelBlockedNote();
+        renderPreview();
+    }
+
+    function updateChannelBlockedNote() {
+        const box = document.getElementById('channelBlockedNote');
+        const text = document.getElementById('channelBlockedText');
+        const ch = CHANNELS[activeChannel];
+        if (!selectedPlayer || ch.can(selectedPlayer)) {
+            box.classList.add('hidden');
+            return;
+        }
+        text.innerHTML = '<strong>' + esc(ch.label) + ' is unavailable.</strong> ' + esc(ch.reason(selectedPlayer));
+        box.classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.channel-tab').forEach(tab => {
+        tab.addEventListener('click', () => setChannel(tab.dataset.channel));
     });
 
-    // Player search
+    // ---- player search ----
     playerSearch.addEventListener('input', function() {
         clearTimeout(searchTimeout);
         const query = this.value.trim();
@@ -361,26 +559,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.players && data.players.length > 0) {
                     searchResults.classList.remove('hidden');
                     searchResults.innerHTML = data.players.map(player => {
-                        const canSms = player.has_phone && player.sms_enabled;
-                        const canDiscord = player.has_discord && player.discord_enabled;
-
-                        let icons = '';
-                        if (canSms) icons += '<i class="ti ti-phone text-green-500 mr-1"></i>';
-                        if (canDiscord) icons += '<i class="ti ti-brand-discord text-indigo-500"></i>';
+                        const chips = [];
+                        if (player.has_phone && player.sms_enabled) chips.push('<i class="ti ti-message-2 text-green-500" title="SMS"></i>');
+                        if (player.has_discord && player.discord_enabled) chips.push('<i class="ti ti-brand-discord text-indigo-500" title="Discord DM"></i>');
+                        if (player.has_email && player.email_enabled) chips.push('<i class="ti ti-mail text-ecs-gold-500" title="Email"></i>');
 
                         return `
                         <div class="player-result px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-0"
                              data-id="${player.id}"
-                             data-name="${player.name}"
-                             data-phone="${player.phone || ''}"
-                             data-discord="${player.discord_id || ''}"
+                             data-name="${esc(player.name)}"
+                             data-phone="${esc(player.phone || '')}"
+                             data-discord="${esc(player.discord_id || '')}"
+                             data-email="${esc(player.email || '')}"
+                             data-has-email="${player.has_email}"
                              data-sms="${player.sms_enabled}"
                              data-discord-enabled="${player.discord_enabled}"
-                             data-has-phone="${player.has_phone}"
-                             data-has-discord="${player.has_discord}">
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-900 dark:text-white">${player.name}</span>
-                                <span>${icons}</span>
+                             data-email-enabled="${player.email_enabled}">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-gray-900 dark:text-white truncate">${esc(player.name)}</span>
+                                <span class="shrink-0 flex items-center gap-1.5">${chips.join('') || '<span class="text-xs text-gray-400">no channels</span>'}</span>
                             </div>
                         </div>`;
                     }).join('');
@@ -400,7 +597,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
-    // Quick select players
     document.querySelectorAll('.quick-select-player').forEach(el => {
         el.addEventListener('click', function(e) {
             e.preventDefault();
@@ -408,170 +604,167 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Clear selection
     document.getElementById('clearSelection').addEventListener('click', clearSelection);
 
+    function channelRow(icon, colour, label, detail, ok, reason) {
+        return '<li class="flex items-start gap-2">' +
+            '<i class="ti ' + icon + ' mt-0.5 shrink-0 ' + (ok ? colour : 'text-gray-400') + '"></i>' +
+            '<span class="min-w-0">' +
+              '<span class="text-gray-700 dark:text-gray-200">' + esc(label) + '</span> ' +
+              '<span class="text-gray-500 dark:text-gray-400 break-all">' + esc(detail) + '</span>' +
+              (ok
+                ? ' <span class="text-green-600 dark:text-green-400 font-medium">· available</span>'
+                : ' <span class="text-gray-400">· ' + esc(reason) + '</span>') +
+            '</span></li>';
+    }
+
     function selectPlayer(data) {
-        const hasPhone = data.hasPhone === 'true' || data['has-phone'] === 'true' || !!data.phone;
-        const hasDiscord = data.hasDiscord === 'true' || data['has-discord'] === 'true' || !!data.discord;
-        const smsEnabled = data.sms === 'true';
-        const discordEnabled = data.discordEnabled === 'true' || data['discord-enabled'] === 'true';
+        const hasPhone = !!data.phone;
+        const hasDiscord = !!data.discord;
+        // The search API withholds the address itself from coaches, so trust the
+        // explicit flag when it's present and only infer from the address for the
+        // server-rendered quick-pick rows.
+        const hasEmail = data.hasEmail !== undefined ? data.hasEmail === 'true' : !!data.email;
 
         selectedPlayer = {
             id: data.id,
             name: data.name,
             phone: data.phone || '',
             discord_id: data.discord || '',
+            email: data.email || '',
             has_phone: hasPhone,
             has_discord: hasDiscord,
-            sms_enabled: smsEnabled,
-            discord_enabled: discordEnabled,
-            can_sms: hasPhone && smsEnabled,
-            can_discord: hasDiscord && discordEnabled
+            has_email: hasEmail,
+            sms_enabled: data.sms === 'true',
+            discord_enabled: data.discordEnabled === 'true',
+            email_enabled: data.emailEnabled === 'true'
         };
 
         document.getElementById('selectedPlayerName').textContent = data.name;
-        document.getElementById('playerPhone').innerHTML = selectedPlayer.phone ?
-            `<i class="ti ti-phone mr-1"></i>${selectedPlayer.phone}` : '<span class="text-gray-400">No phone</span>';
-        document.getElementById('playerDiscord').innerHTML = selectedPlayer.discord_id ?
-            `<i class="ti ti-brand-discord mr-1"></i>Linked` : '<span class="text-gray-400">No Discord</span>';
-
-        const smsStatus = document.getElementById('smsStatus');
-        if (!selectedPlayer.has_phone) {
-            smsStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-            smsStatus.textContent = 'No Phone';
-        } else if (!selectedPlayer.sms_enabled) {
-            smsStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-            smsStatus.textContent = 'SMS Disabled';
-        } else {
-            smsStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            smsStatus.textContent = 'SMS Available';
-        }
-
-        const discordStatus = document.getElementById('discordStatus');
-        if (!selectedPlayer.has_discord) {
-            discordStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
-            discordStatus.textContent = 'No Discord';
-        } else if (!selectedPlayer.discord_enabled) {
-            discordStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-            discordStatus.textContent = 'DM Disabled';
-        } else {
-            discordStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
-            discordStatus.textContent = 'Discord Available';
-        }
+        document.getElementById('channelStatusList').innerHTML =
+            channelRow('ti-message-2', 'text-green-600 dark:text-green-400', 'SMS',
+                selectedPlayer.phone || '— none on file',
+                CHANNELS.sms.can(selectedPlayer),
+                hasPhone ? 'opted out' : 'no number') +
+            channelRow('ti-brand-discord', 'text-indigo-500 dark:text-indigo-400', 'Discord',
+                hasDiscord ? 'linked' : '— not linked',
+                CHANNELS.discord.can(selectedPlayer),
+                hasDiscord ? 'opted out' : 'not linked') +
+            channelRow('ti-mail', 'text-ecs-gold-500 dark:text-ecs-gold-400', 'Email',
+                selectedPlayer.email || (hasEmail ? 'on file' : '— none on file'),
+                CHANNELS.email.can(selectedPlayer),
+                hasEmail ? 'opted out' : 'no address');
 
         document.getElementById('smsPlayerId').value = data.id;
         document.getElementById('smsPhone').value = selectedPlayer.phone;
         document.getElementById('discordPlayerId').value = data.id;
+        document.getElementById('emailPlayerId').value = data.id;
 
-        document.getElementById('sms-tab-container').style.display = selectedPlayer.has_phone ? '' : 'none';
-        document.getElementById('discord-tab-container').style.display = selectedPlayer.has_discord ? '' : 'none';
+        // Disable rather than hide unusable channels — hiding a tab makes it look
+        // like the feature doesn't exist instead of explaining why it can't be used.
+        let firstUsable = null;
+        Object.keys(CHANNELS).forEach(key => {
+            const c = CHANNELS[key];
+            const usable = c.can(selectedPlayer);
+            document.getElementById(c.tab).disabled = !usable;
+            document.getElementById(c.btn).disabled = !usable;
+            if (usable && !firstUsable) firstUsable = key;
+        });
 
-        const warningEl = document.getElementById('noMessagingWarning');
-        warningEl.classList.toggle('hidden', selectedPlayer.can_sms || selectedPlayer.can_discord);
-
-        document.getElementById('sendSmsBtn').disabled = !selectedPlayer.can_sms;
-        document.getElementById('sendDiscordBtn').disabled = !selectedPlayer.can_discord;
-
+        document.getElementById('noMessagingWarning').classList.toggle('hidden', !!firstUsable);
+        composerBody.classList.remove('opacity-40', 'pointer-events-none');
         selectedPlayerCard.classList.remove('hidden');
         searchResults.classList.add('hidden');
         playerSearch.value = '';
+
+        setChannel(firstUsable || activeChannel);
     }
 
     function clearSelection() {
         selectedPlayer = null;
         selectedPlayerCard.classList.add('hidden');
-        document.getElementById('smsPlayerId').value = '';
-        document.getElementById('smsPhone').value = '';
-        document.getElementById('discordPlayerId').value = '';
-        document.getElementById('sendSmsBtn').disabled = true;
-        document.getElementById('sendDiscordBtn').disabled = true;
-        document.getElementById('sms-tab-container').style.display = '';
-        document.getElementById('discord-tab-container').style.display = '';
+        composerBody.classList.add('opacity-40', 'pointer-events-none');
+        ['smsPlayerId', 'smsPhone', 'discordPlayerId', 'emailPlayerId'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        Object.keys(CHANNELS).forEach(key => {
+            document.getElementById(CHANNELS[key].tab).disabled = false;
+            document.getElementById(CHANNELS[key].btn).disabled = true;
+        });
+        document.getElementById('noMessagingWarning').classList.add('hidden');
+        updateChannelBlockedNote();
+        renderPreview();
     }
 
-    // SMS character counter
+    // ---- SMS character counter ----
     const smsMessage = document.getElementById('smsMessage');
     const smsCharCount = document.getElementById('smsCharCount');
     const smsSegments = document.getElementById('smsSegments');
 
     smsMessage.addEventListener('input', function() {
-        const len = this.value.length;
-        smsCharCount.textContent = len;
+        // Count what actually gets sent: the opt-out line is appended server-side
+        // and counts against the paid segments.
+        const len = this.value.length + (this.value ? '\n\nReply STOP to opt out.'.length : 0);
+        smsCharCount.textContent = this.value.length;
         const segments = Math.ceil(len / 160) || 1;
         smsSegments.textContent = `(${segments} segment${segments > 1 ? 's' : ''})`;
     });
 
-    // Form submissions
-    document.getElementById('smsForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('sendSmsBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="animate-spin inline-block mr-1">&#8635;</span>Sending...';
-        btn.disabled = true;
-
-        try {
-            const formData = new FormData(this);
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await response.json();
-
-            Swal.fire({
-                icon: data.success ? 'success' : 'error',
-                title: data.success ? 'SMS Sent' : 'Failed',
-                text: data.message,
-                timer: data.success ? 2000 : undefined,
-                showConfirmButton: !data.success,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
-
-            if (data.success) smsMessage.value = '';
-        } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to send SMS' });
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = !selectedPlayer || !selectedPlayer.can_sms;
-        }
+    // Live preview on every keystroke in any composer field.
+    ['smsMessage', 'discordMessage', 'emailSubject', 'emailMessage'].forEach(id => {
+        document.getElementById(id).addEventListener('input', renderPreview);
     });
 
-    document.getElementById('discordForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const btn = document.getElementById('sendDiscordBtn');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="animate-spin inline-block mr-1">&#8635;</span>Sending...';
-        btn.disabled = true;
+    // ---- submissions ----
+    function wireForm(formId, btnId, successTitle, onSuccess, canSend) {
+        document.getElementById(formId).addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById(btnId);
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="animate-spin inline-block mr-1">&#8635;</span>Sending...';
+            btn.disabled = true;
 
-        try {
-            const formData = new FormData(this);
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            const data = await response.json();
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
 
-            Swal.fire({
-                icon: data.success ? 'success' : 'error',
-                title: data.success ? 'Discord DM Sent' : 'Failed',
-                text: data.message,
-                timer: data.success ? 2000 : undefined,
-                showConfirmButton: !data.success,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
+                Swal.fire({
+                    icon: data.success ? 'success' : 'error',
+                    title: data.success ? successTitle : 'Failed',
+                    text: data.message,
+                    timer: data.success ? 2200 : undefined,
+                    showConfirmButton: !data.success,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
 
-            if (data.success) document.getElementById('discordMessage').value = '';
-        } catch (error) {
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to send Discord DM' });
-        } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = !selectedPlayer || !selectedPlayer.can_discord;
-        }
-    });
+                if (data.success) { onSuccess(); renderPreview(); }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'The request failed. Try again.' });
+            } finally {
+                btn.innerHTML = originalHtml;
+                btn.disabled = !selectedPlayer || !canSend(selectedPlayer);
+            }
+        });
+    }
+
+    wireForm('smsForm', 'sendSmsBtn', 'SMS Sent', () => {
+        smsMessage.value = '';
+        smsMessage.dispatchEvent(new Event('input'));
+    }, CHANNELS.sms.can);
+
+    wireForm('discordForm', 'sendDiscordBtn', 'Discord DM Sent', () => {
+        document.getElementById('discordMessage').value = '';
+    }, CHANNELS.discord.can);
+
+    wireForm('emailForm', 'sendEmailBtn', 'Email Queued', () => {
+        document.getElementById('emailSubject').value = '';
+        document.getElementById('emailMessage').value = '';
+    }, CHANNELS.email.can);
 
     // Close search on outside click
     document.addEventListener('click', function(e) {
@@ -580,11 +773,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Load SMS rate status
-    {% if current_user.has_role('Global Admin') %}
-    loadSmsStatus();
+    setChannel('sms');
 
-    async function loadSmsStatus() {
+    // ---- SMS rate status ----
+    {% if current_user.has_role('Global Admin') %}
+    (async function loadSmsStatus() {
         try {
             const response = await fetch('{{ url_for("admin_panel.sms_status") }}');
             const data = await response.json();
@@ -595,26 +788,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const percentage = (data.system.total_count / data.system.limit) * 100;
+            const percentage = data.system.limit ? (data.system.total_count / data.system.limit) * 100 : 0;
             container.innerHTML = `
                 <div class="mb-3">
                     <div class="flex justify-between text-sm mb-1">
-                        <span class="text-gray-600 dark:text-gray-400">System Usage</span>
-                        <span class="text-gray-900 dark:text-white">${data.system.total_count} / ${data.system.limit}</span>
+                        <span class="text-gray-600 dark:text-gray-400">System usage</span>
+                        <span class="font-mono text-gray-900 dark:text-white">${data.system.total_count} / ${data.system.limit}</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                        <div class="h-2 rounded-full ${data.system.remaining < 10 ? 'bg-red-600' : 'bg-blue-600'}" style="width: ${percentage}%"></div>
+                        <div class="h-2 rounded-full ${data.system.remaining < 10 ? 'bg-red-600' : 'bg-ecs-green'}" style="width: ${percentage}%"></div>
                     </div>
                 </div>
-                <div class="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                    <div><strong>Remaining:</strong> ${data.system.remaining}</div>
-                    <div><strong>Window:</strong> ${data.system.window_hours.toFixed(1)} hours</div>
-                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400"><span class="font-mono">${data.system.remaining}</span> sends left in the current ${data.system.window_hours.toFixed(1)}-hour window.</p>
             `;
         } catch (error) {
             document.getElementById('smsRateStatus').innerHTML = `<div class="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm"><i class="ti ti-alert-circle mr-1"></i>Failed to load status</div>`;
         }
-    }
+    })();
     {% endif %}
 });
 </script>

@@ -95,7 +95,7 @@
             <button type="button" data-action="integrity-manage"
                     data-code="{{ row.code }}" data-index="{{ loop.index0 }}"
                     {% if f.player_id %}data-profile-url="{{ url_for('players.player_profile', player_id=f.player_id) }}"{% endif %}
-                    data-manage-url="{{ url_for('admin_panel.users_comprehensive', search=f.name) }}"
+                    data-manage-url="{{ url_for('admin_panel.members_worklist', search=f.name) }}"
                     class="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-semibold bg-ecs-green text-white hover:bg-ecs-green/90 whitespace-nowrap">
               <i class="ti ti-tool"></i> {% if f.fix_actions %}Resolve{% else %}Manage{% endif %}
             </button>

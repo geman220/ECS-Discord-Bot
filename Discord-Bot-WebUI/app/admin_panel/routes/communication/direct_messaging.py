@@ -3,7 +3,7 @@
 """
 Direct Messaging Routes
 
-Routes for SMS and Discord DM messaging.
+Routes for one-to-one SMS, Discord DM and email messaging.
 """
 
 import logging
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 def direct_messaging():
     """Direct messaging dashboard for SMS and Discord DMs."""
     try:
+        from sqlalchemy.orm import joinedload
         from app.models import Player
 
         # Get statistics
@@ -34,17 +35,34 @@ def direct_messaging():
             'total_players': Player.query.count(),
             'players_with_phone': Player.query.filter(Player.phone != None, Player.phone != '').count(),
             'players_with_discord': Player.query.filter(Player.discord_id != None).count(),
+            # Emails are encrypted, so reachability is counted off the search
+            # hash column rather than the ciphertext.
+            'players_with_email': Player.query.join(User, Player.user_id == User.id).filter(
+                User.email_hash.isnot(None)).count(),
             'sms_enabled_users': User.query.filter_by(sms_notifications=True).count(),
-            'discord_enabled_users': User.query.filter_by(discord_notifications=True).count()
+            'discord_enabled_users': User.query.filter_by(discord_notifications=True).count(),
+            'email_enabled_users': User.query.filter(
+                User.email_hash.isnot(None),
+                User.email_notifications.isnot(False)).count(),
         }
 
-        # Get recent players for quick messaging
-        recent_players = Player.query.order_by(Player.id.desc()).limit(20).all()
+        # Get recent players for quick messaging. The template reads notification
+        # flags off player.user for every row, so eager-load it.
+        recent_players = Player.query.options(
+            joinedload(Player.user)
+        ).order_by(Player.id.desc()).limit(20).all()
+
+        # The email preview only claims the ECS header/footer when a default
+        # layout actually exists to wrap the body in.
+        from app.models.email_templates import EmailTemplate
+        has_email_layout = EmailTemplate.query.filter_by(
+            is_default=True, is_deleted=False).count() > 0
 
         return render_template(
             'admin_panel/communication/direct_messaging_flowbite.html',
             stats=stats,
-            recent_players=recent_players
+            recent_players=recent_players,
+            has_email_layout=has_email_layout
         )
     except Exception as e:
         logger.error(f"Error loading direct messaging: {e}")
@@ -233,6 +251,93 @@ def send_discord_dm():
         return redirect(url_for('admin_panel.direct_messaging'))
 
 
+@admin_panel_bp.route('/communication/send-direct-email', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def send_direct_email():
+    """Send a one-off email to a single player.
+
+    Queued to Celery rather than sent inline: send_email() blocks on the Gmail
+    API, and holding a PgBouncer transaction slot across that round trip is what
+    "slow queries" on this app actually are.
+    """
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    def _fail(message, status=400):
+        if is_ajax:
+            return jsonify({'success': False, 'message': message}), status
+        flash(message, 'error')
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+    try:
+        from app.models import Player
+
+        player_id = request.form.get('player_id')
+        subject = (request.form.get('subject') or '').strip()
+        message = (request.form.get('message') or '').strip()
+
+        if not player_id or not subject or not message:
+            return _fail('A recipient, subject and message are all required.')
+        if len(subject) > 200:
+            return _fail('Subject must be 200 characters or fewer.')
+        try:
+            player_id = int(player_id)
+        except (TypeError, ValueError):
+            # A non-numeric id would reach the DB and raise a DataError.
+            return _fail('Player not found.', 404)
+
+        player = Player.query.get(player_id)
+        if not player:
+            return _fail('Player not found.', 404)
+
+        user = player.user
+        if not user or not user.email:
+            return _fail('This player has no email address on file.', 403)
+        # Unlike SMS there is no legal verification gate, but the member's own
+        # email preference is still honored.
+        if user.email_notifications is False:
+            return _fail('Email notifications are turned off for this member.', 403)
+
+        # Plain-text composer -> minimal HTML. Escaped first so a message
+        # containing < or & can't inject markup into the email body.
+        from markupsafe import escape
+        body_html = '<p>' + '</p><p>'.join(
+            str(escape(p)).replace('\n', '<br>')
+            for p in message.split('\n\n') if p.strip()
+        ) + '</p>'
+
+        from app.tasks.tasks_email_broadcast import send_direct_admin_email
+        try:
+            send_direct_admin_email.delay(user.id, subject, body_html, current_user.id)
+        except Exception as enqueue_err:
+            logger.error(f"Could not queue direct email to player {player_id}: {enqueue_err}")
+            return _fail('The email could not be queued for delivery. Check the task queue and retry.', 502)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='send_direct_email',
+            resource_type='direct_messaging',
+            resource_id=str(player_id),
+            new_value=f'Email queued to player {player.name}: {subject[:80]}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Admin {current_user.id} queued a direct email to player {player_id}")
+        ok = 'Email queued — it sends in the background within a few seconds.'
+        if is_ajax:
+            return jsonify({'success': True, 'message': ok})
+        flash(ok, 'success')
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+    except Exception as e:
+        logger.error(f"Error sending direct email: {e}")
+        if is_ajax:
+            return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
+        flash('Failed to send the email.', 'error')
+        return redirect(url_for('admin_panel.direct_messaging'))
+
+
 @admin_panel_bp.route('/communication/sms-status')
 @login_required
 @role_required(['Global Admin'])
@@ -325,18 +430,32 @@ def player_search():
             Player.name.ilike(f'%{query}%')
         ).limit(20).all()
 
+        # This endpoint is also open to coaches. They may still send a direct
+        # email, but only admins get to see the actual address back — knowing a
+        # channel is available is not the same as being handed everyone's email.
+        show_email = current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')
+
         results = []
         for player in players:
             user = player.user
+            # Decrypting per row is cheap here (max 20) and the address is what
+            # makes the email channel verifiable before an admin hits send.
+            email = (user.email if user else None) or ''
             results.append({
                 'id': player.id,
                 'name': player.name,
                 'phone': player.phone or '',
                 'discord_id': player.discord_id or '',
+                'email': email if show_email else '',
                 'has_phone': bool(player.phone),
                 'has_discord': bool(player.discord_id),
+                'has_email': bool(email),
                 'sms_enabled': user.sms_notifications if user else False,
                 'discord_enabled': user.discord_notifications if user else False,
+                # email_notifications defaults to True; only an explicit False
+                # is an opt-out.
+                'email_enabled': (user.email_notifications is not False) if user else False,
+                'email_eligible': bool(email and user and user.email_notifications is not False),
                 # SMS verification status for UI feedback
                 'is_phone_verified': player.is_phone_verified if player else False,
                 'sms_consent_given': player.sms_consent_given if player else False,

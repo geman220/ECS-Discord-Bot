@@ -202,6 +202,15 @@ from .email_campaigns import (
 
 from .composed_message import ComposedMessage
 
+from .automation import (
+    AutomationRule, AutomationRun, build_scope_key,
+    TRIGGER_DRAFT_COMPLETE, TRIGGER_DRAFT_SESSION_COMPLETE,
+    TRIGGER_SEASON_PHASE, TRIGGER_SEASON_DATE, TRIGGER_TYPES, TRIGGER_CATALOG,
+    TRIGGER_USER_APPROVED, TRIGGER_WAITLIST_STUCK, TRIGGER_SUB_NO_REPLY,
+    PER_SUBJECT_TRIGGERS,
+    CONDITION_FIELDS, CONDITION_OPS
+)
+
 from .mobile_telemetry import (
     MobileSession, MobileScreenView, MobileFeatureUsage
 )
@@ -372,6 +381,14 @@ __all__ = [
 
     # Multi-channel composer
     'ComposedMessage',
+
+    # Automated messaging engine
+    'AutomationRule', 'AutomationRun', 'build_scope_key',
+    'TRIGGER_DRAFT_COMPLETE', 'TRIGGER_DRAFT_SESSION_COMPLETE',
+    'TRIGGER_SEASON_PHASE', 'TRIGGER_SEASON_DATE', 'TRIGGER_TYPES', 'TRIGGER_CATALOG',
+    'TRIGGER_USER_APPROVED', 'TRIGGER_WAITLIST_STUCK', 'TRIGGER_SUB_NO_REPLY',
+    'PER_SUBJECT_TRIGGERS',
+    'CONDITION_FIELDS', 'CONDITION_OPS',
 
     # Mobile telemetry models
     'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',

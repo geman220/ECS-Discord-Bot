@@ -75,6 +75,7 @@ class CeleryConfig:
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
         'app.tasks.tasks_data_export',  # User data export (GDPR)
         'app.tasks.tasks_waitlist',  # Waitlist confirmation email
+        'app.tasks.tasks_automation',  # Lifecycle automated messaging (draft -> Discord invite, etc.)
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
         'app.tasks.tasks_substitute_availability',  # Friday weekly sub availability poll
@@ -241,6 +242,7 @@ class CeleryConfig:
         'app.tasks.tasks_composed_messages.*': {'queue': 'celery'},
         'app.tasks.tasks_quick_profiles.*': {'queue': 'celery'},
         'app.tasks.tasks_audit.*': {'queue': 'celery'},
+        'app.tasks.tasks_automation.*': {'queue': 'celery'},
         'app.tasks.tasks_rsvp_dm_reminders.*': {'queue': 'discord'},
         'app.tasks.tasks_substitute_availability.*': {'queue': 'discord'},
     }
@@ -282,6 +284,15 @@ class CeleryConfig:
         'remind-pending-approvals': {
             'task': 'app.tasks.tasks_onboarding_notifications.remind_pending_approvals',
             'schedule': crontab(hour=16, minute=0, day_of_week=1),
+            'options': {'queue': 'celery'},
+        },
+        # Lifecycle automated messaging. Evaluates enabled AutomationRules and
+        # sends any whose configured delay has elapsed. Hourly is plenty: the
+        # shortest delay is measured in hours, and each pass can burst Discord
+        # membership checks against the bot.
+        'evaluate-automations': {
+            'task': 'app.tasks.tasks_automation.evaluate_automations',
+            'schedule': crontab(minute=20),  # hourly at :20, off the busy top-of-hour
             'options': {'queue': 'celery'},
         },
         'backfill-media-variants': {
@@ -570,6 +581,16 @@ class CeleryConfig:
         'cleanup-task-executions': {
             'task': 'app.tasks.tasks_maintenance.cleanup_task_executions',
             'schedule': crontab(hour=3, minute=40),
+            'options': {'queue': 'celery', 'expires': 3600},
+        },
+
+        # Trim api_request_logs. Same story as task_executions above, except this
+        # table never had a retention task at all and grew to 555 MB / 2.26M rows
+        # — the largest table in the database. Every dashboard that reads it
+        # filters to the last 24h. Runs at 03:50, just after the sibling job.
+        'cleanup-api-request-logs': {
+            'task': 'app.tasks.tasks_maintenance.cleanup_api_request_logs',
+            'schedule': crontab(hour=3, minute=50),
             'options': {'queue': 'celery', 'expires': 3600},
         },
 

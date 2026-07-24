@@ -23,11 +23,71 @@ from app.models.core import User, Role, Permission
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_revoke
 from app.tasks.tasks_discord import assign_roles_to_player_task
-from app.services.discord_role_sync_service import sync_role_assignment, sync_role_removal
+from app.services.discord_role_sync_service import (
+    sync_role_assignment, sync_role_removal, CANONICAL_DISCORD_ROLE_MAP,
+)
 
 logger = logging.getLogger(__name__)
+
+
+def _discord_roles_for_flask_roles(role_names):
+    """Discord role names a set of Flask roles is meant to confer.
+
+    Used to build the candidate list for a precise revoke pass. Flask roles with no
+    Discord counterpart (Global Admin, pl-waitlist, ...) map to nothing, so
+    un-toggling them queues no Discord work at all.
+    """
+    candidates = []
+    for name in role_names:
+        for discord_name in CANONICAL_DISCORD_ROLE_MAP.get(name, []):
+            if discord_name not in candidates:
+                candidates.append(discord_name)
+    return candidates
+
+
+# Flask division role -> the league name that also confers its Discord role.
+_DIVISION_ROLE_LEAGUE = {'pl-premier': 'premier', 'pl-classic': 'classic',
+                         'pl-ecs-fc': 'ecs fc'}
+
+
+def _retention_note(player, flask_role_name):
+    """Explain why un-toggling a division role won't remove the Discord role yet.
+
+    The Discord division role is computed from THREE independent sources — the
+    pl-<division> Flask role, the player's league associations, and current-season
+    team membership — so dropping only the Flask role leaves the other two standing
+    and the revoke pass correctly keeps the role. Without this note the admin sees a
+    toggle flip and no Discord change, which reads as "roles are broken".
+
+    Returns a short sentence, or None when the revoke will go through.
+    """
+    league = _DIVISION_ROLE_LEAGUE.get(flask_role_name)
+    if not league or not player:
+        return None
+
+    reasons = []
+    try:
+        team = next((t for t in player.teams
+                     if t.league and (t.league.name or '').strip().lower() == league), None)
+        if team:
+            reasons.append(f'still rostered on {team.name}')
+    except Exception:
+        pass
+    try:
+        assoc = [lg for lg in ([player.league, player.primary_league]
+                               + list(player.other_leagues or []))
+                 if lg and (lg.name or '').strip().lower() == league]
+        if assoc:
+            reasons.append('league association still set')
+    except Exception:
+        pass
+
+    if not reasons:
+        return None
+    return (f"Discord role kept — {' and '.join(reasons)}. "
+            f"Clear that first to drop the Discord role.")
 
 
 def sync_ecs_fc_coach_status(user, is_adding_role: bool):
@@ -302,6 +362,17 @@ def assign_user_roles():
                 defer_discord_sync(user.player.id, only_add=False)
                 logger.info(f"Queued Discord role sync for user {user.id} after role assignment")
 
+                # This form REPLACES the whole role set, so anything dropped is an
+                # explicit revocation. The reconcile above can't act on it (protected-
+                # role allowlist), so queue a precise revoke for the Discord roles the
+                # removed Flask roles conferred — each still re-checked against the
+                # shared calculator before it comes off.
+                candidates = _discord_roles_for_flask_roles(
+                    [r.name for r in roles_removed])
+                if candidates:
+                    defer_discord_revoke(user.player.id, candidate_roles=candidates)
+                    logger.info(f"Queued revoke check for {candidates} on user {user.id}")
+
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user.id,
@@ -513,6 +584,25 @@ def assign_user_role():
             if user.player and user.player.discord_id:
                 defer_discord_sync(user.player.id, only_add=False)
                 logger.info(f"Queued Discord role sync for user {user.id} after role {action}")
+
+                # A reconcile alone CANNOT take a division/coach role back off — the
+                # protected-role allowlist blocks it (it exists to stop calculator
+                # drift wiping the league), so un-toggling pl-premier used to leave
+                # ECS-FC-PL-PREMIER on the member indefinitely. Queue an explicit
+                # revoke for exactly the Discord role(s) this Flask role confers; the
+                # shared calculator still gets the final say, so if the player is
+                # entitled to it by another route (rostered on a Premier team, holds
+                # the other coach role) it is kept.
+                if action == 'remove':
+                    candidates = _discord_roles_for_flask_roles([role.name])
+                    if candidates:
+                        defer_discord_revoke(user.player.id, candidate_roles=candidates)
+                        logger.info(
+                            f"Queued revoke check for {candidates} on user {user.id}"
+                        )
+                        note = _retention_note(user.player, role.name)
+                        if note:
+                            message = f'{message}. {note}'
 
             # Phase-0 dual-write: reflect the role change in the league_membership spine.
             if user.player:

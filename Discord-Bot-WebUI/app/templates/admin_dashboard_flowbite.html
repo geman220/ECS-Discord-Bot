@@ -41,11 +41,11 @@
 
     <!-- Command toolbar: admin destinations as quick actions -->
     <div class="flex flex-wrap gap-2" role="group" aria-label="Admin quick actions">
-        <a href="{{ url_for('admin_panel.user_approvals') }}"
+        <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-user-check text-base text-amber-600 dark:text-amber-400" aria-hidden="true"></i> User Approvals
         </a>
-        <a href="{{ url_for('admin_panel.user_waitlist') }}"
+        <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-clock text-base text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i> Waitlist
         </a>
@@ -312,7 +312,7 @@
             </a>
             {% endif %}
 
-            <a href="{{ url_for('admin_panel.user_approvals') }}"
+            <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                     <i class="ti ti-users text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
@@ -324,7 +324,7 @@
                 <i class="ti ti-chevron-right text-gray-400 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
             </a>
 
-            <a href="{{ url_for('admin_panel.user_waitlist') }}"
+            <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
                class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
                 <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
                     <i class="ti ti-clock text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>
@@ -521,7 +521,7 @@
                     </a>
                     {% endif %}
 
-                    <a href="{{ url_for('admin_panel.user_approvals') }}"
+                    <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                             <i class="ti ti-users text-amber-600 dark:text-amber-400"></i>
@@ -533,7 +533,7 @@
                         <i class="ti ti-chevron-right text-gray-400"></i>
                     </a>
 
-                    <a href="{{ url_for('admin_panel.user_waitlist') }}"
+                    <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
                         <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
                             <i class="ti ti-clock text-cyan-600 dark:text-cyan-400"></i>

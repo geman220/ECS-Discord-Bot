@@ -774,27 +774,83 @@ def cleanup_task_executions(self, session):
     pinned for the whole transaction — see the transaction-budget notes).
     """
     from datetime import datetime, timedelta
-    from app.models.api_logs import TaskExecution
+    from sqlalchemy import text
 
     retention_days = int(os.getenv('TASK_EXECUTION_RETENTION_DAYS', '14'))
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
+    # One statement per batch: the SELECT that picks the batch runs inside the
+    # DELETE, so we don't pay a second round trip (and a second index scan over
+    # the same rows) for every 5,000 deletions. Still batched + committed per
+    # batch so no pgbouncer server slot is pinned for long.
+    stmt = text("""
+        DELETE FROM task_executions
+        WHERE id IN (
+            SELECT id FROM task_executions
+            WHERE created_at < :cutoff
+            ORDER BY id
+            LIMIT :batch
+        )
+    """)
+
     total = 0
     while True:
-        ids = [
-            r[0] for r in session.query(TaskExecution.id)
-            .filter(TaskExecution.created_at < cutoff)
-            .limit(5000).all()
-        ]
-        if not ids:
-            break
-        session.query(TaskExecution).filter(TaskExecution.id.in_(ids)).delete(
-            synchronize_session=False
-        )
+        deleted = session.execute(stmt, {'cutoff': cutoff, 'batch': 5000}).rowcount
         session.commit()
-        total += len(ids)
+        if not deleted:
+            break
+        total += deleted
 
     logger.info(f"cleanup_task_executions: deleted {total} rows older than {retention_days}d")
+    return {'deleted': total, 'retention_days': retention_days}
+
+
+@celery_task(
+    name='app.tasks.tasks_maintenance.cleanup_api_request_logs',
+    bind=True,
+    queue='celery',
+    max_retries=1
+)
+def cleanup_api_request_logs(self, session):
+    """Trim the api_request_logs table to a rolling retention window.
+
+    Sibling of cleanup_task_executions, and overdue: that table had a retention
+    task while this one never did. It reached 555 MB / 2.26M rows — the largest
+    table in the database, bigger than every piece of actual league data
+    combined — on a box where the whole working set wants to fit in cache.
+
+    Nothing reads beyond a 24h window. The monitoring dashboards
+    (admin_panel/routes/monitoring.py) all filter to `timestamp >= now - 24h`,
+    so the default 7-day window is already six days more history than any
+    surface displays.
+
+    Batched + committed per batch so no pgbouncer server slot is held long.
+    """
+    from datetime import datetime, timedelta
+    from sqlalchemy import text
+
+    retention_days = int(os.getenv('API_REQUEST_LOG_RETENTION_DAYS', '7'))
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+
+    stmt = text("""
+        DELETE FROM api_request_logs
+        WHERE id IN (
+            SELECT id FROM api_request_logs
+            WHERE timestamp < :cutoff
+            ORDER BY id
+            LIMIT :batch
+        )
+    """)
+
+    total = 0
+    while True:
+        deleted = session.execute(stmt, {'cutoff': cutoff, 'batch': 5000}).rowcount
+        session.commit()
+        if not deleted:
+            break
+        total += deleted
+
+    logger.info(f"cleanup_api_request_logs: deleted {total} rows older than {retention_days}d")
     return {'deleted': total, 'retention_days': retention_days}
 
 

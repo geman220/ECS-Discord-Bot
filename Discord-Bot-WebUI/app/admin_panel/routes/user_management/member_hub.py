@@ -1159,9 +1159,9 @@ def member_place(user_id):
     from app.models import Team, PlayerTeamSeason, player_teams
     from sqlalchemy import update as _sa_update
     from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError, UserNotFoundError
-    from app.utils.deferred_discord import defer_discord_sync
-    from app.tasks.tasks_discord import remove_player_roles_task
+    from app.utils.deferred_discord import defer_discord_sync, defer_discord_revoke
     from app.services.league_membership_sync import resync_player_memberships
+    from app.services.player_division_service import align_player_to_drafted_division
 
     data = request.get_json(silent=True) or {}
     action = (data.get('action') or 'add').strip()
@@ -1197,8 +1197,19 @@ def member_place(user_id):
                 db.session.flush()
                 resync_player_memberships(db.session, player.id)
                 if player.discord_id:
-                    # Targeted removal (bypasses the reconcile allowlist) strips THIS team's roles.
-                    remove_player_roles_task.delay(player_id=player.id, team_id=team.id)
+                    # Revoke exactly what they are no longer entitled to. The roster
+                    # rows are already gone at this point, so the shared calculator
+                    # sees the post-removal truth: this team's -Player/-Coach roles
+                    # come off, and a division coach role comes off only if they no
+                    # longer coach any team in that division. Every other team's roles
+                    # (e.g. an ECS FC team they are still on) are re-checked and kept.
+                    defer_discord_revoke(
+                        player.id,
+                        team_ids=[team.id],
+                        candidate_roles=['ECS-FC-PL-PREMIER-COACH',
+                                         'ECS-FC-PL-CLASSIC-COACH',
+                                         'ECS-FC-PL-ECS-FC-COACH'],
+                    )
                 message = f'{player.name} removed from {team.name}'
             elif action == 'primary':
                 # Make an already-rostered team the player's PRIMARY (sets primary_league too).
@@ -1208,6 +1219,12 @@ def member_place(user_id):
                 player.primary_team_id = team.id
                 if team.league:
                     player.primary_league_id = team.league_id
+                # Keep the league association + pl-<division> Flask role in step with
+                # the new primary, so the division Discord role follows the move.
+                try:
+                    align_player_to_drafted_division(db.session, player.id, team)
+                except Exception as _div_err:
+                    logger.warning(f"Division alignment skipped for player {player.id}: {_div_err}")
                 db.session.flush()
                 resync_player_memberships(db.session, player.id)
                 if player.discord_id:
@@ -1243,12 +1260,26 @@ def member_place(user_id):
                     else:
                         db.session.add(PlayerTeamSeason(
                             player_id=player.id, team_id=team.id, season_id=season_id, is_coach=is_coach))
+                # Give them the drafted division's league association + pl-<division>
+                # Flask role (mirrors the draft path's align step). Without this, placing
+                # an existing player on a Premier team wrote the roster row and granted
+                # the TEAM role but never ECS-FC-PL-PREMIER: the calculators derive the
+                # division role from league associations / Flask roles, and this route
+                # only set primary_league_id for a player who had no primary team yet.
+                # Purely additive — it never displaces an existing primary or strips the
+                # other division. No-op for ECS FC.
+                try:
+                    align_player_to_drafted_division(db.session, player.id, team)
+                except Exception as _div_err:
+                    logger.warning(f"Division alignment skipped for player {player.id}: {_div_err}")
                 # A rostered player must not keep a conflicting Pub League sub role/pool
                 # (mirrors the draft path) — otherwise the stale sub role fights their team role.
+                sub_cleanup = None
                 try:
                     from app.services.sub_status_service import remove_conflicting_sub_status
-                    remove_conflicting_sub_status(db.session, player.id,
-                                                  performed_by_user_id=getattr(current_user, 'id', None))
+                    sub_cleanup = remove_conflicting_sub_status(
+                        db.session, player.id,
+                        performed_by_user_id=getattr(current_user, 'id', None))
                 except Exception as _sub_err:
                     logger.warning(f"sub-status cleanup skipped for player {player.id}: {_sub_err}")
                 # A rostered player is IN — auto-clear any stale waitlist so we never leave
@@ -1266,7 +1297,15 @@ def member_place(user_id):
                 db.session.flush()
                 resync_player_memberships(db.session, player.id)
                 if player.discord_id:
-                    defer_discord_sync(player.id, only_add=True)  # additive grant, never strips
+                    # Additive grant — placement never strips a role (now genuinely
+                    # true: the deferred queue honours only_add per batch). The one
+                    # exception is a sub role we just revoked above: leaving it in
+                    # Discord would orphan the ECS-FC-PL-*-SUB role, and -SUB is the
+                    # one thing the reconcile allowlist permits stripping, so flip to
+                    # a full reconcile for that case (mirrors the draft path).
+                    from app.services.sub_status_service import sub_status_removed
+                    defer_discord_sync(player.id,
+                                       only_add=not sub_status_removed(sub_cleanup))
                 message = f'{player.name} placed on {team.name}{" as coach" if is_coach else ""}'
 
         return jsonify({'success': True, 'message': message})

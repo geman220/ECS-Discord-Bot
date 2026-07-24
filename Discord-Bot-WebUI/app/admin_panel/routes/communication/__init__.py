@@ -17,6 +17,7 @@ This package contains routes for communication management:
 - In-app messaging settings (DM permissions)
 - Discord welcome messages (per-league bot onboarding copy)
 - SMS delivery & costs
+- Automated messaging (lifecycle rules: draft -> Discord invite, season wrap-up)
 """
 
 
@@ -42,5 +43,6 @@ def register_communication_routes():
         sms_analytics,
         email_broadcasts,
         email_templates,
+        automations,
         ajax,
     )

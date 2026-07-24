@@ -196,11 +196,82 @@ class EmailBroadcastService:
                 else:
                     users = []
 
+        elif filter_type == 'drafted_not_in_discord':
+            user_ids = self._resolve_drafted_not_in_discord(session, filter_criteria)
+            if user_ids:
+                users = base_query.filter(User.id.in_(user_ids)).all()
+            else:
+                users = []
+
         else:
             logger.warning(f"Unknown filter type: {filter_type}")
             users = []
 
         return [{'user_id': u.id, 'name': u.username} for u in users]
+
+    def _resolve_drafted_not_in_discord(self, session, filter_criteria):
+        """User IDs of players rostered this season who are NOT in the Discord server.
+
+        Roster source is player_teams (the live roster), season-scoped through
+        Team -> League -> Season. PlayerTeamSeason is the durable snapshot and can
+        drift when a mid-season move only touches player_teams, so it is not used
+        here. DraftOrderHistory is not required either: its writes are explicitly
+        best-effort (wrapped in a swallowed SAVEPOINT in the socket draft path),
+        so an inner join would silently drop legitimately-rostered players.
+
+        "Not in Discord" deliberately includes players with no discord_id at all --
+        they have not linked an account, which is exactly the problem this email
+        exists to fix.
+
+        Args:
+            session: Database session.
+            filter_criteria (dict): Supports 'league_ids' (list) or 'league_id',
+                'season_id', and 'include_coaches' (default False).
+
+        Returns:
+            list[int]: Matching user IDs.
+        """
+        league_ids = filter_criteria.get('league_ids', [])
+        if not league_ids and filter_criteria.get('league_id'):
+            league_ids = [filter_criteria['league_id']]
+        league_ids = [int(lid) for lid in league_ids]
+        season_id = filter_criteria.get('season_id')
+        include_coaches = filter_criteria.get('include_coaches', False)
+
+        q = (
+            session.query(Player.user_id)
+            .join(player_teams, player_teams.c.player_id == Player.id)
+            .join(Team, Team.id == player_teams.c.team_id)
+            .join(League, League.id == Team.league_id)
+            .filter(Player.user_id.isnot(None))
+        )
+
+        if league_ids:
+            q = q.filter(League.id.in_(league_ids))
+        if season_id:
+            q = q.filter(League.season_id == int(season_id))
+        if not league_ids and not season_id:
+            # Never fall back to "every player who was ever on a team".
+            logger.warning("drafted_not_in_discord called without league_ids or season_id")
+            return []
+
+        if not include_coaches:
+            # isnot(True), NOT is_(False): is_coach is nullable with only a
+            # Python-side default, so legacy rows hold NULL and is_(False) would
+            # silently drop those players from the audience.
+            q = q.filter(player_teams.c.is_coach.isnot(True))
+
+        # discord_in_server is nullable: NULL = never checked. Treat unknown as
+        # "not in server" so nobody is silently skipped; the automation refreshes
+        # stale rows against the bot before resolving, so NULL here means the
+        # check genuinely could not be completed.
+        q = q.filter(
+            or_(Player.discord_id.is_(None),
+                Player.discord_in_server.is_(None),
+                Player.discord_in_server.is_(False))
+        )
+
+        return [row[0] for row in q.distinct().all()]
 
     def _resolve_specific_users(self, session, filter_criteria, force_send):
         """Resolve specific users by user_id list."""
@@ -395,6 +466,18 @@ class EmailBroadcastService:
             return 'By role'
         elif filter_type == 'by_discord_role':
             return f'Discord role: {filter_criteria.get("discord_role", "Unknown")}'
+        elif filter_type == 'drafted_not_in_discord':
+            league_ids = filter_criteria.get('league_ids', [])
+            if not league_ids and filter_criteria.get('league_id'):
+                league_ids = [filter_criteria['league_id']]
+            names = []
+            for lid in league_ids:
+                league = session.query(League).get(int(lid))
+                if league:
+                    names.append(league.name)
+            scope = ', '.join(names) if names else 'current season'
+            coaches = '' if filter_criteria.get('include_coaches') else ', excluding coaches'
+            return f'Rostered players not in Discord ({scope}{coaches})'
         elif filter_type == 'specific_users':
             user_ids = filter_criteria.get('user_ids', [])
             count = len(user_ids)

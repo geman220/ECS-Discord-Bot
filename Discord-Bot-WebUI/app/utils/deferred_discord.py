@@ -47,6 +47,21 @@ class DeferredDiscordQueue:
             kwargs={}
         ))
 
+    def add_role_revoke(self, player_id: int, candidate_roles=None, team_ids=None):
+        """Queue a precise revoke pass (see revoke_unexpected_roles_task).
+
+        MUST be deferred rather than dispatched inline: the task re-derives the
+        player's expected roles from the database, so it has to run after the
+        request's transaction commits or it would read the pre-change roster and
+        conclude nothing needs revoking.
+        """
+        self._operations.append(DeferredDiscordOperation(
+            operation_type='revoke_roles',
+            player_id=player_id,
+            kwargs={'candidate_roles': list(candidate_roles or []),
+                    'team_ids': list(team_ids or [])}
+        ))
+
     def add_dm(self, player_id: int, message: str, **kwargs):
         self._operations.append(DeferredDiscordOperation(
             operation_type='send_dm',
@@ -57,12 +72,16 @@ class DeferredDiscordQueue:
     def execute_all(self) -> int:
         """Dispatch all queued operations to Celery. Empties the queue.
 
-        assign_roles ops are COALESCED into a single batched reconcile task
+        assign_roles ops are COALESCED into batched tasks
         (process_discord_role_updates) rather than one task per player. Bulk admin
         actions (approve / role-assign 100-300 users) queue one assign op each, and
         the old per-op .delay() fan-out spawned N concurrent role-sync tasks that
-        tripped Discord's rate limiter. Every add_role_sync caller uses
-        only_add=False, so a full add+remove reconcile is the correct semantics.
+        tripped Discord's rate limiter.
+
+        Coalescing is done PER only_add MODE. This used to collapse every assign op
+        into a single reconcile dispatch and drop only_add entirely, so a caller that
+        asked for an additive grant (member-hub team placement documented its sync as
+        "additive, never strips") silently got a full add+remove reconcile instead.
         remove_roles / DM ops are left per-player (rare, usually single-user).
         """
         if not self._operations:
@@ -71,41 +90,53 @@ class DeferredDiscordQueue:
         from app.tasks.tasks_discord import (
             process_discord_role_updates,
             remove_player_roles_task,
+            revoke_unexpected_roles_task,
         )
 
-        # Split assign ops (batched) from the rest.
-        assign_player_ids = []
-        seen_assign = set()
+        # Split assign ops (batched, grouped by mode) from the rest. When the same
+        # player is queued in both modes in one request, the reconcile wins — it is
+        # the stricter operation and subsumes the additive one.
+        assign_by_mode = {True: [], False: []}
+        seen_assign = {}
         other_ops = []
         for op in self._operations:
             if op.operation_type == 'assign_roles':
-                if op.player_id not in seen_assign:
-                    seen_assign.add(op.player_id)
-                    assign_player_ids.append(op.player_id)
+                mode = bool(op.kwargs.get('only_add', False))
+                prev = seen_assign.get(op.player_id)
+                if prev is None:
+                    seen_assign[op.player_id] = mode
+                    assign_by_mode[mode].append(op.player_id)
+                elif prev is True and mode is False:
+                    # Upgrade this player from additive to reconcile.
+                    assign_by_mode[True].remove(op.player_id)
+                    assign_by_mode[False].append(op.player_id)
+                    seen_assign[op.player_id] = False
             else:
                 other_ops.append(op)
 
         dispatched = 0
 
-        # One batched reconcile task for all assign_roles players.
-        if assign_player_ids:
+        # One batched task per mode.
+        for mode, player_ids in assign_by_mode.items():
+            if not player_ids:
+                continue
             try:
                 from app.core.session_manager import managed_session
                 from app.models import Player
                 with managed_session() as s:
                     discord_ids = [
                         str(did) for (did,) in s.query(Player.discord_id).filter(
-                            Player.id.in_(assign_player_ids),
+                            Player.id.in_(player_ids),
                             Player.discord_id.isnot(None),
                         ).all()
                     ]
                 if discord_ids:
-                    process_discord_role_updates.delay(discord_ids)
+                    process_discord_role_updates.delay(discord_ids, only_add=mode)
                     dispatched += 1
             except Exception as e:
                 logger.error(
-                    f"Failed to dispatch batched role sync for "
-                    f"{len(assign_player_ids)} players: {e}"
+                    f"Failed to dispatch batched role sync (only_add={mode}) for "
+                    f"{len(player_ids)} players: {e}"
                 )
 
         # Remaining ops (removals, DMs) stay per-player.
@@ -113,6 +144,10 @@ class DeferredDiscordQueue:
             try:
                 if op.operation_type == 'remove_roles':
                     remove_player_roles_task.delay(
+                        player_id=op.player_id, **op.kwargs
+                    )
+                elif op.operation_type == 'revoke_roles':
+                    revoke_unexpected_roles_task.delay(
                         player_id=op.player_id, **op.kwargs
                     )
                 elif op.operation_type == 'send_dm':
@@ -132,7 +167,8 @@ class DeferredDiscordQueue:
         if dispatched:
             logger.info(
                 f"Dispatched {dispatched} deferred Discord task(s) "
-                f"({len(assign_player_ids)} players batched for role sync)"
+                f"({len(assign_by_mode[False])} reconcile / "
+                f"{len(assign_by_mode[True])} add-only players batched for role sync)"
             )
         return dispatched
 
@@ -186,6 +222,15 @@ def defer_discord_sync(player_id: int, only_add: bool = True):
 def defer_discord_removal(player_id: int):
     """Queue a Discord role removal. Dispatched after the request commits."""
     get_discord_queue().add_role_removal(player_id)
+
+
+def defer_discord_revoke(player_id: int, candidate_roles=None, team_ids=None):
+    """Queue a precise revoke pass. Dispatched after the request commits.
+
+    Only roles the shared expected-role calculator no longer grants are removed, so
+    this is safe to call after any roster or Flask-role change.
+    """
+    get_discord_queue().add_role_revoke(player_id, candidate_roles, team_ids)
 
 
 def clear_deferred_discord():

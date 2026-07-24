@@ -394,7 +394,8 @@ def redis_pool_status():
 def redis_draft_cache_stats():
     """Display draft cache statistics."""
     # Consolidated into the System Command Center → Data & Cache (draft cache panel).
-    # Fallback kept below.
+    # NOTE: everything below this return is UNREACHABLE. It is NOT a runtime fallback —
+    # it is kept only as a one-line-delete revert switch until the dead-code pass.
     return redirect(url_for('admin_panel.system_center', tab='data'))
     try:
         from app.draft_cache_service import DraftCacheService

@@ -1,0 +1,381 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}{{ rule.name }}{% endblock %}
+{% block panel_description %}Configure when this automation fires, who it reaches, and what it says{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.automations_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Automated Messaging</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[12rem]">{{ rule.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+{% set cfg = rule.trigger_config or {} %}
+
+<div data-page="automations" data-trigger-type="{{ rule.trigger_type }}" class="space-y-5 sm:space-y-6">
+
+  {% call page_header(rule.name, subtitle=rule.trigger_label) %}
+    <button type="button" data-action="automation-preview" data-rule-id="{{ rule.id }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+      <i class="ti ti-eye" aria-hidden="true"></i><span>Dry run</span>
+    </button>
+    <button type="button" data-action="automation-send-test" data-rule-id="{{ rule.id }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+      <i class="ti ti-mail-fast" aria-hidden="true"></i><span>Test to me</span>
+    </button>
+    {% if user_roles and 'Global Admin' in user_roles %}
+    <button type="button" data-action="automation-force-run"
+            data-rule-id="{{ rule.id }}" data-rule-name="{{ rule.name }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/15 hover:bg-amber-200 dark:hover:bg-amber-500/25 transition-colors">
+      <i class="ti ti-bolt" aria-hidden="true"></i><span>Force run</span>
+    </button>
+    {% endif %}
+    <button type="button" data-action="automation-save" data-rule-id="{{ rule.id }}"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i><span>Save</span>
+    </button>
+  {% endcall %}
+
+  {% if rule.enabled %}
+  <div class="rounded-xl border border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10 p-4 flex gap-3">
+    <i class="ti ti-player-play-filled text-green-600 dark:text-green-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+    <p class="text-sm text-green-900 dark:text-green-200"><strong>This automation is live.</strong>
+    Changes you save here affect future sends. Runs already scheduled keep the copy they were
+    created with only after they have sent &mdash; a pending run picks up your edits.</p>
+  </div>
+  {% else %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4 flex gap-3">
+    <i class="ti ti-player-pause text-gray-500 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+    <p class="text-sm text-gray-700 dark:text-gray-300"><strong>This automation is off.</strong>
+    Nothing sends until you turn it on from the
+    <a href="{{ url_for('admin_panel.automations_list') }}" class="text-ecs-green hover:underline">rules list</a>.
+    Use <em>Dry run</em> to see who it would reach.</p>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- ============ LEFT: trigger + audience ============ -->
+    <div class="lg:col-span-1 space-y-5">
+
+      {% call section_card('When it fires', icon='ti-bolt') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <label for="ruleName" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Rule name</label>
+          <input type="text" id="ruleName" value="{{ rule.name }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+
+        <div>
+          <label for="ruleDescription" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">What it's for</label>
+          <textarea id="ruleDescription" rows="3"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.description or '' }}</textarea>
+        </div>
+
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 p-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Trigger</p>
+          <p class="mt-0.5 text-sm font-semibold text-gray-900 dark:text-white">{{ rule.trigger_label }}</p>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            The trigger type is fixed for a rule &mdash; it decides which detector runs.
+          </p>
+        </div>
+
+        <!-- Draft-specific tuning -->
+        <div data-trigger-fields="draft_complete" class="space-y-4 hidden">
+          <div>
+            <label for="ruleMinPlayers" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+              Players per team before the draft counts as done
+            </label>
+            <input type="number" id="ruleMinPlayers" min="1" max="30"
+                   value="{{ cfg.get('min_players_per_team', 6) }}"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <strong>Every</strong> active team in the league must reach this many non-coach
+              players. Coaches are drafted onto teams about a week early, so a low number here
+              risks firing on the coach draft instead of the real one.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Season date tuning -->
+        <div data-trigger-fields="season_date" class="grid grid-cols-2 gap-3 hidden">
+          <div>
+            <label for="ruleDateAnchor" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Anchor</label>
+            <select id="ruleDateAnchor"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+              <option value="start" {% if cfg.get('date_anchor', 'start') == 'start' %}selected{% endif %}>Season start date</option>
+              <option value="end" {% if cfg.get('date_anchor') == 'end' %}selected{% endif %}>Season end date</option>
+            </select>
+          </div>
+          <div>
+            <label for="ruleDaysOffset" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Days offset</label>
+            <input type="number" id="ruleDaysOffset" value="{{ cfg.get('days_offset', 0) }}"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">-3 = three days before, +1 = day after. Counted from local midnight.</p>
+          </div>
+        </div>
+
+        <!-- Per-person thresholds -->
+        <div data-trigger-fields="waitlist_stuck" class="hidden">
+          <label for="ruleStuckDays" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Waiting longer than (days)</label>
+          <input type="number" id="ruleStuckDays" min="1" max="365" value="{{ cfg.get('stuck_days', 14) }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">The wait below is counted from the moment they cross this line, not from when they joined.</p>
+        </div>
+        <div data-trigger-fields="sub_no_reply" class="hidden">
+          <label for="ruleSilenceHours" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Silent for (hours)</label>
+          <input type="number" id="ruleSilenceHours" min="1" max="8760" value="{{ cfg.get('silence_hours', 24) }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+        
+        <!-- Season-phase tuning -->
+        <div data-trigger-fields="season_phase" class="space-y-4 hidden">
+          <div>
+            <label for="rulePhase" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Fires when the season enters</label>
+            <select id="rulePhase"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+              {% for p in ['preseason', 'in_season', 'break', 'offseason'] %}
+              <option value="{{ p }}" {% if cfg.get('phase', 'offseason') == p %}selected{% endif %}>{{ p.replace('_', ' ')|title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {# Applies to every trigger type, so it lives OUTSIDE the per-trigger
+           blocks — having one copy per block produced duplicate element ids and
+           getElementById would read whichever came first, hidden or not. #}
+        <div>
+          <label for="ruleMaxEventAge" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+            Freshness window (days)
+          </label>
+          <input type="number" id="ruleMaxEventAge" min="1" max="365"
+                 value="{{ cfg.get('max_event_age_days', 14) }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Safety valve. If you enable this rule long after the trigger already happened,
+            the stale event is recorded as <em>skipped</em> instead of blasting everyone.
+            You can still send it by hand with <em>Force run</em>.
+          </p>
+        </div>
+
+        <div>
+          <label for="ruleDelayHours" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Wait before sending (hours)</label>
+          <input type="number" id="ruleDelayHours" min="0" max="720" value="{{ rule.delay_hours }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Counted from when the trigger actually happened &mdash; for a draft, the pick that
+            pushed the last team over the line &mdash; not from when the system noticed.
+          </p>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% call section_card('Who gets it', icon='ti-users') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <label for="ruleAudienceType" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Audience</label>
+          <select id="ruleAudienceType"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            {% for value, label, help in audience_types %}
+            <option value="{{ value }}" {% if rule.audience_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <div class="mt-2 space-y-1">
+            {% for value, label, help in audience_types %}
+            <p class="text-xs text-gray-500 dark:text-gray-400"><strong>{{ label }}:</strong> {{ help }}</p>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" id="ruleForceSend" {% if rule.force_send %}checked{% endif %}
+                   class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+            <span class="text-sm text-gray-900 dark:text-white">
+              Ignore email-notification opt-outs
+              <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                Treats this as operational mail, like a password reset, and reaches people who
+                turned email off. Leave unchecked for anything optional.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        {# ── Action: delivery channels ─────────────────────────────────── #}
+        {% set active_channels = rule.channels or ['email'] %}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <p class="text-sm font-medium text-gray-900 dark:text-white">Deliver on</p>
+          <div class="mt-2 space-y-1.5">
+            {% for ch, ch_label, ch_help in [
+                ('email', 'Email', 'Full HTML message with your layout.'),
+                ('push', 'Push notification', 'Phones with the ECS app installed.'),
+                ('discord', 'Discord DM', 'Direct message from the bot.'),
+                ('in_app', 'In-app alert', 'Notification bell on the website.')] %}
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" class="rule-channel mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"
+                     value="{{ ch }}" {% if ch in active_channels %}checked{% endif %}>
+              <span class="text-sm text-gray-900 dark:text-white">{{ ch_label }}
+                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ ch_help }}</span>
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+          <p class="mt-2.5 text-xs text-gray-500 dark:text-gray-400">
+            <strong>Email on its own</strong> uses the email-blast system: your HTML layout, and a
+            per-person record of who received it. <strong>Adding any other channel</strong> switches to
+            the notification system &mdash; genuinely multi-channel, but you only get per-channel
+            totals, not per-person delivery rows.
+          </p>
+          <p class="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
+            SMS is deliberately not offered here: sends are capped at 100/hour across the whole
+            system, so an unattended blast would quietly start failing halfway through.
+          </p>
+        </div>
+
+        <div id="shortMessageWrap" class="{% if active_channels == ['email'] %}hidden{% endif %}">
+          <label for="ruleShortMessage" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+            Short message (push / Discord / in-app)
+          </label>
+          <textarea id="ruleShortMessage" rows="3" maxlength="1000"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.short_message or '' }}</textarea>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Plain text, no HTML &mdash; a push notification cannot render it. Leave blank and the
+            HTML body gets stripped to text automatically, which usually reads badly.
+          </p>
+        </div>
+
+        {# ── Conditions: extra narrowing on top of the audience ──────────── #}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="text-sm font-medium text-gray-900 dark:text-white">Only if&hellip;</p>
+            <button type="button" data-action="automation-add-condition"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+              <i class="ti ti-plus" aria-hidden="true"></i><span>Add</span>
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Extra tests applied after the audience is worked out. <strong>Every</strong> one must
+            pass for a person to be included. Leave empty to send to the whole audience.
+          </p>
+          <div id="conditionRows" class="mt-2 space-y-2"></div>
+          <script type="application/json" id="automationConditions">{{ (rule.conditions or [])|tojson }}</script>
+          <script type="application/json" id="automationConditionFields">{{ condition_fields|tojson }}</script>
+          <script type="application/json" id="automationConditionOps">{{ condition_ops|tojson }}</script>
+        </div>
+
+        <div>
+          <label for="ruleSendMode" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Send mode</label>
+          <select id="ruleSendMode"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="individual" {% if rule.send_mode == 'individual' %}selected{% endif %}>Individual (personalized)</option>
+            <option value="bcc_batch" {% if rule.send_mode == 'bcc_batch' %}selected{% endif %}>BCC batches (faster, no personalization)</option>
+          </select>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Personalization tokens only work in individual mode.
+          </p>
+        </div>
+
+        <div>
+          <label for="ruleTemplateId" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Wrapper layout</label>
+          <select id="ruleTemplateId"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">Use the default layout</option>
+            {% for tpl in templates %}
+            <option value="{{ tpl.id }}" {% if rule.template_id == tpl.id %}selected{% endif %}>{{ tpl.name }}{% if tpl.is_default %} (default){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      {% endcall %}
+    </div>
+
+    <!-- ============ RIGHT: the message ============ -->
+    <div class="lg:col-span-2 space-y-5">
+      {% call section_card('What it says', icon='ti-message') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <label for="ruleSubject" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Subject line</label>
+          <input type="text" id="ruleSubject" value="{{ rule.subject }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+
+        <div>
+          <label for="ruleBody" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Message body (HTML)</label>
+          <textarea id="ruleBody" rows="24" spellcheck="false"
+                    class="w-full font-mono text-xs rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white p-3 focus:ring-ecs-green focus:border-ecs-green">{{ rule.body_html }}</textarea>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            This is the inner content only &mdash; the wrapper layout adds the ECS header and
+            footer. Use <em>Test to me</em> to see the finished email.
+          </p>
+        </div>
+
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 p-3">
+          <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Placeholders you can use</p>
+          <dl class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{first_name}</dt><dd class="text-gray-500 dark:text-gray-400">Recipient's first name</dd></div>
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{name}</dt><dd class="text-gray-500 dark:text-gray-400">Full name</dd></div>
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{team}</dt><dd class="text-gray-500 dark:text-gray-400">Their team</dd></div>
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{league}</dt><dd class="text-gray-500 dark:text-gray-400">Their league</dd></div>
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{season}</dt><dd class="text-gray-500 dark:text-gray-400">Season name</dd></div>
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{discord_invite_url}</dt><dd class="text-gray-500 dark:text-gray-400">Server invite link</dd></div>
+            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{support_email}</dt><dd class="text-gray-500 dark:text-gray-400">Support address</dd></div>
+          </dl>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            The first five are filled per recipient and need <strong>Individual</strong> send mode.
+            The last two are filled once at send time from admin settings.
+          </p>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% call section_card('Recent fires', icon='ti-history') %}
+      <div class="p-4 sm:p-5">
+      {% if not runs %}
+      <p class="text-sm text-gray-500 dark:text-gray-400">This rule hasn't fired yet.</p>
+      {% else %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead class="text-xs uppercase text-gray-500 dark:text-gray-400">
+            <tr>
+              <th scope="col" class="pb-2 pr-3">Scope</th>
+              <th scope="col" class="pb-2 pr-3">Status</th>
+              <th scope="col" class="pb-2 pr-3 hidden sm:table-cell">Sends</th>
+              <th scope="col" class="pb-2">Recipients</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for run in runs %}
+            <tr>
+              <td class="py-2 pr-3 text-gray-900 dark:text-white">{{ run.league.name if run.league else 'Whole season' }}</td>
+              <td class="py-2 pr-3 text-gray-600 dark:text-gray-300">{{ run.status }}</td>
+              <td class="py-2 pr-3 hidden sm:table-cell text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ run.scheduled_for.strftime('%b %d, %H:%M') }}</td>
+              <td class="py-2 font-mono text-gray-900 dark:text-white">{{ run.recipient_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+</div>
+{% endblock %}

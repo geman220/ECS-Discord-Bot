@@ -174,6 +174,25 @@ class AdminConfig(db.Model):
                     else:
                         g._admin_config_primed = True
                         return cache.get(key, default)
+        else:
+            # Celery / CLI / any non-request context. This used to fall straight
+            # through to the DB and then STORE to L2 without ever READING it, so
+            # every task run re-loaded the whole admin_config table — the third
+            # largest consumer of database time on the box, ~14M rows shipped
+            # across ~333k calls to answer questions Redis already had cached.
+            # There is no `g` to hang an L1 cache on here, so L2 is the only
+            # cache available; read it.
+            raw = cls._l2_load()
+            if raw is not None:
+                try:
+                    parsed = {k: cls._parse_value(value, data_type)
+                              for k, (value, data_type) in raw.items()}
+                except Exception:
+                    # Malformed/corrupt entry — degrade to a cache miss, never
+                    # to an error on the read path (same rule as the L1 branch).
+                    pass
+                else:
+                    return parsed.get(key, default)
 
         try:
             # Use Flask request session when available to prevent session conflicts

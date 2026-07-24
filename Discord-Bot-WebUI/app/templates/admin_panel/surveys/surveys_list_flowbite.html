@@ -5,11 +5,16 @@
 
 {% block breadcrumb_items %}
 <li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Communication</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
   <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Surveys & Polls</span></div></li>
 {% endblock %}
 
 {% block panel_content %}
-{% call page_header("Surveys & Polls", subtitle="Communication / Surveys") %}
+{% call page_header("Surveys & Polls", subtitle="Two ways to ask members a question — pick the one that fits") %}
+  <a href="{{ url_for('admin_panel.communication_hub') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+    <i class="ti ti-arrow-left"></i><span class="hidden sm:inline">Communication</span>
+  </a>
   <div class="relative" id="template-menu">
     <button type="button" data-action="toggle-template-menu" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
       <i class="ti ti-template"></i> Templates <i class="ti ti-chevron-down text-xs"></i>
@@ -23,11 +28,36 @@
       <a href="{{ url_for('admin_panel.survey_builder_new', template='event_feedback') }}" class="block px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">Event Feedback</a>
     </div>
   </div>
-  <a href="{{ url_for('admin_panel.survey_builder_new') }}"
-     class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-emerald-800">
-    <i class="ti ti-plus"></i> New survey
-  </a>
 {% endcall %}
+
+{# ===== Pick the type BEFORE the builder opens — no "create a survey then
+       switch it to a poll" detour. ===== #}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+  <a href="{{ url_for('admin_panel.survey_builder_new', type='survey') }}"
+     class="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 hover:border-ecs-green hover:shadow-md transition-all">
+    <div class="flex items-start gap-3">
+      <span class="shrink-0 w-11 h-11 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-clipboard-list text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors flex items-center gap-2">
+          New Survey <i class="ti ti-arrow-right text-sm opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"></i>
+        </h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A multi-question form answered <strong>on the website</strong>. Ratings, scales, free text, branching. Share it by link, email, push, or a Discord button.</p>
+      </div>
+    </div>
+  </a>
+  <a href="{{ url_for('admin_panel.survey_builder_new', type='poll') }}"
+     class="group rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 hover:border-indigo-500 hover:shadow-md transition-all">
+    <div class="flex items-start gap-3">
+      <span class="shrink-0 w-11 h-11 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center"><i class="ti ti-chart-bar text-xl" aria-hidden="true"></i></span>
+      <div class="min-w-0">
+        <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-indigo-500 transition-colors flex items-center gap-2">
+          New Poll <i class="ti ti-arrow-right text-sm opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true"></i>
+        </h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400"><strong>One</strong> choice question, 2–10 options. Can post as a real <strong>Discord poll</strong> members vote on without leaving Discord — votes sync back here.</p>
+      </div>
+    </div>
+  </a>
+</div>
 
 <!-- KPIs -->
 <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
@@ -64,11 +94,24 @@
       <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
         {% for s in surveys %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+          {% set is_poll = s.survey_type == 'poll' %}
           <td class="px-4 py-3">
-            <a href="{{ url_for('admin_panel.survey_results', survey_id=s.id) }}" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green">{{ s.title }}</a>
-            {% if s.is_anonymous %}<span class="ml-1.5 text-xs text-gray-400" title="Anonymous"><i class="ti ti-eye-off"></i></span>{% endif %}
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded {{ 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}"
+                    title="{{ 'Poll — one question, votable in Discord' if is_poll else 'Survey — multi-question web form' }}">
+                <i class="ti {{ 'ti-chart-bar' if is_poll else 'ti-clipboard-list' }} text-sm" aria-hidden="true"></i>
+              </span>
+              <a href="{{ url_for('admin_panel.survey_results', survey_id=s.id) }}" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green truncate">{{ s.title }}</a>
+              {% if s.is_anonymous %}<span class="shrink-0 text-xs text-gray-400" title="Anonymous"><i class="ti ti-eye-off"></i></span>{% endif %}
+            </div>
+            {# Type is hidden on small screens as its own column — surface it inline instead. #}
+            <span class="md:hidden mt-1 inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide {{ 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}">{{ 'Poll' if is_poll else 'Survey' }}</span>
           </td>
-          <td class="px-4 py-3 hidden md:table-cell capitalize text-gray-600 dark:text-gray-300">{{ s.survey_type }}</td>
+          <td class="px-4 py-3 hidden md:table-cell">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {{ 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}">
+              <i class="ti {{ 'ti-chart-bar' if is_poll else 'ti-clipboard-list' }} text-[11px]" aria-hidden="true"></i>{{ 'Poll' if is_poll else 'Survey' }}
+            </span>
+          </td>
           <td class="px-4 py-3 hidden md:table-cell text-gray-600 dark:text-gray-300">{{ s.category or '—' }}</td>
           <td class="px-4 py-3">
             {% set tone = {'open':'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300','draft':'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300','closed':'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300','archived':'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400','scheduled':'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'} %}
@@ -89,7 +132,9 @@
   </div>
 </div>
 {% else %}
-{{ empty_state('ti-clipboard-off', 'No surveys yet', 'Create your first survey or poll to start collecting responses.') }}
+{{ empty_state('ti-clipboard-off',
+   'Nothing here yet' if status_filter else 'No surveys or polls yet',
+   'No ' ~ status_filter ~ ' items — try another filter.' if status_filter else 'Pick Survey or Poll above to build your first one.') }}
 {% endif %}
 {% endblock %}
 

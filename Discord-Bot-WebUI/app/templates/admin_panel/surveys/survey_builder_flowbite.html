@@ -1,20 +1,27 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/_modern_kit.html' import page_header %}
 
-{% block admin_title %}{{ 'Edit Survey' if survey else 'New Survey' }}{% endblock %}
+{# initial_type drives every "is this a survey or a poll?" decision on first
+   paint; survey-builder.js takes over once the admin switches type. #}
+{% set is_poll = initial_type == 'poll' %}
+{% set type_noun = 'Poll' if is_poll else 'Survey' %}
+
+{% block admin_title %}{{ ('Edit ' if survey else 'New ') ~ type_noun }}{% endblock %}
 
 {% block breadcrumb_items %}
 <li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-  <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys</a></div></li>
+  <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Communication</a></div></li>
 <li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">{{ 'Edit' if survey else 'New' }}</span></div></li>
+  <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys &amp; Polls</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">{{ ('Edit ' if survey else 'New ') ~ type_noun }}</span></div></li>
 {% endblock %}
 
 {% set ITOGGLE = 'h-4 w-4 rounded text-ecs-green focus:ring-ecs-green border-gray-300 dark:border-gray-600' %}
 {% set IFIELD = 'mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green' %}
 
 {% block panel_content %}
-{% call page_header("Survey builder", subtitle="Communication / Surveys") %}
+{% call page_header(type_noun ~ ' builder', subtitle="Communication / Surveys & Polls") %}
   <a href="{{ url_for('admin_panel.surveys_list') }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">Cancel</a>
   <button type="button" id="survey-preview-btn" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50">
     <i class="ti ti-eye"></i> <span id="survey-preview-label">Preview</span>
@@ -24,7 +31,66 @@
   </button>
 {% endcall %}
 
-<div id="survey-builder" data-survey-id="{{ survey.id if survey else '' }}" data-as-template="{{ '1' if as_template else '' }}" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+{# ===== Mode banner — the single place that says what you're building, what
+       that means, and how to change it. Recoloured live by survey-builder.js. #}
+<div id="mode-banner"
+     class="rounded-xl border-2 p-4 sm:p-5 mb-5 {{ 'border-indigo-400/60 bg-indigo-50 dark:border-indigo-500/50 dark:bg-indigo-500/10' if is_poll else 'border-ecs-green/40 bg-green-50/60 dark:border-ecs-green/50 dark:bg-ecs-green/10' }}">
+  <div class="flex flex-col lg:flex-row lg:items-start gap-4">
+    <div class="flex items-start gap-3 min-w-0 flex-1">
+      <span id="mode-icon-wrap" class="shrink-0 w-11 h-11 rounded-lg flex items-center justify-center {{ 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-300' if is_poll else 'bg-ecs-green/15 text-ecs-green' }}">
+        <i id="mode-icon" class="ti {{ 'ti-chart-bar' if is_poll else 'ti-clipboard-list' }} text-xl" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <h2 class="font-semibold text-gray-900 dark:text-white">
+          You're building a <span id="mode-noun">{{ 'Poll' if is_poll else 'Survey' }}</span>
+        </h2>
+        <p id="mode-blurb" class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          {% if is_poll %}
+          <strong>One</strong> choice question with 2–10 options. It can be posted as a real <strong>Discord poll</strong> that members vote on without leaving Discord — those votes sync back into the results here.
+          {% else %}
+          As many questions as you like — ratings, scales, free text, branching — answered on a <strong>web form</strong>. Share it by link, email, push, or a Discord button that opens the site.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    {# Segmented switcher. The real value lives in the hidden select below so the
+       builder JS keeps one source of truth. #}
+    <div class="shrink-0">
+      <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Type</p>
+      <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 p-0.5" role="group" aria-label="Survey or poll">
+        <button type="button" data-type-switch="survey" class="type-switch inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors">
+          <i class="ti ti-clipboard-list text-sm" aria-hidden="true"></i> Survey
+        </button>
+        <button type="button" data-type-switch="poll" class="type-switch inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-sm font-medium transition-colors">
+          <i class="ti ti-chart-bar text-sm" aria-hidden="true"></i> Poll
+        </button>
+      </div>
+      <select id="sv-survey_type" class="sr-only" tabindex="-1" aria-hidden="true">
+        <option value="survey" {{ 'selected' if not is_poll }}>Survey</option>
+        <option value="poll" {{ 'selected' if is_poll }}>Poll</option>
+      </select>
+    </div>
+  </div>
+
+  {# Poll readiness — live checklist so "is this actually postable to Discord?"
+     is answered here, not after a failed send. #}
+  <div id="poll-readiness" class="hidden mt-4 pt-4 border-t border-indigo-200 dark:border-indigo-500/30">
+    <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Native Discord poll readiness</p>
+    <ul class="space-y-1.5 text-sm" id="poll-readiness-list"></ul>
+  </div>
+</div>
+
+{% if response_count %}
+<div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 mb-5 flex items-start gap-2.5">
+  <i class="ti ti-lock text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+  <p class="text-sm text-amber-800 dark:text-amber-200">
+    <strong>Question structure is locked.</strong> {{ response_count }} response{{ '' if response_count == 1 else 's' }} already came in, so changing questions would orphan them. Settings and scheduling still save normally — to change the questions, duplicate this into a new version.
+  </p>
+</div>
+{% endif %}
+
+<div id="survey-builder" data-survey-id="{{ survey.id if survey else '' }}" data-as-template="{{ '1' if as_template else '' }}" data-initial-type="{{ initial_type }}" data-response-count="{{ response_count }}" class="grid grid-cols-1 lg:grid-cols-3 gap-5">
   <!-- Questions column (edit) + live preview (toggled) -->
   <div class="lg:col-span-2 space-y-4">
     <div id="builder-edit" class="space-y-4">
@@ -41,18 +107,21 @@
 
       <div id="questions-list" class="space-y-4"></div>
 
-      <div class="flex items-center gap-2">
-        <select id="add-question-type" class="{{ IFIELD }} max-w-xs"></select>
-        <button type="button" id="add-question-btn" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-dashed border-ecs-green text-ecs-green text-sm font-medium hover:bg-ecs-green/5">
-          <i class="ti ti-plus"></i> Add question
-        </button>
+      <div>
+        <div class="flex items-center gap-2">
+          <select id="add-question-type" class="{{ IFIELD }} max-w-xs"></select>
+          <button type="button" id="add-question-btn" class="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-dashed border-ecs-green text-ecs-green text-sm font-medium hover:bg-ecs-green/5 disabled:opacity-40 disabled:cursor-not-allowed">
+            <i class="ti ti-plus"></i> <span id="add-question-label">Add question</span>
+          </button>
+        </div>
+        <p id="add-question-note" class="hidden mt-2 text-xs text-gray-500 dark:text-gray-400"></p>
       </div>
     </div>
 
     <!-- Live preview (respondent's view) -->
     <div id="builder-preview" class="hidden">
       <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4 sm:p-6">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1.5"><i class="ti ti-eye"></i> Live preview — this is what respondents see. Updates as you edit settings.</p>
+        <p id="preview-caption" class="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1.5"><i class="ti ti-eye"></i> Live preview — this is what respondents see. Updates as you edit settings.</p>
         <div id="preview-surface" class="max-w-xl mx-auto"></div>
       </div>
     </div>
@@ -64,13 +133,8 @@
       <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Settings</h3>
 
       <div>
-        <label class="block text-xs font-medium text-gray-500 dark:text-gray-400">Type</label>
-        <select id="sv-survey_type" class="{{ IFIELD }}">
-          <option value="survey">Survey — multiple questions, answered on the web</option>
-          <option value="poll">Poll — one quick question, can run natively in Discord</option>
-        </select>
-        <p id="sv-type-hint" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">A <strong>survey</strong> is a multi-question form members fill out on the website (you can share it by link, email, push, or a Discord button). A <strong>poll</strong> is a single choice question — build it with exactly one choice question (2–10 options) and you can post it as a real Discord poll members vote on without leaving Discord.</p>
-        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 mt-2"><input type="checkbox" id="sv-is_template" class="{{ ITOGGLE }}"> Save as reusable template</label>
+        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-is_template" class="{{ ITOGGLE }}"> Save as reusable template</label>
+        <p class="mt-1 text-xs text-gray-400 dark:text-gray-500 leading-snug">Templates don't collect responses — they're starting points you clone later.</p>
       </div>
       <div class="grid grid-cols-2 gap-2">
         <div>
@@ -106,10 +170,13 @@
 
       <fieldset class="space-y-2 pt-1 border-t border-gray-100 dark:border-gray-700">
         <legend class="text-xs font-semibold text-gray-500 dark:text-gray-400 pt-2 uppercase">Display</legend>
-        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-show_progress_bar" class="{{ ITOGGLE }}"> Show progress bar</label>
-        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-randomize_questions" class="{{ ITOGGLE }}"> Randomize question order</label>
+        {# data-survey-only: hidden in Poll mode, where a one-question form has no
+           progress bar and nothing to reorder. #}
+        <label data-survey-only class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-show_progress_bar" class="{{ ITOGGLE }}"> Show progress bar</label>
+        <label data-survey-only class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-randomize_questions" class="{{ ITOGGLE }}"> Randomize question order</label>
         <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-randomize_options" class="{{ ITOGGLE }}"> Randomize option order</label>
         <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" id="sv-show_results_to_respondents" class="{{ ITOGGLE }}"> Show results to respondents</label>
+        <p data-poll-only class="hidden text-xs text-gray-400 dark:text-gray-500 leading-snug">A native Discord poll always shows its own running tally in Discord — "Show results" only affects the web version.</p>
       </fieldset>
 
       <fieldset class="space-y-2 pt-1 border-t border-gray-100 dark:border-gray-700">

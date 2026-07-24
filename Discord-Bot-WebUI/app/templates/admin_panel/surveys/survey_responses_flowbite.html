@@ -5,6 +5,8 @@
 
 {% block breadcrumb_items %}
 <li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+  <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Communication</a></div></li>
+<li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
   <a href="{{ url_for('admin_panel.surveys_list') }}" class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2 hover:text-ecs-green">Surveys</a></div></li>
 <li><div class="flex items-center"><i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
   <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 md:ml-2">Responses</span></div></li>

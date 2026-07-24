@@ -72,6 +72,24 @@ def _json_truncate(value, limit=4000):
             return None
 
 
+# Tasks whose SUCCESSFUL runs are never recorded to task_executions.
+#
+# Recording costs one INSERT + one transaction + one pgbouncer server slot per
+# task run. For tasks that fire per-HTTP-request or on a seconds-scale beat,
+# that audit row costs far more than it is worth — pg_stat_statements had the
+# task_executions INSERT as the single largest consumer of database time on the
+# box (~19%), and the API-logging task alone accounted for the majority of it:
+# every logged API request queued a Celery task, which then wrote an audit row
+# ABOUT the act of logging that request. Observability was the workload.
+#
+# Failures are still recorded for every task, including these — a task that
+# breaks must remain visible on the Task History page. Only the routine
+# "it worked again, for the 237,000th time" rows are dropped.
+_TASK_EXECUTION_RECORDING_DENYLIST = frozenset({
+    'app.tasks.tasks_api_logging.log_api_request_async',
+})
+
+
 def _record_task_execution(task_name, task_id, started_at, status, result=None,
                            error=None, args=None, kwargs=None):
     """
@@ -84,7 +102,12 @@ def _record_task_execution(task_name, task_id, started_at, status, result=None,
 
     ``args`` / ``kwargs`` are the task's invocation arguments; they are JSON-encoded
     (truncated) so a failed execution can be re-enqueued from the Retry action.
+
+    High-frequency tasks in ``_TASK_EXECUTION_RECORDING_DENYLIST`` skip recording
+    on success (see the note there); their failures are still recorded.
     """
+    if status == 'completed' and task_name in _TASK_EXECUTION_RECORDING_DENYLIST:
+        return
     try:
         from datetime import datetime as _dt
         finished_at = _dt.utcnow()
@@ -103,8 +126,15 @@ def _record_task_execution(task_name, task_id, started_at, status, result=None,
         except Exception:
             worker = None
 
-        args_json = _json_truncate(list(args) if args else None)
-        kwargs_json = _json_truncate(dict(kwargs) if kwargs else None)
+        # args/kwargs exist for ONE reason: re-enqueueing a failed run from the
+        # Task History Retry action, which the UI only offers on failed rows
+        # (task_history_flowbite.html gates the button on `{% if failed %}`).
+        # On a successful run they are pure dead weight — up to 4 KB each, on
+        # every row, never read. task_executions was carrying ~630 bytes/row
+        # across 418k rows largely because of this.
+        failed = (status == 'failed')
+        args_json = _json_truncate(list(args) if args else None) if failed else None
+        kwargs_json = _json_truncate(dict(kwargs) if kwargs else None) if failed else None
 
         from app.models.api_logs import TaskExecution
         from app.core.session_manager import managed_session as _managed_session

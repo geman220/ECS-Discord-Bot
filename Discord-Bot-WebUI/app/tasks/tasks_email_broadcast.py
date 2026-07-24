@@ -279,3 +279,50 @@ def _send_individual(session, campaign, wrapper_html):
 
         # Rate limit delay
         time.sleep(1.5)
+
+
+@celery_task(
+    name='app.tasks.tasks_email_broadcast.send_direct_admin_email',
+    bind=True,
+    max_retries=2,
+    retry_backoff=True,
+)
+def send_direct_admin_email(self, session, user_id, subject, body_html, sent_by_user_id=None):
+    """Send a one-off admin email to a single member.
+
+    Runs in Celery rather than the request because send_email() makes a blocking
+    Gmail API call — doing that inside a web request would hold a PgBouncer
+    transaction slot open for the round trip.
+
+    The body is wrapped in the default email template (when one exists) so a
+    direct message looks like every other email the league sends.
+    """
+    user = session.query(User).get(user_id)
+    if not user:
+        logger.error(f"send_direct_admin_email: user {user_id} not found")
+        return {'success': False, 'error': 'User not found'}
+
+    email = user.email
+    if not email:
+        logger.warning(f"send_direct_admin_email: user {user_id} has no email address")
+        return {'success': False, 'error': 'No email address'}
+
+    html = linkify_urls(body_html)
+    try:
+        from app.models.email_templates import EmailTemplate
+        template = session.query(EmailTemplate).filter_by(
+            is_default=True, is_deleted=False
+        ).first()
+        if template:
+            html = template.render(html, subject)
+    except Exception as e:
+        # A missing/broken template must not stop the message going out.
+        logger.warning(f"send_direct_admin_email: template wrap failed: {e}")
+
+    result = send_email(email, subject, html)
+    if not result:
+        logger.error(f"send_direct_admin_email: send failed for user {user_id}")
+        return {'success': False, 'error': 'Send failed'}
+
+    logger.info(f"Direct admin email sent to user {user_id} by {sent_by_user_id}")
+    return {'success': True}

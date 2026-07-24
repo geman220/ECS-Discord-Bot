@@ -287,7 +287,9 @@ def task_monitoring_page():
 @role_required(['Global Admin', 'Pub League Admin'])
 def database_monitor():
     """Database monitoring page with real database statistics."""
-    # Consolidated into the System Command Center → Data & Cache. Fallback kept below.
+    # Consolidated into the System Command Center → Data & Cache.
+    # NOTE: everything below this return is UNREACHABLE. It is NOT a runtime fallback —
+    # it is kept only as a one-line-delete revert switch until the dead-code pass.
     return redirect(url_for('admin_panel.system_center', tab='data'))
     try:
         db_stats = _get_database_connection_stats()
@@ -315,7 +317,9 @@ def database_monitor():
 @role_required(['Global Admin', 'Pub League Admin'])
 def task_history():
     """Task history page."""
-    # Consolidated into the System Command Center → Jobs & Queues. Fallback kept below.
+    # Consolidated into the System Command Center → Jobs & Queues.
+    # NOTE: everything below this return is UNREACHABLE. It is NOT a runtime fallback —
+    # it is kept only as a one-line-delete revert switch until the dead-code pass.
     return redirect(url_for('admin_panel.system_center', tab='jobs'))
     try:
         from app.utils.task_monitor import task_monitor
@@ -692,6 +696,16 @@ def retry_task():
         if not row:
             return jsonify({'success': False, 'message': 'Task execution not found'}), 404
 
+        # Retry is a failure-recovery action, and the UI only offers the button on
+        # failed rows. Enforce it server-side too: args/kwargs are deliberately not
+        # stored for successful runs (see _record_task_execution), so re-enqueueing
+        # one would silently fire the task with empty arguments.
+        if row.status != 'failed':
+            return jsonify({
+                'success': False,
+                'message': 'Only failed executions can be retried.',
+            }), 400
+
         task_name = row.name
         if not task_name or task_name == 'unknown':
             return jsonify({'success': False, 'message': 'Task name unavailable; cannot retry'}), 400
@@ -806,7 +820,9 @@ def system_performance_historical():
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_performance():
     """System performance metrics page with real data."""
-    # Consolidated into the System Command Center → Performance. Fallback kept below.
+    # Consolidated into the System Command Center → Performance.
+    # NOTE: everything below this return is UNREACHABLE. It is NOT a runtime fallback —
+    # it is kept only as a one-line-delete revert switch until the dead-code pass.
     return redirect(url_for('admin_panel.system_center', tab='perf'))
     try:
         import psutil

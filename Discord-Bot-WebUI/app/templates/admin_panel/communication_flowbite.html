@@ -58,7 +58,7 @@
         <i class="ti ti-send text-xl text-purple-600 dark:text-purple-400" aria-hidden="true"></i>
       </div>
       <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Message One Person</h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A direct SMS or Discord DM to a single player — for individual follow-ups.</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A direct SMS, Discord DM, or email to a single player — for individual follow-ups. Shows you exactly what they'll receive before you send.</p>
     </a>
 
     <a href="{{ url_for('admin_panel.announcements') }}"
@@ -77,7 +77,7 @@
         <i class="ti ti-clipboard-list text-xl text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>
       </div>
       <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Create a Survey or Poll</h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Collect feedback with a web form, or run a quick vote right inside Discord.</p>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400"><strong>Survey</strong> = a multi-question web form. <strong>Poll</strong> = one question members vote on inside Discord. You pick which before you start building.</p>
     </a>
     {% endif %}
 
@@ -89,6 +89,17 @@
       <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Match RSVP Posts</h3>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Scheduled RSVP embeds posted to team Discord channels before each match. Review the queue or schedule one-offs.</p>
     </a>
+
+    {% if endpoint_exists('admin_panel.automations_list') %}
+    <a href="{{ url_for('admin_panel.automations_list') }}"
+       class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-md transition-all">
+      <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-ecs-green/10 mb-3">
+        <i class="ti ti-robot text-xl text-ecs-green" aria-hidden="true"></i>
+      </div>
+      <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-ecs-green transition-colors">Set Up an Automatic Message</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Rules that send on their own when something happens &mdash; a league finishes its draft, the season turns over. Set it once and forget it.</p>
+    </a>
+    {% endif %}
 
   </div>
 

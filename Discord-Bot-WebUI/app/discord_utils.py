@@ -1111,7 +1111,8 @@ def _is_reconcile_removable(role_name: str) -> bool:
 
 
 async def update_player_roles_async_only(player_data: Dict[str, Any], force_update: bool = False,
-                                         enforce_allowlist: bool = True) -> Dict[str, Any]:
+                                         enforce_allowlist: bool = True,
+                                         pattern_sweep: bool = True) -> Dict[str, Any]:
     """
     Update a player's Discord roles without database session (async-only version).
 
@@ -1124,6 +1125,16 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
             caller that supplies an explicit, intentional removal list (e.g.
             _execute_remove_roles_async) — there the removal set is exactly what the caller
             chose, so it must execute in full (draft-remove team roles, deny offboarding).
+        pattern_sweep: If True (default), ALSO mark any ECS-FC-PL-*-Player/-Coach role that
+            isn't expected, even when it's absent from app_managed_roles. That catch-all is
+            what makes a full reconcile / full offboarding pick up STALE team roles from
+            teams the player is no longer associated with at all.
+
+            Pass False for a SCOPED removal (one team_id) or a SCOPED grant (one target
+            team): there expected_roles deliberately describes only that slice of the
+            player, so the catch-all would strip every OTHER team's role too — e.g.
+            removing a player from their Premier team also revoked their ECS FC team role,
+            despite the caller's explicit, team-scoped app_managed_roles list.
 
     Returns:
         Dict[str, Any]: Result indicating success, and lists of roles added/removed
@@ -1174,9 +1185,13 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
                     if normalized_role in managed_normalized and normalized_role not in expected_normalized:
                         logger.info(f"Marking {role} for removal (in managed list)")
                         to_remove.append(role)
-                    # Also remove any ECS-FC-PL team/coach roles that aren't expected
-                    elif (role.startswith('ECS-FC-PL-') and 
-                          ('-PLAYER' in role.upper() or '-COACH' in role.upper()) and 
+                    # Also remove any ECS-FC-PL team/coach roles that aren't expected.
+                    # Gated on pattern_sweep: a SCOPED caller (one team) computes
+                    # expected_roles for that team only, so this catch-all would strip
+                    # the player's other teams' roles as collateral.
+                    elif (pattern_sweep and
+                          role.startswith('ECS-FC-PL-') and
+                          ('-PLAYER' in role.upper() or '-COACH' in role.upper()) and
                           normalized_role not in expected_normalized):
                         logger.info(f"Marking {role} for removal (ECS-FC-PL pattern)")
                         to_remove.append(role)
@@ -1557,6 +1572,16 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
             roles.append(normalize_name("ECS-FC-PL-PREMIER"))
         if 'classic' in assoc_leagues:
             roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
+
+        # ECS FC league role from TEAM MEMBERSHIP — PARITY with both task
+        # calculators (tasks_discord.py), which grant ECS-FC-PL-ECS-FC to anyone
+        # rostered on an ECS FC team regardless of the pl-ecs-fc Flask role. Without
+        # this, an ECS FC player missing that Flask role was "expected" to have the
+        # league role by one calculator and not by this one — exactly the kind of
+        # drift that makes a role flap on and off between sync paths.
+        if any((t.league and (t.league.name or '').strip().lower() == 'ecs fc')
+               for t in player.teams):
+            roles.append(normalize_name("ECS-FC-PL-ECS-FC"))
 
     # For non-approved users, no league roles are assigned - they only get team-based roles
     if approval_status != 'approved':

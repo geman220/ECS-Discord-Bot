@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
+from sqlalchemy.orm import defer, joinedload
 
 from app.admin_panel import admin_panel_bp
 from app.core import db
@@ -35,20 +36,34 @@ def email_broadcasts_list():
     """Campaign list page."""
     try:
         status_filter = request.args.get('status', None)
-        query = EmailCampaign.query
+        # body_html is a full TinyMCE document (often with inline images) and
+        # filter_criteria is JSON; the list template renders neither. Defer both
+        # so listing N campaigns doesn't detoast N email bodies.
+        query = EmailCampaign.query.options(
+            defer(EmailCampaign.body_html),
+            defer(EmailCampaign.filter_criteria),
+            joinedload(EmailCampaign.created_by),  # template prints created_by.username
+        )
 
         if status_filter:
             query = query.filter_by(status=status_filter)
 
         campaigns = query.order_by(EmailCampaign.created_at.desc()).all()
 
+        # One grouped pass instead of six COUNT round trips (each was its own
+        # pooled statement on a 1-vCPU Postgres).
+        counts_by_status = dict(
+            db.session.query(EmailCampaign.status, db.func.count(EmailCampaign.id))
+            .group_by(EmailCampaign.status)
+            .all()
+        )
         status_counts = {
-            'all': EmailCampaign.query.count(),
-            'draft': EmailCampaign.query.filter_by(status='draft').count(),
-            'scheduled': EmailCampaign.query.filter_by(status='scheduled').count(),
-            'sending': EmailCampaign.query.filter_by(status='sending').count(),
-            'sent': EmailCampaign.query.filter_by(status='sent').count(),
-            'failed': EmailCampaign.query.filter_by(status='failed').count(),
+            'all': sum(counts_by_status.values()),
+            'draft': counts_by_status.get('draft', 0),
+            'scheduled': counts_by_status.get('scheduled', 0),
+            'sending': counts_by_status.get('sending', 0),
+            'sent': counts_by_status.get('sent', 0),
+            'failed': counts_by_status.get('failed', 0),
         }
 
         total_emails_sent = db.session.query(

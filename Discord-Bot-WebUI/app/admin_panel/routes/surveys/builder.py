@@ -135,12 +135,23 @@ def surveys_list():
 @login_required
 @role_required(_ROLES)
 def survey_builder_new():
-    """Builder page for a brand-new survey (optionally from a starter template,
-    or as a reusable template when ?as_template=1)."""
+    """Builder page for a brand-new survey or poll.
+
+    ?type=poll     open the builder in Poll mode (one question, Discord-votable)
+    ?template=key  bootstrap from a starter template
+    ?as_template=1 build a reusable template rather than a live survey
+    """
     template_key = request.args.get('template')
     starter = STARTER_TEMPLATES.get(template_key) if template_key else None
     as_template = request.args.get('as_template') in ('1', 'true', 'yes')
-    return _render_builder(survey=None, starter=starter, as_template=as_template)
+    # The type is chosen BEFORE the builder opens so the page can present itself
+    # as a poll builder from the first paint, instead of making the admin create
+    # a "survey" and then discover the type dropdown.
+    initial_type = 'poll' if request.args.get('type') == 'poll' else 'survey'
+    if starter:
+        initial_type = starter.get('survey_type', initial_type)
+    return _render_builder(survey=None, starter=starter, as_template=as_template,
+                           initial_type=initial_type)
 
 
 @admin_panel_bp.route('/surveys/templates')
@@ -191,13 +202,15 @@ def survey_builder_edit(survey_id):
     return _render_builder(survey=survey)
 
 
-def _render_builder(survey, starter=None, as_template=False):
+def _render_builder(survey, starter=None, as_template=False, initial_type='survey'):
     seasons = Season.query.order_by(Season.id.desc()).all()
     if survey:
         survey_json = survey.to_dict(include_questions=True)
+        initial_type = survey.survey_type or 'survey'
     else:
         survey_json = starter  # may be None for a blank survey
     is_template = bool(survey.is_template) if survey else as_template
+    noun = 'Poll' if initial_type == 'poll' else 'Survey'
     return render_template(
         'admin_panel/surveys/survey_builder_flowbite.html',
         survey=survey,
@@ -206,7 +219,12 @@ def _render_builder(survey, starter=None, as_template=False):
         question_types=list(QUESTION_TYPES),
         as_template=as_template,
         is_template=is_template,
-        page_title=('Edit Template' if is_template else 'Edit Survey') if survey else ('New Template' if as_template else 'New Survey'),
+        initial_type=initial_type,
+        # Editing a survey with responses locks the question structure — the
+        # builder needs to know up front so it can say so instead of failing
+        # on save with a 409.
+        response_count=(survey.responses.count() if survey else 0),
+        page_title=('Edit Template' if is_template else f'Edit {noun}') if survey else ('New Template' if as_template else f'New {noun}'),
     )
 
 

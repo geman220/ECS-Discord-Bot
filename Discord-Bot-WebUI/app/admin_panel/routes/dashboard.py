@@ -489,7 +489,8 @@ def update_setting():
 def audit_logs():
     """View admin audit logs."""
     # Consolidated into the System Command Center → Logs & Audit (audit source).
-    # Old page kept below as a revertible burn-in fallback.
+    # NOTE: everything below this return is UNREACHABLE. It is NOT a runtime fallback —
+    # it is kept only as a one-line-delete revert switch until the dead-code pass.
     return redirect(url_for('admin_panel.system_center', tab='logs', src='audit'))
     try:
         page = request.args.get('page', 1, type=int)
@@ -676,8 +677,13 @@ def feature_toggles_redirect():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin']) 
 def communication_hub_redirect():
-    """Redirect to main communication page."""
-    return redirect(url_for('admin_panel.communication'))
+    """Redirect to main communication page.
+
+    Targeted 'admin_panel.communication' for a long time, which is not a real
+    endpoint — the hub is 'communication_hub' — so this route raised a BuildError
+    on every hit instead of redirecting.
+    """
+    return redirect(url_for('admin_panel.communication_hub'))
 
 
 @admin_panel_bp.route('/initialize-settings', methods=['POST'])
