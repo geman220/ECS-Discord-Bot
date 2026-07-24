@@ -147,8 +147,12 @@
   </div>
   {% endif %}
 
-  {# --- KPI stat strip --- #}
-  {% if is_own_profile or has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
+  {# --- KPI stat strip ---
+       Permission-only, deliberately WITHOUT an is_own_profile bypass: stats are not
+       something a player gets to see about themselves on the web, let alone about
+       anyone else. Grant view_player_goals_assists / view_player_cards in
+       Access Control -> Permissions to the roles that should see them. #}
+  {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
   <div class="mb-6">
     <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Season Stats &middot; {{ season.name }}</p>
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
@@ -259,7 +263,7 @@
       {% endcall %}
       {% endif %}
 
-      {% if is_own_profile or is_admin or can_view_detailed_profile %}
+      {% if can_view_discord %}
       {% call section_card('Discord', icon='ti-brand-discord') %}
       <div class="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex items-center gap-3 min-w-0">
@@ -1200,7 +1204,8 @@
         {% endif %}
 
         <!-- Stats Card -->
-        {% if is_own_profile or has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
+        {# Permission-only — no is_own_profile bypass; see the console-shell note. #}
+        {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Player Statistics</h3>

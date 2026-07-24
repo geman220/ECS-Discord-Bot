@@ -545,7 +545,7 @@ def schedule_wizard(season_id):
                 ).first()
                 if not special_team:
                     show_error(f"Error: No special team named {special_team_name} found in DB")
-                    return redirect(url_for('schedule.schedule_wizard', season_id=season.id))
+                    return redirect(url_for('publeague.schedule.schedule_wizard', season_id=season.id))
 
                 placeholders = []
                 off_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
@@ -581,7 +581,7 @@ def schedule_wizard(season_id):
                         manager.session.commit()
 
                 show_success(f"{special_team_name} placeholders created for {len(placeholders)} matches!")
-                return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
+                return redirect(url_for('publeague.schedule.manage_publeague_schedule', season_id=season.id))
 
             timeslot_list = []
             for slot_str in timeslots_str.split(','):
@@ -604,7 +604,7 @@ def schedule_wizard(season_id):
         elif wizard_step == 'step2':
             create_schedule_from_placeholders(request.form, manager, league_id=league_id)
             show_success("Matches created successfully!")
-            return redirect(url_for('schedule.manage_publeague_schedule', season_id=season.id))
+            return redirect(url_for('publeague.schedule.manage_publeague_schedule', season_id=season.id))
 
     return render_template(
         'schedule_wizard_flowbite.html',
@@ -941,12 +941,12 @@ def bulk_create_ecsfc_matches(season_id, league_name):
     season = manager.get_season(season_id)
     if not season:
         show_error('Season not found')
-        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+        return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
 
     league = manager.get_league(season_id, league_name)
     if not league:
         show_error(f'League "{league_name}" not found')
-        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+        return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
 
     try:
         # Parse form data
@@ -965,7 +965,7 @@ def bulk_create_ecsfc_matches(season_id, league_name):
         logger.error(f"Error in bulk ECS FC match creation: {str(e)}")
         show_error('Internal Server Error')
 
-    return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+    return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
 
 
 @schedule_bp.route('/ecsfc/<int:season_id>/delete-week/<int:week_number>', methods=['POST'])
@@ -986,7 +986,7 @@ def delete_ecsfc_week(season_id, week_number):
 
         if not league_ids:
             show_error('No leagues found for this season')
-            return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+            return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
 
         # Get all schedules for this week across all leagues in the season
         schedules = session.query(Schedule).join(
@@ -1014,7 +1014,7 @@ def delete_ecsfc_week(season_id, week_number):
         logger.error(f"Error deleting week: {str(e)}")
         show_error('Internal Server Error')
 
-    return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+    return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
 
 
 @schedule_bp.route('/ecsfc/delete-match/<int:match_id>', methods=['POST'])
@@ -1045,7 +1045,7 @@ def delete_ecsfc_match(match_id):
         show_success('Match deleted successfully')
 
         if season_id:
-            return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+            return redirect(url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season_id))
 
     except Exception as e:
         session.rollback()

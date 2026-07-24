@@ -1334,17 +1334,24 @@ def lineup_picker(match_id: int):
     """
     session = g.db_session
 
+    # g.db_session comes from a plain sqlalchemy sessionmaker (app.SessionLocal),
+    # whose Query has no get_or_404 — that's Flask-SQLAlchemy's. Calling it here
+    # raised AttributeError, which the broad except below turned into a generic
+    # "Error loading lineup picker" flash, so the page never loaded for anyone.
+    match = session.query(EcsFcMatch).options(
+        joinedload(EcsFcMatch.team).joinedload(Team.players),
+        joinedload(EcsFcMatch.availabilities).joinedload(EcsFcAvailability.player)
+    ).get(match_id)
+    if not match:
+        abort(404)
+
+    # Permission check stays outside the try: abort() raises an HTTPException,
+    # which `except Exception` would otherwise swallow into the same flash.
+    can_manage = check_ecs_fc_access(match_id)
+    if not can_manage:
+        abort(403)
+
     try:
-        match = session.query(EcsFcMatch).options(
-            joinedload(EcsFcMatch.team).joinedload(Team.players),
-            joinedload(EcsFcMatch.availabilities).joinedload(EcsFcAvailability.player)
-        ).get_or_404(match_id)
-
-        # Check permissions
-        can_manage = check_ecs_fc_access(match_id)
-        if not can_manage:
-            abort(403)
-
         team = match.team
 
         # Build RSVP map
@@ -1424,7 +1431,7 @@ def lineup_picker(match_id: int):
         )
 
     except Exception as e:
-        logger.error(f"Error loading ECS FC lineup picker for match {match_id}: {e}")
+        logger.error(f"Error loading ECS FC lineup picker for match {match_id}: {e}", exc_info=True)
         flash('Error loading lineup picker', 'error')
         return redirect(url_for('ecs_fc.match_details', match_id=match_id))
 

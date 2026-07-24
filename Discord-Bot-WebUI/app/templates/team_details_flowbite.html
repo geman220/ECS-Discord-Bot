@@ -265,13 +265,11 @@
             <span>Assign Roles</span>
           </button>
           {% endif %}
-          {% if can_add_player %}
-          <a href="{{ url_for('teams.add_player', team_id=team.id) }}"
-             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-            <i class="ti ti-plus" aria-hidden="true"></i>
-            <span>Add Player</span>
-          </a>
-          {% endif %}
+          {# No "Add Player" button here: there is no teams.add_player endpoint in the
+             app and never has been. url_for() raised BuildError, which took out the
+             WHOLE team page (handled as "an error occurred while redirecting") the
+             moment anyone was granted the add_player permission. Roster changes are
+             made in Members -> the person's hub, or by the draft. #}
         </div>
       </div>
 
@@ -319,7 +317,10 @@
           </div>
           {% endif %}
           {% if player.discord_id %}
-          <span class="shrink-0 text-[#5865F2]" title="Discord: {{ player.discord_username or player.discord_id }}">
+          {# The handle itself only goes to coaches/admins — see can_view_discord on
+             the player profile. Everyone else just sees "linked", no username. #}
+          <span class="shrink-0 text-[#5865F2]"
+                title="{% if can_view_player_discord %}Discord: {{ player.discord_username or player.discord_id }}{% else %}Discord linked{% endif %}">
             <i class="ti ti-brand-discord" aria-hidden="true"></i>
           </span>
           {% endif %}
@@ -327,11 +328,7 @@
         {% endfor %}
       </div>
       {% else %}
-        {% if can_add_player %}
-          {{ kit.empty_state("ti-users-off", "No players yet", "No players have been assigned to this team yet.", action={'label': 'Add Player', 'url': url_for('teams.add_player', team_id=team.id), 'icon': 'ti-plus'}) }}
-        {% else %}
-          {{ kit.empty_state("ti-users-off", "No players yet", "No players have been assigned to this team yet.") }}
-        {% endif %}
+        {{ kit.empty_state("ti-users-off", "No players yet", "No players have been assigned to this team yet.") }}
       {% endif %}
     </section>
 
@@ -683,13 +680,7 @@
                             <span class="hidden sm:inline">Assign Roles</span>
                         </button>
                         {% endif %}
-                        {% if can_add_player %}
-                        <a href="{{ url_for('teams.add_player', team_id=team.id) }}"
-                           class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
-                            <i class="ti ti-plus"></i>
-                            <span class="hidden sm:inline">Add Player</span>
-                        </a>
-                        {% endif %}
+                        {# teams.add_player does not exist — see the console-shell note above. #}
                     </div>
                 </div>
             </div>
@@ -725,7 +716,7 @@
                             </span>
                             {% endif %}
                             {% if player.discord_id %}
-                            <span class="text-[#5865F2]" title="Discord: {{ player.discord_username or player.discord_id }}">
+                            <span class="text-[#5865F2]" title="{% if can_view_player_discord %}Discord: {{ player.discord_username or player.discord_id }}{% else %}Discord linked{% endif %}">
                                 <i class="ti ti-brand-discord"></i>
                             </span>
                             {% endif %}
@@ -757,13 +748,10 @@
                             Expand
                         </button>
                         {% endif %}
-                        {% if can_add_match %}
-                        <a href="{{ url_for('matches.add_match', team_id=team.id) }}"
-                           class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
-                            <i class="ti ti-plus"></i>
-                            Add Match
-                        </a>
-                        {% endif %}
+                        {# No "Add Match" link: there is no `matches` blueprint, so
+                           url_for('matches.add_match') was a second BuildError waiting
+                           on the add_match permission. The console shell adds matches
+                           through the modal that POSTs to publeague.schedule.add_match. #}
                     </div>
                 </div>
             </div>

@@ -43,7 +43,7 @@ def get_wallet_pass(user_id):
     try:
         if not wallet_passes_enabled():
             flash('Membership passes are currently disabled.', 'error')
-            return redirect(url_for('account.profile'))
+            return redirect(url_for('account.settings'))
 
         # Security check - users can only download their own pass unless admin
         if not safe_current_user.has_role('Global Admin') and safe_current_user.id != user_id:
@@ -61,7 +61,7 @@ def get_wallet_pass(user_id):
         # Check if player is eligible for a pass
         if not player.is_current_player:
             flash('Player is not currently active and cannot generate a membership pass.', 'error')
-            return redirect(url_for('account.profile'))
+            return redirect(url_for('account.settings'))
         
         # Generate the pass
         logger.info(f"Generating wallet pass for user {user.email} (player: {player.name})")
@@ -81,7 +81,7 @@ def get_wallet_pass(user_id):
     except Exception as e:
         logger.error(f"Error generating wallet pass for user {user_id}: {str(e)}")
         flash('Error generating membership pass. Please try again later.', 'error')
-        return redirect(url_for('account.profile'))
+        return redirect(url_for('account.settings'))
 
 
 @wallet_bp.route('/pass/player/<int:player_id>')

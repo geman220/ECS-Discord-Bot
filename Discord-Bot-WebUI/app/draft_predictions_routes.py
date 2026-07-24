@@ -20,7 +20,7 @@ Admin Flow:
 
 import logging
 from datetime import datetime
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for, g, flash
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, g, flash, abort
 from flask_login import login_required, current_user
 from sqlalchemy import func, or_
 
@@ -712,7 +712,10 @@ def admin_player_detail(player_id):
     try:
         from app.models import Player, Season, User
 
-        player = g.db_session.query(Player).get_or_404(player_id)
+        # get_or_404 is Flask-SQLAlchemy's; g.db_session's Query does not have it.
+        player = g.db_session.query(Player).get(player_id)
+        if not player:
+            abort(404)
 
         # Get season from query param or use current
         season_id = request.args.get('season_id', type=int)
@@ -775,7 +778,9 @@ def admin_coach_detail(coach_id):
     try:
         from app.models import Player, Season, User
 
-        coach = g.db_session.query(User).get_or_404(coach_id)
+        coach = g.db_session.query(User).get(coach_id)
+        if not coach:
+            abort(404)
 
         # Get season from query param or use current
         season_id = request.args.get('season_id', type=int)

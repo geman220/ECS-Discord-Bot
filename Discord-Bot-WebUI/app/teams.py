@@ -489,7 +489,17 @@ def team_details(team_id):
     
     # Global Admin always has access
     is_global_admin = 'Global Admin' in user_roles
-    
+
+    # Whether the roster rows may show a teammate's actual Discord handle. Same
+    # rule as the player profile's can_view_discord: a handle lets you DM someone
+    # off-platform, so it's coaches-and-above, not every logged-in member. Players
+    # still see that a teammate is linked, just not who they are on Discord.
+    can_view_player_discord = (
+        any(r in ('Global Admin', 'Pub League Admin', 'Pub League Coach', 'ECS FC Coach')
+            for r in user_roles)
+        or safe_current_user.has_permission('view_player_contact_info')
+    )
+
     # Check if this is an ECS FC team and if user can manage it
     is_ecs_fc = is_ecs_fc_team(team_id)
     can_manage_ecs_fc = False
@@ -570,6 +580,7 @@ def team_details(team_id):
         can_view_player_stats=can_view_player_stats,
         can_view_player_cards=can_view_player_cards,
         can_view_game_results=can_view_game_results,
+        can_view_player_discord=can_view_player_discord,
         is_global_admin=is_global_admin
     )
 
@@ -598,7 +609,7 @@ def teams_overview():
 
     if not current_pub_season and not current_ecs_season:
         show_warning('No current season found for either Pub League or ECS FC.')
-        return redirect(url_for('home.index'))
+        return redirect(url_for('main.index'))
 
     # Pre-reveal (make_teams_public off): the Pub League team list is
     # coach/admin-only; ECS FC teams stay visible.
@@ -1034,7 +1045,7 @@ def view_standings():
     season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
     if not season:
         show_warning('No current season found.')
-        return redirect(url_for('home.index'))
+        return redirect(url_for('main.index'))
 
     def get_standings(league_name):
         return (
@@ -1150,7 +1161,7 @@ def season_overview():
     season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
     if not season:
         show_warning('No current season found.')
-        return redirect(url_for('home.index'))
+        return redirect(url_for('main.index'))
     
     # Define a function to get all leagues for a season
     def get_leagues(season_id):

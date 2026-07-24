@@ -416,6 +416,16 @@ def player_profile(player_id):
         can_edit_profile = is_global_admin or (is_own_profile and can_edit_own_profile) or can_edit_any_profile
         
         is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+        is_coach_viewer = any(role in ['Pub League Coach', 'ECS FC Coach'] for role in user_roles)
+
+        # Someone else's Discord handle is contact info, not public profile data —
+        # it lets any logged-in member DM them off-platform. The Discord card used to
+        # ride on can_view_detailed_profile, which is True for EVERY logged-in user
+        # whenever profile_visibility is 'everyone' (the default), so every player
+        # could read every other player's Discord username. Own profile, coaches and
+        # admins only; view_player_contact_info still grants it explicitly.
+        can_view_discord = (is_own_profile or is_admin or is_coach_viewer
+                            or can_view_contact_info)
 
         form = PlayerProfileForm(obj=player)
         form.jersey_size.choices = jersey_size_choices
@@ -560,6 +570,7 @@ def player_profile(player_id):
             # Permission-based access variables
             can_edit_stats=can_edit_stats,
             can_view_contact_info=can_view_contact_info,
+            can_view_discord=can_view_discord,
             can_view_admin_notes=can_view_admin_notes,
             can_edit_admin_notes=can_edit_admin_notes,
             player_is_nad=player_is_nad,
@@ -592,7 +603,10 @@ def add_stat_manually_route(player_id):
     Allow an admin to add a player's stat manually.
     """
     session = g.db_session
-    player = session.query(Player).get_or_404(player_id)
+    # get_or_404 is Flask-SQLAlchemy's; g.db_session's Query does not have it.
+    player = session.query(Player).get(player_id)
+    if not player:
+        abort(404)
 
     try:
         new_stat_data = {

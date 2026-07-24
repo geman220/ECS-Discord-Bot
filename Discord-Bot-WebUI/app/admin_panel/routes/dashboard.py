@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from sqlalchemy import text
+from sqlalchemy import text, false as sa_false
 
 from .. import admin_panel_bp
 from app.core import db
@@ -74,10 +74,31 @@ def build_attention_queue(user):
         except Exception as e:
             logger.warning(f"attention/approvals: {e}")
 
+    # Both match rows below are scoped to the CURRENT Pub League season.
+    # Unscoped, they counted every unreported/unverified fixture ever played, so a
+    # finished season left ~40 "awaiting a result" and ~190 "awaiting verification"
+    # sitting on the dashboard forever — work nobody is going to do, on a board whose
+    # whole job is "what needs action now". It also drifted from the match-verification
+    # page these rows link to, which has always been season-scoped.
+    from app.utils.season_context import current_pub_league_season
+    try:
+        _season = current_pub_league_season()
+    except Exception as e:
+        logger.warning(f"attention/season: {e}")
+        _season = None
+
+    def _season_matches(Match, Schedule):
+        """Match query limited to the current Pub League season (empty if unknown)."""
+        q = Match.query
+        if _season:
+            return q.join(Schedule, Match.schedule_id == Schedule.id).filter(
+                Schedule.season_id == _season.id)
+        return q.filter(sa_false())
+
     # 2) Unreported matches (played, no score, not a special week)
     try:
-        from app.models.matches import Match
-        n = Match.query.filter(
+        from app.models.matches import Match, Schedule
+        n = _season_matches(Match, Schedule).filter(
             Match.date <= today,
             Match.home_team_score.is_(None),
             Match.away_team_score.is_(None),
@@ -89,8 +110,8 @@ def build_attention_queue(user):
 
     # 3) Verification backlog (score entered, not fully verified)
     try:
-        from app.models.matches import Match
-        n = Match.query.filter(
+        from app.models.matches import Match, Schedule
+        n = _season_matches(Match, Schedule).filter(
             Match.home_team_score.isnot(None),
             ~(Match.home_team_verified & Match.away_team_verified),
         ).count()
@@ -134,16 +155,31 @@ def build_attention_queue(user):
         except Exception as e:
             logger.warning(f"attention/integrity: {e}")
 
-    # 6) Live matches in progress
+    # 6) Live matches in progress.
+    #
+    # Two independent sources, both with a staleness guard — an abandoned row is
+    # not a live match. Without the guard a single MLS session left is_active=True
+    # after the service stopped polling showed "1 live match in progress" forever,
+    # with nothing behind it when you clicked through.
+    #   * our own fixtures  -> shared helper, identical to the Live Matches page
+    #   * MLS/ESPN sessions -> active AND polled recently, using the same 300s
+    #     "stalled" threshold as the monitor_stalled_sessions watchdog
     live_count = 0
     try:
-        from app.models.live_reporting_session import LiveReportingSession
-        from app.models.ecs_fc import EcsFcLiveMatch
-        live_count = (LiveReportingSession.query.filter_by(is_active=True).count()
-                      + EcsFcLiveMatch.query.filter_by(status='in_progress').count())
-        add('live', 'Live matches in progress', live_count, 'info', safe_url('admin_panel.live_reporting_dashboard'))
+        from app.services.live_reporting.live_match_queries import count_live_matches
+        live_count += count_live_matches(db.session)
     except Exception as e:
-        logger.warning(f"attention/live: {e}")
+        logger.warning(f"attention/live/fixtures: {e}")
+    try:
+        from app.models.live_reporting_session import LiveReportingSession
+        mls_cutoff = datetime.utcnow() - timedelta(seconds=300)
+        live_count += (LiveReportingSession.query
+                       .filter(LiveReportingSession.is_active.is_(True),
+                               LiveReportingSession.last_update >= mls_cutoff)
+                       .count())
+    except Exception as e:
+        logger.warning(f"attention/live/mls: {e}")
+    add('live', 'Live matches in progress', live_count, 'info', safe_url('admin_panel.live_reporting_dashboard'))
 
     # KPI band — reuse the established Season/League/Team patterns (real counts)
     kpis = {}
