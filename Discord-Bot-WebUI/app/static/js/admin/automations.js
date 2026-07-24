@@ -412,6 +412,11 @@ function initEditor(attempt = 0) {
             // The push/Discord preview falls back to the stripped email body, so
             // it has to follow body edits, not just short-message edits.
             editor.on('change keyup SetContent', () => syncShortMessagePreview());
+            // TinyMCE lives in an iframe, so typing in it never reaches the
+            // page-level input listener that drives the unsaved-changes guard.
+            // SetContent is excluded deliberately: it fires while the editor is
+            // loading the stored body, which is not an edit.
+            editor.on('change keyup', () => markDirty());
         },
         init_instance_callback: () => syncShortMessagePreview(),
     });
@@ -654,11 +659,19 @@ async function handleToggle(element) {
             method: 'POST',
             body: JSON.stringify({ enabled: enabling }),
         });
-        if (data.warning) {
+        // The server may return several independent warnings (channel clash,
+        // another live rule, held for the team reveal). One run-on paragraph
+        // buries all but the first, so render them as a list.
+        const notes = data.warnings || (data.warning ? [data.warning] : []);
+        if (notes.length) {
             await window.Swal.fire({
                 icon: 'warning',
-                title: 'Switched on — but check this',
-                text: data.warning,
+                title: notes.length > 1
+                    ? `Switched on — ${notes.length} things to check`
+                    : 'Switched on — but check this',
+                html: '<ul style="text-align:left;padding-left:1.1rem;margin:0">'
+                      + notes.map((n) => `<li style="margin-bottom:6px">${escapeHtml(n)}</li>`).join('')
+                      + '</ul>',
                 confirmButtonText: 'Got it',
             });
         }
@@ -745,6 +758,7 @@ async function handleSave(element) {
             method: 'PUT',
             body: JSON.stringify(collectRuleForm()),
         });
+        clearDirty();
         await window.Swal.fire({
             icon: 'success', title: 'Saved', timer: 1200, showConfirmButton: false,
         });
@@ -773,6 +787,16 @@ function renderPreview(data) {
     }
 
     let html = '<div class="text-start space-y-3">';
+    // The reveal hold happens at dispatch, so the counts below are real but the
+    // timing is not — say so before listing them.
+    if (data.held_for_reveal) {
+        html += '<div style="border:1px solid #fcd34d;background:#fffbeb;border-radius:8px;'
+              + 'padding:10px 12px;color:#78350f;font-size:13px">'
+              + '<strong>Held until the reveal.</strong> This message contains '
+              + '<code>{team}</code> and team assignments are still hidden, so it will '
+              + 'not send at the time below — it sends itself once you turn on '
+              + '&ldquo;Make teams public&rdquo;.</div>';
+    }
     data.scopes.forEach((scope) => {
         const already = scope.already_run
             ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">already ${escapeHtml(scope.already_run)}</span>`
@@ -997,6 +1021,167 @@ async function handlePreviewEmail(element) {
     }
 }
 
+/* ========================================================================
+   PER-CHANNEL PREVIEW — what each channel actually delivers
+   ======================================================================== */
+
+// Discord renders a small markdown subset in DMs. Nothing else does, so this is
+// applied to the Discord panel only — showing bold text in the push preview
+// would promise formatting a phone notification cannot render.
+function discordMarkdownToHtml(text) {
+    return escapeHtml(text)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>')
+        .replace(/(https?:\/\/[^\s<]+)/g,
+                 '<span style="color:#00a8fc;text-decoration:underline">$1</span>')
+        .replace(/\n/g, '<br>');
+}
+
+function channelPanelHtml(panel) {
+    const notes = (panel.notes || []).length
+        ? '<p style="margin:.5rem 0 0;font-size:11px;color:#b45309;text-align:left">'
+          + panel.notes.map(escapeHtml).join(' ') + '</p>'
+        : '';
+
+    if (panel.kind === 'html') {
+        const wrapper = panel.wrapper
+            ? ' &nbsp;·&nbsp; <strong>Layout:</strong> ' + escapeHtml(panel.wrapper)
+            : ' &nbsp;·&nbsp; <strong>Layout:</strong> none';
+        return '<div>'
+            + '<p style="margin:0 0 .5rem;font-size:12px;color:#6b7280;text-align:left">'
+            + '<strong>Subject:</strong> ' + escapeHtml(panel.title || '(none)') + wrapper + '</p>'
+            + '<iframe sandbox srcdoc="' + escapeHtml(panel.body || '')
+            + '" style="width:100%;height:50vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff"'
+            + ' title="Email preview"></iframe>' + notes + '</div>';
+    }
+
+    // Push: a lock-screen style card. Discord: a chat bubble. In-app: a bell row.
+    // Each is drawn to look like where it lands, so the difference from the
+    // email is obvious at a glance rather than a wall of identical grey text.
+    if (panel.channel === 'discord') {
+        return '<div>'
+            + '<div style="background:#313338;border-radius:10px;padding:14px 16px;text-align:left">'
+            + '<div style="display:flex;gap:10px;align-items:flex-start">'
+            + '<div style="width:34px;height:34px;border-radius:50%;background:#5865f2;color:#fff;'
+            + 'display:flex;align-items:center;justify-content:center;font-size:15px;flex:0 0 auto">ECS</div>'
+            + '<div style="min-width:0">'
+            + '<div style="color:#f2f3f5;font-weight:600;font-size:13px">ECS Bot '
+            + '<span style="background:#5865f2;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px;'
+            + 'vertical-align:middle;margin-left:4px">APP</span></div>'
+            + '<div style="color:#dbdee1;font-size:13px;line-height:1.45;margin-top:3px;'
+            + 'white-space:pre-wrap;word-break:break-word">'
+            + discordMarkdownToHtml(panel.body || '') + '</div>'
+            + '</div></div></div>' + notes + '</div>';
+    }
+
+    if (panel.channel === 'push') {
+        return '<div>'
+            + '<div style="background:#1c1c1e;border-radius:14px;padding:12px 14px;text-align:left;'
+            + 'max-width:380px;margin:0 auto">'
+            + '<div style="color:#8e8e93;font-size:10px;text-transform:uppercase;letter-spacing:.5px;'
+            + 'margin-bottom:4px">ECS Soccer &nbsp;·&nbsp; now</div>'
+            + '<div style="color:#fff;font-weight:600;font-size:14px;overflow:hidden;'
+            + 'text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(panel.title || '—') + '</div>'
+            + '<div style="color:#d1d1d6;font-size:13px;line-height:1.35;margin-top:2px;'
+            + 'display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">'
+            + escapeHtml(panel.body || '—') + '</div>'
+            + '</div>' + notes + '</div>';
+    }
+
+    return '<div>'
+        + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;text-align:left;'
+        + 'background:#fff">'
+        + '<div style="font-weight:600;font-size:13px;color:#111827">'
+        + escapeHtml(panel.title || '—') + '</div>'
+        + '<div style="font-size:13px;color:#4b5563;line-height:1.45;margin-top:3px;'
+        + 'white-space:pre-wrap;word-break:break-word">' + escapeHtml(panel.body || '—') + '</div>'
+        + '</div>' + notes + '</div>';
+}
+
+// One dialog, one tab per selected channel, so "what does the Discord DM look
+// like?" is answerable without saving and sending yourself a test.
+function showChannelPreview(data) {
+    const panels = data.channels || [];
+    if (!panels.length) {
+        toastError('No channels are selected, so nothing would send.');
+        return;
+    }
+
+    const tabs = panels.map((p, i) =>
+        `<button type="button" data-preview-tab="${i}" style="border:0;background:none;padding:6px 12px;`
+        + `font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid `
+        + `${i === 0 ? '#1a472a' : 'transparent'};color:${i === 0 ? '#1a472a' : '#6b7280'}">`
+        + escapeHtml(p.label) + '</button>').join('');
+
+    const bodies = panels.map((p, i) =>
+        `<div data-preview-panel="${i}" style="display:${i === 0 ? 'block' : 'none'}">`
+        + channelPanelHtml(p) + '</div>').join('');
+
+    const warn = (data.unresolved || []).length
+        ? '<p style="margin:.75rem 0 0;font-size:12px;color:#b45309;text-align:left">'
+          + '<strong>Unresolved:</strong> '
+          + data.unresolved.map((v) => escapeHtml(`{${v}}`)).join(', ')
+          + ' — these send exactly as written.</p>'
+        : '';
+
+    window.Swal.fire({
+        title: 'What each channel delivers',
+        html: `<div style="border-bottom:1px solid #e5e7eb;margin-bottom:12px;text-align:left">${tabs}</div>`
+              + bodies + warn,
+        width: 820,
+        confirmButtonText: 'Close',
+        didOpen: (el) => {
+            el.querySelectorAll('[data-preview-tab]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const active = btn.dataset.previewTab;
+                    el.querySelectorAll('[data-preview-tab]').forEach((b) => {
+                        const on = b.dataset.previewTab === active;
+                        b.style.borderBottomColor = on ? '#1a472a' : 'transparent';
+                        b.style.color = on ? '#1a472a' : '#6b7280';
+                    });
+                    el.querySelectorAll('[data-preview-panel]').forEach((p) => {
+                        p.style.display = p.dataset.previewPanel === active ? 'block' : 'none';
+                    });
+                });
+            });
+        },
+    });
+}
+
+async function handlePreviewMessage(element) {
+    const ruleId = element.dataset.ruleId;
+    if (!ruleId) return;
+
+    const channels = Array.from(document.querySelectorAll('.rule-channel:checked'))
+        .map((el) => el.value);
+    if (!channels.length) {
+        toastError('Tick at least one channel — right now this rule would send nothing.');
+        return;
+    }
+
+    window.Swal.fire({
+        title: 'Rendering each channel…',
+        allowOutsideClick: false,
+        didOpen: () => window.Swal.showLoading(),
+    });
+
+    try {
+        const data = await apiCall(`${API_BASE}/${ruleId}/preview-message`, {
+            method: 'POST',
+            body: JSON.stringify({
+                body_html: getBodyHtml(),
+                subject: document.getElementById('ruleSubject')?.value || '',
+                short_message: document.getElementById('ruleShortMessage')?.value || '',
+                template_id: document.getElementById('ruleTemplateId')?.value || null,
+                channels,
+            }),
+        });
+        showChannelPreview(data);
+    } catch (e) {
+        toastError(e.message);
+    }
+}
+
 async function handleDuplicateRule(element) {
     const ruleId = element.dataset.ruleId;
     if (!ruleId) return;
@@ -1026,6 +1211,8 @@ async function handleDeleteRule(element) {
 
     try {
         await apiCall(`${API_BASE}/${ruleId}`, { method: 'DELETE' });
+        // The rule is gone, so there is nothing left to warn about saving.
+        clearDirty();
         window.location.href = '/admin-panel/communication/automations';
     } catch (e) {
         toastError(e.message);
@@ -1068,6 +1255,7 @@ window.EventDelegation.register('automation-force-run', handleForceRun, { preven
 window.EventDelegation.register('automation-cancel-run', handleCancelRun, { preventDefault: true });
 window.EventDelegation.register('automation-delete', handleDeleteRule, { preventDefault: true });
 window.EventDelegation.register('automation-preview-email', handlePreviewEmail, { preventDefault: true });
+window.EventDelegation.register('automation-preview-message', handlePreviewMessage, { preventDefault: true });
 window.EventDelegation.register('automation-duplicate', handleDuplicateRule, { preventDefault: true });
 window.EventDelegation.register('automation-explain', handleExplain, { preventDefault: true });
 window.EventDelegation.register('automation-save-variables', handleSaveVariables, { preventDefault: true });
@@ -1082,12 +1270,82 @@ window.EventDelegation.register('automation-remove-condition', handleRemoveCondi
 
 function syncShortMessageVisibility() {
     const wrap = document.getElementById('shortMessageWrap');
-    if (!wrap) return;
     const selected = Array.from(document.querySelectorAll('.rule-channel:checked'))
         .map((el) => el.value);
     // Only email selected => the HTML body is the whole message, no short copy needed.
     const emailOnly = selected.length === 1 && selected[0] === 'email';
-    wrap.classList.toggle('hidden', emailOnly);
+    if (wrap) wrap.classList.toggle('hidden', emailOnly);
+
+    // The email body is the ONLY thing email sends and is ignored by every other
+    // channel, so say which one is in play rather than leaving a rich-text editor
+    // on screen for a push-only rule.
+    const bodyWrap = document.getElementById('emailBodyWrap');
+    if (bodyWrap) {
+        const usesEmail = selected.includes('email');
+        // Kept visible even when email is off: it is still the fallback source for
+        // the short message, and hiding it would look like the copy was lost.
+        bodyWrap.classList.toggle('opacity-60', !usesEmail);
+    }
+
+    const note = document.getElementById('channelPathNote');
+    if (note) {
+        if (!selected.length) {
+            note.textContent = 'Nothing is ticked, so this rule would send nothing at all.';
+        } else if (emailOnly) {
+            note.textContent = 'Email on its own uses the email-blast system: your HTML '
+                + 'layout, and a per-person record of who received it.';
+        } else {
+            note.textContent = 'Because more than email is ticked, this goes through the '
+                + 'notification system — genuinely multi-channel, but you get per-channel '
+                + 'totals rather than per-person delivery rows.';
+        }
+    }
+}
+
+/* ------------------------------------------------------------------------
+   UNSAVED CHANGES
+   ------------------------------------------------------------------------
+   Nothing on this page auto-saves: the whole editor goes up in one PUT when
+   Save is pressed. Without a guard, navigating away after rewriting an email
+   body silently loses it.
+   ---------------------------------------------------------------------- */
+
+let formDirty = false;
+
+function markDirty() {
+    if (formDirty) return;
+    formDirty = true;
+    document.querySelectorAll('[data-action="automation-save"]').forEach((btn) => {
+        btn.classList.add('ring-2', 'ring-amber-400');
+        const label = btn.querySelector('span');
+        if (label) label.textContent = 'Save changes *';
+    });
+}
+
+function clearDirty() {
+    formDirty = false;
+}
+
+function initDirtyTracking() {
+    const editorRoot = document.querySelector('[data-page="automations"]');
+    if (!editorRoot || !document.getElementById('ruleBody')) return;
+
+    // The global {variable} boxes have their own "Save these values" button and
+    // are NOT part of the rule PUT, so editing one must not claim the rule has
+    // unsaved changes.
+    const isRuleField = (e) => !e.target?.closest?.('[data-global-var]');
+    const onEdit = (e) => { if (isRuleField(e)) markDirty(); };
+    editorRoot.addEventListener('input', onEdit);
+    editorRoot.addEventListener('change', onEdit);
+
+    window.addEventListener('beforeunload', (e) => {
+        if (!formDirty) return undefined;
+        e.preventDefault();
+        // Browsers show their own wording; a non-empty returnValue is what
+        // actually triggers the prompt.
+        e.returnValue = '';
+        return '';
+    });
 }
 
 // DOMParser rather than innerHTML: a detached <img onerror> still fires in
@@ -1158,6 +1416,7 @@ function initAutomations() {
     renderConditions();
     renderSteps();
     initEditor();
+    initDirtyTracking();
 
     const shortBox = document.getElementById('ruleShortMessage');
     if (shortBox) shortBox.addEventListener('input', syncShortMessagePreview);

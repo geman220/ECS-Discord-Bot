@@ -557,12 +557,14 @@ def default_trigger_config(trigger_type, league_type='Pub League'):
 MESSAGE_VARIABLES = {
     'first_name': {
         'label': 'First name', 'scope': 'recipient',
-        'description': "The recipient's first name. Falls back to their full name.",
+        'description': "The first word of the name on their player profile. Accounts "
+                       "with no player profile fall back to their login username.",
         'example': 'Alex',
     },
     'name': {
         'label': 'Full name', 'scope': 'recipient',
-        'description': "The recipient's full name.",
+        'description': "The name on their player profile. Accounts with no player "
+                       "profile fall back to their login username.",
         'example': 'Alex Morgan',
     },
     'team': {
@@ -619,7 +621,22 @@ def known_variable_names():
 # Keyed by trigger_type. Shown in the editor and again when enabling. Advisory,
 # never blocking -- the admin may genuinely want a second touch on a different
 # channel, and we should not pretend to know better.
+#
+# EVERY trigger has an entry, including the ones nothing else covers. A partly
+# populated map is worse than an empty one: an admin reads the absence of a
+# warning as "checked, nothing overlaps" when it really means "nobody looked".
+# Entries with 'nothing_else': True say so explicitly, and the UI renders those
+# as reassurance rather than as a warning.
+#
+# ⚠️ This is a HAND-MAINTAINED inventory of what the rest of the app sends. It is
+# not derived from code and no test enforces it, so it WILL drift -- if you add a
+# user-facing notification anywhere, add it here too.
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Channel names an overlap entry may list in 'avoid_channels'. Mirrors
+# VALID_CHANNELS in the routes; kept here so the model layer can validate its own
+# data without importing a route module.
+VALID_OVERLAP_CHANNELS = ('email', 'push', 'discord', 'in_app')
 
 TRIGGER_OVERLAPS = {
     TRIGGER_USER_APPROVED: {
@@ -649,9 +666,113 @@ TRIGGER_OVERLAPS = {
     TRIGGER_MATCH_RESCHEDULED: {
         'text': ("Players already get a day-before reminder that carries the current "
                  "kick-off time, so a very late reschedule is covered either way. This "
-                 "tells them as soon as it changes, which is the point."),
+                 "tells them as soon as it changes, which is the point. Note that the "
+                 "MATCH_RESCHEDULED notification type exists in the notification system "
+                 "but nothing calls it — this rule is the only live path."),
         'avoid_channels': [],
         'where': 'Daily match reminder (18:00).',
+    },
+
+    # ── Draft ────────────────────────────────────────────────────────────────
+    TRIGGER_DRAFT_COMPLETE: {
+        'text': ("Nothing messages drafted players today. They find out by getting "
+                 "Discord team-channel access when roles sync, which is silent and easy "
+                 "to miss — that gap is exactly what this rule fills."),
+        'avoid_channels': [],
+        'where': 'Nothing sends. Discord roles/channels are the only current signal.',
+        'reveal_sensitive': True,
+    },
+    TRIGGER_DRAFT_SESSION_COMPLETE: {
+        'text': ("Nothing messages drafted players today. They find out by getting "
+                 "Discord team-channel access when roles sync, which is silent and easy "
+                 "to miss — that gap is exactly what this rule fills."),
+        'avoid_channels': [],
+        'where': 'Nothing sends. Discord roles/channels are the only current signal.',
+        'reveal_sensitive': True,
+    },
+
+    # ── Season ───────────────────────────────────────────────────────────────
+    TRIGGER_SEASON_PHASE: {
+        'text': ("Nothing sends when a season changes phase. The closest existing "
+                 "message is the daily match reminder, which is about individual "
+                 "matches rather than the season as a whole."),
+        'avoid_channels': [],
+        'where': 'Nothing sends on a phase change.',
+        'nothing_else': True,
+    },
+    TRIGGER_SEASON_DATE: {
+        'text': ("Nothing sends on a season start or end date. The daily match reminder "
+                 "covers the first match once it is scheduled, but not the season "
+                 "opening or closing itself."),
+        'avoid_channels': [],
+        'where': 'Nothing sends on season dates.',
+        'nothing_else': True,
+    },
+
+    # ── Joining ──────────────────────────────────────────────────────────────
+    TRIGGER_WAITLIST_STUCK: {
+        'text': ("Joining the waitlist sends ONE confirmation email at signup, and "
+                 "approval later sends a push and an in-app alert. Between those two "
+                 "moments nothing goes out at all, however long the wait — which is "
+                 "the silence this rule is for."),
+        'avoid_channels': [],
+        'where': 'Waitlist confirmation email (sent once, at signup).',
+    },
+
+    # ── Engagement ───────────────────────────────────────────────────────────
+    TRIGGER_PLAYER_INACTIVE: {
+        'text': ("No inactivity message exists. Be aware they are NOT in silence "
+                 "though: an inactive player still receives the Thursday RSVP DM and "
+                 "the day-before match reminder every week. If they are ignoring those, "
+                 "consider whether one more automated message is the right answer."),
+        'avoid_channels': [],
+        'where': 'Thursday RSVP DM reminder; daily match reminder (18:00).',
+    },
+    TRIGGER_PROFILE_STALE: {
+        'text': ("Nothing asks people to refresh their profile. This is a clear gap "
+                 "rather than a duplicate."),
+        'avoid_channels': [],
+        'where': 'Nothing sends about stale profiles.',
+        'nothing_else': True,
+    },
+
+    # ── Membership ───────────────────────────────────────────────────────────
+    TRIGGER_PASS_NEVER_DOWNLOADED: {
+        'text': ("Nothing chases an unused pass. The wallet system does send pushes, "
+                 "but those are SILENT pass-refresh pushes to devices that already hold "
+                 "the pass — by definition they never reach the people this rule "
+                 "targets."),
+        'avoid_channels': [],
+        'where': 'Nothing sends. Wallet pushes only update passes already installed.',
+        'nothing_else': True,
+    },
+    TRIGGER_PASS_EXPIRING: {
+        'text': ("No expiry warning exists. The nightly wallet sweep updates pass dates "
+                 "on devices silently; it never tells anyone anything."),
+        'avoid_channels': [],
+        'where': 'Nothing sends. The nightly wallet sweep is silent.',
+        'nothing_else': True,
+    },
+
+    # ── Support ──────────────────────────────────────────────────────────────
+    TRIGGER_FEEDBACK_OPEN: {
+        'text': ("This messages the person who FILED the ticket. They are already "
+                 "notified when an admin replies, changes the status, or closes it — "
+                 "so this only fires in the case where none of that has happened. Worth "
+                 "asking whether the right fix is chasing the admins instead."),
+        'avoid_channels': [],
+        'where': 'Reply / status-change / closed notifications (sent when an admin acts).',
+    },
+
+    # ── Substitutes ──────────────────────────────────────────────────────────
+    TRIGGER_SUB_POOL_PENDING: {
+        'text': ("This messages the APPLICANT, and nothing tells them anything today. "
+                 "The pending-approvals Discord reminder is admin-facing and covers "
+                 "account approvals, not substitute-pool applications — so the two "
+                 "do not collide."),
+        'avoid_channels': [],
+        'where': 'Nothing sends to the applicant.',
+        'nothing_else': True,
     },
 }
 
@@ -670,6 +791,69 @@ def channel_clashes(trigger_type, channels):
     meta = TRIGGER_OVERLAPS.get(trigger_type) or {}
     avoid = set(meta.get('avoid_channels') or [])
     return sorted(avoid & set(channels or []))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RULE-VS-RULE CONFLICTS
+#
+# TRIGGER_OVERLAPS covers "this trigger sits near something hardcoded". This
+# covers the other half: two automations an admin wrote that both fire on the
+# same event and reach the same people. Nothing stops that -- the run table is
+# keyed per RULE, so each fires its own run and the member gets both messages.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def all_rule_channels(rule):
+    """Every channel a rule can deliver on, across its whole action sequence.
+
+    `rule.channels` is only step 1. A ladder whose step 2 escalates to push still
+    delivers by push, so a conflict check that read `rule.channels` alone would
+    miss exactly the rules most likely to over-message someone.
+    """
+    channels = set(rule.channels or ['email'])
+    try:
+        for step in rule.action_steps() or []:
+            channels.update(step.get('channels') or [])
+    except Exception:
+        # A malformed steps blob must not break the warning surface.
+        pass
+    return channels
+
+
+def find_rule_conflicts(rules):
+    """Group ENABLED rules that fire on the same trigger and overlap in audience.
+
+    Returns a dict of {rule_id: [conflict, ...]}, each conflict naming the other
+    rule and what it shares. Disabled rules are ignored: a draft that duplicates
+    a live rule is not a problem until it is switched on.
+
+    Audience overlap is judged on audience_type alone. That is deliberately
+    coarse -- 'current_season_players' and 'rostered_this_season' are different
+    strings covering largely the same people -- so this UNDER-reports rather
+    than crying wolf on rules that genuinely target different groups.
+    """
+    live = [r for r in rules if r.enabled]
+    channels_by_id = {r.id: all_rule_channels(r) for r in live}
+    conflicts = {}
+    for i, rule in enumerate(live):
+        for other in live[i + 1:]:
+            if rule.trigger_type != other.trigger_type:
+                continue
+            if rule.audience_type != other.audience_type:
+                continue
+
+            shared = sorted(channels_by_id[rule.id] & channels_by_id[other.id])
+            if not shared:
+                # Same event and same people, but no channel in common: that is
+                # a deliberate split (email here, push there), not a conflict.
+                continue
+
+            detail = (f"fires on the same trigger, targets the same audience, and "
+                      f"shares {', '.join(c.replace('_', '-') for c in shared)}")
+            conflicts.setdefault(rule.id, []).append(
+                {'other_id': other.id, 'other_name': other.name, 'detail': detail})
+            conflicts.setdefault(other.id, []).append(
+                {'other_id': rule.id, 'other_name': rule.name, 'detail': detail})
+    return conflicts
 
 def build_scope_key(season_id, league_id, subject_type=None, subject_id=None):
     """Stable scope identifier for an AutomationRun.

@@ -136,13 +136,21 @@
           {% endif %}
         </div>
 
+        {# Every trigger has an entry, so this panel is ALWAYS shown. A trigger
+           nothing else covers renders as green reassurance rather than as a
+           warning — silence would read as "not checked". #}
         {% if overlap %}
-        <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 flex gap-2.5">
-          <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true"></i>
-          <div class="text-xs text-amber-900 dark:text-amber-200">
-            <p class="font-semibold">Something already messages people here</p>
+        {% set clean = overlap.get('nothing_else') and not overlap_clashes %}
+        <div class="rounded-lg border {% if clean %}border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10{% else %}border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10{% endif %} p-3 flex gap-2.5">
+          <i class="ti {% if clean %}ti-circle-check text-green-600 dark:text-green-400{% else %}ti-alert-triangle text-amber-600 dark:text-amber-400{% endif %} shrink-0 mt-0.5" aria-hidden="true"></i>
+          <div class="text-xs {% if clean %}text-green-900 dark:text-green-200{% else %}text-amber-900 dark:text-amber-200{% endif %}">
+            <p class="font-semibold">
+              {% if clean %}Nothing else messages people on this event{% else %}Something already messages people here{% endif %}
+            </p>
             <p class="mt-0.5">{{ overlap.text }}</p>
-            {% if overlap.where %}<p class="mt-1 text-amber-700 dark:text-amber-300">Configured in: {{ overlap.where }}</p>{% endif %}
+            {% if overlap.where %}
+            <p class="mt-1 {% if clean %}text-green-700 dark:text-green-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">Today: {{ overlap.where }}</p>
+            {% endif %}
             {% if overlap_clashes %}
             <p class="mt-1.5 font-semibold">
               This rule currently sends by
@@ -150,6 +158,24 @@
               which means people get told twice. Consider email only.
             </p>
             {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if editor_conflicts %}
+        <div class="rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 p-3 flex gap-2.5">
+          <i class="ti ti-alert-triangle text-red-600 dark:text-red-400 shrink-0 mt-0.5" aria-hidden="true"></i>
+          <div class="text-xs text-red-900 dark:text-red-200">
+            <p class="font-semibold">Another live automation does the same job</p>
+            <ul class="mt-1 space-y-0.5">
+              {% for c in editor_conflicts %}
+              <li>
+                <a href="{{ url_for('admin_panel.automation_edit', rule_id=c.other_id) }}"
+                   class="font-semibold underline">{{ c.other_name }}</a>
+                &mdash; {{ c.detail }}. Anyone matching both gets two messages.
+              </li>
+              {% endfor %}
+            </ul>
           </div>
         </div>
         {% endif %}
@@ -191,7 +217,7 @@
       </div>
       {% endcall %}
 
-      {% call section_card('2 · The conditions — who gets it', icon='ti-users') %}
+      {% call section_card('2 · The audience — who gets it', icon='ti-users') %}
       <div class="p-4 sm:p-5 space-y-4">
         <div>
           <label for="ruleAudienceType" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Audience</label>
@@ -220,71 +246,6 @@
               </span>
             </span>
           </label>
-        </div>
-
-        {# ── Action: delivery channels ─────────────────────────────────── #}
-        {% set active_channels = rule.channels or ['email'] %}
-        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-          <p class="text-sm font-medium text-gray-900 dark:text-white">Deliver on</p>
-          <div class="mt-2 space-y-1.5">
-            {% for ch, ch_label, ch_help in [
-                ('email', 'Email', 'Full HTML message with your layout.'),
-                ('push', 'Push notification', 'Phones with the ECS app installed.'),
-                ('discord', 'Discord DM', 'Direct message from the bot.'),
-                ('in_app', 'In-app alert', 'Notification bell on the website.')] %}
-            <label class="flex items-start gap-2.5 cursor-pointer">
-              <input type="checkbox" class="rule-channel mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"
-                     value="{{ ch }}" {% if ch in active_channels %}checked{% endif %}>
-              <span class="text-sm text-gray-900 dark:text-white">{{ ch_label }}
-                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ ch_help }}</span>
-              </span>
-            </label>
-            {% endfor %}
-          </div>
-          <p class="mt-2.5 text-xs text-gray-500 dark:text-gray-400">
-            <strong>Email on its own</strong> uses the email-blast system: your HTML layout, and a
-            per-person record of who received it. <strong>Adding any other channel</strong> switches to
-            the notification system &mdash; genuinely multi-channel, but you only get per-channel
-            totals, not per-person delivery rows.
-          </p>
-          <p class="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-            SMS is deliberately not offered here: sends are capped at 100/hour across the whole
-            system, so an unattended blast would quietly start failing halfway through.
-          </p>
-        </div>
-
-        <div id="shortMessageWrap" class="{% if active_channels == ['email'] %}hidden{% endif %}">
-          <label for="ruleShortMessage" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-            Short message (push / Discord / in-app)
-          </label>
-          <textarea id="ruleShortMessage" rows="3" maxlength="1000"
-                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.short_message or '' }}</textarea>
-          <div class="mt-1.5 flex items-start justify-between gap-3">
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-              <strong>Plain text only.</strong> Push notifications, Discord DMs and in-app alerts
-              cannot render HTML &mdash; bold, links and buttons simply do not exist there, so
-              these channels get their own short version. Put any link in as a bare URL.
-            </p>
-            <span id="shortMessageCount" class="shrink-0 text-xs font-mono text-gray-400 dark:text-gray-500">0</span>
-          </div>
-          <p id="shortMessageWarn" class="mt-1 text-xs text-amber-700 dark:text-amber-400 hidden"></p>
-
-          <div class="mt-3 space-y-2">
-            <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">How it will look</p>
-            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-2.5">
-              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
-                <i class="ti ti-bell" aria-hidden="true"></i>Push notification
-              </div>
-              <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="pushPreviewTitle">&mdash;</p>
-              <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2" id="pushPreviewBody">&mdash;</p>
-            </div>
-            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-2.5">
-              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
-                <i class="ti ti-brand-discord" aria-hidden="true"></i>Discord DM
-              </div>
-              <p class="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words" id="discordPreviewBody">&mdash;</p>
-            </div>
-          </div>
         </div>
 
         {# ── Conditions: extra narrowing on top of the audience ──────────── #}
@@ -317,29 +278,97 @@
             Personalization tokens only work in individual mode.
           </p>
         </div>
-
-        <div>
-          <label for="ruleTemplateId" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Wrapper layout</label>
-          <select id="ruleTemplateId"
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
-            <option value="">Use the default layout</option>
-            {% for tpl in templates %}
-            <option value="{{ tpl.id }}" {% if rule.template_id == tpl.id %}selected{% endif %}>{{ tpl.name }}{% if tpl.is_default %} (default){% endif %}</option>
-            {% endfor %}
-          </select>
-        </div>
       </div>
       {% endcall %}
     </div>
 
     <!-- ============ RIGHT: the message ============ -->
     <div class="lg:col-span-2 space-y-5">
-      {% call section_card('3 · The action — what it sends', icon='ti-message') %}
+      {% call section_card('3 · The message — what actually gets sent', icon='ti-send') %}
       <div class="p-4 sm:p-5 space-y-4">
+
+        {# ── Delivery channels. This is the whole point of the section, so it
+             leads it: nothing below matters until you know which channels are
+             on, and each channel needs different copy. ──────────────────── #}
+        {% set active_channels = rule.channels or ['email'] %}
+        <div class="rounded-xl border-2 border-ecs-green/40 dark:border-ecs-green/50 bg-ecs-green/5 dark:bg-ecs-green/10 p-3 sm:p-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-bold text-gray-900 dark:text-white">
+              <i class="ti ti-broadcast text-ecs-green me-1" aria-hidden="true"></i>Deliver on
+            </p>
+            <button type="button" data-action="automation-preview-message" data-rule-id="{{ rule.id }}"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700">
+              <i class="ti ti-eye" aria-hidden="true"></i><span>Preview every channel</span>
+            </button>
+          </div>
+          <div class="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+            {% for ch, ch_label, ch_help in [
+                ('email', 'Email', 'Full HTML message with your layout.'),
+                ('push', 'Push notification', 'Phones with the ECS app installed.'),
+                ('discord', 'Discord DM', 'Direct message from the bot.'),
+                ('in_app', 'In-app alert', 'Notification bell on the website.')] %}
+            <label class="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" class="rule-channel mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"
+                     value="{{ ch }}" {% if ch in active_channels %}checked{% endif %}>
+              <span class="text-sm text-gray-900 dark:text-white">{{ ch_label }}
+                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ ch_help }}</span>
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+          <p id="channelPathNote" class="mt-2.5 text-xs text-gray-600 dark:text-gray-300"></p>
+          <p class="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
+            SMS is deliberately not offered here: sends are capped at 100/hour across the whole
+            system, so an unattended blast would quietly start failing halfway through.
+          </p>
+        </div>
+
         <div>
-          <label for="ruleSubject" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Subject line</label>
+          <label for="ruleSubject" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+            Subject line
+            <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">
+              Also used as the push / in-app notification title.
+            </span>
+          </label>
           <input type="text" id="ruleSubject" value="{{ rule.subject }}"
                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+
+        {# ── Plain-text copy for the non-HTML channels. Sits next to the
+             channel picker because it only exists when one is ticked. ───── #}
+        <div id="shortMessageWrap" class="{% if active_channels == ['email'] %}hidden{% endif %} rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <label for="ruleShortMessage" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+            Short message <span class="text-gray-400 dark:text-gray-500 font-normal">&mdash; push / Discord DM / in-app</span>
+          </label>
+          <textarea id="ruleShortMessage" rows="3" maxlength="1000"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.short_message or '' }}</textarea>
+          <div class="mt-1.5 flex items-start justify-between gap-3">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              <strong>Plain text only.</strong> Push notifications, Discord DMs and in-app alerts
+              cannot render HTML &mdash; bold, links and buttons simply do not exist there, so
+              these channels get their own short version. Put any link in as a bare URL.
+              Discord DMs do understand <code>**bold**</code> and <code>*italic*</code> markdown.
+            </p>
+            <span id="shortMessageCount" class="shrink-0 text-xs font-mono text-gray-400 dark:text-gray-500">0</span>
+          </div>
+          <p id="shortMessageWarn" class="mt-1 text-xs text-amber-700 dark:text-amber-400 hidden"></p>
+
+          <div class="mt-3 space-y-2">
+            <p class="text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">How it will look</p>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-2.5">
+              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                <i class="ti ti-bell" aria-hidden="true"></i>Push notification
+              </div>
+              <p class="text-xs font-semibold text-gray-900 dark:text-white truncate" id="pushPreviewTitle">&mdash;</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2" id="pushPreviewBody">&mdash;</p>
+            </div>
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-2.5">
+              <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                <i class="ti ti-brand-discord" aria-hidden="true"></i>Discord DM
+              </div>
+              <p class="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words" id="discordPreviewBody">&mdash;</p>
+            </div>
+          </div>
         </div>
 
         {# ── Action sequence ─────────────────────────────────────────────── #}
@@ -373,7 +402,7 @@
           </label>
         </div>
 
-        <div>
+        <div id="emailBodyWrap">
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <label for="ruleBody" class="block text-sm font-medium text-gray-900 dark:text-white">
               Email message <span class="text-gray-400 dark:text-gray-500 font-normal">&mdash; rich formatting</span>
@@ -389,6 +418,36 @@
             are added automatically by the wrapper layout, so start straight into the message.
             Use <strong>Preview email</strong> to see exactly what lands in someone's inbox.
           </p>
+
+          {# ── Wrapper layout. Email-only setting, so it belongs beside the
+               email body rather than in the audience column. ────────────── #}
+          <div class="mt-3 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+            <label for="ruleTemplateId" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+              Wrapper layout
+            </label>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <select id="ruleTemplateId"
+                      class="flex-1 min-w-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+                <option value="">Use the default layout</option>
+                {% for tpl in templates %}
+                <option value="{{ tpl.id }}" {% if rule.template_id == tpl.id %}selected{% endif %}>{{ tpl.name }}{% if tpl.is_default %} (default){% endif %}</option>
+                {% endfor %}
+              </select>
+              <a href="{{ url_for('admin_panel.email_templates_list') }}" target="_blank" rel="noopener"
+                 class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 whitespace-nowrap">
+                <i class="ti ti-external-link" aria-hidden="true"></i><span>Edit layouts</span>
+              </a>
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              The layout is the <strong>branded shell</strong> your message is dropped into &mdash;
+              the ECS header, the background and width, the footer and unsubscribe line. Your
+              message replaces <code>{content}</code> inside it. It changes nothing about
+              <em>who</em> gets the email or <em>when</em>; it affects the email channel only, so
+              push, Discord and in-app ignore it entirely. Hit <strong>Preview email</strong> after
+              switching to see the difference, and edit the layouts themselves under
+              Communication &rarr; Email Templates.
+            </p>
+          </div>
         </div>
 
         {# Variables panel — driven by MESSAGE_VARIABLES so it can never drift

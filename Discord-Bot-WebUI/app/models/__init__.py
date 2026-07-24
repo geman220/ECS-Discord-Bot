@@ -213,7 +213,8 @@ from .automation import (
     condition_ops_for, describe_condition, summarize_rule,
     TRIGGER_FIELD_SPECS, trigger_fields_for, default_trigger_config,
     MESSAGE_VARIABLES, GLOBAL_VARIABLE_SETTINGS, known_variable_names,
-    TRIGGER_OVERLAPS, overlap_warning, channel_clashes
+    TRIGGER_OVERLAPS, overlap_warning, channel_clashes, find_rule_conflicts, all_rule_channels,
+    VALID_OVERLAP_CHANNELS
 )
 
 from .mobile_telemetry import (
@@ -399,6 +400,7 @@ __all__ = [
     'TRIGGER_FIELD_SPECS', 'trigger_fields_for', 'default_trigger_config',
     'MESSAGE_VARIABLES', 'GLOBAL_VARIABLE_SETTINGS', 'known_variable_names',
     'TRIGGER_OVERLAPS', 'overlap_warning', 'channel_clashes',
+    'find_rule_conflicts', 'all_rule_channels', 'VALID_OVERLAP_CHANNELS',
 
     # Mobile telemetry models
     'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',

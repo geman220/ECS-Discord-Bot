@@ -1328,6 +1328,46 @@ def substitute_placeholders(session, text):
     return text
 
 
+def rule_leaks_team_names(rule, step=None):
+    """True if this rule's copy would reveal a team assignment.
+
+    {team} is the only token that resolves to a team name, so its presence is
+    the whole test. Checks the given step plus the rule's own columns, and every
+    other step too -- a ladder whose step 3 mentions {team} leaks just as hard as
+    step 1 doing it.
+    """
+    parts = [rule.subject or '', rule.body_html or '', rule.short_message or '']
+    if step:
+        parts += [step.get('subject') or '', step.get('body_html') or '',
+                  step.get('short_message') or '']
+    try:
+        for s in rule.action_steps() or []:
+            parts += [s.get('subject') or '', s.get('body_html') or '',
+                      s.get('short_message') or '']
+    except Exception:
+        pass
+    return '{team}' in ' '.join(parts)
+
+
+def _reveal_allows(session, rule, step=None):
+    """Whether this send is safe to make while teams may still be hidden.
+
+    Fails OPEN on an unreadable setting: teams_are_public() already defaults to
+    True when the config row is missing, and silently freezing every automation
+    because a settings lookup hiccuped would be a worse failure than the leak
+    this guards.
+    """
+    if not rule_leaks_team_names(rule, step):
+        return True
+    try:
+        from app.services.team_visibility import teams_are_public
+        return bool(teams_are_public())
+    except Exception:
+        logger.warning("Could not read the team-reveal setting; allowing the send",
+                       exc_info=True)
+        return True
+
+
 def dispatch_run(session, run, force=False):
     """Turn a due AutomationRun into a sent EmailCampaign.
 
@@ -1364,6 +1404,26 @@ def dispatch_run(session, run, force=False):
             logger.info("Automation %s stopped early for scope %s (resolved)",
                         rule.key, run.scope_key)
             return {'success': True, 'stopped_early': True}
+
+    # Team assignments are hidden until the reveal, and that gate is enforced in
+    # the web UI, the mobile API and Discord team channels -- but NOT here. A
+    # rule whose copy contains {team} would mail people their team before the
+    # reveal party and blow it for everyone.
+    #
+    # DEFERRED, not skipped: the message becomes correct the moment teams go
+    # public, so the run stays pending and the next pass sends it. Marking it
+    # skipped would consume the scope permanently and it would never send at all.
+    if not _reveal_allows(session, rule, step):
+        run.error_message = (
+            'Held back: this message contains {team}, and team assignments are '
+            'still hidden until the reveal. It will send by itself once you turn '
+            'on "Make teams public".')
+        if run.status != 'pending':
+            run.status = 'pending'
+        session.commit()
+        logger.info("Automation %s held for scope %s — teams not yet public",
+                    rule.key, run.scope_key)
+        return {'success': False, 'deferred': True, 'error': run.error_message}
 
     # CLAIM the run atomically before doing anything expensive. The work below
     # (up to 400 sequential bot calls, then campaign creation) can outlast the
@@ -1930,4 +1990,10 @@ def preview_rule(session, rule, refresh=False):
             'filter_description': service.build_filter_description(session, criteria),
         })
 
-    return {'triggered': bool(scopes), 'scopes': scopes}
+    # A dry run that says "would send tomorrow" for a rule dispatch will actually
+    # hold is a lie, and the dry run is exactly what an admin trusts before
+    # enabling. Report the hold alongside the counts.
+    held_for_reveal = bool(scopes) and not _reveal_allows(session, rule)
+
+    return {'triggered': bool(scopes), 'scopes': scopes,
+            'held_for_reveal': held_for_reveal}

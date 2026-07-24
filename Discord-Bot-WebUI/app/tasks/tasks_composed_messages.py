@@ -10,6 +10,7 @@ stay friendly to the Gmail API / Twilio when email or SMS is selected.
 """
 
 import logging
+import re
 import time
 from datetime import datetime
 
@@ -22,6 +23,12 @@ CHUNK_SIZE = 50
 # Sleep between chunks only when a rate-limited external channel is selected.
 THROTTLED_CHANNELS = {'email', 'sms'}
 CHUNK_SLEEP_SECONDS = 2
+
+# Per-recipient tokens understood by EmailBroadcastService.personalize_content.
+# A chunked payload is ONE title/message shared by up to CHUNK_SIZE people, so a
+# message containing any of these has to be sent one recipient at a time or the
+# tokens go out literally ("Hey {first_name}").
+_TOKEN_RE = re.compile(r'\{(?:first_name|name|team|league|season)\}')
 
 
 def _merge_results(total, part):
@@ -95,13 +102,39 @@ def send_composed_message(self, session, message_id):
                 'force_discord': True if 'discord' in channels else None,
             }
 
+        # A message with {first_name}-style tokens cannot share one payload across
+        # a chunk -- it would deliver the literal token to everyone. Drop to one
+        # recipient per payload and substitute for each. Only pays the extra cost
+        # when the copy actually asks for it.
+        personalized = bool(_TOKEN_RE.search(f'{msg.title or ""} {msg.message or ""}'))
+        chunk_size = 1 if personalized else CHUNK_SIZE
+        if personalized:
+            from app.services.email_broadcast_service import EmailBroadcastService
+            personalizer = EmailBroadcastService()
+            # One orchestrator call per recipient instead of per 50. Log it: a
+            # large personalized audience is the one shape that can approach the
+            # 30-minute task limit, and without this the cause is invisible.
+            logger.info(
+                "ComposedMessage %s contains recipient tokens — sending one "
+                "recipient at a time (%d sends instead of %d)",
+                message_id, len(user_ids), -(-len(user_ids) // CHUNK_SIZE))
+
         totals = {}
-        for start in range(0, len(user_ids), CHUNK_SIZE):
-            chunk = user_ids[start:start + CHUNK_SIZE]
+        for start in range(0, len(user_ids), chunk_size):
+            chunk = user_ids[start:start + chunk_size]
+            title, body = msg.title, msg.message
+            if personalized:
+                try:
+                    title, body = personalizer.personalize_content(
+                        session, title or '', body or '', chunk[0])
+                except Exception:
+                    # Better a literal token than a dropped notification.
+                    logger.warning("Personalization failed for user %s on message %s",
+                                   chunk[0], message_id, exc_info=True)
             payload = NotificationPayload(
                 notification_type=NotificationType.ADMIN_ANNOUNCEMENT,
-                title=msg.title,
-                message=msg.message,
+                title=title,
+                message=body,
                 user_ids=chunk,
                 channels=channels,
                 tiered=False,
@@ -111,7 +144,11 @@ def send_composed_message(self, session, message_id):
             )
             part = orchestrator.send(payload)
             totals = _merge_results(totals, part)
-            if throttle and start + CHUNK_SIZE < len(user_ids):
+            # Pace by RECIPIENTS, not by loop iteration: personalized sends use a
+            # chunk of 1, and sleeping 2s after every single one would push a
+            # few hundred recipients past the task time limit.
+            crossed_batch = (start // CHUNK_SIZE) != ((start + chunk_size) // CHUNK_SIZE)
+            if throttle and crossed_batch and start + chunk_size < len(user_ids):
                 time.sleep(CHUNK_SLEEP_SECONDS)
 
         # Outcome: sent if at least one selected channel delivered something and

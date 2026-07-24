@@ -28,6 +28,25 @@ def _not_opted_out():
     return or_(User.email_notifications == True,  # noqa: E712
                User.email_notifications.is_(None))
 
+
+def _display_name(player, user):
+    """The human name to greet someone by.
+
+    Player.name is the real name collected at registration ("George Courville").
+    User.username is a LOGIN handle ("george_courville") and must only ever be a
+    last resort -- greeting a recipient by their handle reads as a broken
+    mail-merge, and every automated message goes out with it.
+
+    Users with no player row (admins, waitlist-only accounts) still fall back to
+    the username, since there is nothing better on the User model: it has no
+    first/last name columns.
+    """
+    name = (getattr(player, 'name', None) or '').strip() if player else ''
+    if name:
+        return name
+    return (getattr(user, 'username', None) or '').strip()
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -226,7 +245,31 @@ class EmailBroadcastService:
             logger.warning(f"Unknown filter type: {filter_type}")
             users = []
 
-        return [{'user_id': u.id, 'name': u.username} for u in users]
+        return self._label_users(session, users)
+
+    def _label_users(self, session, rows):
+        """Attach each user's REAL name to resolved (id, username) rows.
+
+        The label ends up on EmailCampaignRecipient and in the automation dry-run
+        sample, so showing login handles there makes it impossible to tell at a
+        glance who a rule is about to mail. One extra query for the whole batch.
+        """
+        rows = list(rows)
+        if not rows:
+            return []
+        ids = [r.id for r in rows]
+        names = {}
+        # ORDER BY matters: duplicate Player rows for one user are a known data
+        # issue here, and without it Postgres may hand back a different row on
+        # each run -- the same person would be labelled inconsistently between
+        # two campaigns. Lowest player id wins, deterministically.
+        for user_id, player_name in (session.query(Player.user_id, Player.name)
+                                     .filter(Player.user_id.in_(ids))
+                                     .order_by(Player.id).all()):
+            cleaned = (player_name or '').strip()
+            if cleaned and user_id not in names:
+                names[user_id] = cleaned
+        return [{'user_id': r.id, 'name': names.get(r.id) or r.username} for r in rows]
 
     def _resolve_rostered(self, session, filter_criteria, coaches_only=False):
         """User ids of people on a team this season.
@@ -349,7 +392,7 @@ class EmailBroadcastService:
             query = query.filter(_not_opted_out())
 
         users = query.all()
-        return [{'user_id': u.id, 'name': u.username} for u in users]
+        return self._label_users(session, users)
 
     def create_campaign(self, session, data, created_by_id):
         """
@@ -417,9 +460,16 @@ class EmailBroadcastService:
         if not user:
             return subject, body
 
-        player = session.query(Player).filter(Player.user_id == user_id).first()
+        # order_by(Player.id): duplicate Player rows per user are a known data
+        # issue, and an unordered .first() would pick a different one run to run.
+        player = (session.query(Player).filter(Player.user_id == user_id)
+                  .order_by(Player.id).first())
 
-        name = user.username or ''
+        # Real name first. User.username is a LOGIN handle ("george_courville"),
+        # not a name -- greeting someone with it reads as a mail-merge failure.
+        # Player.name is the human name we collect at registration; fall back to
+        # the username only when there is no player row at all.
+        name = _display_name(player, user)
         first_name = name.split()[0] if name else ''
         team_name = ''
         league_name = ''
@@ -548,9 +598,12 @@ class EmailBroadcastService:
             if count <= 3:
                 names = []
                 for uid in user_ids:
-                    user = session.query(User.username).filter(User.id == int(uid)).first()
-                    if user:
-                        names.append(user.username)
+                    row = (session.query(User.username, Player.name)
+                           .outerjoin(Player, Player.user_id == User.id)
+                           .filter(User.id == int(uid))
+                           .first())
+                    if row:
+                        names.append((row[1] or '').strip() or row[0])
                 return f'Specific users: {", ".join(names)}'
             return f'Specific users ({count} selected)'
         return 'Custom filter'

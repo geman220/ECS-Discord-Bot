@@ -29,7 +29,8 @@ from app.models import (AutomationRule, AutomationRun, User, TRIGGER_TYPES,
                         TRIGGER_FIELD_SPECS, trigger_fields_for,
                         default_trigger_config, MESSAGE_VARIABLES,
                         known_variable_names, overlap_warning,
-                        channel_clashes, TRIGGER_OVERLAPS, EmailTemplate)
+                        channel_clashes, TRIGGER_OVERLAPS, find_rule_conflicts,
+                        all_rule_channels, EmailTemplate)
 from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,12 @@ _ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 # are capped system-wide at 100/hour (app/sms_helpers.py:88), so an unattended
 # blast would silently start failing partway through with no backoff.
 VALID_CHANNELS = ('email', 'push', 'discord', 'in_app')
+
+# Truncation applied by _dispatch_multichannel() in automation_service. The
+# per-channel preview has to use the same numbers or it promises something the
+# send does not do.
+_PUSH_TITLE_MAX = 100
+_PUSH_BODY_FALLBACK_MAX = 900
 
 # Triggers that fire once for the whole season rather than per league. Their runs
 # carry league_id = NULL, so a per-league audience would resolve to nobody.
@@ -180,11 +187,21 @@ def automations_list():
     summaries = {r.id: summarize_rule(r, _labels.get(r.audience_type, r.audience_type).lower())
                  for r in rules}
 
+    # Two kinds of "this may double-message someone": another ENABLED rule doing
+    # the same job, and a hardcoded sender that already covers this trigger.
+    conflicts = find_rule_conflicts(rules)
+    hardcoded_overlaps = {
+        r.id: overlap_warning(r.trigger_type)
+        for r in rules if r.enabled and overlap_warning(r.trigger_type)
+    }
+
     return render_template(
         'admin_panel/communication/automations_flowbite.html',
         tab=tab,
         rules=rules,
         summaries=summaries,
+        conflicts=conflicts,
+        hardcoded_overlaps=hardcoded_overlaps,
         runs=runs,
         counts=counts,
         status=status,
@@ -267,7 +284,12 @@ def automation_edit(rule_id):
         condition_ops=CONDITION_OPS,
         message_variables=MESSAGE_VARIABLES,
         overlap=overlap_warning(rule.trigger_type),
-        overlap_clashes=channel_clashes(rule.trigger_type, rule.channels),
+        # Across the whole ladder, not just step 1.
+        overlap_clashes=channel_clashes(rule.trigger_type, all_rule_channels(rule)),
+        # Only meaningful once THIS rule is live; a draft that mirrors a live
+        # rule is not yet a problem, and find_rule_conflicts already skips it.
+        editor_conflicts=find_rule_conflicts(
+            session.query(AutomationRule).all()).get(rule.id) or [],
         global_variable_values=automation_service.resolve_global_variables(session),
         page_title=f'Automation: {rule.name}',
     )
@@ -702,22 +724,53 @@ def automation_toggle(rule_id):
                           'go out literally: ' + ', '.join('{%s}' % u for u in unresolved)),
             }), 400
 
-    clashes = channel_clashes(rule.trigger_type, rule.channels) if want_enabled else []
+    warnings = []
+    if want_enabled:
+        # Channels are read across the WHOLE action sequence: a ladder that
+        # escalates to push at step 2 still delivers by push.
+        clashes = channel_clashes(rule.trigger_type, all_rule_channels(rule))
+        if clashes:
+            meta = overlap_warning(rule.trigger_type) or {}
+            pretty = {'in_app': 'in-app alert', 'push': 'push', 'discord': 'Discord DM'}
+            names = ' and '.join(pretty.get(c, c) for c in clashes)
+            warnings.append(
+                f'This sends by {names}, but '
+                f'{meta.get("avoid_reason", "that may duplicate an existing message")}.')
+
+        # Rule-vs-rule. The list page shows this too, but the moment someone
+        # decides to switch a rule on is the moment it matters -- nobody goes
+        # back to re-read the list. Evaluated against the post-toggle state, so
+        # the rule being enabled is counted as live.
+        rule.enabled = True
+        session.flush()
+        others = session.query(AutomationRule).all()
+        collisions = find_rule_conflicts(others).get(rule.id) or []
+        for c in collisions:
+            warnings.append(
+                f'"{c["other_name"]}" is also live and {c["detail"]} — '
+                f'anyone matching both gets two messages.')
+
+        # A {team} rule is held at dispatch until the reveal. Say so now rather
+        # than letting it sit pending with no visible reason.
+        from app.services.automation_service import rule_leaks_team_names
+        from app.services.team_visibility import teams_are_public
+        if rule_leaks_team_names(rule) and not teams_are_public():
+            warnings.append(
+                'This message contains {team} and team assignments are still hidden, '
+                'so it will be held back automatically and send itself once you turn '
+                'on "Make teams public".')
 
     rule.enabled = want_enabled
     if not rule.created_by_id:
         rule.created_by_id = current_user.id
     session.commit()
 
-    logger.info("Automation rule %s %s by user %s", rule.key,
-                'enabled' if rule.enabled else 'disabled', current_user.id)
+    logger.info("Automation rule %s %s by user %s (%d overlap warning(s))", rule.key,
+                'enabled' if rule.enabled else 'disabled', current_user.id, len(warnings))
     resp = {'success': True, 'enabled': rule.enabled}
-    if clashes:
-        meta = overlap_warning(rule.trigger_type) or {}
-        pretty = {'in_app': 'in-app alert', 'push': 'push', 'discord': 'Discord DM'}
-        names = ' and '.join(pretty.get(c, c) for c in clashes)
-        resp['warning'] = (f'Heads up: this is on by {names}, but '
-                           f'{meta.get("avoid_reason", "that may duplicate an existing message")}.')
+    if warnings:
+        resp['warning'] = ' '.join(warnings)
+        resp['warnings'] = warnings
     return jsonify(resp)
 
 
@@ -934,6 +987,132 @@ def automation_preview_email(rule_id):
         'subject': subject,
         'wrapper': template.name if template else None,
         'unresolved': unresolved,
+    })
+
+
+@admin_panel_bp.route('/api/automations/<int:rule_id>/preview-message', methods=['POST'])
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_preview_message(rule_id):
+    """Render EVERY selected channel the way its recipient would receive it.
+
+    The email preview alone was misleading once a rule went multi-channel: push,
+    Discord DM and in-app carry the plain-text short message, cannot render HTML,
+    and truncate at different lengths. Each of those transformations is applied
+    here using the same code paths dispatch uses, so what an admin sees is what
+    the channel actually delivers.
+    """
+    from app.services import automation_service
+    from app.services.email_broadcast_service import EmailBroadcastService
+
+    session = g.db_session
+    rule = session.query(AutomationRule).get(rule_id)
+    if not rule:
+        return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    body_html = (data.get('body_html') if 'body_html' in data else rule.body_html) or ''
+    subject = (data.get('subject') if 'subject' in data else rule.subject) or ''
+    short_message = (data.get('short_message') if 'short_message' in data
+                     else rule.short_message) or ''
+    channels = data.get('channels') or rule.channels or ['email']
+    channels = [c for c in channels if c in VALID_CHANNELS] or ['email']
+    template_id = data.get('template_id') if 'template_id' in data else rule.template_id
+
+    service = EmailBroadcastService()
+
+    def _resolve(text):
+        """Global {variables} then per-recipient tokens, against the viewing admin."""
+        text = automation_service.substitute_placeholders(session, text or '')
+        try:
+            _subject, resolved = service.personalize_content(
+                session, '', text, current_user.id)
+            return resolved
+        except Exception:
+            logger.debug("Preview personalization failed; showing raw tokens",
+                         exc_info=True)
+            return text
+
+    resolved_subject = _resolve(subject)
+    resolved_body = _resolve(body_html)
+    resolved_short = _resolve(short_message)
+
+    channel_previews = []
+    known = known_variable_names()
+    unresolved = set()
+
+    def _note_unresolved(text):
+        unresolved.update({m for m in re.findall(r'\{(\w+)\}', text or '')} - known)
+
+    if 'email' in channels:
+        template = None
+        if template_id:
+            template = session.query(EmailTemplate).get(int(template_id))
+        if not template:
+            template = (session.query(EmailTemplate)
+                        .filter(EmailTemplate.is_default.is_(True),
+                                EmailTemplate.is_deleted.is_(False))
+                        .order_by(EmailTemplate.id)
+                        .first())
+        html = template.render(resolved_body, resolved_subject) if template else resolved_body
+        _note_unresolved(html)
+        _note_unresolved(resolved_subject)
+        channel_previews.append({
+            'channel': 'email',
+            'label': 'Email',
+            'kind': 'html',
+            'title': resolved_subject,
+            'body': html,
+            'wrapper': template.name if template else None,
+            'notes': [] if template else
+                     ['No wrapper layout is set, so this sends as bare HTML with no '
+                      'ECS header or footer.'],
+        })
+
+    # Everything else carries the plain-text short message. Mirror
+    # _dispatch_multichannel exactly: fall back to the stripped HTML body when no
+    # short message was written, then truncate.
+    non_email = [c for c in channels if c != 'email']
+    if non_email:
+        plain = resolved_short.strip()
+        fell_back = False
+        if not plain:
+            fell_back = True
+            plain = re.sub(r'<[^>]+>', ' ', resolved_body)
+            plain = re.sub(r'\s+', ' ', plain).strip()[:_PUSH_BODY_FALLBACK_MAX]
+        title = (resolved_subject or rule.name or '')[:_PUSH_TITLE_MAX]
+        _note_unresolved(plain)
+        _note_unresolved(title)
+
+        fallback_note = ('No short message is set, so this is the email body with all '
+                         'formatting stripped out — links, buttons and bold are gone.')
+        labels = {'push': 'Push notification', 'discord': 'Discord DM',
+                  'in_app': 'In-app alert'}
+        for channel in non_email:
+            notes = [fallback_note] if fell_back else []
+            if channel == 'discord':
+                notes.append('Discord renders **bold**, *italic* and bare URLs. '
+                             'HTML tags are shown as literal text.')
+            elif channel == 'push':
+                notes.append(f'Phones cut the title at ~{_PUSH_TITLE_MAX} characters and '
+                             'show only the first line or two of the body.')
+            else:
+                notes.append('Shown in the website notification bell. Plain text only.')
+            channel_previews.append({
+                'channel': channel,
+                'label': labels.get(channel, channel),
+                'kind': 'text',
+                'title': title,
+                'body': plain,
+                'notes': notes,
+            })
+
+    return jsonify({
+        'success': True,
+        'channels': channel_previews,
+        'unresolved': sorted(unresolved),
+        'multichannel': channels != ['email'],
     })
 
 
