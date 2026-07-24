@@ -939,6 +939,64 @@ async function handleForceRun(element) {
     }
 }
 
+// Renders the CURRENT editor content through the wrapper layout, so an admin sees the
+// real inbox result before saving. Sends the unsaved body/subject/template because the
+// whole point is to look before committing (the endpoint falls back to the stored rule
+// when a field is omitted). The result is dropped into a sandboxed iframe rather than
+// injected into the dialog: email HTML carries its own <style>, which would otherwise
+// leak out and restyle the admin page around it.
+async function handlePreviewEmail(element) {
+    const ruleId = element.dataset.ruleId;
+    if (!ruleId) return;
+
+    const body = getBodyHtml();
+    if (!body || !body.trim()) {
+        toastError('Write the email first — there is nothing to preview yet.');
+        return;
+    }
+
+    window.Swal.fire({
+        title: 'Rendering the email…',
+        allowOutsideClick: false,
+        didOpen: () => window.Swal.showLoading(),
+    });
+
+    try {
+        const data = await apiCall(`${API_BASE}/${ruleId}/preview-email`, {
+            method: 'POST',
+            body: JSON.stringify({
+                body_html: body,
+                subject: document.getElementById('ruleSubject')?.value || '',
+                template_id: document.getElementById('ruleTemplateId')?.value || null,
+            }),
+        });
+
+        const frame = '<iframe sandbox srcdoc="' + escapeHtml(data.html || '')
+            + '" style="width:100%;height:60vh;border:0;background:#fff" title="Email preview"></iframe>';
+        // Tokens the sender cannot resolve ship LITERALLY, so surface them here rather
+        // than letting a dead {survey_url} reach an inbox.
+        const warn = (data.unresolved || []).length
+            ? '<p style="margin:.75rem 0 0;font-size:12px;color:#b45309;text-align:left">'
+              + '<strong>Unresolved:</strong> '
+              + data.unresolved.map((v) => escapeHtml(`{${v}}`)).join(', ')
+              + ' — these send exactly as written.</p>'
+            : '';
+        const meta = '<p style="margin:0 0 .5rem;font-size:12px;color:#6b7280;text-align:left">'
+            + '<strong>Subject:</strong> ' + escapeHtml(data.subject || '(none)')
+            + (data.wrapper ? ' &nbsp;·&nbsp; <strong>Wrapper:</strong> ' + escapeHtml(data.wrapper) : '')
+            + '</p>';
+
+        window.Swal.fire({
+            title: 'Email preview',
+            html: meta + frame + warn,
+            width: 800,
+            confirmButtonText: 'Close',
+        });
+    } catch (e) {
+        toastError(e.message);
+    }
+}
+
 async function handleDuplicateRule(element) {
     const ruleId = element.dataset.ruleId;
     if (!ruleId) return;
