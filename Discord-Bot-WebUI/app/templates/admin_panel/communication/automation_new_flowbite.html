@@ -1,0 +1,159 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}New Automation{% endblock %}
+{% block panel_description %}Pick what starts it, who it reaches, and how long to wait{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.automations_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Automated Messaging</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">New</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+
+<div data-page="automation-new" class="space-y-5 sm:space-y-6">
+
+  {% call page_header('New Automation', subtitle='Communication / Automated Messaging') %}
+    <a href="{{ url_for('admin_panel.automations_list') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+      <i class="ti ti-x" aria-hidden="true"></i><span>Cancel</span>
+    </a>
+    <button type="button" data-action="automation-create"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors">
+      <i class="ti ti-check" aria-hidden="true"></i><span>Create &amp; write the message</span>
+    </button>
+  {% endcall %}
+
+  <!-- Live read-back of what's being built -->
+  <div class="rounded-xl border-2 border-ecs-green/40 dark:border-ecs-green/50 bg-ecs-green/5 dark:bg-ecs-green/10 p-4 sm:p-5">
+    <p class="text-xs font-bold uppercase tracking-wide text-ecs-green mb-1.5">In plain English</p>
+    <p id="newSummary" class="text-base sm:text-lg font-medium text-gray-900 dark:text-white leading-relaxed">
+      Pick a trigger below to get started.
+    </p>
+    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+      This is the <strong>event</strong> and <strong>who it reaches</strong>. After you create it
+      you'll land in the editor to write the message, add conditions and set up follow-ups.
+      It stays switched off until you turn it on.
+    </p>
+  </div>
+
+  <div id="newOverlap" class="hidden rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 flex gap-3">
+    <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+    <div class="text-sm text-amber-900 dark:text-amber-200">
+      <p class="font-semibold">Something already messages people here</p>
+      <p id="newOverlapText" class="mt-0.5"></p>
+      <p id="newOverlapWhere" class="mt-1 text-xs text-amber-700 dark:text-amber-300"></p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+    <!-- ============ LEFT: pick the event ============ -->
+    <div class="lg:col-span-2">
+      {% call section_card('1 · The event — what starts it', icon='ti-bolt') %}
+      <div class="p-4 sm:p-5 space-y-5">
+        {% set groups = trigger_catalog.values()|map(attribute='group')|unique|sort %}
+        {% for grp in groups %}
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ grp }}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {% for key, meta in trigger_catalog.items() if meta.group == grp %}
+            <label class="relative flex gap-2.5 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-ecs-green transition-colors has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5 dark:has-[:checked]:bg-ecs-green/10">
+              <input type="radio" name="newTrigger" value="{{ key }}"
+                     data-default-audience="{{ meta.default_audience }}"
+                     class="new-trigger mt-0.5 w-4 h-4 border-gray-300 text-ecs-green focus:ring-ecs-green shrink-0">
+              <span class="min-w-0">
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white">{{ meta.label }}</span>
+                <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ meta.help }}</span>
+                <span class="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ meta.scope }}</span>
+                {% if trigger_overlaps.get(key) %}
+                <span class="inline-flex items-center gap-1 mt-1.5 ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                      title="{{ trigger_overlaps[key].text }}">
+                  <i class="ti ti-alert-triangle text-[9px]"></i>Already notifies
+                </span>
+                {% endif %}
+              </span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endcall %}
+    </div>
+
+    <!-- ============ RIGHT: settings ============ -->
+    <div class="lg:col-span-1 space-y-5">
+      {% call section_card('2 · Name it', icon='ti-tag') %}
+      <div class="p-4 sm:p-5">
+        <label for="newName" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">What should we call it?</label>
+        <input type="text" id="newName" maxlength="200"
+               placeholder="e.g. Welcome drafted players to Discord"
+               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          Just for you &mdash; recipients never see this.
+        </p>
+
+        <label for="newDescription" class="block mt-4 mb-1.5 text-sm font-medium text-gray-900 dark:text-white">What's it for? <span class="font-normal text-gray-400">(optional)</span></label>
+        <textarea id="newDescription" rows="3" maxlength="1000"
+                  placeholder="A sentence so the next admin knows why this exists."
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green"></textarea>
+      </div>
+      {% endcall %}
+
+      {% call section_card('3 · Who and when', icon='ti-users') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <label for="newAudience" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Who gets it</label>
+          <select id="newAudience"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            {% for value, label, help in audience_types %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p id="newAudienceHelp" class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"></p>
+          <p id="newAudiencePinned" class="mt-1.5 text-xs text-amber-700 dark:text-amber-400 hidden">
+            This trigger fires for one person at a time, so it can only message that person.
+          </p>
+        </div>
+
+        <div>
+          <label for="newDelay" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Wait before sending (hours)</label>
+          <input type="number" id="newDelay" value="24" min="0" max="720"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Counted from when the event actually happened, not from when we notice it.
+            Use 0 to send as soon as it fires.
+          </p>
+        </div>
+
+        {# Trigger knobs, rendered from TRIGGER_FIELD_SPECS by the JS. #}
+        <div id="newTriggerFields" class="space-y-4"></div>
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+
+  <script type="application/json" id="automationTriggerCatalog">{{ trigger_catalog|tojson }}</script>
+  <script type="application/json" id="automationTriggerFieldSpecs">{{ trigger_field_specs|tojson }}</script>
+  <script type="application/json" id="automationAudienceTypes">{{ audience_types|tojson }}</script>
+  <script type="application/json" id="automationPerSubject">{{ per_subject_triggers|list|tojson }}</script>
+  <script type="application/json" id="automationOverlaps">{{ trigger_overlaps|tojson }}</script>
+</div>
+{% endblock %}

@@ -838,6 +838,8 @@ function initTinyMCE() {
     const isPhone = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
 
     window.tinymce.init({
+        // Self-hosted GPL build — required from TinyMCE 7 on or the editor refuses to load.
+        license_key: 'gpl',
         selector: '#emailBody',
         width: '100%',
         height: isPhone ? 280 : 400,

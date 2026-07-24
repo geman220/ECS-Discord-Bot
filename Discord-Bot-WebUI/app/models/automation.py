@@ -153,8 +153,8 @@ TRIGGER_CATALOG = {
     TRIGGER_SUB_NO_REPLY: {
         'label': 'Sub was asked and never replied',
         'help': ('Fires once per person per request when we asked them to sub and got '
-                 'silence for longer than the threshold. Anchored to the real '
-                 'notification_sent_at.'),
+                 'silence for longer than the threshold. '
+                 'Pub League only \u2014 ECS FC substitute requests are not covered yet.'),
         'fields': ['silence_hours', 'max_event_age_days'],
         'scope': 'Per person, per request',
         'group': 'Substitutes',
@@ -208,7 +208,10 @@ TRIGGER_CATALOG = {
     TRIGGER_SUB_REQUEST_UNFILLED: {
         'label': 'Sub request still unfilled',
         'help': ("Fires when a request for cover is still short of players after the "
-                 "chosen number of hours. Goes to whoever asked for the sub."),
+                 "chosen number of hours. Goes to whoever asked for the sub. "
+                 "Especially useful in Pub League, where creating a request does NOT "
+                 "notify the sub pool \u2014 that is still a manual broadcast. "
+                 "Pub League only."),
         'fields': ['unfilled_hours', 'max_event_age_days'],
         'scope': 'Per request',
         'group': 'Substitutes',
@@ -217,7 +220,8 @@ TRIGGER_CATALOG = {
     TRIGGER_SUB_POOL_PENDING: {
         'label': 'Sub application waiting for approval',
         'help': ("Fires when someone applied to join the substitute pool and is still "
-                 "waiting to be approved."),
+                 "waiting to be approved. Note this messages the APPLICANT, who cannot "
+                 "act on it \u2014 use it as reassurance, not as an admin to-do."),
         'fields': ['waiting_days', 'max_event_age_days'],
         'scope': 'Per person',
         'group': 'Substitutes',
@@ -534,6 +538,138 @@ def default_trigger_config(trigger_type, league_type='Pub League'):
     cfg.setdefault('max_event_age_days',
                    TRIGGER_FIELD_SPECS['max_event_age_days']['default'])
     return cfg
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MESSAGE VARIABLES — the {tokens} an admin can put in copy.
+#
+# Single source of truth. Before this, the list lived in four places (the editor
+# template, two separate "known" sets in the routes, and the personalisation
+# helper) and they had already drifted.
+#
+# scope:
+#   'recipient' -> filled per person at send time by personalize_content.
+#                  ONLY works in Individual send mode; in BCC mode everyone gets
+#                  one identical email so there is nobody to personalise for.
+#   'global'    -> filled once at send time from settings (see GLOBAL_VARIABLE_
+#                  SETTINGS). Safe in any send mode.
+# ─────────────────────────────────────────────────────────────────────────────
+
+MESSAGE_VARIABLES = {
+    'first_name': {
+        'label': 'First name', 'scope': 'recipient',
+        'description': "The recipient's first name. Falls back to their full name.",
+        'example': 'Alex',
+    },
+    'name': {
+        'label': 'Full name', 'scope': 'recipient',
+        'description': "The recipient's full name.",
+        'example': 'Alex Morgan',
+    },
+    'team': {
+        'label': 'Team', 'scope': 'recipient',
+        'description': "The team they are on this season. Blank if they are not rostered.",
+        'example': 'Sharks',
+    },
+    'league': {
+        'label': 'League', 'scope': 'recipient',
+        'description': 'Their league this season, e.g. Premier or Classic.',
+        'example': 'Premier',
+    },
+    'season': {
+        'label': 'Season', 'scope': 'recipient',
+        'description': 'The current season name.',
+        'example': '2026 Spring',
+    },
+    'discord_invite_url': {
+        'label': 'Discord invite link', 'scope': 'global',
+        'description': 'Your Discord server invite. Change it in one place and every '
+                       'automation picks it up.',
+        'setting': 'discord_invite_url',
+    },
+    'support_email': {
+        'label': 'Support email', 'scope': 'global',
+        'description': 'The address you tell people to contact for help.',
+        'setting': 'support_email',
+    },
+}
+
+# Which AdminConfig key backs each global variable, and its fallback.
+GLOBAL_VARIABLE_SETTINGS = {
+    'discord_invite_url': ('discord_invite_url', 'https://discord.gg/weareecs'),
+    'support_email': ('support_email', 'ecspubleague@gmail.com'),
+}
+
+
+def known_variable_names():
+    """Every {token} the engine knows how to fill.
+
+    The enable-guard uses this to spot placeholders that would otherwise ship
+    literally -- like a {survey_url} that was never filled in.
+    """
+    return set(MESSAGE_VARIABLES)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OVERLAP WARNINGS
+#
+# Parts of this app already send messages on their own -- the substitute system,
+# the RSVP reminders, the match-day digest. An admin building an automation has
+# no way to know that, and the failure mode is silent: the member just gets two
+# messages about the same thing.
+#
+# Keyed by trigger_type. Shown in the editor and again when enabling. Advisory,
+# never blocking -- the admin may genuinely want a second touch on a different
+# channel, and we should not pretend to know better.
+# ─────────────────────────────────────────────────────────────────────────────
+
+TRIGGER_OVERLAPS = {
+    TRIGGER_USER_APPROVED: {
+        'text': ("Approval already sends a push notification and an in-app alert "
+                 "(\"You're in!\") the moment it happens. Email is deliberately left "
+                 "out there, so an email here adds the detail that one cannot — which "
+                 "is usually exactly what you want."),
+        'avoid_channels': ['push', 'in_app'],
+        'avoid_reason': ("they already get a push and an in-app alert on approval, so "
+                         "adding those here means being told twice"),
+        'where': 'Sent automatically on approval (no setting to change).',
+    },
+    TRIGGER_SUB_NO_REPLY: {
+        'text': ("The substitute system sends the FIRST ask itself, and its wording, "
+                 "channels and timing are configured in Substitutes \u2192 Settings. "
+                 "This rule is the follow-up nudge when nobody answers."),
+        'avoid_channels': [],
+        'where': 'Substitutes \u2192 Settings (reach-out channels and message).',
+    },
+    TRIGGER_SUB_REQUEST_UNFILLED: {
+        'text': ("This warns whoever ASKED for the sub. It does not reach out to the "
+                 "sub pool \u2014 that is still a manual step on the request itself, "
+                 "and its message is configured in Substitutes \u2192 Settings."),
+        'avoid_channels': [],
+        'where': 'Substitutes \u2192 Settings (reach-out defaults).',
+    },
+    TRIGGER_MATCH_RESCHEDULED: {
+        'text': ("Players already get a day-before reminder that carries the current "
+                 "kick-off time, so a very late reschedule is covered either way. This "
+                 "tells them as soon as it changes, which is the point."),
+        'avoid_channels': [],
+        'where': 'Daily match reminder (18:00).',
+    },
+}
+
+
+def overlap_warning(trigger_type):
+    """Advisory note about existing behaviour this trigger sits near, or None."""
+    return TRIGGER_OVERLAPS.get(trigger_type)
+
+
+def channel_clashes(trigger_type, channels):
+    """Channels on this rule that would double-notify, given what already exists.
+
+    Advisory only. An admin may genuinely want a second touch, and we should not
+    pretend to know their situation better than they do.
+    """
+    meta = TRIGGER_OVERLAPS.get(trigger_type) or {}
+    avoid = set(meta.get('avoid_channels') or [])
+    return sorted(avoid & set(channels or []))
 
 def build_scope_key(season_id, league_id, subject_type=None, subject_id=None):
     """Stable scope identifier for an AutomationRun.

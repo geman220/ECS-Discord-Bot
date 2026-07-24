@@ -1297,23 +1297,35 @@ def apply_conditions(session, rule, recipients):
     return kept
 
 
-def substitute_placeholders(session, text):
-    """Fill non-personalization placeholders from admin config.
+def resolve_global_variables(session=None):
+    """Current value of every global {variable}, from settings.
 
-    {first_name}/{team}/etc. are intentionally left alone -- those are resolved
-    per-recipient by the send task.
+    Also what the editor shows admins, so the panel can never claim a different
+    value from the one that actually gets sent.
     """
+    from app.models.automation import GLOBAL_VARIABLE_SETTINGS
+
+    out = {}
+    for name, (setting_key, fallback) in GLOBAL_VARIABLE_SETTINGS.items():
+        value = None
+        try:
+            from app.models.admin_config import AdminConfig
+            value = AdminConfig.get_setting(setting_key, None)
+        except Exception:
+            logger.debug("Could not read setting %s; using the default",
+                         setting_key, exc_info=True)
+        out[name] = (value or fallback)
+    return out
+
+
+def substitute_placeholders(session, text):
+    """Fill the GLOBAL variables. Per-recipient tokens are left alone -- those
+    are resolved per person by the send task."""
     if not text:
         return text
-    invite = DEFAULT_DISCORD_INVITE
-    try:
-        from app.models.admin_config import AdminConfig
-        invite = AdminConfig.get_setting('discord_invite_url', None) or DEFAULT_DISCORD_INVITE
-    except Exception:
-        logger.debug("Falling back to default Discord invite URL", exc_info=True)
-    return (text
-            .replace('{discord_invite_url}', invite)
-            .replace('{support_email}', SUPPORT_EMAIL))
+    for name, value in resolve_global_variables(session).items():
+        text = text.replace('{%s}' % name, value)
+    return text
 
 
 def dispatch_run(session, run, force=False):

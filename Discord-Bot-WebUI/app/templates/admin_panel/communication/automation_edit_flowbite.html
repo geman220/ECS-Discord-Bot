@@ -136,6 +136,24 @@
           {% endif %}
         </div>
 
+        {% if overlap %}
+        <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3 flex gap-2.5">
+          <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true"></i>
+          <div class="text-xs text-amber-900 dark:text-amber-200">
+            <p class="font-semibold">Something already messages people here</p>
+            <p class="mt-0.5">{{ overlap.text }}</p>
+            {% if overlap.where %}<p class="mt-1 text-amber-700 dark:text-amber-300">Configured in: {{ overlap.where }}</p>{% endif %}
+            {% if overlap_clashes %}
+            <p class="mt-1.5 font-semibold">
+              This rule currently sends by
+              {{ overlap_clashes | map('replace', '_', '-') | join(', ') }},
+              which means people get told twice. Consider email only.
+            </p>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
         {# Trigger knobs, rendered from TRIGGER_FIELD_SPECS. Adding a knob to that
            dict is the ONLY change needed for it to appear here, validate and save. #}
         {% for name, spec in trigger_fields %}
@@ -373,21 +391,54 @@
           </p>
         </div>
 
+        {# Variables panel — driven by MESSAGE_VARIABLES so it can never drift
+           from what the engine actually fills. Global values are the LIVE ones. #}
         <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 p-3">
-          <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Placeholders you can use</p>
-          <dl class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{first_name}</dt><dd class="text-gray-500 dark:text-gray-400">Recipient's first name</dd></div>
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{name}</dt><dd class="text-gray-500 dark:text-gray-400">Full name</dd></div>
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{team}</dt><dd class="text-gray-500 dark:text-gray-400">Their team</dd></div>
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{league}</dt><dd class="text-gray-500 dark:text-gray-400">Their league</dd></div>
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{season}</dt><dd class="text-gray-500 dark:text-gray-400">Season name</dd></div>
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{discord_invite_url}</dt><dd class="text-gray-500 dark:text-gray-400">Server invite link</dd></div>
-            <div class="flex gap-2"><dt class="font-mono text-ecs-green shrink-0">{support_email}</dt><dd class="text-gray-500 dark:text-gray-400">Support address</dd></div>
-          </dl>
-          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            The first five are filled per recipient and need <strong>Individual</strong> send mode.
-            The last two are filled once at send time from admin settings.
+          <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Variables you can use</p>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Type these into the subject or message and they get swapped for real values when it sends.
           </p>
+
+          <p class="mt-3 text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Different for each person</p>
+          <dl class="mt-1 space-y-1.5">
+            {% for name, meta in message_variables.items() if meta.scope == 'recipient' %}
+            <div class="flex flex-col sm:flex-row sm:gap-2">
+              <dt data-var-token="{{ '{' }}{{ name }}{{ '}' }}" class="font-mono text-xs text-ecs-green shrink-0 sm:w-32">&#123;{{ name }}&#125;</dt>
+              <dd class="text-xs text-gray-500 dark:text-gray-400">
+                {{ meta.description }}
+                {% if meta.example %}<span class="text-gray-400 dark:text-gray-500">e.g. &ldquo;{{ meta.example }}&rdquo;</span>{% endif %}
+              </dd>
+            </div>
+            {% endfor %}
+          </dl>
+          <p class="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
+            These only work in <strong>Individual</strong> send mode &mdash; a BCC batch is one
+            identical email, so there is nobody to personalise it for.
+          </p>
+
+          <p class="mt-3 text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Same for everyone</p>
+          <dl class="mt-1 space-y-2">
+            {% for name, meta in message_variables.items() if meta.scope == 'global' %}
+            <div>
+              <div class="flex flex-col sm:flex-row sm:gap-2">
+                <dt data-var-token="{{ '{' }}{{ name }}{{ '}' }}" class="font-mono text-xs text-ecs-green shrink-0 sm:w-32">&#123;{{ name }}&#125;</dt>
+                <dd class="text-xs text-gray-500 dark:text-gray-400">{{ meta.description }}</dd>
+              </div>
+              <div class="mt-1 sm:ml-32 flex items-center gap-1.5">
+                <input type="text" data-global-var="{{ name }}"
+                       value="{{ global_variable_values.get(name, '') }}"
+                       class="flex-1 min-w-0 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs p-1.5 focus:ring-ecs-green focus:border-ecs-green">
+              </div>
+            </div>
+            {% endfor %}
+          </dl>
+          <div class="mt-2 flex items-center gap-2">
+            <button type="button" data-action="automation-save-variables"
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+              <i class="ti ti-device-floppy" aria-hidden="true"></i><span>Save these values</span>
+            </button>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Applies to <strong>every</strong> automation.</span>
+          </div>
         </div>
       </div>
       {% endcall %}

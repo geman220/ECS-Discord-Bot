@@ -211,7 +211,9 @@ from .automation import (
     CONDITION_FIELDS, CONDITION_OPS, CONDITION_OPS_BY_TYPE,
     CONDITION_OPS_NEEDING_VALUE, CONDITION_NEGATIVE_OPS,
     condition_ops_for, describe_condition, summarize_rule,
-    TRIGGER_FIELD_SPECS, trigger_fields_for, default_trigger_config
+    TRIGGER_FIELD_SPECS, trigger_fields_for, default_trigger_config,
+    MESSAGE_VARIABLES, GLOBAL_VARIABLE_SETTINGS, known_variable_names,
+    TRIGGER_OVERLAPS, overlap_warning, channel_clashes
 )
 
 from .mobile_telemetry import (
@@ -395,6 +397,8 @@ __all__ = [
     'CONDITION_OPS_NEEDING_VALUE', 'CONDITION_NEGATIVE_OPS',
     'condition_ops_for', 'describe_condition', 'summarize_rule',
     'TRIGGER_FIELD_SPECS', 'trigger_fields_for', 'default_trigger_config',
+    'MESSAGE_VARIABLES', 'GLOBAL_VARIABLE_SETTINGS', 'known_variable_names',
+    'TRIGGER_OVERLAPS', 'overlap_warning', 'channel_clashes',
 
     # Mobile telemetry models
     'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',

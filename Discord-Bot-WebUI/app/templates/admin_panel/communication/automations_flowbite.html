@@ -28,17 +28,12 @@
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
       <i class="ti ti-mail" aria-hidden="true"></i><span>Email blasts</span>
     </a>
-    <button type="button" data-action="automation-new"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors">
+    <a href="{{ url_for('admin_panel.automation_new') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors">
       <i class="ti ti-plus" aria-hidden="true"></i><span>New automation</span>
-    </button>
+    </a>
   {% endcall %}
 
-  {# Trigger catalog handed to the builder modal as JSON. Rendered via |tojson so
-     the help text cannot break out of the script context. #}
-  <script type="application/json" id="automationTriggerCatalog">{{ trigger_catalog|tojson }}</script>
-  <script type="application/json" id="automationAudienceTypes">{{ audience_types|tojson }}</script>
-  <script type="application/json" id="automationTriggerFieldSpecs">{{ trigger_field_specs|tojson }}</script>
 
   <!-- What this page is ---------------------------------------------------- -->
   <div class="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-4">
@@ -80,7 +75,7 @@
   <!-- ===================== RULES ====================== -->
   {% if not rules %}
     {{ empty_state('ti-robot', 'No automation rules yet',
-                   'Use "New automation" above to build one, or run sql_create_automation_rules.sql to install the two starter rules.') }}
+                   'Use "New automation" above to build one from scratch.') }}
   {% else %}
   <div class="space-y-4">
     {% for rule in rules %}

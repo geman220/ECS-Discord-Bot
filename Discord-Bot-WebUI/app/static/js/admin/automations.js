@@ -79,157 +79,161 @@ function readJsonScript(id, fallback) {
     }
 }
 
-function buildTriggerOptions(catalog) {
-    const groups = {};
-    Object.keys(catalog).forEach((k) => {
-        const g = catalog[k].group || 'Other';
-        (groups[g] = groups[g] || []).push(k);
-    });
-    return Object.keys(groups).sort().map((g) =>
-        `<optgroup label="${escapeHtml(g)}">` +
-        groups[g].map((k) =>
-            `<option value="${escapeHtml(k)}">${escapeHtml(catalog[k].label)}</option>`).join('') +
-        '</optgroup>').join('');
-}
-
 function buildAudienceOptions(audiences) {
     return audiences
         .map(([value, label]) => `<option value="${escapeHtml(value)}">${escapeHtml(label)}</option>`)
         .join('');
 }
 
-// Fields that only make sense for particular triggers. Rendered once and shown
-// or hidden as the trigger dropdown changes, so the modal stays one round-trip.
-function conditionalFieldsHtml() {
-    // Filled by syncConditionalFields from the server's field specs.
-    return '<div id="afFields"></div>';
-}
+/* ========================================================================
+   NEW AUTOMATION PAGE
+   ======================================================================== */
 
-function buildTriggerFieldsHtml(specs, catalog, trigger) {
+// Render this trigger's knobs from the server's field specs, so a new knob
+// needs no change here.
+function renderNewTriggerFields(trigger) {
+    const holder = document.getElementById('newTriggerFields');
+    if (!holder) return;
+    const catalog = readJsonScript('automationTriggerCatalog', {});
+    const specs = readJsonScript('automationTriggerFieldSpecs', {});
     const fields = ((catalog[trigger] || {}).fields) || [];
-    return fields.map((name) => {
+
+    holder.innerHTML = fields.map((name) => {
         const spec = specs[name];
         if (!spec) return '';
-        const id = `af_${name}`;
+        const id = `nf_${name}`;
+        const help = spec.help
+            ? `<p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(spec.help)}</p>` : '';
+        const cls = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 ' +
+                    'dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 ' +
+                    'focus:ring-ecs-green focus:border-ecs-green';
         if (spec.type === 'choice') {
             const opts = (spec.choices || []).map(([v, l]) =>
                 `<option value="${escapeHtml(v)}" ${v === spec.default ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('');
-            return `<div class="mt-3"><label class="block mb-1 text-sm font-medium">${escapeHtml(spec.label)}</label>` +
-                   `<select id="${id}" data-af-field="${escapeHtml(name)}" class="w-full rounded-lg border border-gray-300 p-2 text-sm">${opts}</select></div>`;
+            return `<div><label for="${id}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(spec.label)}</label>` +
+                   `<select id="${id}" data-nf-field="${escapeHtml(name)}" class="${cls}">${opts}</select>${help}</div>`;
         }
-        return `<div class="mt-3"><label class="block mb-1 text-sm font-medium">${escapeHtml(spec.label)}</label>` +
-               `<input type="number" id="${id}" data-af-field="${escapeHtml(name)}" value="${spec.default}" ` +
-               `${spec.min !== null && spec.min !== undefined ? `min="${spec.min}"` : ''} ` +
-               `${spec.max !== null && spec.max !== undefined ? `max="${spec.max}"` : ''} ` +
-               `class="w-full rounded-lg border border-gray-300 p-2 text-sm"></div>`;
+        const min = (spec.min !== null && spec.min !== undefined) ? `min="${spec.min}"` : '';
+        const max = (spec.max !== null && spec.max !== undefined) ? `max="${spec.max}"` : '';
+        return `<div><label for="${id}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(spec.label)}</label>` +
+               `<input type="number" id="${id}" data-nf-field="${escapeHtml(name)}" value="${spec.default}" ${min} ${max} class="${cls}">${help}</div>`;
     }).join('');
 }
 
-function syncConditionalFields(catalog) {
-    const trigger = document.getElementById('afTrigger')?.value;
-    const meta = catalog[trigger] || {};
-    const specs = readJsonScript('automationTriggerFieldSpecs', {});
-
-    const holder = document.getElementById('afFields');
-    if (holder) holder.innerHTML = buildTriggerFieldsHtml(specs, catalog, trigger);
-
-    const helpEl = document.getElementById('afHelp');
-    if (helpEl) helpEl.textContent = meta.help || '';
-    const scopeEl = document.getElementById('afScope');
-    if (scopeEl) scopeEl.textContent = meta.scope ? `Scope: ${meta.scope}` : '';
-
-    // A per-person trigger can only ever target the person it fired for, so pin
-    // the audience rather than letting an impossible one be chosen.
-    const audienceEl = document.getElementById('afAudience');
-    if (audienceEl && meta.default_audience) {
-        const perPerson = meta.default_audience === 'the_subject';
-        audienceEl.value = meta.default_audience;
-        audienceEl.disabled = perPerson;
-        audienceEl.title = perPerson
-            ? 'A per-person trigger always sends to the person it fired for.'
-            : '';
-    }
+function selectedNewTrigger() {
+    return document.querySelector('.new-trigger:checked')?.value || null;
 }
 
-async function handleNewAutomation() {
+// Mirrors summarize_rule() on the server so the page reads back the same way
+// the saved rule will.
+function updateNewSummary() {
+    const el = document.getElementById('newSummary');
+    if (!el) return;
+    const trigger = selectedNewTrigger();
+    if (!trigger) {
+        el.textContent = 'Pick a trigger below to get started.';
+        return;
+    }
     const catalog = readJsonScript('automationTriggerCatalog', {});
     const audiences = readJsonScript('automationAudienceTypes', []);
+    const label = (catalog[trigger] || {}).label || trigger;
+    const audVal = document.getElementById('newAudience')?.value;
+    const audLabel = (audiences.find((a) => a[0] === audVal) || [])[1] || audVal || 'someone';
+    const hours = parseInt(document.getElementById('newDelay')?.value || '0', 10) || 0;
 
-    if (!Object.keys(catalog).length) {
-        toastError('No trigger types are available.');
+    let wait;
+    if (hours === 0) wait = 'immediately';
+    else if (hours % 24 === 0) {
+        const d = hours / 24;
+        wait = `wait ${d} day${d === 1 ? '' : 's'}, then`;
+    } else wait = `wait ${hours} hour${hours === 1 ? '' : 's'}, then`;
+
+    const when = label.charAt(0).toLowerCase() + label.slice(1);
+    el.textContent = `When ${when}, ${wait} message ${audLabel.toLowerCase()} by email.`;
+}
+
+function syncNewOverlap() {
+    const wrap = document.getElementById('newOverlap');
+    if (!wrap) return;
+    const overlaps = readJsonScript('automationOverlaps', {});
+    const meta = overlaps[selectedNewTrigger()];
+    wrap.classList.toggle('hidden', !meta);
+    if (!meta) return;
+    const t = document.getElementById('newOverlapText');
+    const w = document.getElementById('newOverlapWhere');
+    if (t) t.textContent = meta.text || '';
+    if (w) w.textContent = meta.where ? `Configured in: ${meta.where}` : '';
+}
+
+function syncNewAudience() {
+    const trigger = selectedNewTrigger();
+    if (!trigger) return;
+    const perSubject = readJsonScript('automationPerSubject', []);
+    const audiences = readJsonScript('automationAudienceTypes', []);
+    const sel = document.getElementById('newAudience');
+    const pinned = document.getElementById('newAudiencePinned');
+    const help = document.getElementById('newAudienceHelp');
+    if (!sel) return;
+
+    const isPerSubject = perSubject.includes(trigger);
+    const def = document.querySelector('.new-trigger:checked')?.dataset.defaultAudience;
+    if (def) sel.value = def;
+    // A per-person trigger fires for one person, so it can only target them.
+    sel.disabled = isPerSubject;
+    pinned?.classList.toggle('hidden', !isPerSubject);
+
+    const meta = audiences.find((a) => a[0] === sel.value);
+    if (help) help.textContent = meta ? meta[2] : '';
+}
+
+function initNewAutomationPage() {
+    if (!document.querySelector('[data-page="automation-new"]')) return;
+
+    document.querySelectorAll('.new-trigger').forEach((el) => {
+        el.addEventListener('change', () => {
+            renderNewTriggerFields(el.value);
+            syncNewAudience();
+            syncNewOverlap();
+            updateNewSummary();
+        });
+    });
+    document.getElementById('newAudience')?.addEventListener('change', () => {
+        syncNewAudience();
+        updateNewSummary();
+    });
+    document.getElementById('newDelay')?.addEventListener('input', updateNewSummary);
+    updateNewSummary();
+}
+
+async function handleCreateAutomation() {
+    const trigger = selectedNewTrigger();
+    if (!trigger) {
+        toastError('Pick a trigger first — it decides what starts the automation.');
+        return;
+    }
+    const name = document.getElementById('newName')?.value?.trim();
+    if (!name) {
+        toastError('Give the automation a name so you can find it later.');
+        document.getElementById('newName')?.focus();
         return;
     }
 
-    const result = await window.Swal.fire({
-        title: 'New automation',
-        width: 640,
-        html:
-            '<div class="text-start space-y-3">' +
-            '<div><label class="block mb-1 text-sm font-medium">Name</label>' +
-            '<input id="afName" class="w-full rounded-lg border border-gray-300 p-2 text-sm" ' +
-            'placeholder="e.g. Welcome drafted players to Discord"></div>' +
-
-            '<div><label class="block mb-1 text-sm font-medium">When should it fire?</label>' +
-            `<select id="afTrigger" class="w-full rounded-lg border border-gray-300 p-2 text-sm">${buildTriggerOptions(catalog)}</select>` +
-            '<p id="afHelp" class="mt-1 text-xs text-gray-500"></p>' +
-            '<p id="afScope" class="mt-0.5 text-[11px] font-medium text-gray-400"></p></div>' +
-
-            conditionalFieldsHtml() +
-
-            '<div class="grid grid-cols-2 gap-2 mt-3">' +
-            '<div><label class="block mb-1 text-sm font-medium">Who gets it</label>' +
-            `<select id="afAudience" class="w-full rounded-lg border border-gray-300 p-2 text-sm">${buildAudienceOptions(audiences)}</select></div>` +
-            '<div><label class="block mb-1 text-sm font-medium">Wait (hours)</label>' +
-            '<input type="number" id="afDelay" value="24" min="0" max="720" class="w-full rounded-lg border border-gray-300 p-2 text-sm"></div>' +
-            '</div>' +
-
-            '<p class="mt-2 text-xs text-gray-500">It is created <strong>switched off</strong>. ' +
-            'You will land in the editor to write the message, then turn it on when you are happy.</p>' +
-            '</div>',
-        didOpen: () => {
-            syncConditionalFields(catalog);
-            document.getElementById('afTrigger')
-                ?.addEventListener('change', () => syncConditionalFields(catalog));
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Create',
-        preConfirm: () => {
-            const name = document.getElementById('afName')?.value?.trim();
-            if (!name) {
-                window.Swal.showValidationMessage('Give the automation a name');
-                return false;
-            }
-            return {
-                name,
-                trigger_type: document.getElementById('afTrigger')?.value,
-                // Read the select first. syncConditionalFields already pins it
-                // to the required value (and disables it) for per-person
-                // triggers, so this respects the admin's choice everywhere else
-                // instead of always overriding with the catalog default.
-                audience_type: document.getElementById('afAudience')?.value
-                    || (catalog[document.getElementById('afTrigger')?.value] || {}).default_audience,
-                delay_hours: parseInt(document.getElementById('afDelay')?.value || '24', 10),
-                phase: document.getElementById('afPhaseValue')?.value,
-                date_anchor: document.getElementById('afDateAnchor')?.value,
-                days_offset: parseInt(document.getElementById('afDaysOffset')?.value || '0', 10),
-                ...(function () {
-                    const out = {};
-                    document.querySelectorAll('[data-af-field]').forEach((el) => {
-                        out[el.dataset.afField] = el.type === 'number'
-                            ? parseInt(el.value || '0', 10) : el.value;
-                    });
-                    return out;
-                }()),
-            };
-        },
+    const payload = {
+        name,
+        description: document.getElementById('newDescription')?.value?.trim() || '',
+        trigger_type: trigger,
+        audience_type: document.getElementById('newAudience')?.value,
+        delay_hours: parseInt(document.getElementById('newDelay')?.value || '24', 10),
+    };
+    document.querySelectorAll('[data-nf-field]').forEach((el) => {
+        payload[el.dataset.nfField] = el.type === 'number'
+            ? parseInt(el.value || '0', 10) : el.value;
     });
-
-    if (!result.isConfirmed) return;
 
     try {
         const data = await apiCall(API_BASE, {
             method: 'POST',
-            body: JSON.stringify(result.value),
+            body: JSON.stringify(payload),
         });
         window.location.href = data.redirect;
     } catch (e) {
@@ -238,144 +242,29 @@ async function handleNewAutomation() {
 }
 
 /* ========================================================================
-   RICH TEXT EDITOR + EMAIL PREVIEW
+   TRACE — "why didn't this person get it?"
    ======================================================================== */
 
-// Read the body from TinyMCE when it is running, falling back to the raw
-// textarea. TinyMCE does not write back to the textarea until it is asked to,
-// so reading .value directly would save stale content.
-function getBodyHtml() {
-    const ed = window.tinymce && window.tinymce.get('ruleBody');
-    if (ed) return ed.getContent();
-    return document.getElementById('ruleBody')?.value ?? '';
-}
-
-function initEditor() {
-    if (!window.tinymce || !document.getElementById('ruleBody')) return;
-    const isDark = document.documentElement.classList.contains('dark');
-    const isPhone = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-
-    window.tinymce.init({
-        selector: '#ruleBody',
-        width: '100%',
-        height: isPhone ? 300 : 460,
-        menubar: false,
-        plugins: 'lists link image table code wordcount autolink',
-        toolbar: isPhone
-            ? 'undo redo | bold italic | bullist numlist | link inserttokens'
-            : 'undo redo | blocks | bold italic underline | forecolor | alignleft aligncenter alignright | bullist numlist | link image table | inserttokens | code',
-        toolbar_mode: 'sliding',
-        content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
-        skin: isDark ? 'oxide-dark' : 'oxide',
-        content_css: isDark ? 'dark' : 'default',
-        branding: false,
-        promotion: false,
-        // Email bodies rely on inline styles (buttons, spacing) that TinyMCE's
-        // cleanup would otherwise strip, which would silently wreck the seeded
-        // templates the moment someone opened and saved them.
-        verify_html: false,
-        valid_elements: '*[*]',
-        extended_valid_elements: 'style,link[href|rel]',
-        setup: function (editor) {
-            editor.ui.registry.addMenuButton('inserttokens', {
-                text: 'Insert',
-                fetch: function (callback) {
-                    const tokens = ['{first_name}', '{name}', '{team}', '{league}', '{season}',
-                                    '{discord_invite_url}', '{support_email}'];
-                    callback(tokens.map((t) => ({
-                        type: 'menuitem', text: t,
-                        onAction: () => editor.insertContent(t),
-                    })));
-                },
-            });
-        },
+async function handleSaveVariables() {
+    const payload = {};
+    document.querySelectorAll('[data-global-var]').forEach((el) => {
+        payload[el.dataset.globalVar] = el.value.trim();
     });
-}
-
-async function handlePreviewEmail(element) {
-    const ruleId = element.dataset.ruleId;
-    if (!ruleId) return;
-
-    window.Swal.fire({ title: 'Rendering…', allowOutsideClick: false,
-                       didOpen: () => window.Swal.showLoading() });
+    if (!Object.keys(payload).length) return;
     try {
-        const data = await apiCall(`${API_BASE}/${ruleId}/preview-email`, {
+        await apiCall(`${API_BASE}/variables`, {
             method: 'POST',
-            body: JSON.stringify({
-                body_html: getBodyHtml(),
-                subject: document.getElementById('ruleSubject')?.value || '',
-                template_id: document.getElementById('ruleTemplateId')?.value || null,
-            }),
+            body: JSON.stringify(payload),
         });
-
-        const warn = data.unresolved && data.unresolved.length
-            ? `<div style="margin:0 0 10px;padding:8px 10px;border-radius:6px;background:#fef3c7;color:#92400e;font-size:12px;text-align:left;">
-                 <strong>These will send literally:</strong> ${escapeHtml(data.unresolved.map((u) => '{' + u + '}').join(', '))}
-               </div>`
-            : '';
-
-        // srcdoc keeps the email's own CSS from leaking into the admin page.
         window.Swal.fire({
-            title: false,
-            width: 720,
-            html:
-                `<p style="text-align:left;font-size:12px;color:#6b7280;margin:0 0 4px;">Subject</p>` +
-                `<p style="text-align:left;font-weight:600;margin:0 0 10px;">${escapeHtml(data.subject)}</p>` +
-                warn +
-                `<iframe srcdoc="${escapeHtml(data.html)}" style="width:100%;height:60vh;border:1px solid #e5e7eb;border-radius:8px;background:#fff;" sandbox=""></iframe>` +
-                `<p style="text-align:left;font-size:11px;color:#9ca3af;margin:8px 0 0;">` +
-                `Personalised with your own details. ${data.wrapper ? 'Layout: ' + escapeHtml(data.wrapper) : 'No wrapper layout'}.</p>`,
-            confirmButtonText: 'Close',
+            icon: 'success', title: 'Saved',
+            text: 'These now apply to every automation.',
+            timer: 1600, showConfirmButton: false,
         });
     } catch (e) {
         toastError(e.message);
     }
 }
-
-/* ========================================================================
-   PLAIN-TEXT CHANNEL PREVIEW (push / Discord / in-app)
-   ======================================================================== */
-
-// Practical limits: Android collapses a notification body around 240 chars and
-// iOS shows ~178 on the lock screen. Discord DMs allow 2000.
-const PUSH_SAFE_CHARS = 178;
-const DISCORD_MAX_CHARS = 2000;
-
-function syncShortMessagePreview() {
-    const box = document.getElementById('ruleShortMessage');
-    if (!box) return;
-    const text = box.value || '';
-    const subject = document.getElementById('ruleSubject')?.value || '';
-
-    const count = document.getElementById('shortMessageCount');
-    if (count) count.textContent = String(text.length);
-
-    const warn = document.getElementById('shortMessageWarn');
-    if (warn) {
-        let msg = '';
-        if (text.length > DISCORD_MAX_CHARS) {
-            msg = `Over Discord's ${DISCORD_MAX_CHARS}-character limit — the DM will fail.`;
-        } else if (text.length > PUSH_SAFE_CHARS) {
-            msg = `Past ~${PUSH_SAFE_CHARS} characters a push notification gets cut off. Front-load the important part.`;
-        } else if (/<[a-z][\s\S]*>/i.test(text)) {
-            msg = 'That looks like HTML. These channels show it as raw text — use plain words and bare URLs.';
-        }
-        warn.textContent = msg;
-        warn.classList.toggle('hidden', !msg);
-    }
-
-    const t = document.getElementById('pushPreviewTitle');
-    const b = document.getElementById('pushPreviewBody');
-    const d = document.getElementById('discordPreviewBody');
-    if (t) t.textContent = subject || '—';
-    if (b) b.textContent = text ? text.slice(0, PUSH_SAFE_CHARS) + (text.length > PUSH_SAFE_CHARS ? '…' : '') : '—';
-    if (d) d.textContent = text || '—';
-}
-
-
-/* ========================================================================
-   TRACE — "why didn't this person get it?"
-   ======================================================================== */
 
 async function handleExplain(element) {
     const ruleId = element.dataset.ruleId;
@@ -442,6 +331,99 @@ async function handleExplain(element) {
     } catch (e) {
         toastError(e.message);
     }
+}
+
+
+/* ========================================================================
+   EMAIL BODY EDITOR (TinyMCE)
+   ======================================================================== */
+
+// Truncation limits copied from _dispatch_multichannel() in automation_service:
+// the push/Discord title is cut at 100 chars, and when a step has no short
+// message the HTML body is stripped and cut at 900. The previews below have to
+// use the same numbers or they would promise something the send does not do.
+const PUSH_TITLE_MAX = 100;
+const PUSH_BODY_FALLBACK_MAX = 900;
+
+// The vendor script is a classic <script> in extra_js while this module is
+// deferred, so tinymce is normally there already; the retry only covers a slow
+// or blocked asset. Falling back to the bare textarea keeps the page usable
+// instead of leaving an admin typing into nothing.
+const EDITOR_RETRIES = 20;
+
+function editorTextareaFallback() {
+    const target = document.getElementById('ruleBody');
+    if (!target) return;
+    target.classList.add(
+        'w-full', 'rounded-lg', 'border', 'border-gray-300', 'dark:border-gray-600',
+        'bg-gray-50', 'dark:bg-gray-700', 'text-gray-900', 'dark:text-white',
+        'text-sm', 'p-2.5', 'font-mono', 'focus:ring-ecs-green', 'focus:border-ecs-green');
+}
+
+function initEditor(attempt = 0) {
+    const target = document.getElementById('ruleBody');
+    if (!target) return;                       // list page / new-rule page
+    if (window.tinymce && window.tinymce.get('ruleBody')) return;
+
+    if (!window.tinymce) {
+        if (attempt < EDITOR_RETRIES) {
+            setTimeout(() => initEditor(attempt + 1), 100);
+        } else {
+            console.warn('[Automations] TinyMCE never loaded; using the plain textarea.');
+            editorTextareaFallback();
+        }
+        return;
+    }
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const isPhone = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+
+    window.tinymce.init({
+        // Self-hosted GPL build — required from TinyMCE 7 on or the editor
+        // renders as "disabled because a license key has not been provided".
+        license_key: 'gpl',
+        selector: '#ruleBody',
+        width: '100%',
+        height: isPhone ? 320 : 460,
+        menubar: false,
+        plugins: 'lists link image table code wordcount autolink',
+        toolbar: isPhone
+            ? 'undo redo | bold italic | bullist numlist | link inserttokens'
+            : 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | '
+              + 'alignleft aligncenter alignright | bullist numlist | link image table | inserttokens | code',
+        toolbar_mode: 'sliding',
+        content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+        skin: isDark ? 'oxide-dark' : 'oxide',
+        content_css: isDark ? 'dark' : 'default',
+        branding: false,
+        promotion: false,
+        setup: function (editor) {
+            editor.ui.registry.addMenuButton('inserttokens', {
+                text: 'Insert Token',
+                fetch: function (callback) {
+                    callback(['{first_name}', '{name}', '{team}', '{league}', '{season}',
+                        '{discord_invite_url}', '{support_email}'].map((token) => ({
+                        type: 'menuitem',
+                        text: token,
+                        onAction: () => editor.insertContent(token),
+                    })));
+                },
+            });
+            // The push/Discord preview falls back to the stripped email body, so
+            // it has to follow body edits, not just short-message edits.
+            editor.on('change keyup SetContent', () => syncShortMessagePreview());
+        },
+        init_instance_callback: () => syncShortMessagePreview(),
+    });
+}
+
+// Reads the body from TinyMCE when it is running and from the raw textarea when
+// it is not. Without the fallback a blocked vendor script would silently save an
+// empty body over a rule that already had one.
+function getBodyHtml() {
+    const editor = window.tinymce && window.tinymce.get('ruleBody');
+    if (editor) return editor.getContent();
+    return document.getElementById('ruleBody')?.value || '';
 }
 
 
@@ -668,10 +650,18 @@ async function handleToggle(element) {
     }
 
     try {
-        await apiCall(`${API_BASE}/${ruleId}/toggle`, {
+        const data = await apiCall(`${API_BASE}/${ruleId}/toggle`, {
             method: 'POST',
             body: JSON.stringify({ enabled: enabling }),
         });
+        if (data.warning) {
+            await window.Swal.fire({
+                icon: 'warning',
+                title: 'Switched on — but check this',
+                text: data.warning,
+                confirmButtonText: 'Got it',
+            });
+        }
         window.location.reload();
     } catch (e) {
         toastError(e.message);
@@ -1010,7 +1000,7 @@ async function handleCancelRun(element) {
    EVENT DELEGATION REGISTRATION
    ======================================================================== */
 
-window.EventDelegation.register('automation-new', handleNewAutomation, { preventDefault: true });
+window.EventDelegation.register('automation-create', handleCreateAutomation, { preventDefault: true });
 window.EventDelegation.register('automation-toggle', handleToggle, { preventDefault: true });
 window.EventDelegation.register('automation-save', handleSave, { preventDefault: true });
 window.EventDelegation.register('automation-preview', handlePreview, { preventDefault: true });
@@ -1022,6 +1012,7 @@ window.EventDelegation.register('automation-delete', handleDeleteRule, { prevent
 window.EventDelegation.register('automation-preview-email', handlePreviewEmail, { preventDefault: true });
 window.EventDelegation.register('automation-duplicate', handleDuplicateRule, { preventDefault: true });
 window.EventDelegation.register('automation-explain', handleExplain, { preventDefault: true });
+window.EventDelegation.register('automation-save-variables', handleSaveVariables, { preventDefault: true });
 window.EventDelegation.register('automation-add-step', handleAddStep, { preventDefault: true });
 window.EventDelegation.register('automation-remove-step', handleRemoveStep, { preventDefault: true });
 window.EventDelegation.register('automation-add-condition', handleAddCondition, { preventDefault: true });
@@ -1041,6 +1032,55 @@ function syncShortMessageVisibility() {
     wrap.classList.toggle('hidden', emailOnly);
 }
 
+// DOMParser rather than innerHTML: a detached <img onerror> still fires in
+// Chrome, and this runs over stored rule bodies.
+function stripHtml(html) {
+    if (!html) return '';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+// Shows what push / Discord / in-app actually deliver: the short message if
+// there is one, otherwise the stripped email body the server would fall back to.
+function syncShortMessagePreview() {
+    const box = document.getElementById('ruleShortMessage');
+    if (!box) return;
+
+    const short = box.value.trim();
+    const counter = document.getElementById('shortMessageCount');
+    if (counter) counter.textContent = `${box.value.length} / 1000`;
+
+    const title = (document.getElementById('ruleSubject')?.value || '').trim()
+        || (document.getElementById('ruleName')?.value || '').trim();
+    const fallback = stripHtml(getBodyHtml()).slice(0, PUSH_BODY_FALLBACK_MAX);
+    const body = short || fallback;
+
+    const set = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text || '—';
+    };
+    set('pushPreviewTitle', title.slice(0, PUSH_TITLE_MAX));
+    set('pushPreviewBody', body);
+    set('discordPreviewBody', body);
+
+    const warn = document.getElementById('shortMessageWarn');
+    if (!warn) return;
+    const notes = [];
+    const nonEmail = Array.from(document.querySelectorAll('.rule-channel:checked'))
+        .map((el) => el.value).filter((c) => c !== 'email');
+    if (nonEmail.length && !short) {
+        // Matches the 400 the PUT returns, so the problem shows up before saving.
+        notes.push('Push, Discord and in-app need a short message — saving will be '
+            + 'refused until you add one.');
+    }
+    if (title.length > PUSH_TITLE_MAX) {
+        notes.push(`The subject is ${title.length} characters; notifications cut the `
+            + `title at ${PUSH_TITLE_MAX}.`);
+    }
+    warn.textContent = notes.join(' ');
+    warn.classList.toggle('hidden', notes.length === 0);
+}
+
 function initAutomations() {
     // Show only the trigger fields that apply to this rule's trigger type.
     const triggerType = document.querySelector('[data-trigger-type]')?.dataset.triggerType;
@@ -1049,9 +1089,14 @@ function initAutomations() {
     });
 
     document.querySelectorAll('.rule-channel').forEach((el) => {
-        el.addEventListener('change', syncShortMessageVisibility);
+        el.addEventListener('change', () => {
+            syncShortMessageVisibility();
+            // The "needs a short message" warning depends on the channel mix.
+            syncShortMessagePreview();
+        });
     });
     syncShortMessageVisibility();
+    initNewAutomationPage();
     renderConditions();
     renderSteps();
     initEditor();
@@ -1059,6 +1104,8 @@ function initAutomations() {
     const shortBox = document.getElementById('ruleShortMessage');
     if (shortBox) shortBox.addEventListener('input', syncShortMessagePreview);
     document.getElementById('ruleSubject')?.addEventListener('input', syncShortMessagePreview);
+    // With no subject the notification title falls back to the rule name.
+    document.getElementById('ruleName')?.addEventListener('input', syncShortMessagePreview);
     syncShortMessagePreview();
 }
 

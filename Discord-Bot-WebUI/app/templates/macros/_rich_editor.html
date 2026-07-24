@@ -22,6 +22,8 @@
     if (!window.tinymce) return;
     var isDark = document.documentElement.classList.contains('dark');
     window.tinymce.init({
+      // Self-hosted GPL build — required from TinyMCE 7 on or the editor refuses to load.
+      license_key: 'gpl',
       selector: '{{ selector }}',
       height: 500,
       menubar: 'edit insert format table',

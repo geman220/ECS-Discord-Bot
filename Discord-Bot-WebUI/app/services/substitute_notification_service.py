@@ -833,6 +833,19 @@ class SubstituteNotificationService:
             from app.models.admin_config import AdminConfig
             notify_mode = AdminConfig.get_setting('sub_notify_on_response', 'coach_and_admins')
 
+            # The Settings tab writes a SHORTER vocabulary than this code was
+            # reading: it saves 'coach_admins' | 'admins' | 'coach', while the
+            # branches below only matched 'coach_and_admins' | 'admins_only' |
+            # 'coach_only'. The default made it look fine until an admin pressed
+            # Save on that tab -- after which notify_mode matched no branch,
+            # recipient_ids stayed empty, and EVERY sub-response notification
+            # silently stopped. Accept both spellings.
+            notify_mode = {
+                'coach_admins': 'coach_and_admins',
+                'admins': 'admins_only',
+                'coach': 'coach_only',
+            }.get(notify_mode, notify_mode)
+
             recipient_ids = set()
             if notify_mode in ('coach_and_admins', 'coach_only'):
                 if getattr(sub_request, 'requested_by', None):

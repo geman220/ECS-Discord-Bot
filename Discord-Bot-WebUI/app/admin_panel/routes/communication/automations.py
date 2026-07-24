@@ -27,7 +27,9 @@ from app.models import (AutomationRule, AutomationRun, User, TRIGGER_TYPES,
                         CONDITION_FIELDS, CONDITION_OPS,
                         CONDITION_OPS_NEEDING_VALUE, condition_ops_for,
                         TRIGGER_FIELD_SPECS, trigger_fields_for,
-                        default_trigger_config, EmailTemplate)
+                        default_trigger_config, MESSAGE_VARIABLES,
+                        known_variable_names, overlap_warning,
+                        channel_clashes, TRIGGER_OVERLAPS, EmailTemplate)
 from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
@@ -188,11 +190,38 @@ def automations_list():
         status=status,
         condition_fields=CONDITION_FIELDS,
         condition_ops=CONDITION_OPS,
+        message_variables=MESSAGE_VARIABLES,
+        overlap=overlap_warning(rule.trigger_type),
+        overlap_clashes=channel_clashes(rule.trigger_type, rule.channels),
+        global_variable_values=automation_service.resolve_global_variables(session),
         trigger_types=TRIGGER_TYPES,
         trigger_catalog=TRIGGER_CATALOG,
         trigger_field_specs=TRIGGER_FIELD_SPECS,
         audience_types=AUDIENCE_TYPES,
         page_title='Automated Messaging',
+    )
+
+
+@admin_panel_bp.route('/communication/automations/new')
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_new():
+    """Full-page builder for a new automation.
+
+    Picking from 15 triggers -- each with its own explanation, scope and knobs --
+    needs room to breathe, so this is a page rather than a modal. It covers the
+    EVENT and the audience; the message, conditions and follow-up steps are then
+    written in the editor, which already does all of that well.
+    """
+    return render_template(
+        'admin_panel/communication/automation_new_flowbite.html',
+        trigger_catalog=TRIGGER_CATALOG,
+        trigger_field_specs=TRIGGER_FIELD_SPECS,
+        audience_types=AUDIENCE_TYPES,
+        per_subject_triggers=PER_SUBJECT_TRIGGERS,
+        trigger_overlaps=TRIGGER_OVERLAPS,
+        page_title='New Automation',
     )
 
 
@@ -221,6 +250,7 @@ def automation_edit(rule_id):
             .all())
 
     from app.models import summarize_rule
+    from app.services import automation_service
     audience_label = next((lbl for val, lbl, _ in AUDIENCE_TYPES
                            if val == rule.audience_type), rule.audience_type)
 
@@ -238,6 +268,10 @@ def automation_edit(rule_id):
         audience_types=AUDIENCE_TYPES,
         condition_fields=CONDITION_FIELDS,
         condition_ops=CONDITION_OPS,
+        message_variables=MESSAGE_VARIABLES,
+        overlap=overlap_warning(rule.trigger_type),
+        overlap_clashes=channel_clashes(rule.trigger_type, rule.channels),
+        global_variable_values=automation_service.resolve_global_variables(session),
         page_title=f'Automation: {rule.name}',
     )
 
@@ -661,8 +695,7 @@ def automation_toggle(rule_id):
         # per-recipient tokens are ever substituted. Anything else left in the
         # body ships literally -- the seeded season-wrap rule has a {survey_url}
         # button that would point nowhere.
-        known = {'discord_invite_url', 'support_email',
-                 'name', 'first_name', 'team', 'league', 'season'}
+        known = known_variable_names()
         body = f'{rule.subject or ""} {rule.body_html or ""} {rule.short_message or ""}'
         unresolved = sorted({m for m in re.findall(r'\{(\w+)\}', body)} - known)
         if unresolved:
@@ -672,6 +705,8 @@ def automation_toggle(rule_id):
                           'go out literally: ' + ', '.join('{%s}' % u for u in unresolved)),
             }), 400
 
+    clashes = channel_clashes(rule.trigger_type, rule.channels) if want_enabled else []
+
     rule.enabled = want_enabled
     if not rule.created_by_id:
         rule.created_by_id = current_user.id
@@ -679,7 +714,14 @@ def automation_toggle(rule_id):
 
     logger.info("Automation rule %s %s by user %s", rule.key,
                 'enabled' if rule.enabled else 'disabled', current_user.id)
-    return jsonify({'success': True, 'enabled': rule.enabled})
+    resp = {'success': True, 'enabled': rule.enabled}
+    if clashes:
+        meta = overlap_warning(rule.trigger_type) or {}
+        pretty = {'in_app': 'in-app alert', 'push': 'push', 'discord': 'Discord DM'}
+        names = ' and '.join(pretty.get(c, c) for c in clashes)
+        resp['warning'] = (f'Heads up: this is on by {names}, but '
+                           f'{meta.get("avoid_reason", "that may duplicate an existing message")}.')
+    return jsonify(resp)
 
 
 @admin_panel_bp.route('/api/automations/<int:rule_id>/preview', methods=['POST'])
@@ -886,8 +928,7 @@ def automation_preview_email(rule_id):
 
     # Flag anything that will ship literally, so a dead {survey_url} button is
     # obvious in the preview rather than in someone's inbox.
-    known = {'discord_invite_url', 'support_email',
-             'name', 'first_name', 'team', 'league', 'season'}
+    known = known_variable_names()
     unresolved = sorted({m for m in re.findall(r'\{(\w+)\}', html)} - known)
 
     return jsonify({
@@ -931,6 +972,43 @@ def automation_explain(rule_id):
                         'error': 'Could not work that out — check the logs.'}), 500
 
     return jsonify({'success': True, **result})
+
+
+@admin_panel_bp.route('/api/automations/variables', methods=['POST'])
+@login_required
+@role_required(_ADMIN_ROLES)
+@transactional
+def automation_set_variables():
+    """Set the global {variables} used across every automation.
+
+    These previously lived in two awkward places: the Discord invite was buried
+    under Public Site > Appearance, and the support email was hardcoded in
+    Python and not settable at all. Both are now editable where they are used.
+    """
+    from app.models import GLOBAL_VARIABLE_SETTINGS
+    from app.models.admin_config import AdminConfig
+
+    data = request.get_json(silent=True) or {}
+    saved = {}
+    for name, (setting_key, _fallback) in GLOBAL_VARIABLE_SETTINGS.items():
+        if name not in data:
+            continue
+        value = (data.get(name) or '').strip()
+        if not value:
+            return jsonify({'success': False,
+                            'error': f'{name} cannot be empty'}), 400
+        if name == 'discord_invite_url' and not value.startswith(('http://', 'https://')):
+            return jsonify({'success': False,
+                            'error': 'The Discord link must start with https://'}), 400
+        if name == 'support_email' and '@' not in value:
+            return jsonify({'success': False,
+                            'error': "That does not look like an email address"}), 400
+        AdminConfig.set_setting(setting_key, value)
+        saved[name] = value
+
+    logger.info("Automation global variables updated by user %s: %s",
+                current_user.id, list(saved))
+    return jsonify({'success': True, 'values': saved})
 
 
 @admin_panel_bp.route('/api/automations/search-people', methods=['GET'])
