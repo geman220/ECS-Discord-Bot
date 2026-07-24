@@ -3,12 +3,21 @@
 """
 LeagueMembership dual-write (Phase 0).
 
-ONE entry point — `resync_player_memberships(session, player_id)` — recomputes a
-single player's CURRENT-season membership rows from the live source tables
-(player_teams roster, substitute_pools / ecs_fc_sub_pool, the pl-* / pl-waitlist
-roles) and upserts them into `league_membership`. Every existing write path calls
-it once, right after its own writes, so the spine stays fresh as events happen
-between the Phase-0 backfill and the Phase-2 read cutover.
+`resync_player_memberships(session, player_id)` recomputes a single player's
+CURRENT-season membership rows from the live source tables (player_teams roster,
+substitute_pools / ecs_fc_sub_pool, the pl-* / pl-waitlist roles) and upserts them into
+`league_membership`. Every existing write path calls it once, right after its own writes,
+so the spine stays fresh as events happen.
+
+⚠️ Event-driven writes ALONE leave the spine structurally incomplete: a player nobody has
+edited since the season began has no row at all. Two bulk entry points close that gap, and
+both reuse `_do_resync` / the same status rules rather than reimplementing them:
+  * `backfill_all_memberships(session)` — sweep every player. Run after a rollover and
+    whenever the drift check reports missing rows. Exposed as `flask backfill-league-membership`.
+  * `seed_subs_for_season(session, to_season_id, lanes)` — mirror the sub pools into a new
+    season's rows at rollover.
+Until a backfill has run and the drift check is clean, treat the spine as a display
+read-model only, never as an authority for who gets contacted / paid / rostered.
 
 Why a full per-player resync instead of eight bespoke transitions:
   * Idempotent + self-healing — a missed call is corrected by the next event.
@@ -213,41 +222,129 @@ def _do_resync(session, player):
         _upsert(session, player.id, sid, lt, role, values)
 
 
-def carry_forward_subs(session, from_season_id, to_season_id):
-    """Season rollover: carry sub rows from the old season into the new one as
-    `resting` + needs_reconfirm=True.
+def seed_subs_for_season(session, to_season_id, lanes=None):
+    """Season rollover: create the new season's sub rows by MIRRORING the sub pools.
 
-    Subs are usually the same repeat people, so we keep continuity — but never assume
-    availability. A carried-forward sub must re-opt-in (POST /substitutes/pool/reconfirm
-    or the Discord re-confirm button) before re-entering the active contact rotation.
-    Idempotent (ON CONFLICT DO NOTHING); returns the number of rows carried. Call this
-    from the rollover process AFTER the new season exists — it is NOT auto-wired, so it
-    never fires unless the rollover explicitly invokes it.
+    Sub pool membership is NOT season-scoped — `substitute_pools` / `ecs_fc_sub_pool`
+    carry across the boundary untouched, and the pool row's own state is the authority
+    for availability (active vs resting). league_membership IS season-scoped, so the new
+    season starts with no sub rows at all; this reflects the pools into it.
+
+    Replaces the old `carry_forward_subs`, which copied last season's rows in as
+    `resting` + needs_reconfirm=True to force a per-season re-opt-in. That contradicted
+    the pool-is-authority model two ways: it made the spine disagree with the pool row it
+    is supposed to mirror, and the disagreement didn't even hold — `_upsert` recomputes
+    status from the pool and never reads needs_reconfirm, so any later write to that
+    player silently flipped `resting` back to `active`. Resting is now driven only by the
+    pool row (admin rests them / they stop responding / they opt out), never by the
+    calendar.
+
+    `lanes` optionally restricts to a subset of ('classic', 'premier', 'ecs_fc') — the Pub
+    League rollover passes its two lanes so it can't touch ECS FC rows, and vice versa.
+    Idempotent: re-running updates status in place. Returns the number of rows written.
     """
-    from datetime import datetime
-    if not from_season_id or not to_season_id or from_season_id == to_season_id:
+    if not to_season_id:
         return 0
-    src = (session.query(LeagueMembership)
-           .filter(LeagueMembership.player_id.isnot(None),
-                   LeagueMembership.season_id == from_season_id,
-                   LeagueMembership.role == 'sub',
-                   LeagueMembership.status.in_(('active', 'resting')))
-           .all())
     now = datetime.utcnow()
-    carried = 0
-    for row in src:
+    seeded = 0
+
+    def _write(player_id, lane, status, activated_at=None, last_engaged_at=None):
+        nonlocal seeded
+        if lanes and lane not in lanes:
+            return
         stmt = pg_insert(LeagueMembership.__table__).values(
-            player_id=row.player_id, season_id=to_season_id, league_type=row.league_type,
-            role='sub', status='resting', source='backfill', needs_reconfirm=True,
+            player_id=player_id, season_id=to_season_id, league_type=lane,
+            role='sub', status=status, source='backfill', needs_reconfirm=False,
+            activated_at=activated_at, last_engaged_at=last_engaged_at,
             created_at=now, updated_at=now,
-        ).on_conflict_do_nothing(
-            index_elements=['player_id', 'season_id', 'league_type', 'role']
+        ).on_conflict_do_update(
+            index_elements=['player_id', 'season_id', 'league_type', 'role'],
+            set_={'status': status, 'updated_at': now},
         )
-        result = session.execute(stmt)
-        carried += (result.rowcount or 0)
-    logger.info("carry_forward_subs: %s sub row(s) carried from season %s to %s (resting/reconfirm)",
-                carried, from_season_id, to_season_id)
-    return carried
+        session.execute(stmt)
+        seeded += 1
+
+    for sp in session.query(SubstitutePool).all():
+        lane = _norm_league_type(sp.league_type)
+        if not lane:
+            continue
+        if sp.is_active and sp.approved_at is not None:
+            status = 'active'
+        elif sp.approved_at is not None:
+            status = 'resting'
+        else:
+            status = 'pending'
+        _write(sp.player_id, lane, status,
+               activated_at=sp.approved_at, last_engaged_at=sp.last_active_at)
+
+    # EcsFcSubPool has no approval concept — is_active is the only gate.
+    for ep in session.query(EcsFcSubPool).all():
+        _write(ep.player_id, 'ecs_fc', 'active' if ep.is_active else 'resting',
+               last_engaged_at=getattr(ep, 'last_active_at', None))
+
+    logger.info("seed_subs_for_season: %s sub row(s) mirrored from the pools into season %s "
+                "(lanes=%s)", seeded, to_season_id, lanes or 'all')
+    return seeded
+
+
+def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=None):
+    """Recompute current-season league_membership rows for EVERY player.
+
+    WHY THIS EXISTS: the spine is otherwise written only by per-player
+    `resync_player_memberships` calls hanging off write paths (approvals, pool edits,
+    draft, bulk ops). A player nobody has edited since the season began therefore has NO
+    row at all — not a stale row, no row. That made the spine structurally incomplete and
+    unusable as an authority for anything operational. This sweep closes that gap; run it
+    after any season rollover and any time the drift check reports missing rows.
+
+    Uses `_do_resync` — the SAME function the per-player dual-write uses — rather than a
+    parallel SQL reimplementation, so there is exactly one definition of desired state and
+    nothing to drift against.
+
+    Commits every `batch_size` players. That is deliberate: transaction HOLD TIME is the
+    scarce resource against PgBouncer (small pool, 1 vCPU), and one transaction spanning
+    thousands of players would pin a server-side connection for the whole run. Each batch
+    is independently committed, so an interrupted run leaves consistent partial progress
+    and is safe to simply re-run (the whole operation is idempotent).
+
+    Returns {'players': int, 'batches': int, 'errors': int}. `progress` is an optional
+    callable(done, total) for CLI output.
+    """
+    current = _current_season_ids(session)
+    if not any(current.values()):
+        logger.warning("backfill_all_memberships: no current season for either program; nothing to do")
+        return {'players': 0, 'batches': 0, 'errors': 0}
+
+    player_ids = [pid for (pid,) in session.query(Player.id).order_by(Player.id).all()]
+    total = len(player_ids)
+    stats = {'players': 0, 'batches': 0, 'errors': 0}
+
+    for start in range(0, total, batch_size):
+        chunk = player_ids[start:start + batch_size]
+        # One query per batch, not one per player.
+        players = session.query(Player).filter(Player.id.in_(chunk)).all()
+        for player in players:
+            try:
+                # SAVEPOINT per player: one bad row rolls back only itself, so the rest
+                # of the batch still commits and the sweep never loses good work.
+                with session.begin_nested():
+                    _do_resync(session, player)
+                stats['players'] += 1
+            except Exception:
+                stats['errors'] += 1
+                logger.exception("backfill_all_memberships: resync failed for player_id=%s", player.id)
+        if dry_run:
+            session.rollback()
+        else:
+            session.commit()
+        stats['batches'] += 1
+        if progress:
+            progress(min(start + batch_size, total), total)
+
+    logger.info("backfill_all_memberships: %s player(s) across %s batch(es), %s error(s)%s",
+                stats['players'], stats['batches'], stats['errors'],
+                ' [DRY RUN, rolled back]' if dry_run else '')
+    return stats
 
 
 def resync_player_memberships(session, player_id):

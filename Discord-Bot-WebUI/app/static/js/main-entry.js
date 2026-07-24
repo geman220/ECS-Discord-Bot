@@ -87,7 +87,15 @@ const __adminBundleReady =
   (typeof location !== 'undefined' &&
    (location.pathname.startsWith('/admin') || location.pathname.startsWith('/security')))
     ? import('./admin-entry.js').catch((err) => {
-        console.error('[main-entry] admin bundle failed to load', err);
+        // DO NOT report this with console.* — vite.config.js sets esbuild
+        // `drop: ['console']` for prod builds, which deletes the call and leaves a
+        // bare `.catch(e=>{})`. That silently swallowed a total admin-bundle failure:
+        // every admin module failed to evaluate, so no InitSystem component and no
+        // EventDelegation handler ever registered, and every data-action button on
+        // every /admin page did nothing — with an empty console. Re-throwing on a
+        // fresh task makes it an UNCAUGHT error, which no build flag can strip.
+        window.__adminBundleError = err;
+        setTimeout(() => { throw err; }, 0);
       })
     : Promise.resolve();
 

@@ -608,3 +608,55 @@ def reencode_profile_pictures(dry_run, delete_originals):
                    f"({100 - (bytes_after * 100 // max(bytes_before, 1))}% smaller, 512px variants only)")
     if dry_run:
         click.echo("\n(Dry run - no changes made. Remove --dry-run to apply.)")
+
+
+@click.command()
+@click.option('--batch-size', default=200, show_default=True,
+              help='Players per committed batch. Smaller = shorter transactions.')
+@click.option('--dry-run', is_flag=True, help='Compute everything, then roll back each batch.')
+@with_appcontext
+def backfill_league_membership(batch_size, dry_run):
+    """Rebuild current-season league_membership rows for EVERY player.
+
+    The spine is normally written only by per-player resync calls hanging off write paths,
+    so any player nobody has edited since the season began has no row at all. This sweep
+    closes that gap. Idempotent and safe to re-run; commits per batch, so an interrupt
+    leaves consistent partial progress.
+
+    Run after every season rollover, and whenever sql_check_league_membership_drift.sql
+    reports missing rows.
+    """
+    from app.services.league_membership_sync import (
+        backfill_all_memberships, _current_season_ids,
+    )
+
+    current = _current_season_ids(db.session)
+    click.echo(f"Current seasons: Pub League={current['pub_league']}, ECS FC={current['ecs_fc']}")
+    if not any(current.values()):
+        click.echo("No current season for either program - nothing to do.")
+        return
+    if not current['pub_league']:
+        click.echo("WARNING: no current Pub League season; only ECS FC rows will be written.")
+    if not current['ecs_fc']:
+        click.echo("WARNING: no current ECS FC season; only Pub League rows will be written.")
+
+    if dry_run:
+        click.echo("DRY RUN - every batch will be rolled back.\n")
+
+    def _progress(done, total):
+        click.echo(f"  {done}/{total} players...")
+
+    stats = backfill_all_memberships(
+        db.session, batch_size=batch_size, dry_run=dry_run, progress=_progress,
+    )
+
+    click.echo("\n--- Summary ---")
+    click.echo(f"Players processed: {stats['players']}")
+    click.echo(f"Batches:           {stats['batches']}")
+    click.echo(f"Errors:            {stats['errors']}")
+    if stats['errors']:
+        click.echo("Some players failed - see the application log for tracebacks, then re-run.")
+    if dry_run:
+        click.echo("\n(Dry run - no changes committed. Remove --dry-run to apply.)")
+    else:
+        click.echo("\nNow re-run sql_check_league_membership_drift.sql; it should come back empty.")

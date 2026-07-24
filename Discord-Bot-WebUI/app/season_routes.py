@@ -648,14 +648,16 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
 
         rollover_league(session, old_season, new_season)
 
-        # Carry last season's subs forward into the new season as resting + needs_reconfirm.
-        # league_membership is season-scoped, so without this the new season has NO sub rows;
-        # returning subs re-opt-in (Discord button / mobile reconfirm) to go active again.
+        # Mirror the sub pools into the new season's rows. league_membership is
+        # season-scoped, so without this the new season has NO sub rows — but pool
+        # membership is NOT season-scoped, so a rollover must not change anyone's
+        # availability. Status comes straight from the pool row; rollover never rests
+        # anyone. Pub League lanes only, so ECS FC rows are untouched.
         try:
-            from app.services.league_membership_sync import carry_forward_subs
-            carry_forward_subs(session, old_season.id, new_season.id)
+            from app.services.league_membership_sync import seed_subs_for_season
+            seed_subs_for_season(session, new_season.id, lanes=('classic', 'premier'))
         except Exception as _cf_err:
-            logger.warning(f"carry_forward_subs skipped during rollover: {_cf_err}")
+            logger.warning(f"seed_subs_for_season skipped during rollover: {_cf_err}")
 
         # Waitlist is a point-in-time, per-season list — clear it at the boundary and route
         # everyone off it: unapproved -> approval queue (approval_status='pending'), approved
@@ -797,14 +799,13 @@ def create_ecs_fc_season(session, season_name: str) -> Optional[Season]:
         old_season.is_current = False
         rollover_league(session, old_season, new_season)
 
-        # Carry last season's subs forward into the new season as resting + needs_reconfirm.
-        # league_membership is season-scoped, so without this the new season has NO sub rows;
-        # returning subs re-opt-in (Discord button / mobile reconfirm) to go active again.
+        # Mirror the ECS FC sub pool into the new season's rows -- see the Pub League
+        # rollover above. ecs_fc lane only, so Pub League sub rows are untouched.
         try:
-            from app.services.league_membership_sync import carry_forward_subs
-            carry_forward_subs(session, old_season.id, new_season.id)
+            from app.services.league_membership_sync import seed_subs_for_season
+            seed_subs_for_season(session, new_season.id, lanes=('ecs_fc',))
         except Exception as _cf_err:
-            logger.warning(f"carry_forward_subs skipped during rollover: {_cf_err}")
+            logger.warning(f"seed_subs_for_season skipped during rollover: {_cf_err}")
     else:
         # No old current season found - still need to commit the new season/leagues
         logger.warning("No current ECS FC season found for rollover")
