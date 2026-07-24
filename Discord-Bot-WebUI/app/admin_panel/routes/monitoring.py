@@ -287,6 +287,8 @@ def task_monitoring_page():
 @role_required(['Global Admin', 'Pub League Admin'])
 def database_monitor():
     """Database monitoring page with real database statistics."""
+    # Consolidated into the System Command Center → Data & Cache. Fallback kept below.
+    return redirect(url_for('admin_panel.system_center', tab='data'))
     try:
         db_stats = _get_database_connection_stats()
         db_info = _get_database_info()
@@ -313,6 +315,8 @@ def database_monitor():
 @role_required(['Global Admin', 'Pub League Admin'])
 def task_history():
     """Task history page."""
+    # Consolidated into the System Command Center → Jobs & Queues. Fallback kept below.
+    return redirect(url_for('admin_panel.system_center', tab='jobs'))
     try:
         from app.utils.task_monitor import task_monitor
 
@@ -585,20 +589,31 @@ def get_task_logs():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def cancel_task():
-    """Cancel a running task."""
+    """Cancel a running task.
+
+    Honest result reporting: AJAX callers (X-Requested-With / JSON) get a JSON body
+    with a real `success` flag reflecting whether the revoke broadcast actually went
+    out — a broker failure returns success:false, so the caller can't mistake a failed
+    cancel for a successful one. Legacy form posts keep the flash+redirect behavior.
+    """
+    wants_json = (request.is_json
+                  or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                  or 'application/json' in (request.headers.get('Accept') or ''))
     try:
-        task_id = request.form.get('task_id')
-        
+        task_id = request.form.get('task_id') or (request.get_json(silent=True) or {}).get('task_id')
+
         if not task_id:
+            if wants_json:
+                return jsonify({'success': False, 'message': 'Task ID is required for cancellation.'}), 400
             flash('Task ID is required for cancellation.', 'error')
             return redirect(url_for('admin_panel.task_monitor'))
-        
+
         from app.core import celery
-        
+
         try:
             # Attempt to revoke the task
             celery.control.revoke(task_id, terminate=True)
-            
+
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user.id,
@@ -609,11 +624,13 @@ def cancel_task():
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
-            
+
+            if wants_json:
+                return jsonify({'success': True, 'message': f'Task {task_id} cancelled.'})
             flash(f'Task {task_id} has been cancelled successfully.', 'success')
         except Exception as cancel_error:
             logger.error(f"Failed to cancel task {task_id}: {cancel_error}")
-            
+
             # Log the failed attempt
             AdminAuditLog.log_action(
                 user_id=current_user.id,
@@ -624,12 +641,18 @@ def cancel_task():
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
-            
+
+            if wants_json:
+                return jsonify({'success': False,
+                                'message': f'Failed to cancel task: {cancel_error}'}), 502
             flash(f'Failed to cancel task {task_id}. Error: {str(cancel_error)}', 'error')
-        
+
         return redirect(url_for('admin_panel.task_monitor'))
     except Exception as e:
         logger.error(f"Error cancelling task: {e}")
+        if wants_json:
+            return jsonify({'success': False,
+                            'message': 'Task cancellation failed. Check the task service and permissions.'}), 500
         flash('Task cancellation failed. Check task monitoring service and permissions.', 'error')
         return redirect(url_for('admin_panel.task_monitor'))
 
@@ -775,6 +798,8 @@ def system_performance_historical():
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_performance():
     """System performance metrics page with real data."""
+    # Consolidated into the System Command Center → Performance. Fallback kept below.
+    return redirect(url_for('admin_panel.system_center', tab='perf'))
     try:
         import psutil
         import os
@@ -1026,7 +1051,7 @@ def system_alerts():
     persisted (no alerts table), so it is retired as a redirect to the consolidated
     health page.
     """
-    return redirect(url_for('admin_panel.system_health_consolidated'))
+    return redirect(url_for('admin_panel.system_center', tab='overview'))
 
 
 def _legacy_system_alerts_impl():

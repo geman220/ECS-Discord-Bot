@@ -239,6 +239,9 @@ def live_reporting_dashboard():
     Provides system status, active sessions, and recent activity for the
     ESPN-based live reporting system.
     """
+    # Consolidated into the System Command Center → Services (Live Reporting service +
+    # its 360 drawer). Old dashboard kept below as a revertible fallback.
+    return redirect(url_for('admin_panel.system_center', tab='services'))
     session = g.db_session
     try:
         from app.models import LiveReportingSession

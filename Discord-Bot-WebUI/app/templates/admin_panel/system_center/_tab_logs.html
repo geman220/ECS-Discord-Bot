@@ -1,0 +1,418 @@
+{#- System Command Center — Logs & Audit tab body.
+   Renders from `logs` (get_logs_tab). A `?src=` selector picks ONE of 6 genuinely
+   DIFFERENT sources; only the selected one renders (like the main tab dispatch). Each
+   source is its own real collector, isolated so a failure shows an honest error, never
+   a fabricated row. EVERYTHING here is potentially attacker-influenced (log messages,
+   container output, tracebacks, user agents, descriptions, IPs) — it is ALL rendered
+   through Jinja auto-escape (no | safe anywhere). Container/app log viewers scroll
+   inside their own max-h container so they never blow out the page body.
+
+   Honesty (spelled out prominently below): the 6 sources are NOT the same thing, and
+   the "Clear old audit rows" action deletes DB TABLE ROWS, not disk log files. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{% set logtone = {
+  'danger':  'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-red-300/40',
+  'warning': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-amber-300/40',
+  'info':    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-blue-300/40',
+  'success': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300 ring-green-300/40',
+  'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
+} %}
+
+{% if not logs %}
+  {{ empty_state('ti-file-off', 'Logs unavailable', 'The logs explorer could not be assembled right now. This is a real signal — the assembly errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== prominent honesty note (hard requirement): 6 different things ===== -->
+  <div class="rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 sm:p-5">
+    <div class="flex items-start gap-3">
+      <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+      <div class="flex-1 min-w-0 text-sm text-amber-900 dark:text-amber-200">
+        <p class="font-semibold mb-2">These six sources are genuinely different things — read each for what it is.</p>
+        <ul class="space-y-1 text-xs sm:text-sm leading-relaxed">
+          <li><span class="font-semibold">App logs</span> — the on-disk application log <em>tailed from this container's filesystem</em> (the only true tail; other workers/containers have their own file).</li>
+          <li><span class="font-semibold">Audit trail</span> — who-did-what <em>admin actions</em>, from the <code>admin_audit_log</code> database table.</li>
+          <li><span class="font-semibold">API requests</span> — <code>/api/*</code> traffic <em>only</em>, from the <code>api_request_logs</code> table (web page views and static assets are never logged).</li>
+          <li><span class="font-semibold">Container</span> — <em>live docker logs</em> straight from the Docker engine (Global Admin only).</li>
+          <li><span class="font-semibold">Task errors</span> — <em>captured Celery tracebacks</em> from failed background jobs (<code>task_executions</code> table).</li>
+          <li><span class="font-semibold">Security</span> — <em>attack / ban events</em> the detector wrote to the <code>security_events</code> table.</li>
+        </ul>
+        <p class="mt-3 pt-3 border-t border-amber-300/60 dark:border-amber-500/30 text-xs sm:text-sm">
+          <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+          <span class="font-semibold">Heads up:</span> the <span class="font-semibold">Clear old audit rows</span> action (on the Audit trail source) deletes <span class="font-semibold">rows from the audit database table</span> — it does <span class="font-semibold underline">NOT</span> touch the on-disk application log files.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== source selector (URL-driven, preserves level/search) ===== -->
+  <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Log source">
+    {% for s in logs.sources %}
+    <a href="{{ url_for('admin_panel.system_center', tab='logs', src=s.key, level=logs.level, search=logs.search) }}"
+       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg border transition whitespace-nowrap
+       {% if logs.src == s.key %}border-ecs-green bg-ecs-green/10 text-ecs-green{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-ecs-green/40 hover:text-ecs-green{% endif %}">
+      <i class="ti {{ s.icon }}"></i>{{ s.label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if logs.error %}
+    {{ empty_state('ti-plug-connected-x', 'This source errored', 'The collector for the selected source raised an error. This is a real failure signal, not a fabricated blank — the other sources still work. Try another source or reload shortly.') }}
+  {% else %}
+
+  {# ==================================================================== #}
+  {# APP LOGS                                                              #}
+  {# ==================================================================== #}
+  {% if logs.src == 'app' and logs.app %}
+  <section>
+    {% call section_card('Application log', icon='ti-file-text') %}
+      <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60">
+        <form method="get" action="{{ url_for('admin_panel.system_center') }}" class="flex flex-wrap items-end gap-2">
+          <input type="hidden" name="tab" value="logs">
+          <input type="hidden" name="src" value="app">
+          <div>
+            <label for="logLevel" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Level</label>
+            <select id="logLevel" name="level" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-2">
+              {% for opt in ['all', 'info', 'warning', 'error', 'debug'] %}
+              <option value="{{ opt }}" {{ 'selected' if logs.app.level == opt else '' }}>{{ opt | capitalize }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex-1 min-w-[8rem]">
+            <label for="logSearch" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Search message</label>
+            <input id="logSearch" name="search" type="text" value="{{ logs.app.search }}" placeholder="substring…"
+                   class="w-full h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-3">
+          </div>
+          <button type="submit" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-filter"></i>Filter</button>
+          {% if logs.export_url %}
+          <a href="{{ logs.export_url }}" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-download"></i>Export CSV</a>
+          {% endif %}
+        </form>
+      </div>
+
+      {% if logs.app.from_audit %}
+      <div class="px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/30 text-xs text-amber-800 dark:text-amber-300">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+        <span class="font-semibold">No on-disk log file found on this container.</span> Showing recent <em>admin audit rows</em> from the database as a fallback — this is <span class="font-semibold">not</span> the real application log tail.
+      </div>
+      {% elif logs.app.log_file %}
+      <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700/60 text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all">
+        <i class="ti ti-server" aria-hidden="true"></i> {{ logs.app.log_file }} <span class="text-gray-400">· last ~500 lines on THIS container</span>
+      </div>
+      {% endif %}
+
+      {% if logs.app.entries %}
+      <div class="max-h-[32rem] overflow-auto">
+        <table class="w-full text-sm">
+          <thead class="sticky top-0 bg-white dark:bg-gray-800 z-10">
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2 font-semibold whitespace-nowrap hidden md:table-cell">Time</th>
+              <th class="px-4 py-2 font-semibold">Level</th>
+              <th class="px-4 py-2 font-semibold hidden lg:table-cell">Source</th>
+              <th class="px-4 py-2 font-semibold">Message</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for e in logs.app.entries %}
+            <tr>
+              <td class="px-4 py-2 font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap hidden md:table-cell">{{ e.timestamp }}</td>
+              <td class="px-4 py-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 {{ logtone.get(e.tone, logtone['neutral']) }}">{{ e.level }}</span>
+              </td>
+              <td class="px-4 py-2 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-all">{{ e.source }}</td>
+              <td class="px-4 py-2 font-mono text-xs text-gray-700 dark:text-gray-300 break-words">
+                {{ e.message }}
+                <span class="md:hidden block text-[10px] text-gray-400 mt-0.5">{{ e.timestamp }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-file-search', 'No matching log lines', 'No lines on the on-disk log matched your level/search filter (or the file has no parseable lines). Nothing is fabricated to fill the view.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      This is the raw application log <strong>on this container's filesystem</strong> — the only true tail; each gunicorn/Celery container writes its own file, so this is not a cluster-wide view. It tries <code>logs/app.log</code>, <code>app.log</code>, then <code>/var/log/ecs-portal/app.log</code>, parses the last ~500 lines into time / level / source / message, and applies your filters. <strong>If no file is found</strong> it honestly falls back to recent audit rows and says so above. Export writes the currently-filtered lines to CSV.
+    {% endcall %}
+  </section>
+  {% endif %}
+
+  {# ==================================================================== #}
+  {# AUDIT TRAIL                                                           #}
+  {# ==================================================================== #}
+  {% if logs.src == 'audit' and logs.audit %}
+  <section>
+    {% call section_card('Audit trail', icon='ti-history') %}
+      {% if logs.clear_action or logs.export_url %}
+      <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-2">
+        {% if logs.export_url %}
+        <a href="{{ logs.export_url }}" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-download"></i>Export CSV</a>
+        {% endif %}
+        {% if logs.clear_action %}
+        <button type="button" data-action="sys-run"
+                data-url="{{ logs.clear_action.url }}" data-method="POST"
+                data-body='{{ logs.clear_action.body | tojson }}'
+                data-danger="1" data-reload="1"
+                data-confirm="{{ logs.clear_action.confirm }}"
+                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 text-sm font-semibold transition">
+          <i class="ti ti-eraser"></i>Clear audit rows &gt;30d (DB rows, not disk files)
+        </button>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if logs.audit.rows %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold whitespace-nowrap hidden lg:table-cell">When</th>
+              <th class="px-4 py-2.5 font-semibold">Action</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">Resource</th>
+              <th class="px-4 py-2.5 font-semibold hidden sm:table-cell">By</th>
+              <th class="px-4 py-2.5 font-semibold hidden xl:table-cell">Change</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">IP</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for r in logs.audit.rows %}
+            <tr>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap hidden lg:table-cell">{{ r.timestamp }}</td>
+              <td class="px-4 py-2.5">
+                <span class="font-medium text-gray-900 dark:text-white" title="{{ r.action_raw }}">{{ r.action }}</span>
+                <span class="lg:hidden block text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ r.timestamp }}</span>
+                <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400">{{ r.resource_type }}{% if r.resource_id %} · {{ r.resource_id }}{% endif %}</span>
+              </td>
+              <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hidden md:table-cell break-words">
+                {{ r.resource_type }}{% if r.resource_id %} <span class="font-mono text-gray-400">#{{ r.resource_id }}</span>{% endif %}
+              </td>
+              <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hidden sm:table-cell break-words">{{ r.actor }}</td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden xl:table-cell break-words max-w-xs">
+                {% if r.new_value %}<span class="font-mono break-all" title="{{ r.new_value }}">{{ r.new_value | truncate(80, True) }}</span>{% else %}<span class="text-gray-400">—</span>{% endif %}
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-all">{{ r.ip }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="px-4 py-3 border-t border-gray-100 dark:border-gray-700/60 flex items-center justify-between text-sm">
+        <span class="text-gray-500 dark:text-gray-400">Page {{ logs.audit.page }}</span>
+        <div class="flex items-center gap-2">
+          {% if logs.audit.page > 1 %}
+          <a href="{{ url_for('admin_panel.system_center', tab='logs', src='audit', page=logs.audit.page - 1) }}" class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-chevron-left"></i>Newer</a>
+          {% endif %}
+          {% if logs.audit.has_next %}
+          <a href="{{ url_for('admin_panel.system_center', tab='logs', src='audit', page=logs.audit.page + 1) }}" class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ecs-green/40 hover:text-ecs-green transition">Older<i class="ti ti-chevron-right"></i></a>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+        {{ empty_state('ti-history', 'No audit rows', 'No admin actions are recorded on this page of the audit trail. This is the real, persisted who-did-what log — a blank page here means nothing matched, not a hidden failure.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Live from the <code>admin_audit_log</code> table — every admin action (config changes, role edits, bans, exports) with the acting user, target resource, IP and timestamp, newest first, 100 per page. Action names are humanized (hover for the raw value). <strong>Clear old audit rows</strong> (Global Admin) deletes rows older than 30 days from <em>this database table only</em> — it does <strong>not</strong> touch the on-disk application log files shown under "App logs". Export writes up to 10,000 rows to CSV.
+    {% endcall %}
+  </section>
+  {% endif %}
+
+  {# ==================================================================== #}
+  {# API REQUESTS                                                          #}
+  {# ==================================================================== #}
+  {% if logs.src == 'api' and logs.api %}
+  <section>
+    {% call section_card('API requests', icon='ti-plug') %}
+      <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-2">
+        <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mr-1">Show</span>
+        <a href="{{ url_for('admin_panel.system_center', tab='logs', src='api', level='all') }}"
+           class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold rounded-lg border transition {% if not logs.api.errors_only %}border-ecs-green bg-ecs-green/10 text-ecs-green{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-ecs-green/40 hover:text-ecs-green{% endif %}">All</a>
+        <a href="{{ url_for('admin_panel.system_center', tab='logs', src='api', level='error') }}"
+           class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-semibold rounded-lg border transition {% if logs.api.errors_only %}border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-red-300 hover:text-red-600{% endif %}"><i class="ti ti-alert-triangle text-[12px]"></i>Errors only (4xx/5xx)</a>
+        {{ honesty_badge('api-only') }}
+      </div>
+      {% if logs.api.rows %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold whitespace-nowrap hidden lg:table-cell">Time</th>
+              <th class="px-4 py-2.5 font-semibold">Method</th>
+              <th class="px-4 py-2.5 font-semibold">Path</th>
+              <th class="px-4 py-2.5 font-semibold text-right">Status</th>
+              <th class="px-4 py-2.5 font-semibold text-right hidden md:table-cell">Time</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">User</th>
+              <th class="px-4 py-2.5 font-semibold hidden xl:table-cell">IP</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for r in logs.api.rows %}
+            <tr>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap hidden lg:table-cell">{{ r.timestamp }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{{ r.method }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{{ r.path }}</td>
+              <td class="px-4 py-2.5 text-right">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 {{ logtone.get(r.tone, logtone['neutral']) }}">{{ r.status }}</span>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-right text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ r.response_time }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ r.user_id if r.user_id is not none else '—' }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden xl:table-cell break-all">{{ r.ip }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-plug', 'No API requests logged', 'No /api/* requests are recorded for this filter. This can mean genuinely no traffic OR that the request-path writer that populates api_request_logs is not running — treat it as "unknown", not "idle". Nothing is fabricated; web and static traffic are never counted here.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      The most recent <code>/api/*</code> requests {{ honesty_badge('api-only') }} from the <code>api_request_logs</code> table (newest first, 100 max), with method, path, status, response time, user and IP. <strong>Only <code>/api/*</code> is logged</strong> — regular web page views and static assets never appear, so read this as mobile/API activity, not total traffic. A blank list can mean the request-path writer isn't recording, not that there was zero traffic — so treat empty as "unknown", not "idle".
+    {% endcall %}
+  </section>
+  {% endif %}
+
+  {# ==================================================================== #}
+  {# CONTAINER (GA-only)                                                   #}
+  {# ==================================================================== #}
+  {% if logs.src == 'container' %}
+  <section>
+    {% call section_card('Container logs', icon='ti-box') %}
+      {% if logs.container_denied %}
+        {{ empty_state('ti-lock', 'Global Admin only', 'Live container logs are restricted to Global Admins. This source is refused server-side for your role — the chip is normally hidden; you reached it directly.') }}
+      {% elif not logs.container %}
+        {{ empty_state('ti-box-off', 'Container source errored', 'The container-logs collector raised an error. This is a real failure signal, not a fabricated blank.') }}
+      {% elif not logs.container.docker_available %}
+        {{ empty_state('ti-plug-connected-x', 'Docker not reachable from this process', 'The Docker socket is not visible to the web process, so live container logs cannot be read here. This does NOT mean containers are down — only that this process cannot see the engine. Manage containers from the Docker page.') }}
+      {% else %}
+        <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60">
+          <form method="get" action="{{ url_for('admin_panel.system_center') }}" class="flex flex-wrap items-end gap-2">
+            <input type="hidden" name="tab" value="logs">
+            <input type="hidden" name="src" value="container">
+            <div class="flex-1 min-w-[12rem]">
+              <label for="containerPick" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Container</label>
+              <select id="containerPick" name="container" class="w-full h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-2">
+                {% for c in logs.container.containers %}
+                <option value="{{ c.id }}" {{ 'selected' if logs.container.selected == c.id else '' }}>{{ c.name }} · {{ c.status }} ({{ c.id }})</option>
+                {% endfor %}
+              </select>
+            </div>
+            <button type="submit" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-refresh"></i>View logs</button>
+          </form>
+        </div>
+        {% if logs.container.logs_error %}
+          {{ empty_state('ti-file-off', 'Could not read this container', 'The selected container returned no logs (it may be stopped, gone, or the engine errored). This is a real signal, not a fabricated blank.') }}
+        {% elif logs.container.log_text %}
+        <div class="px-4 py-2 text-[11px] text-gray-500 dark:text-gray-400 font-mono">
+          <i class="ti ti-box" aria-hidden="true"></i> {{ logs.container.selected }} <span class="text-gray-400">· last {{ logs.container.log_lines }} lines (live from Docker)</span>
+        </div>
+        <div class="mx-4 mb-4 max-h-[32rem] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-950">
+          <pre class="p-3 text-xs font-mono text-gray-100 whitespace-pre-wrap break-words leading-relaxed">{{ logs.container.log_text }}</pre>
+        </div>
+        {% else %}
+          {{ empty_state('ti-file-search', 'No log output', 'The selected container produced no log lines. Nothing is fabricated to fill the view.') }}
+        {% endif %}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      <strong>Live docker logs</strong> read straight from the Docker engine for the container you pick (last ~400 lines), Global-Admin only. This is the real container stdout/stderr, escaped and rendered verbatim. If the socket isn't visible to this process the panel says so honestly — that means this process can't see the engine, <em>not</em> that anything is down. The container list is the same all-containers inventory the Services board uses (includes stopped one-shots).
+    {% endcall %}
+  </section>
+  {% endif %}
+
+  {# ==================================================================== #}
+  {# TASK ERRORS                                                           #}
+  {# ==================================================================== #}
+  {% if logs.src == 'task' and logs.task %}
+  <section>
+    {% call section_card('Failed background tasks', icon='ti-alert-triangle') %}
+      {% if logs.task.rows %}
+      <div class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for r in logs.task.rows %}
+        <div class="px-4 py-3">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 {{ logtone['danger'] }}"><i class="ti ti-x text-[10px]"></i>Failed</span>
+            <span class="font-medium text-gray-900 dark:text-white" title="{{ r.name_raw }}">{{ r.name }}</span>
+            <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ r.started_at }}</span>
+            <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">{{ r.duration }}</span>
+            <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500 hidden sm:inline">on {{ r.worker }}</span>
+          </div>
+          {% if r.error %}
+          <details class="mt-2 group">
+            <summary class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-gray-600 dark:text-gray-300 select-none hover:text-ecs-green">
+              <i class="ti ti-chevron-right text-[11px] transition-transform group-open:rotate-90" aria-hidden="true"></i>Traceback
+            </summary>
+            <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-950">
+              <pre class="p-3 text-xs font-mono text-red-200 whitespace-pre-wrap break-words leading-relaxed">{{ r.error }}</pre>
+            </div>
+          </details>
+          {% else %}
+          <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">No error text was captured for this failure.</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        {{ empty_state('ti-circle-check', 'No failed tasks recorded', 'No background job has recorded a FAILED execution in the task history. A clean list is good news — and it is not a fabricated zero.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Failed rows from the <code>task_executions</code> table (newest first, 100 max) — one record per Celery run that ended in FAILURE, with the humanized task name (hover for the raw name), worker, start time, duration and the <strong>captured error/traceback</strong> in the expandable panel. The traceback is rendered verbatim and escaped. This is persisted history, not a live queue; the live in-flight view lives on the Jobs &amp; Queues tab.
+    {% endcall %}
+  </section>
+  {% endif %}
+
+  {# ==================================================================== #}
+  {# SECURITY EVENTS                                                       #}
+  {# ==================================================================== #}
+  {% if logs.src == 'security' and logs.security %}
+  <section>
+    {% call section_card('Security events (7 days)', icon='ti-shield-lock') %}
+      {% if logs.security.rows %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold">Event</th>
+              <th class="px-4 py-2.5 font-semibold">Severity</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">IP</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Description</th>
+              <th class="px-4 py-2.5 font-semibold whitespace-nowrap hidden md:table-cell">When</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for e in logs.security.rows %}
+            <tr>
+              <td class="px-4 py-2.5">
+                <span class="font-medium text-gray-900 dark:text-white" title="{{ e.type_raw }}">{{ e.type }}</span>
+                <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all">{{ e.ip }} · {{ e.created_at }}</span>
+              </td>
+              <td class="px-4 py-2.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 {{ logtone.get(e.tone, logtone['neutral']) }}">{{ e.severity | capitalize }}</span>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell break-all">{{ e.ip }}</td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-words">{{ e.description }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap hidden md:table-cell">{{ e.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-shield-check', 'No security events in 7 days', 'The attack detector has logged no security events in the last week. A quiet log is good news, not a fabricated zero.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Live from the <code>security_events</code> table (last 7 days, 100 max) — the persisted log the attack detector writes when it matches a threat pattern, trips a rate limit or issues a ban. Event types are humanized (hover for the raw type); severity is the detector's own verdict; the description and IP are rendered escaped. This is the shared, authoritative audit trail — not the per-worker in-memory counters on the Security tab.
+    {% endcall %}
+  </section>
+  {% endif %}
+
+  {% endif %}{# not logs.error #}
+
+</div>
+{% endif %}

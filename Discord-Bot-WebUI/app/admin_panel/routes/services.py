@@ -69,6 +69,9 @@ def cache_management():
 @role_required(['Global Admin', 'Pub League Admin'])
 def cache_redis_consolidated():
     """Consolidated cache operations and Redis connection management."""
+    # Consolidated into the System Command Center → Data & Cache. Fallback kept below.
+    from flask import redirect, url_for
+    return redirect(url_for('admin_panel.system_center', tab='data'))
     from app.utils.redis_manager import get_redis_manager, get_redis_connection
 
     redis_mgr = get_redis_manager()
@@ -913,6 +916,10 @@ def api_generate_system_report():
 @role_required(['Global Admin', 'Pub League Admin'])
 def discord_bot_management():
     """Discord bot management hub."""
+    # Consolidated into the System Command Center → Services (Discord Bot service +
+    # its 360 drawer with restart/sync controls). Fallback kept below.
+    from flask import redirect, url_for
+    return redirect(url_for('admin_panel.system_center', tab='services'))
     bot_api_url = os.getenv('BOT_API_URL', 'http://localhost:5001')
     discord_client_id = current_app.config.get('DISCORD_CLIENT_ID', '')
 

@@ -488,6 +488,9 @@ def update_setting():
 @role_required(['Global Admin', 'Pub League Admin'])
 def audit_logs():
     """View admin audit logs."""
+    # Consolidated into the System Command Center → Logs & Audit (audit source).
+    # Old page kept below as a revertible burn-in fallback.
+    return redirect(url_for('admin_panel.system_center', tab='logs', src='audit'))
     try:
         page = request.args.get('page', 1, type=int)
         per_page = 50
@@ -625,7 +628,12 @@ def export_audit_logs():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_info():
-    """System information and health checks."""
+    """System information and health checks.
+
+    Left LIVE (not redirected into the System Command Center): its content — app-config
+    counts and critical-setting status (maintenance_mode, teams/waitlist toggles) — isn't
+    replaced by any System Center tab, so redirecting it would drop that visibility.
+    """
     try:
         # Get system information
         info = {

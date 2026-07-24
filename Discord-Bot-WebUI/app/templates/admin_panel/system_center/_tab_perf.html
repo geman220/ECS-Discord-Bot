@@ -1,0 +1,201 @@
+{#- System Command Center — Performance tab body.
+   Renders from `perf` (get_performance_tab). Every panel traces to a REAL collector;
+   panels with only fabricated/estimated sources are OMITTED and replaced with an
+   honest empty state. Honesty badges: query perf = per-worker, request analytics =
+   api-only, engine-pool figures = per-worker. Charts are pure-Tailwind meters + a
+   responsive table — no external chart library. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{% set barcolor = {
+  'success': 'bg-green-500 dark:bg-green-400',
+  'warning': 'bg-amber-500 dark:bg-amber-400',
+  'danger':  'bg-red-500 dark:bg-red-400',
+  'primary': 'bg-ecs-green',
+  'neutral': 'bg-gray-400 dark:bg-gray-500'
+} %}
+
+{#- meter(label, pct, tone, icon) — a Tailwind progress/meter bar (no custom CSS). -#}
+{% macro meter(label, pct, tone, icon) %}
+  {% set _p = (pct | float) if pct is not none else 0 %}
+  {% set _p = 0 if _p < 0 else (100 if _p > 100 else _p) %}
+  <div>
+    <div class="flex items-center justify-between text-xs mb-1">
+      <span class="flex items-center gap-1.5 font-medium text-gray-600 dark:text-gray-300"><i class="ti {{ icon }}"></i>{{ label }}</span>
+      <span class="font-mono font-bold text-gray-900 dark:text-white">{{ '%.1f' | format(_p) }}%</span>
+    </div>
+    <div class="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="meter" aria-valuenow="{{ '%.0f' | format(_p) }}" aria-valuemin="0" aria-valuemax="100" aria-label="{{ label }}">
+      <div class="h-full rounded-full {{ barcolor.get(tone, barcolor['neutral']) }}" style="width: {{ _p }}%;"></div>
+    </div>
+  </div>
+{% endmacro %}
+
+{#- metric_row(m) — one label/value line with an optional honesty badge. -#}
+{% macro metric_row(m) %}
+  <div class="flex items-baseline justify-between gap-3 px-4 py-2 text-sm">
+    <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ m.label }}</dt>
+    <dd class="text-right min-w-0 flex items-center gap-1.5 justify-end">
+      <span class="font-mono text-gray-900 dark:text-white break-words">{{ m.value if m.value not in (none, '') else '—' }}</span>
+      {{ honesty_badge(m.honesty) }}
+    </dd>
+  </div>
+{% endmacro %}
+
+{% if not perf %}
+  {{ empty_state('ti-gauge', 'Performance unavailable', 'The performance collectors could not be assembled right now. This is a real signal — the underlying probes errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== resource gauges (host, sampled at load) ===== -->
+  <section>
+    {% call section_card('Resource usage', icon='ti-cpu') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        {% if perf.gauges %}
+          {% for label, pct, tone, icon in perf.gauges %}
+            {{ meter(label, pct, tone, icon) }}
+          {% endfor %}
+        {% else %}
+          <p class="text-sm text-gray-400">Resource metrics unavailable.</p>
+        {% endif %}
+      </div>
+      {% if perf.resources %}
+      <div class="grid grid-cols-1 sm:grid-cols-3 border-t border-gray-100 dark:border-gray-700/60 divide-y sm:divide-y-0 sm:divide-x divide-gray-100 dark:divide-gray-700/60">
+        {% set tiles = [
+          ('Uptime', perf.resources.uptime, 'ti-clock'),
+          ('Load average', perf.resources.load, 'ti-gauge'),
+          ('Connections', perf.resources.connections, 'ti-plug-connected')
+        ] %}
+        {% for label, value, icon in tiles %}
+        <div class="p-4">
+          <div class="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"><i class="ti {{ icon }}"></i>{{ label }}</div>
+          <div class="mt-1 font-mono text-base font-bold text-gray-900 dark:text-white truncate" title="{{ value }}">{{ value if value not in (none, '') else '—' }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      CPU, memory and disk are sampled with <code>psutil</code> at the moment this page loaded. These are <strong>container/host</strong> metrics — they describe the whole box the web process runs in, not a single worker, so there is no per-worker caveat here. CPU is a 1-second sample; uptime is the host's. Good looks like CPU/memory/disk comfortably under 80% (amber ≥ 80%, red ≥ 90%).
+    {% endcall %}
+  </section>
+
+  <!-- ===== query performance (per-worker) ===== -->
+  <section>
+    {% call section_card('Query performance', icon='ti-database-search') %}
+      {% if perf.query_perf %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for m in perf.query_perf %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% else %}
+        {{ empty_state('ti-database-off', 'No query samples', 'The in-memory query-time buffer for this worker is empty (it fills as this worker serves DB queries). This is not an error.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Timings come from an in-memory ring buffer {{ honesty_badge('per-worker') }} that records the last ~100 queries served by <em>this gunicorn worker only</em> — not the whole fleet, and not a cluster-wide average. It is a rough health signal, not a profiler. "Slow" means over 1 second. Good looks like an average in the low tens of milliseconds and zero slow queries.
+    {% endcall %}
+  </section>
+
+  <!-- ===== db connections & pool ===== -->
+  <section>
+    {% call section_card('Database connections', icon='ti-plug-connected') %}
+      {% if perf.db_conn %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for m in perf.db_conn %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% else %}
+        {{ empty_state('ti-plug-x', 'Connection stats unavailable', 'The database connection probe errored. This is a real failure signal, not a data gap.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Active connections are counted live from PostgreSQL's <code>pg_stat_activity</code> (state = active) — a real cluster-wide figure. The pool figures {{ honesty_badge('per-worker') }} describe this process's SQLAlchemy engine pool only. PostgreSQL is fronted by PgBouncer (~22 transaction slots), so a rising active count usually means transaction-budget queueing. The fabricated "queries/sec" and "avg query time" estimates the old page showed are deliberately not surfaced here.
+    {% endcall %}
+  </section>
+
+  <!-- ===== redis ===== -->
+  <section>
+    {% call section_card('Redis', icon='ti-brand-redis') %}
+      {% if perf.redis %}
+      {% if perf.redis.mem_pct is not none %}
+      <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700/60">
+        {{ meter('Memory vs maxmemory', perf.redis.mem_pct, ('danger' if perf.redis.mem_pct >= 90 else ('warning' if perf.redis.mem_pct >= 80 else 'primary')), 'ti-brand-redis') }}
+      </div>
+      {% endif %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for m in perf.redis.metrics %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% else %}
+        {{ empty_state('ti-brand-redis', 'Redis unreachable', 'The live INFO probe against Redis failed. Because Redis backs the Celery broker, sessions and the app cache, a real failure here is significant — this is not a fabricated blank.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Read live from <code>redis.info()</code> — the same call the Cache &amp; Redis page uses. Hit rate is <code>keyspace_hits / (hits + misses)</code>. This single instance serves the Celery broker, result backend, Flask session store <em>and</em> app cache, so watch memory: if it approaches <code>maxmemory</code> the whole cluster degrades. Good looks like a high hit rate and memory well under the max.
+    {% endcall %}
+  </section>
+
+  <!-- ===== celery ===== -->
+  <section>
+    {% call section_card('Celery workers', icon='ti-subtask') %}
+      {% if perf.celery %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for m in perf.celery %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% else %}
+        {{ empty_state('ti-subtask', 'No workers responding', 'The Celery inspect broadcast returned nothing. If no workers respond, scheduled jobs (RSVP reminders, Discord sync, MLS reporting) are not running — a real signal.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Live figures from <code>celery.control.inspect()</code> — a broadcast to every online worker (<code>active()</code> = tasks executing now, <code>reserved()</code> = prefetched-but-not-started, <code>stats()</code> = responding nodes). Concurrency is intentionally low, so a small number of active tasks is normal. Zero workers online is the signal to restart the Celery containers.
+    {% endcall %}
+  </section>
+
+  <!-- ===== request analytics (api-only) ===== -->
+  <section>
+    {% call section_card('Request analytics', icon='ti-activity') %}
+      {% if perf.requests %}
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+        {% for m in perf.requests.metrics %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% if perf.requests.top_endpoints %}
+      <div class="border-t border-gray-100 dark:border-gray-700/60 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2 font-semibold">Endpoint</th>
+              <th class="px-4 py-2 font-semibold text-right">Requests</th>
+              <th class="px-4 py-2 font-semibold text-right hidden md:table-cell">Avg time</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for e in perf.requests.top_endpoints %}
+            <tr>
+              <td class="px-4 py-2 font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{{ e.path }}</td>
+              <td class="px-4 py-2 font-mono text-right text-gray-900 dark:text-white">{{ e.requests }}</td>
+              <td class="px-4 py-2 font-mono text-right text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ e.avg_time }}ms</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      {% else %}
+        {{ empty_state('ti-activity', 'No request data', 'The request-analytics table (api_request_logs) has no rows in the last 24h, or the query errored. Nothing is fabricated to fill the gap.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Response time, throughput, error rate and the busiest endpoints come from <code>api_request_logs</code> {{ honesty_badge('api-only') }}. The request logger records <strong>only <code>/api/*</code> traffic</strong>, so ordinary web page views and static assets are <em>not</em> counted — treat these as mobile/API health, not total site traffic. Percentiles are computed in Postgres. Good looks like a P95 in the low hundreds of milliseconds and an error rate under a few percent.
+    {% endcall %}
+  </section>
+
+  <!-- ===== slow queries — honest empty state (no fabricated rows) ===== -->
+  <section>
+    {% call section_card('Slow queries', icon='ti-clock-exclamation') %}
+      {{ empty_state('ti-clock-off', 'Slow-query capture not enabled', 'There is no honest source for per-statement slow queries on this database: the PostgreSQL pg_stat_statements extension is not enabled. Rather than fabricate durations (as the retired page did), we show nothing. Enable pg_stat_statements to light this up.') }}
+    {% endcall %}
+    {% call explainer() %}
+      A real slow-query breakdown needs <code>pg_stat_statements</code> (per-statement timing captured by Postgres itself). It is not enabled here, so this panel is intentionally empty. The old System Performance page filled a similar table with synthetic durations and a hardcoded fake row — that source is deliberately not used anywhere in this surface.
+    {% endcall %}
+  </section>
+
+</div>
+{% endif %}

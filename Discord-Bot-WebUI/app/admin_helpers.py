@@ -910,12 +910,15 @@ def check_task_status() -> Dict[str, Any]:
         }
 
 
-def get_container_logs(container_id: str) -> Optional[str]:
+def get_container_logs(container_id: str, tail: Optional[int] = None) -> Optional[str]:
     """
     Retrieve logs from a specific Docker container.
 
     Args:
         container_id: The Docker container ID.
+        tail: If given, only fetch the last N log lines from Docker (bounds memory —
+              without it the container's ENTIRE history is pulled into the web process).
+              Omitted (None) preserves the legacy "all logs" behavior for existing callers.
 
     Returns:
         The container logs as a string if successful, or None if an error occurs.
@@ -924,10 +927,10 @@ def get_container_logs(container_id: str) -> Optional[str]:
     if not client:
         logger.error("Docker client initialization failed")
         return None
-    
+
     try:
         container = client.containers.get(container_id)
-        logs = container.logs().decode('utf-8')
+        logs = (container.logs(tail=tail) if tail else container.logs()).decode('utf-8')
         logger.debug(f"Successfully retrieved logs for container {container_id}")
         return logs
     except docker.errors.NotFound:

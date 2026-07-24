@@ -40,8 +40,8 @@
     {{ stat_card('ti-server-2', 'Services Up', kpis.services_up ~ '/' ~ kpis.services_total, tone='primary') }}
     {{ stat_card('ti-list-check', 'Active Jobs', kpis.active_jobs, tone='info') }}
     {{ stat_card('ti-alert-triangle', 'Error Rate 24h', (kpis.error_rate ~ '%') if kpis.error_rate is not none else 'N/A', tone=('danger' if (kpis.error_rate or 0) >= 5 else 'neutral')) }}
-    {{ stat_card('ti-cpu', 'CPU', (kpis.cpu or 0) ~ '%', sublabel='per-worker', tone=('warning' if (kpis.cpu or 0) >= 80 else 'success')) }}
-    {{ stat_card('ti-ram', 'Memory', (kpis.memory or 0) ~ '%', sublabel='per-worker', tone=('warning' if (kpis.memory or 0) >= 80 else 'success')) }}
+    {{ stat_card('ti-cpu', 'CPU', (kpis.cpu or 0) ~ '%', sublabel='host, live', tone=('warning' if (kpis.cpu or 0) >= 80 else 'success')) }}
+    {{ stat_card('ti-ram', 'Memory', (kpis.memory or 0) ~ '%', sublabel='host, live', tone=('warning' if (kpis.memory or 0) >= 80 else 'success')) }}
   </div>
 
   <!-- ===== tabs ===== -->
@@ -52,6 +52,18 @@
     {% include 'admin_panel/system_center/_tab_overview.html' %}
   {% elif tab == 'services' %}
     {% include 'admin_panel/system_center/_tab_services.html' %}
+  {% elif tab == 'perf' %}
+    {% include 'admin_panel/system_center/_tab_perf.html' %}
+  {% elif tab == 'jobs' %}
+    {% include 'admin_panel/system_center/_tab_jobs.html' %}
+  {% elif tab == 'data' %}
+    {% include 'admin_panel/system_center/_tab_data.html' %}
+  {% elif tab == 'security' %}
+    {% include 'admin_panel/system_center/_tab_security.html' %}
+  {% elif tab == 'logs' %}
+    {% include 'admin_panel/system_center/_tab_logs.html' %}
+  {% elif tab == 'api' %}
+    {% include 'admin_panel/system_center/_tab_api.html' %}
   {% else %}
     {{ empty_state('ti-tools', _tab_labels.get(tab, 'This section') ~ ' comes online later', 'This section comes online later in this rollout. Nothing is shown here yet because there is no live source wired for it — we would rather show you an honest blank than a fabricated number.') }}
   {% endif %}
@@ -66,7 +78,7 @@
       <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">One operations surface.</span> Overview and Services are live now; Performance, Jobs, Data, Security, Logs and API traffic light up in later phases. Empty tabs mean "no live source wired yet" — never a hidden failure.</div>
       <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Honesty first.</span> Every figure traces to a real collector. Values that describe only this worker or are estimated carry a small badge, so you always know how much to trust a number.</div>
       <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Never faked healthy.</span> A service that can't be reached reads Down or Idle with the real reason. Twilio stays Idle until you explicitly test it — we don't probe it on every load.</div>
-      <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Read-only for now.</span> Phase 1 is look, don't touch. Quick actions jump to existing pages; destructive controls (restart, clear, ban) arrive later behind confirmation.</div>
+      <div class="rounded-lg p-2.5 -m-0.5"><span class="font-semibold text-gray-900 dark:text-white">Actions are live.</span> Quick actions and per-service controls run for real against the existing operations endpoints, with CSRF protection. Destructive ones (restart bot, flush Redis) sit behind a confirmation and are shown only to Global Admins; every action surfaces the server's own result.</div>
     </div>
   </section>
 </div>
@@ -93,7 +105,10 @@
 (function () {
   function onReady(fn) { if (document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
   onReady(function () {
-    var esc = function (s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; };
+    // textContent->innerHTML encodes & < >; we ALSO encode " and ' so the result is
+    // safe inside double- AND single-quoted attributes (e.g. data-body="{...}"), not
+    // just as element text. Harmless in text context (&quot; renders as ").
+    var esc = function (s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
     var isDark = function () { return document.documentElement.classList.contains('dark'); };
     function swalBase(extra) { return Object.assign({ confirmButtonColor: '#1a472a', background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' }, extra || {}); }
     function toast(icon, title, text) { if (window.Swal) window.Swal.fire(swalBase({ icon: icon, title: title, text: text || '' })); else alert((title || '') + ' ' + (text || '')); }
@@ -121,6 +136,153 @@
       'info':    'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 ring-blue-300/40',
       'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
     };
+
+    // ---- Phase 2 action executor (shared by drawer controls + Overview quick actions) ----
+    var _csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    var CSRF = _csrfMeta ? _csrfMeta.getAttribute('content') : '';
+
+    // Render ONE control. LINK → anchor; POST/GET → a data-driven <button>. Everything
+    // server-provided is escaped before it touches innerHTML.
+    function controlHtml(c, key) {
+      if (!c || !c.url) return '';
+      var label = esc(c.label || 'Action');
+      if (c.method === 'LINK') {
+        return '<a href="' + esc(c.url) + '" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-external-link text-[13px]"></i>' + label + '</a>';
+      }
+      var danger = !!c.danger;
+      var cls = danger
+        ? 'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20'
+        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green';
+      var icon = danger ? 'ti-alert-triangle' : 'ti-player-play';
+      return '<button type="button" data-action="sys-run"' +
+        ' data-url="' + esc(c.url) + '"' +
+        ' data-method="' + esc(c.method || 'POST') + '"' +
+        ' data-body="' + esc(JSON.stringify(c.body || null)) + '"' +
+        ' data-danger="' + (danger ? '1' : '0') + '"' +
+        ' data-confirm="' + esc(c.confirm || '') + '"' +
+        ' data-refresh="' + (c.refresh ? '1' : '0') + '"' +
+        ' data-key="' + esc(key || '') + '"' +
+        ' class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition ' + cls + '">' +
+        '<i class="ti ' + icon + ' text-[13px]"></i>' + label + '</button>';
+    }
+
+    // Reduce heterogeneous endpoint responses to {ok, msg} honestly. Some endpoints
+    // (flush_redis, warm_cache) redirect+flash instead of returning JSON; some GET
+    // tests (twilio, redis) return a nested-status shape with no top-level `success`.
+    function summarize(resp, data) {
+      if (data == null) {
+        return { ok: resp.ok, msg: resp.ok
+          ? 'Request submitted — reload the page to see the result.'
+          : ('Request failed (HTTP ' + resp.status + ').') };
+      }
+      var ok = ('success' in data) ? !!data.success : resp.ok;
+      var msg = data.message || data.error || '';
+      if (data.connection_test && typeof data.connection_test === 'object') {
+        var ct = data.connection_test;
+        ok = String(ct.status || '').toUpperCase() === 'SUCCESS';
+        msg = 'Connection test: ' + (ct.status || 'unknown') + (ct.message ? ' — ' + ct.message : '');
+      } else if (data.tests && typeof data.tests === 'object') {
+        var ks = Object.keys(data.tests), passed = 0;
+        ks.forEach(function (k) { if (data.tests[k] && data.tests[k].status === 'success') passed++; });
+        ok = ks.length > 0 && passed === ks.length;
+        msg = 'Redis checks: ' + passed + '/' + ks.length + ' passed';
+      }
+      if (!msg) msg = ok ? 'Done.' : 'The action did not complete.';
+      return { ok: ok, msg: msg };
+    }
+
+    function reloadDrawer(key) {
+      if (!key || !urlBase) return;
+      fetch(urlBase.replace('__KEY__', encodeURIComponent(key)))
+        .then(function (r) { return r.json().catch(function () { return { success: false }; }); })
+        .then(function (r) { if (r && r.success && r.service) renderService(r.service); })
+        .catch(function () {});
+    }
+
+    // Execute a control from its data-* attributes. `t` is the clicked button.
+    function runControl(t) {
+      var url = t.getAttribute('data-url');
+      if (!url) return;
+      var method = (t.getAttribute('data-method') || 'POST').toUpperCase();
+      var danger = t.getAttribute('data-danger') === '1';
+      var confirmText = t.getAttribute('data-confirm') || '';
+      var wantRefresh = t.getAttribute('data-refresh') === '1';
+      // data-enctype="form" → send application/x-www-form-urlencoded (Jobs retry/cancel,
+      // whose endpoints read request.form). Default 'json' keeps every existing control
+      // on application/json. data-reload="1" → full page reload after success (the table
+      // these actions mutate is server-rendered).
+      var enctype = (t.getAttribute('data-enctype') || 'json').toLowerCase();
+      var wantReload = t.getAttribute('data-reload') === '1';
+      var key = t.getAttribute('data-key') || '';
+      var body = null;
+      try { body = JSON.parse(t.getAttribute('data-body') || 'null'); } catch (e) { body = null; }
+
+      var fire = function () {
+        if (t.dataset.busy === '1') return;
+        var pendingReload = false;
+        t.dataset.busy = '1';
+        // Visual in-flight feedback (the busy flag already blocks a second fetch).
+        if (t.tagName === 'BUTTON') { t.disabled = true; }
+        t.classList.add('opacity-60', 'cursor-wait');
+        var headers = {};
+        var opts = { method: method, headers: headers };
+        if (method === 'POST') {
+          headers['X-CSRFToken'] = CSRF;
+          headers['X-Requested-With'] = 'XMLHttpRequest';
+          if (enctype === 'form') {
+            headers['Content-Type'] = 'application/x-www-form-urlencoded';
+            opts.body = new URLSearchParams(body || {}).toString();
+          } else {
+            headers['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(body || {});
+          }
+        }
+        fetch(url, opts)
+          .then(function (resp) {
+            var ctype = resp.headers.get('content-type') || '';
+            if (ctype.indexOf('application/json') !== -1) {
+              return resp.json().then(function (d) { return { resp: resp, data: d }; })
+                               .catch(function () { return { resp: resp, data: null }; });
+            }
+            return { resp: resp, data: null };
+          })
+          .then(function (o) {
+            var s = summarize(o.resp, o.data);
+            toast(s.ok ? 'success' : 'error', s.ok ? 'Done' : 'Action failed', s.msg);
+            if (s.ok && wantRefresh && key) reloadDrawer(key);
+            // Reload after a successful mutating action so the server-rendered table
+            // reflects the change (retry re-enqueues; cancel terminates a running task).
+            if (s.ok && wantReload) {
+              pendingReload = true;   // keep the button locked until the reload lands
+              setTimeout(function () { location.reload(); }, 900);
+            }
+          })
+          .catch(function () { toast('error', 'Action failed', 'Could not reach the server.'); })
+          .then(function () {
+            // Do NOT re-enable while a reload is pending — otherwise the ~900ms delay
+            // leaves a window to double-fire (a second retry re-enqueues the job).
+            if (pendingReload) return;
+            t.dataset.busy = '0';
+            if (t.tagName === 'BUTTON') { t.disabled = false; }
+            t.classList.remove('opacity-60', 'cursor-wait');
+          });
+      };
+
+      if ((danger || confirmText) && window.Swal) {
+        window.Swal.fire(swalBase({
+          icon: danger ? 'warning' : 'question',
+          title: 'Are you sure?',
+          text: confirmText || 'This action will run now.',
+          showCancelButton: true,
+          confirmButtonText: danger ? 'Yes, proceed' : 'Run',
+          confirmButtonColor: danger ? '#dc2626' : '#1a472a'
+        })).then(function (res) { if (res && res.isConfirmed) fire(); });
+      } else if (danger || confirmText) {
+        if (window.confirm(confirmText || 'Run this action?')) fire();
+      } else {
+        fire();
+      }
+    }
 
     var _lastFocus = null;
     function openDrawer() {
@@ -165,16 +327,14 @@
         html += '<p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-5 whitespace-pre-wrap break-words">' + esc(s.runbook) + '</p>';
       }
 
-      // controls (Phase 1: none / disabled)
+      // controls (Phase 2: real actions — POST/GET to existing endpoints, or LINK out)
       html += '<h4 class="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Controls</h4>';
       if ((s.controls || []).length) {
         html += '<div class="flex flex-wrap gap-2 mb-5">';
-        (s.controls || []).forEach(function (c) {
-          html += '<span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-dashed border-gray-200 dark:border-gray-700 text-gray-400 cursor-not-allowed" title="Arrives in a later phase">' + esc(c.label) + '</span>';
-        });
+        (s.controls || []).forEach(function (c) { html += controlHtml(c, s.key); });
         html += '</div>';
       } else {
-        html += '<p class="text-xs text-gray-400 mb-5">Read-only in this phase — actions arrive later, behind confirmation.</p>';
+        html += '<p class="text-xs text-gray-400 mb-5">No actions available here for your role.</p>';
       }
 
       // recent lines
@@ -218,6 +378,10 @@
       } else if (action === 'svc-close') {
         e.preventDefault();
         closeDrawer();
+
+      } else if (action === 'sys-run') {
+        e.preventDefault();
+        runControl(t);
       }
     });
 

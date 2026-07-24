@@ -1,0 +1,137 @@
+{#- System Command Center — API Traffic tab body.
+   Renders from `api` (get_api_tab). EVERY figure comes from api_request_logs and covers
+   ONLY /api/* traffic — ordinary web page views and static assets are never logged — so
+   every metric carries the api-only badge and the explainers say so prominently. Raw
+   paths stay in mono; no destructive actions (links out to the full API Management page).
+   CSS-only bars — no chart library. Nothing is fabricated. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state, stat_card %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{% macro metric_row(m) %}
+  <div class="flex items-baseline justify-between gap-3 px-4 py-2 text-sm">
+    <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ m.label }}</dt>
+    <dd class="text-right min-w-0 flex items-center gap-1.5 justify-end">
+      <span class="font-mono text-gray-900 dark:text-white break-words">{{ m.value if m.value not in (none, '') else '—' }}</span>
+      {{ honesty_badge(m.honesty) }}
+    </dd>
+  </div>
+{% endmacro %}
+
+{% if not api %}
+  {{ empty_state('ti-plug-connected-x', 'API traffic unavailable', 'The API-traffic collectors could not be assembled right now. This is a real signal — the underlying query errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== api-only scope banner ===== -->
+  <div class="flex items-start gap-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 sm:p-4">
+    <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+    <div class="flex-1 min-w-0 text-sm text-amber-800 dark:text-amber-300">
+      <span class="font-semibold">API-only scope.</span> Everything on this tab is drawn from <code>api_request_logs</code>, which records <strong>only <code>/api/*</code> requests</strong> over the last {{ api.window_hours }}h. Regular web page views and static assets are <em>not</em> counted — read these as mobile/API health, not total site traffic. <strong>If this tab is empty,</strong> that can mean the request-path logger isn't recording (the table is populated by a background writer), not that there was zero traffic — so treat a blank tab as "unknown", not "idle".
+    </div>
+  </div>
+
+  <!-- ===== headline ===== -->
+  <section>
+    {% if api.stats and api.has_data %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+      {% for m in api.stats %}
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+        <div class="flex items-center justify-between gap-1">
+          <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ m.label }}</span>
+          {{ honesty_badge(m.honesty) }}
+        </div>
+        <div class="mt-2 font-mono text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white truncate" title="{{ m.value }}">{{ m.value }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+      {{ empty_state('ti-plug', 'No API traffic logged', 'No /api/* requests are recorded for the last ' ~ api.window_hours ~ ' hours. This can mean genuinely no API traffic OR that the request-path logger that writes api_request_logs is not running — treat it as "unknown", not "idle". Nothing is fabricated to fill the gap; web and static traffic are never counted here.') }}
+    {% endif %}
+    {% call explainer() %}
+      Totals, average response time and error rate are aggregated from <code>api_request_logs</code> {{ honesty_badge('api-only') }} over the last {{ api.window_hours }}h. Error rate is requests with a 4xx/5xx status over total. Good looks like an average response time in the low hundreds of milliseconds and an error rate under a few percent. Remember: <code>/api/*</code> only.
+    {% endcall %}
+  </section>
+
+  <!-- ===== top endpoints ===== -->
+  <section>
+    {% call section_card('Top endpoints', icon='ti-list-numbers') %}
+      {% if api.top_endpoints %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold">Endpoint {{ honesty_badge('api-only') }}</th>
+              <th class="px-4 py-2.5 font-semibold text-right">Requests</th>
+              <th class="px-4 py-2.5 font-semibold text-right hidden md:table-cell">Avg time</th>
+              <th class="px-4 py-2.5 font-semibold text-right hidden md:table-cell">Errors</th>
+              <th class="px-4 py-2.5 font-semibold text-right hidden lg:table-cell">Success</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for e in api.top_endpoints %}
+            <tr>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{{ e.path }}</td>
+              <td class="px-4 py-2.5 font-mono text-right text-gray-900 dark:text-white">{{ e.count }}</td>
+              <td class="px-4 py-2.5 font-mono text-right text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ e.avg_time }}ms</td>
+              <td class="px-4 py-2.5 font-mono text-right {{ 'text-red-600 dark:text-red-400 font-semibold' if e.errors else 'text-gray-500 dark:text-gray-400' }} hidden md:table-cell">{{ e.errors }}</td>
+              <td class="px-4 py-2.5 text-right hidden lg:table-cell">
+                <span class="inline-flex items-center gap-2 justify-end">
+                  <span class="hidden xl:inline-block h-1.5 w-16 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden align-middle">
+                    <span class="block h-full rounded-full {{ 'bg-red-500 dark:bg-red-400' if e.success_rate < 90 else ('bg-amber-500 dark:bg-amber-400' if e.success_rate < 99 else 'bg-ecs-green') }}" style="width: {{ e.success_rate if e.success_rate <= 100 else 100 }}%;"></span>
+                  </span>
+                  <span class="font-mono text-xs text-gray-600 dark:text-gray-300">{{ '%.1f' | format(e.success_rate) }}%</span>
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-list-search', 'No endpoint data', 'No /api/* endpoints have traffic in the window, or the query errored. Nothing is fabricated.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      The busiest <code>/api/*</code> endpoints {{ honesty_badge('api-only') }} by request count over the last {{ api.window_hours }}h, with average response time, error count and success rate (non-error responses over total). Raw paths are kept verbatim in mono so you can match them exactly. A high-traffic endpoint with a low success rate is the first place to look.
+    {% endcall %}
+  </section>
+
+  <!-- ===== error breakdown ===== -->
+  <section>
+    {% call section_card('Errors by status', icon='ti-alert-triangle') %}
+      {% if api.error_breakdown %}
+      {% set _maxc = api.error_breakdown | map(attribute='count') | max %}
+      <div class="p-4 sm:p-5 space-y-3">
+        {% for row in api.error_breakdown %}
+        {% set _pct = (row.count / _maxc * 100) if _maxc else 0 %}
+        <div>
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-medium text-gray-700 dark:text-gray-300">{{ row.label }}</span>
+            <span class="font-mono font-bold text-gray-900 dark:text-white">{{ row.count }}</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+            <div class="h-full rounded-full {{ 'bg-red-500 dark:bg-red-400' if row.status >= 500 else 'bg-amber-500 dark:bg-amber-400' }}" style="width: {{ _pct }}%;"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        {{ empty_state('ti-circle-check', 'No errors logged', 'No 4xx/5xx responses were logged on /api/* in the window. A clean error log is good news — and it is not a fabricated zero.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      A count of <code>/api/*</code> responses grouped by HTTP status {{ honesty_badge('api-only') }}, over the last {{ api.window_hours }}h. Amber bars are client errors (4xx — often expected: unauthenticated calls, bad input); red bars are server errors (5xx — those are on us and worth investigating). Bars are scaled to the largest bucket.
+    {% endcall %}
+  </section>
+
+  {% if api.management_url %}
+  <div class="flex justify-end">
+    <a href="{{ api.management_url }}" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
+      <i class="ti ti-external-link"></i>Full API Management
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}

@@ -695,7 +695,8 @@
         // ═══════════════════════════════════════════════════════════════════
         //  Konami trigger → corruption → hellfire intro → the game
         // ═══════════════════════════════════════════════════════════════════
-        var overlay, style, keys = {}, game = null, banished = false;
+        var overlay, style, keys = {}, game = null, banished = false, doomCI = null;
+        var DOOM_BASE = '{{ url_for("static", filename="vendor/doom/") }}';
 
         function unleash() {
             running = true; banished = false; keys = {};
@@ -732,7 +733,12 @@
                 '#doom-msg small{color:#ffd21a;font-family:monospace;letter-spacing:.2em;margin-top:1em;font-size:14px}' +
                 '#doom-exit{position:absolute;top:12px;right:16px;z-index:7;font-family:monospace;font-size:12px;letter-spacing:.2em;' +
                 'color:#ff8a65;background:rgba(0,0,0,.45);border:1px solid #7a0000;border-radius:4px;padding:6px 10px;cursor:pointer}' +
-                '#doom-flash{position:absolute;inset:0;background:#ff2a00;opacity:0;pointer-events:none;z-index:4;mix-blend-mode:screen}';
+                '#doom-flash{position:absolute;inset:0;background:#ff2a00;opacity:0;pointer-events:none;z-index:4;mix-blend-mode:screen}' +
+                '#doom-dos{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;background:#000;z-index:3}' +
+                '#doom-dos canvas{image-rendering:pixelated;image-rendering:crisp-edges;height:100%;width:auto;max-width:100%;background:#000}' +
+                '#doom-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:6;pointer-events:none;' +
+                'color:#ff3b1f;font-family:"Impact",sans-serif;font-size:clamp(18px,4vw,40px);letter-spacing:.2em;' +
+                'text-shadow:0 0 18px #ff2a00,0 3px 0 #000;animation:doomFlick 1.1s infinite}';
             document.head.appendChild(style);
             document.body.classList.add('doom-corrupt');
 
@@ -746,7 +752,7 @@
                   '<p class="k">&uarr; &uarr; &darr; &darr; &larr; &rarr; &larr; &rarr; B A</p>' +
                   '<h1>HELL PITCH</h1>' +
                   '<p>ECS FC &nbsp;&bull;&nbsp; Knee-Deep in the Pitch</p>' +
-                  '<p style="opacity:.75;font-size:13px;letter-spacing:.25em">WASD / ARROWS move &nbsp; MOUSE or &larr;&rarr; turn &nbsp; CLICK / SPACE fire</p>' +
+                  '<p style="opacity:.75;font-size:13px;letter-spacing:.25em">&larr;&rarr; turn &nbsp; &uarr;&darr; move &nbsp; CTRL fire &nbsp; SPACE use &nbsp; SHIFT+ESC exit</p>' +
                   '<div class="go">&#9660; PRESS ANY KEY TO DESCEND &#9660;</div>' +
                 '</div>' +
                 '<div id="doom-msg"></div>' +
@@ -809,14 +815,107 @@
                 window.removeEventListener('keydown', descend, true);
                 overlay.removeEventListener('click', descend, true);
                 cancelAnimationFrame(fireRAF); fireRAF = null;
-                startGame();
+                startDoom();
             }
             window.addEventListener('keydown', descend, true);
             overlay.addEventListener('click', descend, true);
         }
 
         // ═══════════════════════════════════════════════════════════════════
-        //  The game — a from-scratch textured raycaster
+        //  The real thing — id Software's shareware DOOM, run in-browser via
+        //  js-dos (DOSBox → WASM). Assets are vendored under /static/vendor/doom
+        //  and lazy-loaded only now, so page loads stay untouched. If anything
+        //  fails to load (offline, blocked, missing asset), we fall back to the
+        //  self-contained HELL PITCH raycaster below — the egg always plays.
+        // ═══════════════════════════════════════════════════════════════════
+        function loadScript(src, cb) {
+            var s = document.createElement('script');
+            s.src = src; s.async = true;
+            s.onload = function () { cb(true); };
+            s.onerror = function () { cb(false); };
+            document.head.appendChild(s);
+        }
+
+        // SHIFT+ESC leaves the egg; a bare ESC belongs to DOOM's own menu.
+        function doomEscToQuit(e) {
+            if (e.key === 'Escape' && e.shiftKey) {
+                e.preventDefault(); e.stopPropagation(); banish();
+            }
+        }
+
+        function startDoom() {
+            if (banished) return;
+            overlay.querySelector('#doom-fire').style.display = 'none';
+            overlay.querySelector('#doom-title').style.display = 'none';
+
+            var stage = document.createElement('div');
+            stage.id = 'doom-dos';
+            var cvs = document.createElement('canvas');
+            cvs.id = 'doom-dos-canvas';
+            stage.appendChild(cvs);
+            overlay.insertBefore(stage, overlay.querySelector('#doom-flash'));
+
+            var loading = document.createElement('div');
+            loading.id = 'doom-loading';
+            loading.innerHTML = 'SUMMONING DOOM<span id="doom-load-pct">&hellip;</span>';
+            overlay.appendChild(loading);
+
+            var exitBtn = overlay.querySelector('#doom-exit');
+            exitBtn.innerHTML = '&#10005; EXIT &mdash; SHIFT+ESC';
+
+            // Bare ESC now feeds DOOM; SHIFT+ESC (or the button) exits the egg.
+            document.removeEventListener('keydown', escToQuit, true);
+            document.addEventListener('keydown', doomEscToQuit, true);
+
+            var settled = false;
+            // If the emulator never comes up (blocked WASM, hung fetch), bail to
+            // the raycaster rather than sitting on the loading screen forever.
+            var watchdog = setTimeout(fallback, 20000);
+            function fallback() {
+                if (settled || banished) return; settled = true;
+                clearTimeout(watchdog);
+                document.removeEventListener('keydown', doomEscToQuit, true);
+                document.addEventListener('keydown', escToQuit, true);
+                exitBtn.innerHTML = 'ESC &mdash; RETURN TO REALITY';
+                if (stage.parentNode) stage.parentNode.removeChild(stage);
+                if (loading.parentNode) loading.parentNode.removeChild(loading);
+                overlay.querySelector('#doom-fire').style.display = '';
+                overlay.querySelector('#doom-title').style.display = '';
+                startGame();   // the self-contained raycaster
+            }
+
+            loadScript(DOOM_BASE + 'js-dos.js', function (ok) {
+                if (banished) return;
+                if (!ok || typeof window.Dos !== 'function') return fallback();
+                try {
+                    var dos = window.Dos(cvs, {
+                        wdosboxUrl: DOOM_BASE + 'wdosbox.js',
+                        cycles: 'max',
+                        autolock: false,
+                        log: function () {},
+                        onprogress: function (p) {
+                            var el = document.getElementById('doom-load-pct');
+                            if (el) el.textContent = ' ' + (p | 0) + '%';
+                        }
+                    });
+                    // capture the command interface (for banish()) and catch a
+                    // js-dos-level failure — e.g. wdosbox.wasm blocked from loading
+                    dos.then(function (ci) { doomCI = ci; }, fallback);
+                    dos.ready(function (fs, main) {
+                        if (banished || settled) return;
+                        fs.extract(DOOM_BASE + 'doom.zip').then(function () {
+                            if (banished || settled) return;
+                            settled = true; clearTimeout(watchdog);
+                            if (loading.parentNode) loading.parentNode.removeChild(loading);
+                            main(['-c', 'DOOM.EXE']);
+                        }).catch(fallback);
+                    });
+                } catch (e) { fallback(); }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        //  Offline fallback — a from-scratch textured raycaster (HELL PITCH)
         // ═══════════════════════════════════════════════════════════════════
         var MAP = [
             "1111111111111111",
@@ -897,7 +996,7 @@
                 shoot();
             });
             function mm(e) {
-                if (document.pointerLockElement === view) rotate(-e.movementX * 0.0025);
+                if (document.pointerLockElement === view) rotate(e.movementX * 0.0025);
             }
             document.addEventListener('mousemove', mm);
             G._cleanup = function () {
@@ -1123,8 +1222,8 @@
                     if (keys[83] || keys[40]) { tryMove(G.px - fx, G.py - fy); moved = true; }   // S / ↓
                     if (keys[65]) { tryMove(G.px + stx, G.py + sty); moved = true; }             // A strafe
                     if (keys[68]) { tryMove(G.px - stx, G.py - sty); moved = true; }             // D strafe
-                    if (keys[37]) rotate(rot);                                                    // ←
-                    if (keys[39]) rotate(-rot);                                                   // →
+                    if (keys[37]) rotate(-rot);                                                   // ← turn left
+                    if (keys[39]) rotate(rot);                                                    // → turn right
                     if (moved) G.bob += dt * 9; else G.bob += dt * 2;
 
                     // imp AI
@@ -1176,6 +1275,8 @@
             if (banished) return;
             banished = true; running = false;
             document.removeEventListener('keydown', escToQuit, true);
+            document.removeEventListener('keydown', doomEscToQuit, true);
+            if (doomCI) { try { doomCI.exit(); } catch (e) {} doomCI = null; }
             if (fireRAF) cancelAnimationFrame(fireRAF);
             if (game) { if (game._raf) cancelAnimationFrame(game._raf); if (game._cleanup) game._cleanup(); }
             game = null;

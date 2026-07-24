@@ -1,0 +1,247 @@
+{#- System Command Center — Security tab body.
+   Renders from `security` (get_security_tab). Active bans + recent events come from REAL
+   tables (ip_bans / security_events). Rate-limiter counters and the monitored-IP list are
+   this worker's in-memory state — every such value carries the per-worker badge. Feature
+   flags are DERIVED from real config + probed hook registration, never hardcoded True.
+   Per-row Unban / Clear-counters and the GA-only Clear-all-bans POST to the existing
+   endpoints via the shared sys-run executor (JSON body). Adding a new ban needs a text
+   field the executor can't supply, so we LINK to the full security dashboard for that. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state, stat_card %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{% set sevtone = {
+  'danger':  'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-red-300/40',
+  'warning': 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-amber-300/40',
+  'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
+} %}
+
+{% if not security %}
+  {{ empty_state('ti-shield-off', 'Security unavailable', 'The security collectors could not be assembled right now. This is a real signal — the underlying probes errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== active IP bans ===== -->
+  <section>
+    {% call section_card('Active IP bans', icon='ti-ban') %}
+      {% if security.clear_all or security.dashboard_url %}
+      <div class="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-2">
+        {% if security.dashboard_url %}
+        <a href="{{ security.dashboard_url }}" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-external-link"></i>Add / manage bans</a>
+        {% endif %}
+        {% if security.clear_all and security.bans %}
+        <button type="button" data-action="sys-run"
+                data-url="{{ security.clear_all.url }}" data-method="POST"
+                data-body='{{ none | tojson }}'
+                data-danger="1" data-reload="1"
+                data-confirm="{{ security.clear_all.confirm }}"
+                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 text-sm font-semibold transition">
+          <i class="ti ti-alert-triangle"></i>Clear all bans
+        </button>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% if security.bans_error %}
+        {{ empty_state('ti-database-off', 'Bans unavailable', 'The ip_bans table could not be read. This is a real failure signal, not a fabricated blank.') }}
+      {% elif security.bans %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold">IP address</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">Reason</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Banned by</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Banned at</th>
+              <th class="px-4 py-2.5 font-semibold">Expires</th>
+              {% if security.unban %}<th class="px-4 py-2.5 font-semibold text-right">Action</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for b in security.bans %}
+            <tr>
+              <td class="px-4 py-2.5">
+                <span class="font-mono text-gray-900 dark:text-white break-all">{{ b.ip }}</span>
+                <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400 break-words">{{ b.reason }}</span>
+              </td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell break-words">{{ b.reason }}</td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-all">{{ b.banned_by }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell whitespace-nowrap">{{ b.banned_at }}</td>
+              <td class="px-4 py-2.5">
+                {% if b.permanent %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 {{ sevtone['danger'] }}"><i class="ti ti-infinity text-[10px]"></i>Permanent</span>
+                {% else %}
+                <span class="font-mono text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ b.expires }}</span>
+                {% endif %}
+              </td>
+              {% if security.unban %}
+              <td class="px-4 py-2.5 text-right">
+                <button type="button" data-action="sys-run"
+                        data-url="{{ security.unban.url }}" data-method="POST"
+                        data-body='{{ {"ip_address": b.ip} | tojson }}'
+                        data-danger="0" data-reload="1"
+                        data-confirm="Lift the ban on {{ b.ip }}? This IP will be able to reach the site again immediately."
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
+                  <i class="ti ti-lock-open text-[13px]"></i>Unban
+                </button>
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-shield-check', 'No active bans', 'No IP is currently banned. Auto-bans from the attack detector and manual bans both appear here (active = not lifted and not expired).') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Live from the <code>ip_bans</code> table — the real, persisted ban list ("active" = not lifted and not past its expiry, matching what the middleware enforces). The count is real (it also drives the tab badge). <strong>Unban</strong> removes a ban (Global Admin), then reloads. Adding a ban needs an IP field the inline executor can't provide, so it lives on the full security dashboard.
+    {% endcall %}
+  </section>
+
+  <!-- ===== rate-limiter counters (per-worker) ===== -->
+  <section>
+    {% call section_card('Rate limiter (this worker)', icon='ti-brand-speedtest') %}
+      {% if security.rate_stats %}
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {% set rs = [
+            ('Monitored IPs', security.rate_stats.monitored_ips, 'ti-eye'),
+            ('Attack attempts', security.rate_stats.attack_attempts, 'ti-swords'),
+            ('Unique attackers', security.rate_stats.unique_attackers, 'ti-user-x'),
+            ('Blacklisted', security.rate_stats.blacklisted_ips, 'ti-ban')
+          ] %}
+          {% for label, value, icon in rs %}
+          <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3">
+            <div class="flex items-center justify-between gap-1">
+              <span class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate"><i class="ti {{ icon }}"></i> {{ label }}</span>
+              {{ honesty_badge('per-worker') }}
+            </div>
+            <div class="mt-1 font-mono text-2xl font-bold text-gray-900 dark:text-white">{{ value }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if security.monitored %}
+        <div class="mt-5 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+                <th class="px-3 py-2 font-semibold">IP address {{ honesty_badge('per-worker') }}</th>
+                <th class="px-3 py-2 font-semibold text-right">Reqs / hr</th>
+                <th class="px-3 py-2 font-semibold text-right hidden md:table-cell">Attacks</th>
+                <th class="px-3 py-2 font-semibold hidden md:table-cell">State</th>
+                {% if security.clear_rl %}<th class="px-3 py-2 font-semibold text-right">Action</th>{% endif %}
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+              {% for ip in security.monitored %}
+              <tr>
+                <td class="px-3 py-2 font-mono text-gray-900 dark:text-white break-all">{{ ip.ip }}</td>
+                <td class="px-3 py-2 font-mono text-right text-gray-700 dark:text-gray-300">{{ ip.requests_last_hour }}</td>
+                <td class="px-3 py-2 font-mono text-right text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ ip.attack_attempts }}</td>
+                <td class="px-3 py-2 hidden md:table-cell">
+                  {% if ip.blacklisted %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 {{ sevtone['danger'] }}"><i class="ti ti-ban text-[10px]"></i>Blacklisted</span>{% else %}<span class="text-xs text-gray-400">—</span>{% endif %}
+                </td>
+                {% if security.clear_rl %}
+                <td class="px-3 py-2 text-right">
+                  <button type="button" data-action="sys-run"
+                          data-url="{{ security.clear_rl.url }}" data-method="POST"
+                          data-body='{{ {"ip_address": ip.ip} | tojson }}'
+                          data-danger="0" data-reload="1"
+                          data-confirm="Clear this worker's rate-limit counters for {{ ip.ip }}?"
+                          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
+                    <i class="ti ti-eraser text-[13px]"></i>Clear
+                  </button>
+                </td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+      {% else %}
+        {{ empty_state('ti-brand-speedtest', 'No rate-limiter data', 'The security middleware is not present on this process, so there are no in-memory rate-limiter counters to show. This is honest absence, not a fabricated zero.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      These counters and the monitored-IP list live in the attack-detection middleware's <strong>in-process memory</strong> {{ honesty_badge('per-worker') }} — they reflect only the gunicorn worker that served this page, <em>not</em> the whole fleet, and reset when that worker restarts. Never read them as cluster totals. Private/internal IPs are excluded. <strong>Clear</strong> zeroes one IP's counters on this worker (Global Admin). Persistent bans are the <code>ip_bans</code> table above, which is shared and authoritative.
+    {% endcall %}
+  </section>
+
+  <!-- ===== security feature flags ===== -->
+  <section>
+    {% call section_card('Security features', icon='ti-shield-lock') %}
+      {% if security.features %}
+      <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% for f in security.features %}
+        <div class="rounded-lg border {{ 'border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10' if f.on else 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60' }} p-3 flex items-start gap-2">
+          <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if f.on else 'ti-circle-minus text-gray-400 dark:text-gray-500' }} text-lg shrink-0 mt-0.5"></i>
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ f.label }}</span>
+              {{ honesty_badge(f.honesty) }}
+            </div>
+            <div class="text-[11px] {{ 'text-green-700 dark:text-green-400' if f.on else 'text-gray-500 dark:text-gray-400' }}">{{ 'Enabled' if f.on else 'Off' }}</div>
+            <div class="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500 font-mono break-words" title="{{ f.detail }}">{{ f.detail }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        {{ empty_state('ti-shield-off', 'Feature state unavailable', 'The feature-flag probe errored. This is a real failure signal, not a fabricated blank.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Each flag is <strong>derived from real state</strong>, not a hardcoded "on" (the retired dashboard hardcoded rate-limiting and headers to True). <strong>Rate limiting</strong> and <strong>Security headers</strong> are confirmed by checking the middleware's <code>security_check</code> / <code>security_response</code> are actually registered as before/after-request hooks. The rest are genuine config reads (<code>WTF_CSRF_ENABLED</code>, <code>SESSION_COOKIE_SECURE</code>, <code>SECURITY_AUTO_BAN_ENABLED</code>) and middleware presence. If a flag ever can't be probed it would carry an <em>estimated</em> badge rather than a bare True.
+    {% endcall %}
+  </section>
+
+  <!-- ===== recent security events ===== -->
+  <section>
+    {% call section_card('Recent security events (24h)', icon='ti-alert-hexagon') %}
+      {% if security.events_error %}
+        {{ empty_state('ti-database-off', 'Events unavailable', 'The security_events table could not be read. This is a real failure signal, not a fabricated blank.') }}
+      {% elif security.events %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold">Event</th>
+              <th class="px-4 py-2.5 font-semibold">Severity</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">IP</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Description</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">When</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for e in security.events %}
+            <tr>
+              <td class="px-4 py-2.5">
+                <span class="font-medium text-gray-900 dark:text-white" title="{{ e.type_raw }}">{{ e.type }}</span>
+                <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all">{{ e.ip }} · {{ e.created_at }}</span>
+              </td>
+              <td class="px-4 py-2.5">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 {{ sevtone.get(e.tone, sevtone['neutral']) }}">{{ e.severity | capitalize }}</span>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell break-all">{{ e.ip }}</td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-words">{{ e.description }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell whitespace-nowrap">{{ e.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-shield-check', 'No events in the last 24h', 'The attack detector has logged no security events in the last 24 hours. A quiet log is good news.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Live from the <code>security_events</code> table (last 24h) — the persisted log the attack detector writes when it matches a threat pattern or trips a rate limit. Event types are humanized (hover for the raw type); severity is the detector's own verdict. This is a real audit trail, not a per-worker snapshot.
+    {% endcall %}
+  </section>
+
+</div>
+{% endif %}

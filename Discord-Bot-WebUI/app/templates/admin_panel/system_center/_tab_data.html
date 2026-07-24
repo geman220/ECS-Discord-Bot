@@ -1,0 +1,207 @@
+{#- System Command Center — Data & Cache tab body.
+   Renders from `data` (get_data_tab). Database info + health are REAL (live pg probes,
+   no badge); Redis is a live INFO read; draft cache is real SCAN counts; the integrity
+   panel reads ONLY the cached counts (peek_counts — never scans on render) and links to
+   the dashboard for the actual per-conflict resolve UI. Actions run through the shared
+   sys-run executor (defined in the worklist shell). Nothing is fabricated. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state, stat_card %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{#- action_btn(c) — one real control button/link (mirrors the Overview strip; adds
+   data-reload for the server-rendered health-check action). Server values escaped by
+   Jinja autoescape; body via | tojson inside a single-quoted attribute. -#}
+{% macro action_btn(c) %}
+  {% if c %}
+    {% if c.method == 'LINK' %}
+    <a href="{{ c.url }}" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition"><i class="ti ti-external-link"></i>{{ c.label }}</a>
+    {% else %}
+    <button type="button" data-action="sys-run"
+            data-url="{{ c.url }}"
+            data-method="{{ c.method }}"
+            data-body='{{ c.body | tojson }}'
+            data-danger="{{ '1' if c.danger else '0' }}"
+            data-confirm="{{ c.confirm or '' }}"
+            data-reload="{{ '1' if c.reload else '0' }}"
+            data-refresh="0" data-key=""
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border text-sm font-semibold transition {{ 'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20' if c.danger else 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green' }}">
+      <i class="ti {{ 'ti-alert-triangle' if c.danger else 'ti-player-play' }}"></i>{{ c.label }}
+    </button>
+    {% endif %}
+  {% endif %}
+{% endmacro %}
+
+{% macro metric_row(m) %}
+  <div class="flex items-baseline justify-between gap-3 px-4 py-2 text-sm">
+    <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ m.label }}</dt>
+    <dd class="text-right min-w-0 flex items-center gap-1.5 justify-end">
+      <span class="font-mono text-gray-900 dark:text-white break-words">{{ m.value if m.value not in (none, '') else '—' }}</span>
+      {{ honesty_badge(m.honesty) }}
+    </dd>
+  </div>
+{% endmacro %}
+
+{% if not data %}
+  {{ empty_state('ti-database-off', 'Data & Cache unavailable', 'The data/cache collectors could not be assembled right now. This is a real signal — the underlying probes errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== database info ===== -->
+  <section>
+    {% call section_card('Database', icon='ti-database') %}
+      {% if data.db_info %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
+        {% for m in data.db_info %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% else %}
+        {{ empty_state('ti-database-off', 'Database info unavailable', 'The PostgreSQL server-info probe errored. This is a real failure signal, not a fabricated blank.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Version, on-disk size, table count and server uptime read live from PostgreSQL (<code>version()</code>, <code>pg_database_size()</code>, the schema inspector and <code>pg_postmaster_start_time()</code>). These are real, cluster-wide facts — no per-worker caveat. Size grows over time; a sudden jump is worth a look.
+    {% endcall %}
+  </section>
+
+  <!-- ===== database health check ===== -->
+  <section>
+    {% call section_card('Database health check', icon='ti-heartbeat') %}
+      {% if data.db_health %}
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {% for chk in data.db_health.checks %}
+          <div class="rounded-lg border {{ 'border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10' if chk.ok else 'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10' }} p-3 flex items-center gap-2">
+            <i class="ti {{ 'ti-circle-check text-green-600 dark:text-green-400' if chk.ok else 'ti-circle-x text-red-600 dark:text-red-400' }} text-lg shrink-0"></i>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold text-gray-900 dark:text-white truncate">{{ chk.label }}</div>
+              <div class="text-[11px] {{ 'text-green-700 dark:text-green-400' if chk.ok else 'text-red-700 dark:text-red-400' }}">{{ 'Pass' if chk.ok else 'Fail' }}</div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          <span>Query time: <span class="font-mono text-gray-900 dark:text-white">{{ data.db_health.query_time }}</span></span>
+          <span>Last run: <span class="font-mono">{{ data.db_health.last_run }}</span></span>
+        </div>
+      </div>
+      {% else %}
+        {{ empty_state('ti-heartbeat-off', 'Health check unavailable', 'The database health probe errored. This is a real failure signal, not a fabricated blank.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      A live probe run at page load: it opens a connection, runs a timed <code>COUNT(*)</code>, checks the schema has tables, and flags performance if the query took under a second. Each tile is that probe's real pass/fail. "Run DB health check" below re-runs it and reloads this tab.
+    {% endcall %}
+  </section>
+
+  <!-- ===== redis / cache ===== -->
+  <section>
+    {% call section_card('Cache & Redis', icon='ti-brand-redis') %}
+      {% if data.redis %}
+      {% if data.redis.mem_pct is not none %}
+      <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700/60">
+        {% set _p = data.redis.mem_pct %}
+        {% set _tone = 'bg-red-500 dark:bg-red-400' if _p >= 90 else ('bg-amber-500 dark:bg-amber-400' if _p >= 80 else 'bg-ecs-green') %}
+        <div class="flex items-center justify-between text-xs mb-1">
+          <span class="flex items-center gap-1.5 font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-brand-redis"></i>Memory vs maxmemory</span>
+          <span class="font-mono font-bold text-gray-900 dark:text-white">{{ '%.1f' | format(_p) }}%</span>
+        </div>
+        <div class="h-2.5 w-full rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden" role="meter" aria-valuenow="{{ '%.0f' | format(_p) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Redis memory">
+          <div class="h-full rounded-full {{ _tone }}" style="width: {{ _p if _p <= 100 else 100 }}%;"></div>
+        </div>
+      </div>
+      {% endif %}
+      <dl class="divide-y divide-gray-100 dark:divide-gray-700/60 sm:grid sm:grid-cols-2 sm:gap-x-6 sm:divide-y-0">
+        {% for m in data.redis.metrics %}{{ metric_row(m) }}{% endfor %}
+      </dl>
+      {% else %}
+        {{ empty_state('ti-brand-redis', 'Redis unreachable', 'The live INFO probe against Redis failed. Because Redis backs the Celery broker, sessions and the app cache, a real failure here is significant — this is not a fabricated blank.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Read live from <code>redis.info()</code> — the same call the Cache &amp; Redis page uses. Total keys sum every logical <code>db*</code> keyspace; hit rate is <code>keyspace_hits / (hits + misses)</code>. This one instance serves the Celery broker, result backend, Flask session store <em>and</em> app cache, so watch memory: nearing <code>maxmemory</code> degrades the whole cluster. Good looks like a high hit rate and memory well under the max.
+    {% endcall %}
+  </section>
+
+  <!-- ===== draft cache ===== -->
+  <section>
+    {% call section_card('Draft cache', icon='ti-cards') %}
+      {% if data.draft_cache %}
+        {% if not data.draft_cache.available %}
+        {{ empty_state('ti-plug-x', 'Draft cache offline', 'The draft cache service reports Redis is not available to it. Draft pages will fall back to live queries — a real signal, not a blank.') }}
+        {% elif data.draft_cache.connection_error %}
+        {{ empty_state('ti-plug-x', 'Draft cache connection error', 'The draft cache service could not open a Redis connection for its stats read. This is a real failure, not fabricated.') }}
+        {% else %}
+        <div class="p-4 sm:p-5">
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-500 dark:text-gray-400 mb-4">
+            <span>Active drafts: <span class="font-mono text-gray-900 dark:text-white">{{ data.draft_cache.active_drafts }}</span></span>
+            <span>Circuit breaker: <span class="font-mono text-gray-900 dark:text-white">{{ data.draft_cache.circuit_state | humanize }}</span></span>
+            <span>Failures: <span class="font-mono text-gray-900 dark:text-white">{{ data.draft_cache.circuit_failures }}</span></span>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {% for k in data.draft_cache.keys %}
+            <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3">
+              <div class="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ k.label }}</div>
+              <div class="mt-1 font-mono text-xl font-bold text-gray-900 dark:text-white truncate" title="{{ k.value }}">{{ k.value }}</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      {% else %}
+        {{ empty_state('ti-cards', 'Draft cache stats unavailable', 'The draft cache stats collector errored. This is a real failure signal, not a fabricated blank.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Key counts come from <code>DraftCacheService.get_cache_stats()</code>, which <code>SCAN</code>s the <code>draft:*</code> namespaces (players, analytics, teams, availability). The circuit breaker guards these reads: an <em>open</em> state means the service is shedding load after repeated Redis failures. Counts reflect the shared Redis, so they are cluster-wide, not per-worker.
+    {% endcall %}
+  </section>
+
+  <!-- ===== data integrity (cache-only peek + link out) ===== -->
+  <section>
+    {% call section_card('Data integrity', icon='ti-shield-check') %}
+      <div class="p-4 sm:p-5">
+        {% if data.integrity is not none %}
+        <div class="grid grid-cols-2 gap-3 sm:max-w-md">
+          {{ stat_card('ti-alert-triangle', 'Open conflicts', data.integrity.total, tone=('warning' if data.integrity.total else 'neutral')) }}
+          {{ stat_card('ti-shield-x', 'High severity', data.integrity.high, tone=('danger' if data.integrity.high else 'neutral')) }}
+        </div>
+        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+          Counts are read from the integrity <strong>cache</strong> — this page never runs a scan.
+          Open the dashboard to review and resolve each conflict.
+        </p>
+        {% else %}
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          <i class="ti ti-shield-off text-gray-400"></i>
+          Integrity counts are <strong>not yet computed</strong> (cold cache). This page deliberately
+          does not trigger a scan — open the integrity dashboard to run the detectors.
+        </div>
+        {% endif %}
+        {% if data.integrity_url %}
+        <a href="{{ data.integrity_url }}" class="mt-4 inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition">
+          <i class="ti ti-external-link"></i>Open integrity dashboard
+        </a>
+        {% endif %}
+      </div>
+    {% endcall %}
+    {% call explainer() %}
+      These are the cached <code>{total, high}</code> counts from the integrity detectors, read via <code>peek_counts()</code>. Running the full scan holds a scarce PgBouncer transaction slot, so this surface <strong>never</strong> scans on render — it only shows the last cached result (kept warm by the dashboard + its background job) and links out to the real per-conflict resolve UI. A cold cache reads "not yet computed", never a fake zero.
+    {% endcall %}
+  </section>
+
+  <!-- ===== actions ===== -->
+  <section>
+    {% call section_card('Cache actions', icon='ti-bolt') %}
+      <div class="p-4 flex flex-wrap gap-2">
+        {% if data.actions %}
+          {% for c in data.actions %}{{ action_btn(c) }}{% endfor %}
+        {% else %}
+          <span class="text-sm text-gray-400">No cache actions available for your role.</span>
+        {% endif %}
+      </div>
+    {% endcall %}
+    {% call explainer() %}
+      These run for real against the existing operations endpoints through the shared executor, with CSRF protection. <strong>Clear reference cache</strong> drops only the safe <code>ref:*</code> reference-data keys — never sessions or queued jobs. <strong>Warm cache</strong> and <strong>Run DB health check</strong> are non-destructive. <strong>Flush all Redis</strong> is destructive (it wipes cache, sessions AND the job broker), so it sits behind a strong confirmation and is shown only to Global Admins{% if not is_global_admin %} — hidden for your role{% endif %}. Every action surfaces the server's own result.
+    {% endcall %}
+  </section>
+
+</div>
+{% endif %}

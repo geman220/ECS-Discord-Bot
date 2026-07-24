@@ -24,8 +24,22 @@ logger = logging.getLogger(__name__)
 
 
 # Tabs that are not built yet — they render the honest "later in this rollout" state.
-_STUB_TABS = {'perf', 'jobs', 'data', 'security', 'logs', 'api'}
-_ALL_TABS = {'overview', 'services'} | _STUB_TABS
+# Phase 4 wired Logs & Audit (the last tab), so this set is now EMPTY. It is kept
+# (with the template's empty-state else branch) as a safety net for any future stub.
+_STUB_TABS = set()
+_ALL_TABS = {'overview', 'services', 'perf', 'jobs', 'data', 'security', 'logs', 'api'} | _STUB_TABS
+
+
+def _is_global_admin():
+    """True when the EFFECTIVE roles (impersonation-aware, same source role_required
+    checks) include Global Admin. Used to UI-gate GA-only action controls — the
+    endpoints still enforce roles server-side; this is defense-in-depth + honesty."""
+    try:
+        from app.role_impersonation import get_effective_roles
+        return 'Global Admin' in (get_effective_roles() or [])
+    except Exception:
+        logger.debug("system center: effective-role lookup failed", exc_info=True)
+        return False
 
 
 def _shared_kpis(session):
@@ -134,24 +148,86 @@ def system_center_worklist():
         tab = 'overview'
 
     kpis, counts, board, perf_metrics = _shared_kpis(session)
+    is_global_admin = _is_global_admin()
 
     overview = None
     services = None
+    perf = None
+    jobs = None
+    data = None
+    security = None
+    logs = None
+    api = None
     if tab == 'overview':
         try:
             from app.services.system_center_service import get_system_overview
-            overview = get_system_overview(session, perf_metrics=perf_metrics)
+            overview = get_system_overview(session, perf_metrics=perf_metrics,
+                                           is_global_admin=is_global_admin)
         except Exception:
             logger.exception("system center: overview assembly failed")
             overview = None
     elif tab == 'services':
         services = board  # already computed for the KPI band
+    elif tab == 'perf':
+        try:
+            from app.services.system_center_service import get_performance_tab
+            perf = get_performance_tab(session, perf_metrics=perf_metrics)
+        except Exception:
+            logger.exception("system center: performance assembly failed")
+            perf = None
+    elif tab == 'jobs':
+        try:
+            from app.services.system_center_service import get_jobs_tab
+            jobs = get_jobs_tab(session)
+        except Exception:
+            logger.exception("system center: jobs assembly failed")
+            jobs = None
+    elif tab == 'data':
+        try:
+            from app.services.system_center_service import get_data_tab
+            data = get_data_tab(session, is_global_admin=is_global_admin)
+        except Exception:
+            logger.exception("system center: data assembly failed")
+            data = None
+    elif tab == 'security':
+        try:
+            from app.services.system_center_service import get_security_tab
+            security = get_security_tab(session, is_global_admin=is_global_admin)
+        except Exception:
+            logger.exception("system center: security assembly failed")
+            security = None
+    elif tab == 'logs':
+        try:
+            from app.services.system_center_service import get_logs_tab
+            src = (request.args.get('src') or 'app').strip()
+            logs = get_logs_tab(
+                session, src, is_global_admin=is_global_admin,
+                level=(request.args.get('level') or 'all').strip(),
+                search=(request.args.get('search') or '').strip(),
+                container=(request.args.get('container') or '').strip(),
+                page=request.args.get('page', 1, type=int),
+            )
+        except Exception:
+            logger.exception("system center: logs assembly failed")
+            logs = None
+    elif tab == 'api':
+        try:
+            from app.services.system_center_service import get_api_tab
+            api = get_api_tab(session)
+        except Exception:
+            logger.exception("system center: api assembly failed")
+            api = None
 
     is_stub = tab in _STUB_TABS
 
     return render_template('admin_panel/system_center/worklist_flowbite.html',
                            tab=tab, kpis=kpis, counts=counts,
-                           overview=overview, services=services, is_stub=is_stub)
+                           overview=overview, services=services,
+                           perf=perf, jobs=jobs,
+                           data=data, security=security,
+                           logs=logs, api=api,
+                           is_stub=is_stub,
+                           is_global_admin=is_global_admin)
 
 
 @admin_panel_bp.route('/system/service/<key>/data')
@@ -162,7 +238,7 @@ def system_center_service_data(key):
     from flask import g
     from app.services.system_center_service import get_service_360
 
-    data = get_service_360(g.db_session, key)
+    data = get_service_360(g.db_session, key, is_global_admin=_is_global_admin())
     if data is None:
         abort(404)
     return jsonify({'success': True, 'service': data})

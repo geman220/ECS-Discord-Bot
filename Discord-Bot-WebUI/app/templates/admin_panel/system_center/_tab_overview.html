@@ -95,39 +95,42 @@
       </div>
     {% endcall %}
     {% call explainer() %}
-      Sampled with <code>psutil</code> {{ honesty_badge('per-worker') }} from the single gunicorn worker that served this page — not an average across the fleet. CPU is a 1-second sample; uptime is the host's, not the app's.
+      Sampled with <code>psutil</code> from the container at page load — a point-in-time reading (CPU is a 1-second sample), not a continuous average. These are host/container-wide figures (the whole container, not one worker); uptime is the host's, not the app's.
     {% endcall %}
   </section>
 
-  <!-- ===== quick actions (non-destructive: links only) ===== -->
+  <!-- ===== quick actions (real: POST/GET to existing endpoints via the shared executor) ===== -->
   <section>
     {% call section_card('Quick actions', icon='ti-bolt') %}
       <div class="p-4 flex flex-wrap gap-2">
-        {% set actions = [
-          ('Services', 'ti-server-2', 'admin_panel.system_center', {'tab': 'services'}, false),
-          ('System Health', 'ti-heartbeat', 'admin_panel.system_health_consolidated', {}, false),
-          ('Data Integrity', 'ti-shield-check', 'admin_panel.integrity_dashboard', {}, false),
-          ('Task Monitor', 'ti-list-check', 'admin_panel.task_monitoring_page', {}, false),
-          ('Cache & Redis', 'ti-database', 'admin_panel.cache_redis_consolidated', {}, false),
-          ('Security', 'ti-shield-lock', 'admin_panel.security_dashboard', {}, false)
-        ] %}
-        {% for label, icon, endpoint, args, disabled in actions %}
-          {% if not disabled and endpoint_exists(endpoint) %}
-          <a href="{{ url_for(endpoint, **args) }}"
-             class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
-            <i class="ti {{ icon }}"></i>{{ label }}
-          </a>
-          {% else %}
-          <span title="Comes online later in this rollout"
-                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 text-sm font-medium text-gray-400 cursor-not-allowed">
-            <i class="ti {{ icon }}"></i>{{ label }}
-          </span>
-          {% endif %}
-        {% endfor %}
+        {% if overview.quick_actions %}
+          {% for c in overview.quick_actions %}
+            {% if c.method == 'LINK' %}
+            <a href="{{ c.url }}"
+               class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
+              <i class="ti ti-external-link"></i>{{ c.label }}
+            </a>
+            {% else %}
+            <button type="button" data-action="sys-run"
+                    data-url="{{ c.url }}"
+                    data-method="{{ c.method }}"
+                    data-body='{{ c.body | tojson }}'
+                    data-danger="{{ '1' if c.danger else '0' }}"
+                    data-confirm="{{ c.confirm or '' }}"
+                    data-refresh="0"
+                    data-key=""
+                    class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border text-sm font-semibold transition {{ 'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20' if c.danger else 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green' }}">
+              <i class="ti {{ 'ti-alert-triangle' if c.danger else 'ti-player-play' }}"></i>{{ c.label }}
+            </button>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <span class="text-sm text-gray-400">No quick actions available for your role.</span>
+        {% endif %}
       </div>
     {% endcall %}
     {% call explainer() %}
-      Phase 1 quick actions are read-only jump-offs to the existing operations pages — nothing here mutates state. Destructive controls (restart worker, clear cache, ban IP) arrive in a later phase, gated behind confirmation.
+      These run for real against the existing operations endpoints, through one shared executor with CSRF protection. Destructive actions (restart bot, flush Redis) sit behind a confirmation and are only shown to Global Admins{% if not is_global_admin %} — some are hidden for your role{% endif %}; the endpoints enforce the same roles server-side. Each surfaces the server's own result message. "Clear cache" clears only the safe reference-data cache — it never drops sessions or queued jobs.
     {% endcall %}
   </section>
 

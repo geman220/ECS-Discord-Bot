@@ -1,0 +1,169 @@
+{#- System Command Center — Jobs & Queues tab body.
+   Renders from `jobs` (get_jobs_tab). Headline counters from the Redis-backed
+   task monitor; active tasks from a live Celery inspect; recent executions from
+   the persisted TaskExecution history. Task names are humanized for display with
+   the raw name kept in title=. Per-row Retry (failed executions) and Cancel
+   (active tasks) POST form-encoded to the existing endpoints via the shared
+   sys-run executor (data-enctype="form"). Nothing is fabricated. -#}
+{% from 'macros/_modern_kit.html' import section_card, empty_state, stat_card %}
+{% from 'admin_panel/system_center/_system_tabs.html' import explainer, honesty_badge %}
+
+{% set statustone = {
+  'success': 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300 ring-green-300/40',
+  'danger':  'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 ring-red-300/40',
+  'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
+} %}
+
+{% if not jobs %}
+  {{ empty_state('ti-list-check', 'Jobs unavailable', 'The job/queue collectors could not be assembled right now. This is a real signal — the underlying probes errored — not a data gap. Try again shortly.') }}
+{% else %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  <!-- ===== headline counters ===== -->
+  <section>
+    {% if jobs.stats %}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      {{ stat_card('ti-player-play', 'Running', jobs.stats.running, tone='info') }}
+      {{ stat_card('ti-hourglass', 'Queued', jobs.stats.queued, tone='neutral') }}
+      {{ stat_card('ti-circle-check', 'Completed 24h', jobs.stats.completed, tone='success') }}
+      {{ stat_card('ti-alert-triangle', 'Failed 24h', jobs.stats.failed, tone=('danger' if jobs.stats.failed else 'neutral')) }}
+    </div>
+    {% else %}
+      {{ empty_state('ti-list-check', 'Task stats unavailable', 'The task monitor (Redis-backed) could not be read. This is a real failure signal, not a fabricated blank.') }}
+    {% endif %}
+    {% call explainer() %}
+      Counters come from the Redis-backed task monitor over the last 24h. A caveat worth knowing: the monitor marks a task <em>started</em> at <strong>publish</strong> time, so <strong>Running</strong> counts anything published-but-not-yet-finished and <strong>Queued</strong> (pending) rarely populates even when the broker is backed up — check the broker/worker health on the Services tab for true backlog. <strong>Completed 24h</strong> is terminal successes and also includes tasks you cancel (revoked); <strong>Failed</strong> is genuine failures. The monitor exposes no honest "zombies"/"retries" figure, so — unlike the retired page's hardcoded stub — neither is shown. Good looks like a low failed count and nothing stuck running for hours.
+    {% endcall %}
+  </section>
+
+  <!-- ===== active tasks (live) ===== -->
+  <section>
+    {% call section_card('Active tasks', icon='ti-player-play') %}
+      {% if jobs.active %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold">Task</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">Worker</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Runtime</th>
+              <th class="px-4 py-2.5 font-semibold text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for t in jobs.active %}
+            <tr>
+              <td class="px-4 py-2.5">
+                <span class="font-medium text-gray-900 dark:text-white" title="{{ t.name_raw }}">{{ t.name }}</span>
+                <span class="block font-mono text-[11px] text-gray-400 dark:text-gray-500 break-all">{{ t.id }}</span>
+                <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400">{{ t.worker }} · {{ t.runtime }}</span>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell break-all">{{ t.worker }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ t.runtime }}</td>
+              <td class="px-4 py-2.5 text-right">
+                {% if t.id %}
+                <button type="button" data-action="sys-run"
+                        data-url="{{ url_for('admin_panel.cancel_task') }}"
+                        data-method="POST" data-enctype="form"
+                        data-body='{{ {"task_id": t.id} | tojson }}'
+                        data-danger="1" data-reload="1"
+                        data-confirm="Cancel this running task? It will be revoked and terminated immediately — any partial work is lost."
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20 transition">
+                  <i class="ti ti-x text-[13px]"></i>Cancel
+                </button>
+                {% else %}
+                <span class="text-xs text-gray-400">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        {{ empty_state('ti-player-pause', 'Nothing running', 'No tasks are executing right now, according to a live Celery inspect. An idle worker pool is normal between scheduled jobs.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      A live broadcast to every worker via <code>celery.control.inspect().active()</code> — the tasks actually executing at this instant. Runtime is measured from each task's start time. <strong>Cancel</strong> revokes and terminates the task (Global Admin / Pub League Admin); it is destructive and confirmed first, then the page reloads to reflect the change.
+    {% endcall %}
+  </section>
+
+  <!-- ===== recent executions (history) ===== -->
+  <section>
+    {% call section_card('Recent executions', icon='ti-history') %}
+      {% if jobs.recent %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
+              <th class="px-4 py-2.5 font-semibold">Task</th>
+              <th class="px-4 py-2.5 font-semibold">Status</th>
+              <th class="px-4 py-2.5 font-semibold hidden md:table-cell">Started</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Duration</th>
+              <th class="px-4 py-2.5 font-semibold hidden lg:table-cell">Worker</th>
+              <th class="px-4 py-2.5 font-semibold text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60">
+            {% for r in jobs.recent %}
+            <tr>
+              <td class="px-4 py-2.5">
+                <span class="font-medium text-gray-900 dark:text-white" title="{{ r.name_raw }}">{{ r.name }}</span>
+                <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400">{{ r.started_at }} · {{ r.duration }}</span>
+              </td>
+              <td class="px-4 py-2.5">
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ring-1 {{ statustone.get(r.tone, statustone['neutral']) }}">
+                  <i class="ti {{ 'ti-alert-triangle' if r.failed else 'ti-check' }} text-[10px]"></i>{{ r.status | capitalize }}
+                </span>
+              </td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell whitespace-nowrap">{{ r.started_at }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ r.duration }}</td>
+              <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-all">{{ r.worker }}</td>
+              <td class="px-4 py-2.5 text-right">
+                {% if r.failed %}
+                <button type="button" data-action="sys-run"
+                        data-url="{{ url_for('admin_panel.retry_task') }}"
+                        data-method="POST" data-enctype="form"
+                        data-body='{{ {"execution_id": r.id} | tojson }}'
+                        data-danger="0" data-reload="1"
+                        data-confirm="Re-enqueue this failed task with its captured arguments?"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green transition">
+                  <i class="ti ti-refresh text-[13px]"></i>Retry
+                </button>
+                {% else %}
+                <span class="text-xs text-gray-400">—</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% if r.failed and r.error %}
+            <tr>
+              <td colspan="6" class="px-4 pb-3 pt-0">
+                <details class="group rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50/60 dark:bg-red-500/5">
+                  <summary class="flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs font-medium text-red-700 dark:text-red-300 select-none">
+                    <i class="ti ti-bug"></i>Error detail
+                    <i class="ti ti-chevron-down text-[11px] ms-auto transition-transform group-open:rotate-180"></i>
+                  </summary>
+                  <pre class="px-3 pb-3 pt-0 text-[11px] leading-relaxed text-red-800 dark:text-red-300 whitespace-pre-wrap break-words overflow-x-auto">{{ r.error }}</pre>
+                </details>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% elif jobs.recent_error %}
+        {{ empty_state('ti-history-off', 'History unavailable', 'The task_executions table could not be read (missing table or query error). This is a real failure signal, not a fabricated blank.') }}
+      {% else %}
+        {{ empty_state('ti-history', 'No recorded executions', 'No task executions have been recorded yet. Rows are written best-effort by the celery_task decorator as jobs run.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      Persisted history from the <code>task_executions</code> table — one row per run, written best-effort by the <code>celery_task</code> decorator. Task names are humanized (hover for the raw dotted name). Failed rows expand to show the captured error/traceback exactly as recorded (escaped). <strong>Retry</strong> re-enqueues a failed task with its stored arguments (Global Admin / Pub League Admin), then the page reloads.
+    {% endcall %}
+  </section>
+
+</div>
+{% endif %}

@@ -393,6 +393,9 @@ def redis_pool_status():
 @role_required(['Global Admin', 'Pub League Admin'])
 def redis_draft_cache_stats():
     """Display draft cache statistics."""
+    # Consolidated into the System Command Center → Data & Cache (draft cache panel).
+    # Fallback kept below.
+    return redirect(url_for('admin_panel.system_center', tab='data'))
     try:
         from app.draft_cache_service import DraftCacheService
         from app.models import League, Season
