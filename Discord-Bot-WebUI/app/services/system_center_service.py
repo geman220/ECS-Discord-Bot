@@ -51,8 +51,101 @@ logger = logging.getLogger(__name__)
 # EVERY tab), the Services tab, and a drawer open don't each re-run the full fan-out
 # in quick succession — and keeps probe work off the request's DB-transaction budget
 # on rapid navigation. `force=True` (the Refresh action) bypasses it.
-_BOARD_TTL = 8.0
+_BOARD_TTL = 8.0                                    # in-process L1 (per worker)
 _board_cache = {'ts': 0.0, 'data': None}
+# Shared L2 caches in Redis so the expensive work (9-probe board fan-out + the ~1s
+# blocking psutil CPU sample) is paid AT MOST once per TTL across ALL gunicorn workers,
+# not once per worker. Navigating between tabs then reads a warm snapshot instead of
+# re-probing. Staleness of a few seconds is fine for an ops dashboard.
+_BOARD_REDIS_KEY = 'system_center:services_board'
+_BOARD_REDIS_TTL = 30
+_PERF_REDIS_KEY = 'system_center:perf_metrics'
+_PERF_REDIS_TTL = 20
+
+
+def _redis_get_json(key):
+    """Best-effort read of a JSON value from the shared Redis cache (None on miss/error)."""
+    try:
+        import json
+        from app.utils.safe_redis import get_safe_redis
+        raw = get_safe_redis().get(key)
+        if raw:
+            return json.loads(raw)
+    except Exception:
+        logger.debug("system center: redis cache read failed (%s)", key, exc_info=True)
+    return None
+
+
+def _redis_set_json(key, value, ttl):
+    """Best-effort write of a JSON value to the shared Redis cache (silent on error)."""
+    try:
+        import json
+        from app.utils.safe_redis import get_safe_redis
+        get_safe_redis().setex(key, ttl, json.dumps(value))
+    except Exception:
+        logger.debug("system center: redis cache write failed (%s)", key, exc_info=True)
+
+
+_TASKSTATS_REDIS_KEY = 'system_center:task_stats'
+_TASKSTATS_REDIS_TTL = 15
+
+
+def cached_task_stats(force=False):
+    """24h task stats (running/pending/completed/failed/total) with a short shared cache.
+    The KPI band + attention feed both read this on EVERY page load / live poll, so caching
+    keeps the 20s auto-refresh from re-running the 24h query each tick. {} on failure."""
+    if not force:
+        cached = _redis_get_json(_TASKSTATS_REDIS_KEY)
+        if cached is not None:
+            return cached
+    try:
+        from app.utils.task_monitor import TaskMonitor
+        stats = TaskMonitor().get_task_stats(time_window=86400) or {}
+    except Exception:
+        logger.debug("system center: task stats sample failed", exc_info=True)
+        stats = {}
+    if stats:
+        _redis_set_json(_TASKSTATS_REDIS_KEY, stats, _TASKSTATS_REDIS_TTL)
+    return stats
+
+
+def invalidate_snapshot_caches():
+    """Drop the shared board + perf snapshots so the next page load re-probes live.
+    Called by the 'Refresh services' action — otherwise a just-changed status (e.g. a
+    restarted bot) would stay masked by the L2 cache for up to its TTL across all workers."""
+    _board_cache['ts'] = 0.0
+    _board_cache['data'] = None
+    try:
+        from app.utils.safe_redis import get_safe_redis
+        r = get_safe_redis()
+        for key in (_BOARD_REDIS_KEY, _PERF_REDIS_KEY, _TASKSTATS_REDIS_KEY):
+            try:
+                r.delete(key)
+            except Exception:
+                logger.debug("system center: cache delete failed (%s)", key, exc_info=True)
+    except Exception:
+        logger.debug("system center: cache invalidate failed", exc_info=True)
+
+
+def cached_perf_metrics(force=False):
+    """psutil resource metrics with a short SHARED cache — avoids the ~1s blocking
+    cpu_percent(interval=1) sample on every page load (it ran on EVERY tab via the KPI
+    band). 20s staleness is acceptable for an ops dashboard."""
+    if not force:
+        cached = _redis_get_json(_PERF_REDIS_KEY)
+        if cached is not None:
+            return cached
+    try:
+        from app.admin_panel.routes.helpers import _get_system_performance_metrics
+        m = _get_system_performance_metrics() or {}
+    except Exception:
+        logger.exception("system center: perf metrics sample failed")
+        m = {}
+    # Only cache a REAL sample — never propagate one worker's transient empty result to
+    # the whole fleet for the TTL. On failure, return live (uncached) so the next load retries.
+    if m:
+        _redis_set_json(_PERF_REDIS_KEY, m, _PERF_REDIS_TTL)
+    return m
 
 
 # --------------------------------------------------------------------------
@@ -162,12 +255,14 @@ def _safe_url(endpoint, **kw):
 
 
 def _control(label, endpoint, method='POST', danger=False, confirm=None,
-             body=None, min_role=None, refresh=False, **url_kw):
-    """Build one control dict, or None if the endpoint can't resolve (→ omitted)."""
+             body=None, min_role=None, refresh=False, reload=False, **url_kw):
+    """Build one control dict, or None if the endpoint can't resolve (→ omitted).
+    `reload` → the page reloads after success (so a server-rendered change shows)."""
     url = _safe_url(endpoint, **url_kw)
     if url is None:
         return None
     return {
+        'reload': bool(reload),
         'label': label, 'endpoint': endpoint, 'url': url, 'method': method,
         'danger': bool(danger), 'confirm': confirm, 'body': body,
         'min_role': min_role, 'refresh': bool(refresh),
@@ -257,7 +352,7 @@ def _overview_quick_actions(is_global_admin):
                  body={'cache_type': 'reference'}),
         _control('Sync Discord roles', 'admin_panel.discord_mass_sync_roles'),
         _control('Run DB health check', 'admin_panel.run_db_health_check'),
-        _control('Refresh services', 'admin_panel.refresh_service_status'),
+        _control('Refresh services', 'admin_panel.refresh_service_status', reload=True),
         _control('Restart bot', 'admin_panel.api_restart_bot',
                  danger=True, min_role='Global Admin',
                  confirm='Restart the Discord bot now? It will disconnect and reconnect, '
@@ -270,7 +365,8 @@ def _overview_quick_actions(is_global_admin):
 # Overview
 # --------------------------------------------------------------------------
 
-def get_system_overview(session, perf_metrics=None, is_global_admin=False):
+def get_system_overview(session, perf_metrics=None, board=None, is_global_admin=False,
+                        overall_word=None, overall_tone=None):
     """Assemble the Overview tab from real collectors.
 
     `perf_metrics` — the already-sampled `_get_system_performance_metrics()` dict
@@ -289,45 +385,56 @@ def get_system_overview(session, perf_metrics=None, is_global_admin=False):
       quick_actions : [ control ] — real, gated actions (see _control docstring)
       health_raw    : the raw _check_system_health() dict (for debugging/detail)
     """
-    from app.admin_panel.routes.system_infrastructure import _check_system_health
-    from app.admin_panel.routes.helpers import _get_system_performance_metrics
-
-    # ---- overall + component health ----
+    # ---- overall + component health (DERIVED from the already-probed services board,
+    #      so the Overview does NOT run a second redundant DB/Redis/Celery/Docker probe
+    #      pass — the board is the single source and it's shared-cached). ----
     overall = {'status': 'degraded', 'word': 'Unknown', 'tone': 'neutral'}
     components = []
+    health = {}
     try:
-        health = _check_system_health()
-        raw_overall = _canon_status(health.get('status'))
-        # _check_system_health uses 'degraded' as its umbrella non-healthy word.
-        if (health.get('status') or '').lower() == 'degraded':
-            raw_overall = 'degraded'
-        tone, word = _tone_word(raw_overall)
-        overall = {'status': raw_overall, 'word': word, 'tone': tone}
-
+        if board is None:
+            board = get_services_board(session)
         _comp_meta = {
             'database': ('Database', 'ti-database'),
             'redis': ('Redis', 'ti-brand-redis'),
             'celery': ('Celery Workers', 'ti-subtask'),
             'docker': ('Docker', 'ti-box'),
         }
-        for ckey, cval in (health.get('components') or {}).items():
-            name, icon = _comp_meta.get(ckey, (ckey.title(), 'ti-server-2'))
-            st = _canon_status(cval.get('status'))
-            ct, cw = _tone_word(st)
+        by_key = {s['key']: s for s in (board or [])}
+        for ckey, (name, icon) in _comp_meta.items():
+            s = by_key.get(ckey)
+            if not s:
+                continue
             components.append({
                 'key': ckey, 'name': name, 'icon': icon,
-                'status': st, 'status_word': cw, 'tone': ct,
-                'message': cval.get('message') or '',
+                'status': s['status'], 'status_word': s['status_word'], 'tone': s['tone'],
+                'message': s.get('meta') or '',
             })
+        # Roll-up from the PROBED (non-idle) core components — matches the KPI band logic.
+        probed = [c for c in components if c['status'] != 'idle']
+        if not probed:
+            overall = {'status': 'degraded', 'word': 'Unknown', 'tone': 'neutral'}
+        elif any(c['status'] == 'down' for c in probed):
+            overall = {'status': 'down', 'word': 'Down', 'tone': 'danger'}
+        elif all(c['status'] == 'healthy' for c in probed):
+            overall = {'status': 'healthy', 'word': 'Healthy', 'tone': 'primary'}
+        else:
+            overall = {'status': 'degraded', 'word': 'Degraded', 'tone': 'warning'}
     except Exception:
-        logger.exception("system overview: health check failed")
-        health = {}
+        logger.exception("system overview: component build failed")
+
+    # The headline "Overall" chip MUST match the KPI band exactly (same whole-board
+    # roll-up), so the two never contradict on the same page. When the caller passes the
+    # band's word/tone, use them; the per-component cards above still show each core piece.
+    if overall_word:
+        overall = {'status': overall.get('status', 'degraded'),
+                   'word': overall_word, 'tone': overall_tone or 'neutral'}
 
     # ---- resource metrics ----
     perf = {'cpu': 0, 'memory': 0, 'disk': 0, 'uptime': 'Unknown',
             'load': 'Unknown', 'connections': 0}
     try:
-        m = perf_metrics if perf_metrics is not None else _get_system_performance_metrics()
+        m = perf_metrics if perf_metrics is not None else cached_perf_metrics()
         perf = {
             'cpu': m.get('cpu_usage', 0),
             'memory': m.get('memory_usage', 0),
@@ -350,13 +457,110 @@ def get_system_overview(session, perf_metrics=None, is_global_admin=False):
     except Exception:
         logger.exception("system overview: quick actions failed")
 
+    # ---- recorded metric trends (one bounded indexed query; never 500s) ----
+    trends = {'available': False}
+    try:
+        trends = get_metric_trends(session, hours=24)
+    except Exception:
+        logger.exception("system overview: metric trends failed")
+
     return {
         'overall': overall,
         'components': components,
         'attention': attention,
         'perf': perf,
         'quick_actions': quick_actions,
+        'trends': trends,
         'health_raw': health,
+    }
+
+
+def get_metric_trends(session, hours=24):
+    """Real recorded system-metric trends for the Overview sparklines.
+
+    Reads the last `hours` of `SystemMetricSnapshot` rows (written every ~5 min by
+    the snapshot_system_metrics beat task), oldest→newest, from the created_at
+    index. This is a MEASURED source — no honesty badge, no fabrication: if the
+    table doesn't exist yet (migration not run) or there are simply no rows, we
+    return `available=False` and the template shows an honest empty state. The read
+    is wrapped in a SAVEPOINT so a missing relation rolls back cleanly and can NEVER
+    abort the request's outer transaction or 500 the tab.
+
+    Returns:
+      {'available': bool, 'points': int, 'window_hours': int,
+       'series': {'cpu':[...], 'memory':[...], 'active_jobs':[...], 'error_rate':[...]},
+       'latest': {'cpu','memory','disk','active_jobs','queued_jobs','failed_24h',
+                  'error_rate','services_up','services_total','redis_mem_mb','created_at'}}
+    """
+    from datetime import datetime, timedelta
+
+    empty = {'available': False, 'points': 0, 'window_hours': hours,
+             'series': {'cpu': [], 'memory': [], 'active_jobs': [], 'error_rate': []},
+             'latest': {}}
+
+    try:
+        hrs = max(1, min(int(hours or 24), 168))  # clamp 1h..7d (retention window)
+    except (TypeError, ValueError):
+        hrs = 24
+    empty['window_hours'] = hrs
+
+    from app.models.api_logs import SystemMetricSnapshot
+    cutoff = datetime.utcnow() - timedelta(hours=hrs)
+
+    # SAVEPOINT so a missing table (migration not yet run) rolls back without
+    # poisoning the outer request transaction — mirrors the pg_stat_statements read.
+    sp = None
+    try:
+        sp = session.begin_nested()
+        rows = (session.query(SystemMetricSnapshot)
+                .filter(SystemMetricSnapshot.created_at >= cutoff)
+                .order_by(SystemMetricSnapshot.created_at.asc())
+                .all())
+        sp.commit()
+    except Exception:
+        if sp is not None:
+            try:
+                sp.rollback()
+            except Exception:
+                pass
+        logger.debug("metric trends: snapshot table unavailable", exc_info=True)
+        return empty
+
+    if not rows:
+        return empty
+
+    def _num(v):
+        try:
+            return None if v is None else float(v)
+        except (TypeError, ValueError):
+            return None
+
+    series = {
+        'cpu': [_num(r.cpu_pct) for r in rows],
+        'memory': [_num(r.memory_pct) for r in rows],
+        'active_jobs': [_num(r.active_jobs) for r in rows],
+        'error_rate': [_num(r.error_rate) for r in rows],
+    }
+    last = rows[-1]
+    latest = {
+        'cpu': _num(last.cpu_pct),
+        'memory': _num(last.memory_pct),
+        'disk': _num(last.disk_pct),
+        'active_jobs': _num(last.active_jobs),
+        'queued_jobs': _num(last.queued_jobs),
+        'failed_24h': _num(last.failed_24h),
+        'error_rate': _num(last.error_rate),
+        'services_up': _num(last.services_up),
+        'services_total': _num(last.services_total),
+        'redis_mem_mb': _num(last.redis_mem_mb),
+        'created_at': last.created_at,
+    }
+    return {
+        'available': True,
+        'points': len(rows),
+        'window_hours': hrs,
+        'series': series,
+        'latest': latest,
     }
 
 
@@ -374,8 +578,7 @@ def _build_attention(session, perf, raw_metrics):
 
     # 1) Failed Celery tasks in the last 24h.
     try:
-        from app.utils.task_monitor import TaskMonitor
-        stats = TaskMonitor().get_task_stats(time_window=86400) or {}
+        stats = cached_task_stats() or {}
         failed = int(stats.get('failed') or 0)
         if failed > 0:
             items.append({
@@ -458,14 +661,25 @@ def get_services_board(session, force=False):
     the Services tab, and drawer opens don't each re-run the full probe fan-out.
     Pass force=True to bypass the cache (the Refresh action)."""
     now = time.time()
+    # L1: in-process (per worker), sub-10s — absorbs bursts within one request cycle.
     if not force and _board_cache['data'] is not None and (now - _board_cache['ts']) < _BOARD_TTL:
         return _board_cache['data']
+
+    # L2: shared Redis snapshot — so the 9-probe fan-out is paid at most once per
+    # _BOARD_REDIS_TTL across ALL workers, not once per worker.
+    if not force:
+        cached = _redis_get_json(_BOARD_REDIS_KEY)
+        if cached is not None:
+            _board_cache['ts'] = now
+            _board_cache['data'] = cached
+            return cached
 
     # _SERVICE_ORDER preserves the board's display order; each probe is isolated.
     board = [_SERVICE_PROBES[key]() for key in _SERVICE_ORDER]
 
     _board_cache['ts'] = now
     _board_cache['data'] = board
+    _redis_set_json(_BOARD_REDIS_KEY, board, _BOARD_REDIS_TTL)
     return board
 
 
@@ -920,12 +1134,19 @@ def get_performance_tab(session, perf_metrics=None):
         from app import db as _db
         from sqlalchemy import text as _text
         db_conn = []
-        # cluster-wide, one query
+        # cluster-wide, one query — wrapped in a SAVEPOINT so an unexpected failure here
+        # can't abort the request's outer transaction (and poison the slow-query gate below).
         try:
-            row = session.execute(_text(
-                "SELECT count(*) AS active, "
-                "(SELECT setting::int FROM pg_settings WHERE name='max_connections') AS maxc "
-                "FROM pg_stat_activity")).first()
+            sp = session.begin_nested()
+            try:
+                row = session.execute(_text(
+                    "SELECT count(*) AS active, "
+                    "(SELECT setting::int FROM pg_settings WHERE name='max_connections') AS maxc "
+                    "FROM pg_stat_activity")).first()
+                sp.commit()
+            except Exception:
+                sp.rollback()
+                raise
             if row is not None:
                 db_conn.append(_m('Active connections (cluster)', f'{row.active} / {row.maxc}'))
         except Exception:
@@ -1019,6 +1240,49 @@ def get_performance_tab(session, perf_metrics=None):
     except Exception:
         logger.exception("performance tab: request analytics failed")
 
+    # ---- slow queries (SELF-ACTIVATING): real per-statement timing from the Postgres
+    #      pg_stat_statements extension IF it is installed. If not, the query raises
+    #      (relation absent) → we leave slow_queries=None and the template shows the
+    #      honest "not enabled" empty state. Nothing is ever fabricated. ----
+    try:
+        from sqlalchemy import text as _text
+        # First, a catalog check that NEVER errors — decides enabled vs not-enabled
+        # without touching the (possibly-absent) pg_stat_statements relation.
+        has_ext = session.execute(_text(
+            "SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements'")).first()
+        if not has_ext:
+            out['slow_queries'] = None
+        else:
+            # Wrap the actual read in a SAVEPOINT so any failure (permissions, version
+            # column drift) rolls back to the savepoint and does NOT abort the request's
+            # outer transaction — a poisoned session would break the rest of the render.
+            slow = []
+            sp = session.begin_nested()
+            try:
+                rows = session.execute(_text(
+                    "SELECT query, calls, "
+                    "round(mean_exec_time::numeric, 1) AS mean_ms, "
+                    "round(max_exec_time::numeric, 1) AS max_ms, rows "
+                    "FROM pg_stat_statements "
+                    "ORDER BY mean_exec_time DESC LIMIT 10")).fetchall()
+                sp.commit()
+            except Exception:
+                sp.rollback()
+                raise
+            for r in rows:
+                q = (r.query or '').strip().replace('\n', ' ')
+                if len(q) > 160:
+                    q = q[:157] + '…'
+                slow.append({'query': q, 'calls': r.calls,
+                             'mean_ms': float(r.mean_ms or 0), 'max_ms': float(r.max_ms or 0),
+                             'rows': r.rows})
+            # Real source — no honesty badge. Empty list (enabled but no data yet) still
+            # means "enabled"; None means "not enabled".
+            out['slow_queries'] = slow
+    except Exception:
+        logger.debug("performance tab: pg_stat_statements unavailable", exc_info=True)
+        out['slow_queries'] = None
+
     return out
 
 
@@ -1053,8 +1317,7 @@ def get_jobs_tab(session):
 
     # ---- headline stats (24h window) ----
     try:
-        from app.utils.task_monitor import TaskMonitor
-        s = TaskMonitor().get_task_stats(time_window=86400) or {}
+        s = cached_task_stats() or {}
         out['stats'] = {
             'running': int(s.get('running') or 0),
             'queued': int(s.get('pending') or 0),
@@ -1637,33 +1900,61 @@ def _log_source_chips(is_global_admin):
     return chips
 
 
-def _logs_app(session, level='all', search=''):
-    """App-log source: tail THIS container's on-disk application log. Mirrors the
-    file-finding + regex-parse in monitoring.system_logs, reading the last ~500 lines.
-    If no file is found, falls back to recent AdminAuditLog rows and flags from_audit."""
+def _logs_app(session, level='all', search='', logfile=None):
+    """App-log source: tail THIS container's on-disk log files. Discovers every *.log
+    in the app's logs/ directory (errors.log, requests.log, db_operations.log, auth.log,
+    session_tracking.log, live_reporting.log, …) and lets the caller pick one via
+    `logfile`. Reads the last ~500 lines; structured lines are parsed, anything else is
+    shown raw so a differently-formatted file is still viewable. If NO file exists, falls
+    back to recent AdminAuditLog rows and flags from_audit."""
     import os
     import re
     from datetime import datetime
 
     out = {'entries': [], 'log_file': None, 'from_audit': False,
-           'level': level, 'search': search}
+           'level': level, 'search': search,
+           'available_files': [], 'selected_file': None}
     log_pattern = re.compile(
         r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:,\d+)?)\s+-\s+(\w+)\s+-\s+(\S+)\s+-\s+(.*)',
         re.DOTALL)
 
     # This module lives at app/services/ → project root is two levels up.
     here = os.path.dirname(os.path.abspath(__file__))
-    log_paths = [
-        os.path.join(here, '..', '..', 'logs', 'app.log'),
-        os.path.join(here, '..', '..', 'app.log'),
-        '/var/log/ecs-portal/app.log',
+    log_dirs = [
+        os.path.abspath(os.path.join(here, '..', '..', 'logs')),
+        '/var/log/ecs-portal',
     ]
-    log_file = None
-    for p in log_paths:
-        rp = os.path.abspath(p)
-        if os.path.exists(rp):
-            log_file = rp
-            break
+    # Discover every *.log file across the candidate dirs (basename → full path).
+    found = {}
+    for d in log_dirs:
+        try:
+            if os.path.isdir(d):
+                for fn in os.listdir(d):
+                    if fn.endswith('.log') and fn not in found:
+                        found[fn] = os.path.join(d, fn)
+        except Exception:
+            logger.debug("logs app: could not list %s", d, exc_info=True)
+    # Legacy single-file locations, if present.
+    for p in (os.path.abspath(os.path.join(here, '..', '..', 'app.log')),
+              '/var/log/ecs-portal/app.log'):
+        bn = os.path.basename(p)
+        if bn not in found and os.path.isfile(p):
+            found[bn] = p
+
+    out['available_files'] = sorted(found.keys())
+    # Pick the file: the requested one (validated against discovery), else prefer
+    # errors.log, then app.log, then the first available.
+    selected = None
+    if logfile and logfile in found:
+        selected = logfile
+    elif 'errors.log' in found:
+        selected = 'errors.log'
+    elif 'app.log' in found:
+        selected = 'app.log'
+    elif out['available_files']:
+        selected = out['available_files'][0]
+    out['selected_file'] = selected
+    log_file = found.get(selected) if selected else None
 
     if log_file:
         out['log_file'] = log_file
@@ -1678,19 +1969,25 @@ def _logs_app(session, level='all', search=''):
                 if not line:
                     continue
                 m = log_pattern.match(line)
-                if not m:
-                    continue  # unparsed lines skipped (matches monitoring.system_logs)
-                ts_str, lvl, source, message = m.groups()
-                try:
-                    ts = datetime.strptime(ts_str.split(',')[0], '%Y-%m-%d %H:%M:%S')
-                    ts_disp = ts.strftime('%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    ts_disp = ts_str
-                lvl_u = lvl.upper()
-                msg = message.strip()
+                if m:
+                    ts_str, lvl, source, message = m.groups()
+                    try:
+                        ts = datetime.strptime(ts_str.split(',')[0], '%Y-%m-%d %H:%M:%S')
+                        ts_disp = ts.strftime('%Y-%m-%d %H:%M:%S')
+                    except ValueError:
+                        ts_disp = ts_str
+                    lvl_u = lvl.upper()
+                    msg = message.strip()
+                else:
+                    # Line doesn't match the structured format (a different log file's
+                    # layout) — show it RAW rather than dropping it, so every file is
+                    # viewable. Level unknown → treat as a plain log line.
+                    ts_disp, lvl_u, source, msg = '', 'LOG', '', line
                 # Normalize level aliases so selecting "warning" also catches WARN, and
-                # "error" catches ERR/CRITICAL/FATAL — otherwise those slip past the filter.
-                if level and level != 'all':
+                # "error" catches ERR/CRITICAL/FATAL. Raw/unstructured lines (level 'LOG')
+                # have no parsed level, so a level filter does NOT hide them — otherwise
+                # picking any level on a differently-formatted file would show nothing.
+                if level and level != 'all' and lvl_u != 'LOG':
                     _lv = {'warn': 'warning', 'warning': 'warning', 'err': 'error',
                            'error': 'error', 'crit': 'error', 'critical': 'error',
                            'fatal': 'error', 'info': 'info', 'debug': 'debug'}
@@ -1730,6 +2027,20 @@ def _logs_app(session, level='all', search=''):
                 })
         except Exception:
             logger.debug("logs app: audit fallback failed", exc_info=True)
+
+    # ---- cheap level summary over the lines we actually loaded ----
+    # Reuse the SAME alias normalization the level filter above uses so the summary
+    # agrees with what "error"/"warning" mean everywhere else (ERROR/CRIT/FATAL→error,
+    # WARN→warning). The lines are already parsed into entries; this is O(n) over ≤500.
+    _lv = {'warn': 'warning', 'warning': 'warning', 'err': 'error', 'error': 'error',
+           'crit': 'error', 'critical': 'error', 'fatal': 'error',
+           'info': 'info', 'debug': 'debug'}
+    counts = {'total': len(out['entries']), 'error': 0, 'warning': 0, 'info': 0}
+    for e in out['entries']:
+        norm = _lv.get((e.get('level') or '').lower())
+        if norm in ('error', 'warning', 'info'):
+            counts[norm] += 1
+    out['counts'] = counts
     return out
 
 
@@ -1891,7 +2202,7 @@ def _logs_security(session):
 
 
 def get_logs_tab(session, src, is_global_admin=False, level='all', search='',
-                 container='', page=1):
+                 container='', page=1, logfile=None):
     """Assemble the Logs & Audit tab. A `src` selector picks ONE of 6 real sources;
     only that source's collector runs, isolated so a failure yields an honest error
     state (out['error']=True), never a 500 and never a fabricated row.
@@ -1922,7 +2233,8 @@ def get_logs_tab(session, src, is_global_admin=False, level='all', search='',
 
     try:
         if src == 'app':
-            out['app'] = _logs_app(session, level=out['level'], search=out['search'])
+            out['app'] = _logs_app(session, level=out['level'], search=out['search'],
+                                   logfile=logfile)
             out['export_url'] = _safe_url('admin_panel.system_logs', export='true',
                                           level=out['level'], search=out['search'])
         elif src == 'audit':

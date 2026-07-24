@@ -92,10 +92,11 @@ def _shared_kpis(session):
     except Exception:
         logger.exception("system KPIs: services board failed")
 
-    # ---- resource metrics (cpu / memory) ----
+    # ---- resource metrics (cpu / memory) — shared-cached to avoid the ~1s psutil
+    #      cpu_percent block on every tab load ----
     try:
-        from app.admin_panel.routes.helpers import _get_system_performance_metrics
-        perf_metrics = _get_system_performance_metrics() or {}
+        from app.services.system_center_service import cached_perf_metrics
+        perf_metrics = cached_perf_metrics() or {}
         kpis['cpu'] = perf_metrics.get('cpu_usage', 0)
         kpis['memory'] = perf_metrics.get('memory_usage', 0)
     except Exception:
@@ -103,8 +104,8 @@ def _shared_kpis(session):
 
     # ---- task stats (active jobs + 24h error rate) ----
     try:
-        from app.utils.task_monitor import TaskMonitor
-        stats = TaskMonitor().get_task_stats(time_window=86400) or {}
+        from app.services.system_center_service import cached_task_stats
+        stats = cached_task_stats() or {}
         running = int(stats.get('running') or 0)
         total_t = int(stats.get('total') or 0)
         failed = int(stats.get('failed') or 0)
@@ -162,7 +163,9 @@ def system_center_worklist():
         try:
             from app.services.system_center_service import get_system_overview
             overview = get_system_overview(session, perf_metrics=perf_metrics,
-                                           is_global_admin=is_global_admin)
+                                           board=board, is_global_admin=is_global_admin,
+                                           overall_word=kpis.get('health_word'),
+                                           overall_tone=kpis.get('health_tone'))
         except Exception:
             logger.exception("system center: overview assembly failed")
             overview = None
@@ -206,6 +209,7 @@ def system_center_worklist():
                 search=(request.args.get('search') or '').strip(),
                 container=(request.args.get('container') or '').strip(),
                 page=request.args.get('page', 1, type=int),
+                logfile=(request.args.get('logfile') or '').strip() or None,
             )
         except Exception:
             logger.exception("system center: logs assembly failed")

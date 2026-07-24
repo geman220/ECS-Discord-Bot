@@ -120,6 +120,118 @@ def collect_db_stats(self):
 
 
 @celery.task(
+    name='app.tasks.monitoring_tasks.snapshot_system_metrics',
+    bind=True,
+    max_retries=0,          # a missed sample just leaves a gap; never retry-storm
+    ignore_result=True
+)
+def snapshot_system_metrics(self):
+    """
+    Record ONE row of key system-health metrics for the System Command Center
+    trend sparklines, then prune rows older than 7 days.
+
+    This is a cheap beat task (every ~5 min), entirely OFF the request path. Each
+    sample is guarded INDEPENDENTLY: if one collector fails, its column is left
+    NULL and the rest of the row is still written (the trend shows a gap there,
+    never a fabricated value — all metric columns are nullable). The whole task is
+    wrapped so it can never leave a broken session or crash beat.
+
+    Samples & real collectors (mirrors the Overview read model):
+      cpu/mem/disk .......... helpers._get_system_performance_metrics()  [psutil]
+      active/queued/failed .. task_monitor.TaskMonitor().get_task_stats(86400)
+      error_rate ............ failed/total * 100 (derived from those stats)
+      services_up/total ..... system_center_service.get_services_board(force=True)
+                              (healthy non-idle / probed non-idle)
+      redis_mem_mb .......... redis INFO used_memory
+    """
+    logger.info("Starting snapshot_system_metrics task")
+
+    app = celery.flask_app
+    with app.app_context():
+        try:
+            from app.models.api_logs import SystemMetricSnapshot
+
+            cpu_pct = memory_pct = disk_pct = None
+            active_jobs = queued_jobs = failed_24h = None
+            error_rate = None
+            services_up = services_total = None
+            redis_mem_mb = None
+
+            # ---- CPU / memory / disk (psutil, host/container) ----
+            try:
+                from app.admin_panel.routes.helpers import _get_system_performance_metrics
+                m = _get_system_performance_metrics() or {}
+                cpu_pct = float(m.get('cpu_usage')) if m.get('cpu_usage') is not None else None
+                memory_pct = float(m.get('memory_usage')) if m.get('memory_usage') is not None else None
+                disk_pct = float(m.get('disk_usage')) if m.get('disk_usage') is not None else None
+            except Exception:
+                logger.warning("snapshot: perf metrics sample failed", exc_info=True)
+
+            # ---- active / queued / failed jobs + error rate (24h task stats) ----
+            try:
+                from app.utils.task_monitor import TaskMonitor
+                stats = TaskMonitor().get_task_stats(time_window=86400) or {}
+                active_jobs = int(stats.get('running') or 0)
+                queued_jobs = int(stats.get('pending') or 0)
+                failed_24h = int(stats.get('failed') or 0)
+                total = int(stats.get('total') or 0)
+                error_rate = round((failed_24h / total * 100), 2) if total > 0 else 0.0
+            except Exception:
+                logger.warning("snapshot: task stats sample failed", exc_info=True)
+
+            # ---- services up / total (healthy non-idle / probed non-idle) ----
+            try:
+                from app.services import system_center_service
+                with task_session() as _s:
+                    board = system_center_service.get_services_board(_s, force=True) or []
+                probed = [svc for svc in board if svc.get('status') != 'idle']
+                services_total = len(probed)
+                services_up = sum(1 for svc in probed if svc.get('status') == 'healthy')
+            except Exception:
+                logger.warning("snapshot: services board sample failed", exc_info=True)
+
+            # ---- Redis used memory (MB) ----
+            try:
+                from app.utils.redis_manager import get_redis_manager
+                info = get_redis_manager().client.info() or {}
+                used = info.get('used_memory')
+                if used is not None:
+                    redis_mem_mb = round(int(used) / (1024 * 1024), 1)
+            except Exception:
+                logger.warning("snapshot: redis info sample failed", exc_info=True)
+
+            # ---- write ONE row + prune > 7 days, in a single committed session ----
+            with task_session() as session:
+                session.add(SystemMetricSnapshot(
+                    created_at=datetime.utcnow(),
+                    cpu_pct=cpu_pct,
+                    memory_pct=memory_pct,
+                    disk_pct=disk_pct,
+                    active_jobs=active_jobs,
+                    queued_jobs=queued_jobs,
+                    failed_24h=failed_24h,
+                    error_rate=error_rate,
+                    services_up=services_up,
+                    services_total=services_total,
+                    redis_mem_mb=redis_mem_mb,
+                ))
+                # Bounded cleanup: drop anything older than 7 days each run.
+                from datetime import timedelta
+                cutoff = datetime.utcnow() - timedelta(days=7)
+                deleted = session.query(SystemMetricSnapshot).filter(
+                    SystemMetricSnapshot.created_at < cutoff
+                ).delete(synchronize_session=False)
+                # Commit happens automatically in task_session
+                logger.info(
+                    "snapshot_system_metrics: row written (cpu=%s mem=%s svc=%s/%s redis=%sMB), pruned %s old rows",
+                    cpu_pct, memory_pct, services_up, services_total, redis_mem_mb, deleted
+                )
+        except Exception as e:
+            # Never let a snapshot failure crash beat or poison anything downstream.
+            logger.error(f"Error in snapshot_system_metrics: {e}", exc_info=True)
+
+
+@celery.task(
     name='app.tasks.monitoring_tasks.check_for_session_leaks',
     bind=True,
     max_retries=3,

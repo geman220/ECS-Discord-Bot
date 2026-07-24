@@ -212,6 +212,38 @@ class TaskExecution(db.Model):
     def __repr__(self):
         return f'<TaskExecution {self.name} {self.status}>'
 
+
+class SystemMetricSnapshot(db.Model):
+    """
+    Periodic snapshot of key system-health metrics for the System Command Center
+    trend sparklines.
+
+    One row is written by the ``snapshot_system_metrics`` Celery beat task every
+    ~5 minutes; the Overview tab reads a bounded 24h window (indexed on
+    ``created_at``) to draw real recorded trends. Every column EXCEPT id/created_at
+    is nullable so a single failing sample (e.g. Redis unreachable that minute)
+    still writes the rest of the row — the trend just has a gap there, never a
+    fabricated value. Rows older than 7 days are pruned by the same task.
+    """
+    __tablename__ = 'system_metric_snapshots'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    cpu_pct = db.Column(db.Float, nullable=True)        # host CPU %  (psutil)
+    memory_pct = db.Column(db.Float, nullable=True)     # host memory %
+    disk_pct = db.Column(db.Float, nullable=True)       # host disk %
+    active_jobs = db.Column(db.Integer, nullable=True)  # running Celery tasks (24h window)
+    queued_jobs = db.Column(db.Integer, nullable=True)  # pending Celery tasks
+    failed_24h = db.Column(db.Integer, nullable=True)   # failed tasks in last 24h
+    error_rate = db.Column(db.Float, nullable=True)     # failed/total * 100
+    services_up = db.Column(db.Integer, nullable=True)  # healthy (non-idle) services
+    services_total = db.Column(db.Integer, nullable=True)  # probed (non-idle) services
+    redis_mem_mb = db.Column(db.Float, nullable=True)   # Redis used_memory in MB
+
+    def __repr__(self):
+        return f'<SystemMetricSnapshot {self.created_at}>'
+
     @classmethod
     def record(cls, name, status, started_at=None, finished_at=None,
                duration_ms=None, task_id=None, result=None, error=None, worker=None,

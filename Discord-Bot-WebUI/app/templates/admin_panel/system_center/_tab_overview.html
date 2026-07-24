@@ -14,6 +14,44 @@
   'neutral': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 ring-gray-300/40'
 } %}
 
+{#- sparkline(values): inline-SVG polyline trend from a list of numeric-or-None
+   samples (oldest→newest). No chart library (CSP-safe). Auto-scales to the data's
+   own min/max; a faint area fill under the line plus an emphasized endpoint dot.
+   viewBox is stretched to the container (preserveAspectRatio=none) with a
+   non-scaling stroke so the line stays crisp at any width. Color comes from the
+   wrapping element's text color via currentColor. Nulls (a failed sample) are
+   skipped; the line simply spans the gap. -#}
+{% macro sparkline(values) %}
+  {%- set n = values | length -%}
+  {%- set clean = values | reject('none') | list -%}
+  {%- if clean | length > 0 -%}
+    {%- set lo = clean | min -%}
+    {%- set hi = clean | max -%}
+    {%- set ns = namespace(pts=[], firstx=none, lastx=0, lasty=16) -%}
+    {%- for v in values -%}
+      {%- if v is not none -%}
+        {%- set x = (loop.index0 / (n - 1) * 100) if n > 1 else 50 -%}
+        {%- set y = (4 + (1 - ((v - lo) / (hi - lo))) * 24) if hi != lo else 16 -%}
+        {%- set _ = ns.pts.append('%.2f,%.2f'|format(x, y)) -%}
+        {%- if ns.firstx is none -%}{%- set ns.firstx = x -%}{%- endif -%}
+        {%- set ns.lastx = x -%}
+        {%- set ns.lasty = y -%}
+      {%- endif -%}
+    {%- endfor -%}
+    {%- set poly = ns.pts | join(' ') -%}
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" class="w-full h-8 overflow-visible" aria-hidden="true">
+      {%- if ns.pts | length > 1 -%}
+      <polygon points="{{ ns.firstx }},32 {{ poly }} {{ ns.lastx }},32"
+               fill="currentColor" fill-opacity="0.10" stroke="none" />
+      <polyline points="{{ poly }}" fill="none" stroke="currentColor" stroke-width="1.5"
+                vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round" />
+      {%- endif -%}
+      <circle cx="{{ ns.lastx }}" cy="{{ ns.lasty }}" r="2.5" fill="currentColor"
+              vector-effect="non-scaling-stroke" />
+    </svg>
+  {%- endif -%}
+{% endmacro %}
+
 {% if not overview %}
   {{ empty_state('ti-heartbeat-off', 'Overview unavailable', 'The health collectors could not be reached right now. This is a real signal — the underlying probes errored — not a data gap. Try again shortly.') }}
 {% else %}
@@ -50,7 +88,7 @@
       {{ empty_state('ti-server-off', 'No component data', 'The health check returned no components. The probe likely errored — not a sign that everything is fine.') }}
     {% endif %}
     {% call explainer() %}
-      Each card is one subsystem from the live health check (<code>_check_system_health</code>): database, Redis, Celery workers and Docker. The status word is that probe's own verdict, normalized to Healthy / Degraded / Down. The roll-up chip at the top is Down if a core service (DB, Redis, Celery) is down, Degraded if anything is off, else Healthy.
+      Each card is one subsystem taken from the live Services board: database, Redis, Celery workers and Docker. The status word is that probe's own verdict, normalized to Healthy / Degraded / Down (Docker reads Down only when containers exist but none are running). The roll-up chip at the top of this card is the <strong>same figure as the "Overall" tile</strong> in the KPI band — it looks at every probed service, shows Down if a core service (DB / Redis / Celery) is down, Degraded if anything else is off, and Healthy only when all probed services pass. Services that aren't probed on load (e.g. Twilio) are excluded from the roll-up.
     {% endcall %}
   </section>
 
@@ -99,6 +137,42 @@
     {% endcall %}
   </section>
 
+  <!-- ===== trends (real recorded snapshots — inline SVG sparklines, no chart lib) ===== -->
+  <section>
+    {% call section_card('Trends (last 24h)', icon='ti-chart-line') %}
+      {% if overview.trends and overview.trends.available %}
+      {% set spark_defs = [
+        ('CPU', overview.trends.series.cpu, overview.trends.latest.cpu, '%', 'text-blue-500 dark:text-blue-400', 'ti-cpu'),
+        ('Memory', overview.trends.series.memory, overview.trends.latest.memory, '%', 'text-violet-500 dark:text-violet-400', 'ti-ram'),
+        ('Active jobs', overview.trends.series.active_jobs, overview.trends.latest.active_jobs, '', 'text-ecs-green', 'ti-subtask'),
+        ('Error rate', overview.trends.series.error_rate, overview.trends.latest.error_rate, '%', 'text-red-500 dark:text-red-400', 'ti-alert-triangle')
+      ] %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-4">
+        {% for label, series, latest, unit, color, icon in spark_defs %}
+        {% set latest_txt = ('%g'|format(latest|round(1)) ~ unit) if latest is not none else '—' %}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 min-w-0">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 min-w-0">
+              <i class="ti {{ icon }} shrink-0"></i><span class="truncate">{{ label }}</span>
+            </span>
+            <span class="shrink-0 font-mono text-lg font-bold text-gray-900 dark:text-white">{{ latest_txt }}</span>
+          </div>
+          <div class="{{ color }}" role="img"
+               aria-label="{{ label }} trend over the last {{ overview.trends.window_hours }} hours, latest {{ latest_txt }}, {{ overview.trends.points }} samples">
+            {{ sparkline(series) }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        {{ empty_state('ti-chart-line', 'No trends recorded yet', 'Trends start recording once the snapshot task runs — enable it: run sql_create_system_metric_snapshots.sql, then restart Celery beat. The first sparkline appears after a couple of 5-minute samples.') }}
+      {% endif %}
+    {% endcall %}
+    {% call explainer() %}
+      These are <strong>real recorded snapshots</strong> — a background beat task samples CPU, memory, active jobs and the derived error rate every <strong>5 minutes</strong> and stores one row, so no value here is estimated (no honesty badge needed). Each sparkline auto-scales to its own range over the window and marks the latest sample with a dot. History is retained about <strong>7 days</strong> and pruned automatically; the chart draws with no external library.
+    {% endcall %}
+  </section>
+
   <!-- ===== quick actions (real: POST/GET to existing endpoints via the shared executor) ===== -->
   <section>
     {% call section_card('Quick actions', icon='ti-bolt') %}
@@ -118,6 +192,7 @@
                     data-danger="{{ '1' if c.danger else '0' }}"
                     data-confirm="{{ c.confirm or '' }}"
                     data-refresh="0"
+                    data-reload="{{ '1' if c.reload else '0' }}"
                     data-key=""
                     class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border text-sm font-semibold transition {{ 'border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/20' if c.danger else 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:border-ecs-green/40 hover:text-ecs-green' }}">
               <i class="ti {{ 'ti-alert-triangle' if c.danger else 'ti-player-play' }}"></i>{{ c.label }}

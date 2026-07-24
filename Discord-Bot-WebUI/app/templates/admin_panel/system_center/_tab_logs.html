@@ -73,6 +73,16 @@
         <form method="get" action="{{ url_for('admin_panel.system_center') }}" class="flex flex-wrap items-end gap-2">
           <input type="hidden" name="tab" value="logs">
           <input type="hidden" name="src" value="app">
+          {% if logs.app.available_files %}
+          <div>
+            <label for="logFile" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">File</label>
+            <select id="logFile" name="logfile" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-2">
+              {% for fn in logs.app.available_files %}
+              <option value="{{ fn }}" {{ 'selected' if logs.app.selected_file == fn else '' }}>{{ fn }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endif %}
           <div>
             <label for="logLevel" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Level</label>
             <select id="logLevel" name="level" class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-2">
@@ -100,7 +110,22 @@
       </div>
       {% elif logs.app.log_file %}
       <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700/60 text-[11px] text-gray-500 dark:text-gray-400 font-mono break-all">
-        <i class="ti ti-server" aria-hidden="true"></i> {{ logs.app.log_file }} <span class="text-gray-400">· last ~500 lines on THIS container</span>
+        <i class="ti ti-server" aria-hidden="true"></i> {{ logs.app.log_file }} <span class="text-gray-400">· last ~500 lines on THIS container{% if logs.app.available_files|length > 1 %} · {{ logs.app.available_files|length }} log files available (see File picker){% endif %}</span>
+      </div>
+      {% endif %}
+
+      {#- compact level summary bar + the multi-container honesty note. Counts come from
+          _logs_app's out['counts'] (same alias normalization as the level filter). -#}
+      {% if logs.app.counts %}
+      <div class="px-4 py-2.5 border-b border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs">
+        <span class="inline-flex items-center gap-1.5 font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-list-numbers text-gray-400" aria-hidden="true"></i>{{ logs.app.counts.total }} line{{ '' if logs.app.counts.total == 1 else 's' }}</span>
+        <span class="inline-flex items-center gap-1.5 font-semibold {{ 'text-red-600 dark:text-red-400' if logs.app.counts.error else 'text-gray-400 dark:text-gray-500' }}"><i class="ti ti-alert-circle" aria-hidden="true"></i>{{ logs.app.counts.error }} error{{ '' if logs.app.counts.error == 1 else 's' }}</span>
+        <span class="inline-flex items-center gap-1.5 font-semibold {{ 'text-amber-600 dark:text-amber-400' if logs.app.counts.warning else 'text-gray-400 dark:text-gray-500' }}"><i class="ti ti-alert-triangle" aria-hidden="true"></i>{{ logs.app.counts.warning }} warning{{ '' if logs.app.counts.warning == 1 else 's' }}</span>
+        <span class="inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400"><i class="ti ti-info-circle" aria-hidden="true"></i>{{ logs.app.counts.info }} info</span>
+      </div>
+      <div class="px-4 py-2 border-b border-gray-100 dark:border-gray-700/60 text-[11px] text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+        <i class="ti ti-affiliate mt-0.5 shrink-0 text-gray-400" aria-hidden="true"></i>
+        <span>These are the <span class="font-semibold text-gray-600 dark:text-gray-300">WEB container's</span> log files. Celery workers and the Discord bot write their own files inside their containers — use the <span class="font-semibold text-gray-600 dark:text-gray-300">Container</span> source to view those.</span>
       </div>
       {% endif %}
 
@@ -137,7 +162,7 @@
       {% endif %}
     {% endcall %}
     {% call explainer() %}
-      This is the raw application log <strong>on this container's filesystem</strong> — the only true tail; each gunicorn/Celery container writes its own file, so this is not a cluster-wide view. It tries <code>logs/app.log</code>, <code>app.log</code>, then <code>/var/log/ecs-portal/app.log</code>, parses the last ~500 lines into time / level / source / message, and applies your filters. <strong>If no file is found</strong> it honestly falls back to recent audit rows and says so above. Export writes the currently-filtered lines to CSV.
+      This is the raw application log <strong>on this container's filesystem</strong> — the only true tail; each gunicorn/Celery container writes its own file, so this is not a cluster-wide view. It discovers every <code>*.log</code> in the app's <code>logs/</code> directory (e.g. <code>errors.log</code>, <code>requests.log</code>, <code>db_operations.log</code>, <code>auth.log</code>, <code>session_tracking.log</code>, <code>live_reporting.log</code>) — pick one with the <strong>File</strong> selector. It reads the last ~500 lines: structured lines parse into time / level / source / message, and any other format is shown raw so the file is still viewable. <strong>If no file is found</strong> it honestly falls back to recent audit rows and says so above. For live stdout logs, use the <strong>Container</strong> source. Export writes the currently-filtered lines to CSV. With <strong>Live</strong> mode on (the toggle by the page title), this view <strong>auto-tails</strong> — it re-fetches every ~20 seconds so new lines and the error/warning counts refresh on their own, keeping your current file/level/search filter.
     {% endcall %}
   </section>
   {% endif %}

@@ -30,6 +30,30 @@
   </div>
 {% endmacro %}
 
+{#- radial(label, pct, tone, icon) — a conic-gradient ring gauge (pure CSS, no JS, no
+    chart lib). The filled arc = pct; a hole in the middle shows the mono value + label.
+    Arc color follows the threshold tone; the track uses a Tailwind arbitrary property so
+    it can flip in dark mode (inline `background` reads var(--track) set by the class). -#}
+{% set arccolor = {
+  'success': '#22c55e', 'warning': '#f59e0b', 'danger': '#ef4444',
+  'primary': '#1a472a', 'neutral': '#9ca3af'
+} %}
+{% macro radial(label, pct, tone, icon) %}
+  {% set _p = (pct | float) if pct is not none else 0 %}
+  {% set _p = 0 if _p < 0 else (100 if _p > 100 else _p) %}
+  {% set _c = arccolor.get(tone, arccolor['neutral']) %}
+  <div class="flex flex-col items-center gap-2 min-w-0">
+    <div role="img" aria-label="{{ label }} usage {{ '%.0f' | format(_p) }} percent"
+         class="relative w-20 h-20 sm:w-32 sm:h-32 rounded-full shrink-0 [--track:#e5e7eb] dark:[--track:#374151]"
+         style="--p: {{ _p }}; --c: {{ _c }}; background: conic-gradient(var(--c) calc(var(--p) * 1%), var(--track) 0);">
+      <div class="absolute inset-[10px] rounded-full bg-white dark:bg-gray-800 flex flex-col items-center justify-center">
+        <span class="font-mono text-xl sm:text-2xl font-bold leading-none text-gray-900 dark:text-white">{{ '%.0f' | format(_p) }}<span class="text-sm align-top">%</span></span>
+        <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide"><i class="ti {{ icon }}"></i>{{ label }}</span>
+      </div>
+    </div>
+  </div>
+{% endmacro %}
+
 {#- metric_row(m) — one label/value line with an optional honesty badge. -#}
 {% macro metric_row(m) %}
   <div class="flex items-baseline justify-between gap-3 px-4 py-2 text-sm">
@@ -50,11 +74,13 @@
   <!-- ===== resource gauges (host, sampled at load) ===== -->
   <section>
     {% call section_card('Resource usage', icon='ti-cpu') %}
-      <div class="p-4 sm:p-5 space-y-4">
+      <div class="p-4 sm:p-5">
         {% if perf.gauges %}
-          {% for label, pct, tone, icon in perf.gauges %}
-            {{ meter(label, pct, tone, icon) }}
-          {% endfor %}
+          <div class="grid grid-cols-3 gap-3 sm:gap-6 justify-items-center">
+            {% for label, pct, tone, icon in perf.gauges %}
+              {{ radial(label, pct, tone, icon) }}
+            {% endfor %}
+          </div>
         {% else %}
           <p class="text-sm text-gray-400">Resource metrics unavailable.</p>
         {% endif %}
@@ -187,13 +213,42 @@
     {% endcall %}
   </section>
 
-  <!-- ===== slow queries — honest empty state (no fabricated rows) ===== -->
+  <!-- ===== slow queries — real pg_stat_statements when enabled; honest empty otherwise ===== -->
   <section>
     {% call section_card('Slow queries', icon='ti-clock-exclamation') %}
-      {{ empty_state('ti-clock-off', 'Slow-query capture not enabled', 'There is no honest source for per-statement slow queries on this database: the PostgreSQL pg_stat_statements extension is not enabled. Rather than fabricate durations (as the retired page did), we show nothing. Enable pg_stat_statements to light this up.') }}
+      {% if perf.slow_queries is none %}
+        {{ empty_state('ti-clock-off', 'Slow-query capture not enabled', 'There is no honest source for per-statement slow queries on this database: the PostgreSQL pg_stat_statements extension is not enabled. Rather than fabricate durations (as the retired page did), we show nothing. Enable pg_stat_statements to light this up.') }}
+      {% elif not perf.slow_queries %}
+        {{ empty_state('ti-clock-check', 'No slow statements yet', 'pg_stat_statements IS enabled — but it has not accumulated any statements to rank yet (freshly reset, or the database is idle). Real per-statement timings will appear here as queries run.') }}
+      {% else %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-xs uppercase text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+              <th class="py-2 pr-3 font-semibold">Statement</th>
+              <th class="py-2 px-3 font-semibold text-right">Mean</th>
+              <th class="py-2 px-3 font-semibold text-right hidden md:table-cell">Max</th>
+              <th class="py-2 px-3 font-semibold text-right hidden md:table-cell">Calls</th>
+              <th class="py-2 pl-3 font-semibold text-right hidden lg:table-cell">Rows</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for q in perf.slow_queries %}
+            <tr class="border-b border-gray-100 dark:border-gray-700/60">
+              <td class="py-2 pr-3 font-mono text-xs text-gray-700 dark:text-gray-300 break-all">{{ q.query }}</td>
+              <td class="py-2 px-3 text-right font-mono {{ 'text-red-600 dark:text-red-400' if q.mean_ms >= 1000 else ('text-amber-600 dark:text-amber-400' if q.mean_ms >= 200 else 'text-gray-700 dark:text-gray-300') }}">{{ '%.1f'|format(q.mean_ms) }} ms</td>
+              <td class="py-2 px-3 text-right font-mono text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ '%.1f'|format(q.max_ms) }} ms</td>
+              <td class="py-2 px-3 text-right font-mono text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ q.calls }}</td>
+              <td class="py-2 pl-3 text-right font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ q.rows }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
     {% endcall %}
     {% call explainer() %}
-      A real slow-query breakdown needs <code>pg_stat_statements</code> (per-statement timing captured by Postgres itself). It is not enabled here, so this panel is intentionally empty. The old System Performance page filled a similar table with synthetic durations and a hardcoded fake row — that source is deliberately not used anywhere in this surface.
+      A real slow-query breakdown needs <code>pg_stat_statements</code> (per-statement timing captured by Postgres itself). When it is enabled, this panel shows the top 10 statements by <strong>mean execution time</strong> — real measured durations, so no honesty badge. When it is <em>not</em> enabled, the panel stays empty on purpose: the retired page filled a similar table with synthetic durations and a hardcoded fake row, and that source is deliberately unused here. To enable it: add <code>pg_stat_statements</code> to Postgres <code>shared_preload_libraries</code>, restart Postgres, then run <code>CREATE EXTENSION pg_stat_statements;</code>.
     {% endcall %}
   </section>
 

@@ -375,6 +375,20 @@ class CeleryConfig:
                 'soft_time_limit': 90
             }
         },
+        'snapshot-system-metrics': {
+            # Records ONE row of key system-health metrics every 5 min for the
+            # System Command Center trend sparklines (also prunes rows > 7 days).
+            # Cheap and off the request path. expires < cadence so a stalled worker
+            # can't build a backlog of stale snapshots.
+            'task': 'app.tasks.monitoring_tasks.snapshot_system_metrics',
+            'schedule': crontab(minute='*/5'),
+            'options': {
+                'queue': 'celery',
+                'expires': 270,
+                'time_limit': 120,
+                'soft_time_limit': 90
+            }
+        },
         'check-for-session-leaks': {
             'task': 'app.tasks.monitoring_tasks.check_for_session_leaks',
             'schedule': crontab(minute='*/15'),

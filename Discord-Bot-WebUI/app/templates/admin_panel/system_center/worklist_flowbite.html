@@ -30,8 +30,20 @@
 <div class="space-y-5 sm:space-y-6" data-svc-url-base="{{ url_for('admin_panel.system_center_service_data', key='__KEY__') }}">
 
   {% call page_header('System Command Center', subtitle='Operations') %}
+    <span data-live-stamp class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400 mr-1 tabular-nums" aria-live="polite">Updated just now</span>
+    <button type="button" data-action="live-toggle" data-live-btn aria-pressed="true"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold">
+      <span data-live-dot class="inline-block w-2 h-2 rounded-full bg-green-500 motion-safe:animate-pulse" aria-hidden="true"></span>
+      <span data-live-label>Live</span>
+    </button>
     <a href="#system-guide" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"><i class="ti ti-help-circle"></i>Guide</a>
   {% endcall %}
+
+  <!-- ===== live-updating region: KPI band + tab bar + active tab body ===== -->
+  <!-- The Live poll (see script below) swaps ONLY this element's innerHTML; the guide,
+       the service drawer and the <script> live OUTSIDE it so their state + the delegated
+       handlers survive every swap. data-sc-status/tone feed the favicon + tab title. -->
+  <div data-live="main" data-sc-status="{{ kpis.health_word }}" data-sc-tone="{{ kpis.health_tone }}" class="space-y-5 sm:space-y-6">
 
   <!-- ===== KPI band ===== -->
   {% set _htone = {'primary':'primary','warning':'warning','danger':'danger','neutral':'neutral'}.get(kpis.health_tone, 'neutral') %}
@@ -67,6 +79,8 @@
   {% else %}
     {{ empty_state('ti-tools', _tab_labels.get(tab, 'This section') ~ ' comes online later', 'This section comes online later in this rollout. Nothing is shown here yet because there is no live source wired for it — we would rather show you an honest blank than a fabricated number.') }}
   {% endif %}
+
+  </div><!-- /[data-live="main"] -->
 
   <!-- ===== guide ===== -->
   <section id="system-guide" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 scroll-mt-20">
@@ -382,10 +396,161 @@
       } else if (action === 'sys-run') {
         e.preventDefault();
         runControl(t);
+
+      } else if (action === 'live-toggle') {
+        e.preventDefault();
+        setLive(!liveOn);
       }
     });
 
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+    // ================================================================
+    // LIVE CONSOLE — framework-free auto-refresh of [data-live="main"].
+    //
+    // A ~20s poll re-fetches THIS SAME url (so the current tab/filters are preserved),
+    // parses the returned HTML and swaps ONLY the [data-live="main"] innerHTML. The
+    // KPI band, tab bar and active tab body live inside that region; the guide, the
+    // service drawer and THIS script live outside it, so they are never swapped.
+    //
+    // Why the delegated handlers survive: sys-run / svc-open / live-toggle are all
+    // bound ONCE on `document` (above), not on the swapped nodes — so replacing the
+    // region's innerHTML re-uses the same document-level listeners with zero re-binding
+    // and zero leaks. The #svcDrawer element is outside the region, so an open drawer
+    // is untouched by a swap.
+    //
+    // Overlap/visibility guards: a single in-flight flag drops overlapping polls; the
+    // interval is CLEARED while document.hidden (visibilitychange) and restarted on show;
+    // a failed poll is swallowed (no toast) and shows a muted "Reconnecting…" — the last
+    // good view stays on screen. The server serves this from its shared 30s snapshot
+    // cache, so the tick is cheap and never forces a re-probe.
+    // ================================================================
+    var LIVE_KEY = 'sc_live';
+    var liveOn = true;
+    try { liveOn = (localStorage.getItem(LIVE_KEY) !== 'off'); } catch (e) { liveOn = true; }
+    var liveTimer = null, stampTimer = null, inFlight = false, reconnecting = false;
+    var lastUpdate = Date.now();
+
+    // ---- status-colored favicon + tab title ----
+    var TONE_DOT = { 'primary': '#22c55e', 'success': '#22c55e', 'warning': '#f59e0b',
+                     'danger': '#ef4444', 'info': '#3b82f6', 'neutral': '#9ca3af' };
+    function faviconDataUrl(color) {
+      try {
+        var c = document.createElement('canvas'); c.width = 32; c.height = 32;
+        var x = c.getContext('2d'); if (!x) return null;
+        x.clearRect(0, 0, 32, 32);
+        x.beginPath(); x.arc(16, 16, 12, 0, 2 * Math.PI);
+        x.fillStyle = color; x.fill();
+        return c.toDataURL('image/png');
+      } catch (e) { return null; }
+    }
+    function applyStatus(word, tone) {
+      var w = word || 'Unknown';
+      document.title = '● System — ' + w;
+      var url = faviconDataUrl(TONE_DOT[tone] || TONE_DOT['neutral']);
+      if (!url) return;                                   // canvas unavailable → title only
+      var link = document.querySelector("link[rel~='icon']");
+      if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+      link.href = url;
+    }
+
+    // ---- freshness stamp ----
+    function renderStamp() {
+      var el = document.querySelector('[data-live-stamp]'); if (!el) return;
+      if (!liveOn) { el.textContent = 'Paused'; return; }
+      if (reconnecting) { el.textContent = 'Reconnecting…'; return; }
+      var secs = Math.round((Date.now() - lastUpdate) / 1000);
+      el.textContent = secs < 5 ? 'Updated just now' : ('Updated ' + secs + 's ago');
+    }
+
+    function updateLiveBtn() {
+      var btn = document.querySelector('[data-live-btn]');
+      var lbl = document.querySelector('[data-live-label]');
+      var dot = document.querySelector('[data-live-dot]');
+      if (btn) btn.setAttribute('aria-pressed', liveOn ? 'true' : 'false');
+      if (lbl) lbl.textContent = liveOn ? (reconnecting ? 'Reconnecting' : 'Live') : 'Paused';
+      if (dot) {
+        dot.className = 'inline-block w-2 h-2 rounded-full ' +
+          (liveOn ? (reconnecting ? 'bg-amber-500' : 'bg-green-500 motion-safe:animate-pulse')
+                  : 'bg-gray-400 dark:bg-gray-500');
+      }
+    }
+
+    // Never swap while the user is actively interacting with the region — otherwise the
+    // 20s poll would wipe a half-typed filter, snap an open dropdown shut, or reset a
+    // running action's busy-lock (double-submit). Passive reading state (scroll + open
+    // <details>) is instead PRESERVED across the swap below.
+    function regionBusy() {
+      var region = document.querySelector('[data-live="main"]');
+      if (!region) return true;
+      var ae = document.activeElement;
+      if (ae && region.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) return true; // typing / open select
+      if (region.querySelector('[data-busy="1"]')) return true;   // a sys-run action is mid-flight
+      var dr = document.getElementById('svcDrawer');
+      if (dr && !dr.classList.contains('hidden')) return true;    // drawer open
+      if (document.querySelector('.swal2-container')) return true; // confirm dialog open
+      return false;
+    }
+
+    function doPoll() {
+      if (inFlight || document.hidden || !liveOn || regionBusy()) return;
+      inFlight = true;
+      fetch(location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.text(); })
+        .then(function (txt) {
+          var doc = new DOMParser().parseFromString(txt, 'text/html');
+          var fresh = doc.querySelector('[data-live="main"]');
+          var cur = document.querySelector('[data-live="main"]');
+          if (fresh && cur) {
+            // Preserve passive reading state so auto-tail doesn't yank a log the admin
+            // is reading: which <details> are open + each scrollable pane's scrollTop.
+            var openDetails = [], scrolls = [];
+            cur.querySelectorAll('details').forEach(function (d) { openDetails.push(d.open); });
+            cur.querySelectorAll('.overflow-auto').forEach(function (el) { scrolls.push(el.scrollTop); });
+            cur.innerHTML = fresh.innerHTML;               // swap body only — handlers are on document
+            cur.querySelectorAll('details').forEach(function (d, i) { if (openDetails[i] != null) d.open = openDetails[i]; });
+            cur.querySelectorAll('.overflow-auto').forEach(function (el, i) { if (scrolls[i] != null) el.scrollTop = scrolls[i]; });
+            var w = fresh.getAttribute('data-sc-status');
+            var tn = fresh.getAttribute('data-sc-tone');
+            cur.setAttribute('data-sc-status', w || '');
+            cur.setAttribute('data-sc-tone', tn || '');
+            applyStatus(w, tn);
+          }
+          lastUpdate = Date.now();
+          if (reconnecting) { reconnecting = false; updateLiveBtn(); }
+          renderStamp();
+        })
+        .catch(function () {
+          // Silent: keep the last good view, flag a muted reconnecting state. No toast.
+          if (!reconnecting) { reconnecting = true; updateLiveBtn(); renderStamp(); }
+        })
+        .then(function () { inFlight = false; });
+    }
+
+    function startLive() { if (!liveTimer) liveTimer = setInterval(doPoll, 20000); }
+    function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
+    function setLive(on) {
+      liveOn = on;
+      try { localStorage.setItem(LIVE_KEY, on ? 'on' : 'off'); } catch (e) {}
+      if (on) { startLive(); doPoll(); } else { stopLive(); reconnecting = false; }
+      updateLiveBtn();
+      renderStamp();
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { stopLive(); }             // pause the interval entirely when hidden
+      else if (liveOn) { startLive(); doPoll(); renderStamp(); }
+    });
+
+    // init: seed title/favicon from the server-rendered status, wire the toggle + tickers.
+    (function initLive() {
+      var cur = document.querySelector('[data-live="main"]');
+      if (cur) applyStatus(cur.getAttribute('data-sc-status'), cur.getAttribute('data-sc-tone'));
+      updateLiveBtn();
+      renderStamp();
+      stampTimer = setInterval(renderStamp, 5000);       // one persistent relative-time ticker
+      if (liveOn && !document.hidden) startLive();
+    })();
   });
 })();
 </script>

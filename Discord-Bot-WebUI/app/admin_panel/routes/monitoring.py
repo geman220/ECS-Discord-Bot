@@ -450,6 +450,14 @@ def run_db_health_check():
 def refresh_service_status():
     """Refresh all service statuses."""
     try:
+        # Bust the System Command Center's shared board/perf snapshot so its next load
+        # re-probes live (otherwise the cached snapshot masks the change for its TTL).
+        try:
+            from app.services.system_center_service import invalidate_snapshot_caches
+            invalidate_snapshot_caches()
+        except Exception:
+            logger.debug("refresh: system center cache invalidate failed", exc_info=True)
+
         # Get fresh service status checks
         services = []
         services.append(_check_discord_api_status())

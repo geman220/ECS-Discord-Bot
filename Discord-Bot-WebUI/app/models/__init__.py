@@ -147,7 +147,8 @@ from .theme_preset import (
 
 from .api_logs import (
     APIRequestLog,
-    TaskExecution
+    TaskExecution,
+    SystemMetricSnapshot
 )
 
 from .ai_assistant import (
@@ -331,6 +332,7 @@ __all__ = [
     # API logging models
     'APIRequestLog',
     'TaskExecution',
+    'SystemMetricSnapshot',
     'AIAssistantLog',
 
     # Security models
