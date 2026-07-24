@@ -136,26 +136,57 @@
           {% endif %}
         </div>
 
-        {# Every trigger has an entry, so this panel is ALWAYS shown. A trigger
-           nothing else covers renders as green reassurance rather than as a
-           warning — silence would read as "not checked". #}
+        {# Every trigger has an entry, so this panel is ALWAYS shown — silence
+           would read as "not checked". THREE states, because the data has three:
+
+             clash    (amber) this rule sends on a channel something already uses
+                              → people genuinely get told twice
+             related  (blue)  something adjacent sends, but no channel collides
+                              → context, not a warning
+             clean    (green) nothing else messages anyone on this event
+
+           A two-state version headlined "Something already messages people here"
+           over body text reading "Nothing sends today", which is why this is
+           driven off the flags rather than off tone. #}
+        {# Class strings are written out in full per branch, never assembled from
+           a colour variable: Tailwind's scanner only sees complete literals, so
+           an interpolated `border-{{ tone }}-200` compiles to nothing unless
+           some unrelated template happens to use the same class. #}
         {% if overlap %}
-        {% set clean = overlap.get('nothing_else') and not overlap_clashes %}
-        <div class="rounded-lg border {% if clean %}border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10{% else %}border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10{% endif %} p-3 flex gap-2.5">
-          <i class="ti {% if clean %}ti-circle-check text-green-600 dark:text-green-400{% else %}ti-alert-triangle text-amber-600 dark:text-amber-400{% endif %} shrink-0 mt-0.5" aria-hidden="true"></i>
-          <div class="text-xs {% if clean %}text-green-900 dark:text-green-200{% else %}text-amber-900 dark:text-amber-200{% endif %}">
-            <p class="font-semibold">
-              {% if clean %}Nothing else messages people on this event{% else %}Something already messages people here{% endif %}
-            </p>
+        {% set clash = overlap_clashes | length > 0 %}
+        {% set clean = overlap.get('nothing_else') and not clash %}
+        {% if clash %}
+          {% set box_cls = 'border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10' %}
+          {% set icon_cls = 'ti-alert-triangle text-amber-600 dark:text-amber-400' %}
+          {% set text_cls = 'text-amber-900 dark:text-amber-200' %}
+          {% set meta_cls = 'text-amber-700 dark:text-amber-300' %}
+          {% set heading = 'People will be told twice' %}
+        {% elif clean %}
+          {% set box_cls = 'border-green-200 dark:border-green-500/30 bg-green-50 dark:bg-green-500/10' %}
+          {% set icon_cls = 'ti-circle-check text-green-600 dark:text-green-400' %}
+          {% set text_cls = 'text-green-900 dark:text-green-200' %}
+          {% set meta_cls = 'text-green-700 dark:text-green-300' %}
+          {% set heading = 'Nothing else messages people on this event' %}
+        {% else %}
+          {% set box_cls = 'border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10' %}
+          {% set icon_cls = 'ti-info-circle text-blue-600 dark:text-blue-400' %}
+          {% set text_cls = 'text-blue-900 dark:text-blue-200' %}
+          {% set meta_cls = 'text-blue-700 dark:text-blue-300' %}
+          {% set heading = 'Related messages already exist' %}
+        {% endif %}
+        <div class="rounded-lg border {{ box_cls }} p-3 flex gap-2.5">
+          <i class="ti {{ icon_cls }} shrink-0 mt-0.5" aria-hidden="true"></i>
+          <div class="text-xs {{ text_cls }}">
+            <p class="font-semibold">{{ heading }}</p>
             <p class="mt-0.5">{{ overlap.text }}</p>
             {% if overlap.where %}
-            <p class="mt-1 {% if clean %}text-green-700 dark:text-green-300{% else %}text-amber-700 dark:text-amber-300{% endif %}">Today: {{ overlap.where }}</p>
+            <p class="mt-1 {{ meta_cls }}">Today: {{ overlap.where }}</p>
             {% endif %}
-            {% if overlap_clashes %}
+            {% if clash %}
             <p class="mt-1.5 font-semibold">
               This rule currently sends by
               {{ overlap_clashes | map('replace', '_', '-') | join(', ') }},
-              which means people get told twice. Consider email only.
+              which duplicates that. Consider email only.
             </p>
             {% endif %}
           </div>

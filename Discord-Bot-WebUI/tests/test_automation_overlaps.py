@@ -46,6 +46,25 @@ def test_overlap_entries_are_well_formed(trigger, meta):
         )
 
 
+@pytest.mark.parametrize('trigger,meta', sorted(TRIGGER_OVERLAPS.items()))
+def test_nothing_else_flag_agrees_with_the_prose(trigger, meta):
+    """The flag drives the heading; the prose is what the admin reads.
+
+    Regression test for a shipped contradiction: both draft entries said
+    "Nothing sends" in their text but were missing 'nothing_else', so the editor
+    headlined them "Something already messages people here" directly above body
+    copy saying the opposite. The heading is computed from the flag, so the flag
+    and the prose have to agree or the panel argues with itself.
+    """
+    says_nothing = meta['where'].strip().lower().startswith('nothing sends')
+    flagged = bool(meta.get('nothing_else'))
+    assert says_nothing == flagged, (
+        f"{trigger}: 'where' says {'nothing sends' if says_nothing else 'something sends'} "
+        f"but nothing_else is {flagged}. The editor heading is derived from the flag, "
+        f"so a mismatch renders a panel that contradicts its own body text."
+    )
+
+
 def test_catalog_and_overlaps_cover_the_same_triggers():
     assert set(TRIGGER_CATALOG) == set(TRIGGER_TYPES)
     assert set(TRIGGER_OVERLAPS) == set(TRIGGER_TYPES)

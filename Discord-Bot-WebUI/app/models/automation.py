@@ -680,6 +680,7 @@ TRIGGER_OVERLAPS = {
                  "to miss — that gap is exactly what this rule fills."),
         'avoid_channels': [],
         'where': 'Nothing sends. Discord roles/channels are the only current signal.',
+        'nothing_else': True,
         'reveal_sensitive': True,
     },
     TRIGGER_DRAFT_SESSION_COMPLETE: {
@@ -688,6 +689,7 @@ TRIGGER_OVERLAPS = {
                  "to miss — that gap is exactly what this rule fills."),
         'avoid_channels': [],
         'where': 'Nothing sends. Discord roles/channels are the only current signal.',
+        'nothing_else': True,
         'reveal_sensitive': True,
     },
 
