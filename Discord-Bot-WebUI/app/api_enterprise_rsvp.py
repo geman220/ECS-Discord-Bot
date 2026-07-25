@@ -141,52 +141,9 @@ def update_rsvp_enterprise_from_discord():
             )
             
             if success:
-                # GOOGLE-LEVEL OPTIMIZATION: Instant cache update + WebSocket emission
-                try:
-                    from app.sockets.rsvp import emit_rsvp_update
-                    from app.cache.rsvp_cache import rsvp_cache
-                    
-                    # Optimized team_id lookup using direct queries (avoids N+1 queries)
-                    team_id = None
-                    from app.models import player_teams
-                    
-                    # Check if player is on either team for this match using efficient query
-                    team_membership = session_db.query(player_teams).filter(
-                        player_teams.c.player_id == player.id,
-                        player_teams.c.team_id.in_([match.home_team_id, match.away_team_id])
-                    ).first()
-                    
-                    if team_membership:
-                        team_id = team_membership.team_id
-                    
-                    # INSTANT CACHE UPDATE for sub-100ms reads
-                    rsvp_cache.update_player_rsvp(
-                        match_id=match_id,
-                        player_id=player.id,
-                        availability=availability_status,
-                        player_name=player.name
-                    )
-                    
-                    # Emit the RSVP update to WebSocket clients IMMEDIATELY
-                    # This is the critical path for real-time performance
-                    emit_rsvp_update(
-                        match_id=match_id,
-                        player_id=player.id,
-                        availability=availability_status,
-                        source=source,
-                        player_name=player.name,
-                        team_id=team_id
-                    )
-                    
-                    logger.debug(f"⚡ Instant cache + WebSocket update: match={match_id}, player={player.name}, response={availability_status}")
-                    
-                except Exception as e:
-                    logger.error(f"⚠️ Failed to emit WebSocket RSVP update: {e}")
-                    # Don't fail the request - database update was successful
-
-                # PERFORMANCE: Prepare response immediately and return fast
-                # Note: Discord embed update is already triggered by emit_rsvp_update()
-                # above, which queues update_discord_embed_task when source != 'discord'
+                # Cache warm + WebSocket emission + Discord refresh all happen inside
+                # RSVPService._fan_out_sync now, so this route no longer does its own.
+                # Do not re-add notification code here.
                 response_data = {
                     "message": message,
                     "match_id": match_id,

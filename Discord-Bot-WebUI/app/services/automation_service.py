@@ -53,6 +53,8 @@ from app.models.automation import (
     TRIGGER_PASS_NEVER_DOWNLOADED, TRIGGER_PASS_EXPIRING,
     TRIGGER_FEEDBACK_OPEN, TRIGGER_SUB_REQUEST_UNFILLED,
     TRIGGER_SUB_POOL_PENDING, TRIGGER_MATCH_RESCHEDULED,
+    TRIGGER_RECURRING_WEEKLY, TRIGGER_RSVP_NOT_RESPONDED,
+    RECURRING_TRIGGERS, NATIVE_ACTIONS, NATIVE_ACTION_RSVP_DM,
 )
 from app.models.core import Season, League, User, Role, user_roles
 from app.models.players import Player, Team, player_teams
@@ -364,6 +366,86 @@ def detect_season_date(session, rule):
         'league_id': None,
         'event_at': event_at,
         'label': label,
+    }]
+
+
+def _latest_weekly_occurrence(weekdays, hour, now_utc=None):
+    """The most recent (weekday, hour) moment that has already passed.
+
+    Returns (naive-UTC datetime, 'YYYY-MM-DD' local date) or None.
+
+    Everything is computed in Pacific local time and converted to UTC at the
+    end, so the hour an admin picked is the hour it goes out in — a rule set to
+    12:00 must not drift by an hour twice a year when DST flips, which is
+    exactly what storing a UTC hour would do.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+        pacific = ZoneInfo('America/Los_Angeles')
+        utc = ZoneInfo('UTC')
+    except Exception:
+        logger.debug("No tz data; weekly schedule falls back to UTC", exc_info=True)
+        pacific = utc = None
+
+    wanted = set()
+    for d in (weekdays or []):
+        try:
+            wanted.add(int(d) % 7)
+        except (TypeError, ValueError):
+            continue
+    if not wanted:
+        return None
+    try:
+        hour = int(hour)
+    except (TypeError, ValueError):
+        hour = 12
+    hour = max(0, min(23, hour))
+
+    now = datetime.utcnow() if now_utc is None else now_utc
+    now_local = (now.replace(tzinfo=utc).astimezone(pacific) if pacific
+                 else now.replace(tzinfo=None))
+
+    # Walk back a full week at most: one of the selected weekdays is guaranteed
+    # to fall inside it, so the loop always terminates with the newest match.
+    for back in range(0, 8):
+        day = (now_local - timedelta(days=back)).date()
+        if day.weekday() not in wanted:
+            continue
+        if pacific:
+            local_dt = datetime.combine(day, time(hour=hour), tzinfo=pacific)
+            candidate = local_dt.astimezone(utc).replace(tzinfo=None)
+        else:
+            candidate = datetime.combine(day, time(hour=hour))
+        if candidate <= now:
+            return candidate, day.isoformat()
+    return None
+
+
+def detect_recurring_weekly(session, rule):
+    """Fire on a weekly clock: the selected weekdays, at the selected hour.
+
+    Returns at most ONE event — the most recent occurrence that has passed. The
+    occurrence date rides on the scope key, so next week is a different scope and
+    fires again while re-evaluating this week is a no-op.
+
+    Deliberately does NOT backfill missed occurrences. If the beat was down for
+    three days, replaying three weekly sends at once is worse than skipping them;
+    the freshness window (1 day by default on these triggers) then records the
+    stale one as skipped rather than blasting it late.
+    """
+    cfg = rule.trigger_config or {}
+    found = _latest_weekly_occurrence(cfg.get('weekdays'), cfg.get('hour', 12))
+    if not found:
+        return []
+    event_at, occurrence = found
+
+    season = _current_season(session, cfg.get('league_type', 'Pub League'))
+    return [{
+        'season_id': season.id if season else None,
+        'league_id': None,
+        'occurrence': occurrence,
+        'event_at': event_at,
+        'label': f'Weekly send — {occurrence}',
     }]
 
 
@@ -789,6 +871,11 @@ DETECTORS = {
     TRIGGER_DRAFT_SESSION_COMPLETE: detect_draft_session_complete,
     TRIGGER_SEASON_PHASE: detect_season_phase,
     TRIGGER_SEASON_DATE: detect_season_date,
+    # Both recurring triggers share one clock detector. The RSVP variant differs
+    # only in what happens at DISPATCH (a native sender that picks its own
+    # recipients), not in when it fires.
+    TRIGGER_RECURRING_WEEKLY: detect_recurring_weekly,
+    TRIGGER_RSVP_NOT_RESPONDED: detect_recurring_weekly,
     TRIGGER_USER_APPROVED: detect_user_approved,
     TRIGGER_WAITLIST_STUCK: detect_waitlist_stuck,
     TRIGGER_SUB_NO_REPLY: detect_sub_no_reply,
@@ -839,7 +926,8 @@ def evaluate_rule(session, rule):
     fresh_events = []
     for event in events:
         key = build_scope_key(event['season_id'], event['league_id'],
-                              event.get('subject_type'), event.get('subject_id'))
+                              event.get('subject_type'), event.get('subject_id'),
+                              event.get('occurrence'))
         if not (session.query(AutomationRun.id)
                 .filter(AutomationRun.rule_id == rule.id,
                         AutomationRun.scope_key == key)
@@ -1072,6 +1160,14 @@ def scope_still_applies(session, rule, run):
     On any error it returns True (keep going) rather than silently cancelling a
     send an admin is expecting.
     """
+    # A recurring trigger's "event" is a moment on the clock, and that moment
+    # cannot un-happen. Worse, the detector only ever reports the CURRENT week,
+    # so a ladder step whose wait crosses into next week would find no match and
+    # silently cancel itself. Recurring rules re-check what matters at send time
+    # instead: the RSVP sender recomputes who still has not answered.
+    if rule.trigger_type in RECURRING_TRIGGERS:
+        return True
+
     detector = DETECTORS.get(rule.trigger_type)
     if not detector:
         return True
@@ -1082,7 +1178,8 @@ def scope_still_applies(session, rule, run):
         return True
     for event in events:
         key = build_scope_key(event['season_id'], event['league_id'],
-                              event.get('subject_type'), event.get('subject_id'))
+                              event.get('subject_type'), event.get('subject_id'),
+                              event.get('occurrence'))
         if key == run.scope_key:
             return True
     return False
@@ -1405,6 +1502,16 @@ def dispatch_run(session, run, force=False):
                         rule.key, run.scope_key)
             return {'success': True, 'stopped_early': True}
 
+    # Native senders build their own message and pick their own recipients, so
+    # everything below (reveal guard, audience resolution, campaign creation) is
+    # not theirs to run. Branch out BEFORE the reveal check in particular: the
+    # RSVP copy legitimately contains {team}, and the generic guard would hold
+    # the run forever, while the RSVP sender already suppresses only the Pub
+    # League matches that are actually hidden and still chases ECS FC.
+    if rule.native_action:
+        return _dispatch_native(session, rule, run, step, step_index, len(steps),
+                                force=force)
+
     # Team assignments are hidden until the reveal, and that gate is enforced in
     # the web UI, the mobile API and Discord team channels -- but NOT here. A
     # rule whose copy contains {team} would mail people their team before the
@@ -1587,6 +1694,126 @@ def dispatch_run(session, run, force=False):
                 rule.key, campaign.id, campaign.total_recipients)
     return {'success': True, 'recipients': campaign.total_recipients,
             'campaign_id': campaign.id}
+
+
+def _rsvp_reminder_options(session, rule, step):
+    """Translate an automation rule into kwargs for the RSVP reminder task.
+
+    The rule owns the schedule, the two behavioural knobs and every string; the
+    task owns finding non-responders and talking to the bot. Nothing here has a
+    silent fallback to a hardcoded string -- if an admin blanks a field the task
+    receives the blank and drops that line, which is a visible outcome rather
+    than the old copy quietly reappearing.
+    """
+    cfg = rule.trigger_config or {}
+    step = step or {}
+
+    # body_html is the Discord DM's opening line. It is a plain sentence, not a
+    # layout, so strip any markup an admin's editor slipped in rather than
+    # letting tags render literally inside a Discord embed.
+    intro = substitute_placeholders(session, step.get('body_html') or rule.body_html or '')
+    intro = re.sub(r'<[^>]+>', ' ', intro)
+    intro = re.sub(r'\s+', ' ', intro).strip()
+
+    return {
+        'lookahead_days': int(cfg.get('lookahead_days', 4)),
+        'max_reminders_per_match': int(cfg.get('max_reminders_per_match', 1)),
+        'title': substitute_placeholders(
+            session, step.get('subject') or rule.subject or '')[:200],
+        # Per-match line for push / email / SMS. Keeps its {team} {opponent}
+        # {date} {time} tokens: the task fills them per match, not per person.
+        'message_template': (step.get('short_message') or rule.short_message or ''),
+        'dm_description': intro,
+        'dm_footer': (cfg.get('dm_footer') or ''),
+    }
+
+
+# Each native action names the task to enqueue and how to build its kwargs.
+# Both are code, not data: `native_action` only ever selects a row here.
+NATIVE_DISPATCHERS = {
+    NATIVE_ACTION_RSVP_DM: {
+        'task': 'app.tasks.tasks_rsvp_dm_reminders.send_rsvp_dm_reminders',
+        'options': _rsvp_reminder_options,
+    },
+}
+
+
+def _dispatch_native(session, rule, run, step, step_index, total_steps, force=False):
+    """Hand a run to a purpose-built sender instead of the generic pipeline.
+
+    Same claim-then-enqueue discipline as the other two paths: the run is
+    claimed atomically so two overlapping beat passes cannot both send it, and
+    the task is enqueued BEFORE the run is marked sent so a broker outage leaves
+    it retryable rather than falsely green.
+
+    recipient_count stays 0 until the task reports back -- the sender resolves
+    its own audience, and guessing a number here would be a number nobody
+    computed.
+    """
+    spec = NATIVE_DISPATCHERS.get(rule.native_action)
+    if not spec:
+        run.status = 'failed'
+        run.error_message = (f'Unknown built-in action {rule.native_action!r}. '
+                             f'Nothing was sent.')
+        session.commit()
+        logger.error("Rule %s names unknown native_action %r", rule.key, rule.native_action)
+        return {'success': False, 'error': run.error_message}
+
+    allowed_from = ('pending', 'skipped', 'failed') if force else ('pending',)
+    claimed = (session.query(AutomationRun)
+               .filter(AutomationRun.id == run.id,
+                       AutomationRun.status.in_(allowed_from))
+               .update({'status': 'sending'}, synchronize_session=False))
+    session.commit()
+    if not claimed:
+        session.refresh(run)
+        return {'success': False,
+                'error': f'Run is {run.status} — another send already claimed it'}
+    session.refresh(run)
+
+    try:
+        options = spec['options'](session, rule, step)
+    except Exception as e:
+        logger.exception("Could not build options for native run %s", run.id)
+        run.status = 'failed'
+        run.error_message = f'Could not read the rule settings ({str(e)[:200]}).'
+        session.commit()
+        return {'success': False, 'error': run.error_message}
+
+    from app.core import celery
+    try:
+        task = celery.send_task(spec['task'], kwargs={'options': options,
+                                                      'run_id': run.id})
+    except Exception as e:
+        logger.exception("Could not enqueue native action for run %s", run.id)
+        run.status = 'pending'
+        run.error_message = f'Could not queue the send ({str(e)[:200]}); will retry.'
+        session.commit()
+        return {'success': False, 'error': run.error_message}
+
+    run.dispatched_at = datetime.utcnow()
+
+    # Who owns the terminal status differs from the other two paths, and it
+    # matters. The email/multichannel paths know their recipient count before
+    # they enqueue; a native sender does NOT -- it works out its own audience
+    # inside the task. So:
+    #
+    #   * more steps to come -> advance the ladder here as usual.
+    #   * last step          -> leave the run 'sending' and let the task close
+    #                           it out with the real number.
+    #
+    # Calling _advance_or_finish() unconditionally marked the run 'sent'
+    # immediately, and the task's report (which refuses to touch a run that is
+    # no longer 'sending') was then silently discarded -- so every RSVP run
+    # showed 0 recipients however many DMs it actually sent.
+    steps = rule.action_steps()
+    if step_index + 1 < len(steps):
+        _advance_or_finish(session, run, rule, step_index, steps)
+    session.commit()
+
+    logger.info("Automation %s dispatched native action %s (task %s) for scope %s",
+                rule.key, rule.native_action, task.id, run.scope_key)
+    return {'success': True, 'native_action': rule.native_action, 'task_id': task.id}
 
 
 def _dispatch_multichannel(session, rule, run, criteria, creator_id, channels,
@@ -1807,6 +2034,110 @@ def dispatch_due_runs(session):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _explain_native(session, rule, user, stages, add):
+    """Trace one person through the RSVP reminder's real rules.
+
+    Mirrors send_rsvp_dm_reminders in the order it actually applies things:
+    unanswered match in the window -> snoozed? -> repeat cap -> per-user opt-out
+    -> which channel they land on. Every stage names the specific thing that
+    stopped them, because "not in the audience" is useless when the audience is
+    computed rather than filtered.
+    """
+    who = user.username
+    if rule.native_action != NATIVE_ACTION_RSVP_DM:
+        add('Audience', False, 'No trace is available for this built-in message.')
+        return {'stages': stages, 'verdict': 'Cannot say for this automation.'}
+
+    from app.models.communication import RsvpDmReminderLog
+    from app.services import rsvp_snooze_service
+    from app.tasks.tasks_rsvp_dm_reminders import (
+        _collect_pub_league_non_responders, _collect_ecs_fc_non_responders,
+        _determine_player_tier)
+    from app.utils.pacific_time import pacific_today
+
+    cfg = rule.trigger_config or {}
+    lookahead = int(cfg.get('lookahead_days', 4))
+    cap = int(cfg.get('max_reminders_per_match', 1))
+
+    player = session.query(Player).filter(Player.user_id == user.id).first()
+    if not player:
+        add('Has a player profile', False,
+            'This account has no player profile, so it is never on a team sheet '
+            'and never has a match to RSVP to.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged.'}
+    # Player.name is the only real name in the schema -- User.username is a login
+    # handle. Once the profile is found, say who this actually is.
+    name = player.name or who
+    who = name
+    add('Has a player profile', True, f'Player profile: {name}.')
+
+    today = pacific_today()
+    window_end = today + timedelta(days=lookahead)
+    player_data = {}
+    _collect_pub_league_non_responders(session, today, window_end, set(), player_data)
+    _collect_ecs_fc_non_responders(session, today, window_end, set(), player_data)
+    mine = (player_data.get(player.id) or {}).get('matches') or []
+
+    if not mine:
+        add('Has an unanswered match', False,
+            f'No match in the next {lookahead} day(s) that {name} has not already '
+            f'answered. Either they have responded yes/no/maybe to everything, or '
+            f'they are not on a team sheet in that window. Note that before the '
+            f'team reveal, Pub League matches are deliberately held back.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged — nothing to chase.'}
+    add('Has an unanswered match', True,
+        f'{len(mine)} unanswered match(es) in the next {lookahead} day(s): '
+        + ', '.join(f"{m['team_name']} vs {m['opponent_name']} ({m['match_date']})"
+                    for m in mine[:3]))
+
+    snoozed = rsvp_snooze_service.get_all_snoozed_player_ids(session=session)
+    if player.id in snoozed:
+        add('Not snoozed', False,
+            f'{name} has paused RSVP reminders (the Snooze button on the DM, or the '
+            f'setting on their account page). Snooze always wins.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged — reminders are snoozed.'}
+    add('Not snoozed', True, 'Reminders are not paused for this person.')
+
+    counts = {
+        (r.match_id, r.match_type): r.n
+        for r in session.query(
+            RsvpDmReminderLog.match_id, RsvpDmReminderLog.match_type,
+            func.count(RsvpDmReminderLog.id).label('n')
+        ).filter(RsvpDmReminderLog.player_id == player.id,
+                 RsvpDmReminderLog.delivery_status == 'sent')
+         .group_by(RsvpDmReminderLog.match_id, RsvpDmReminderLog.match_type).all()
+    }
+    fresh = [m for m in mine if counts.get((m['match_id'], m['match_type']), 0) < cap]
+    if not fresh:
+        add('Under the repeat cap', False,
+            f'Every one of those matches has already been chased {cap} time(s), which '
+            f'is the limit this rule is set to. Raise "Most reminders per match" to '
+            f'chase again.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged — already reminded.'}
+    add('Under the repeat cap', True,
+        f'{len(fresh)} of {len(mine)} match(es) are still under the {cap}-reminder limit.')
+
+    tier = _determine_player_tier(session, user, player)
+    if not tier:
+        if not getattr(user, 'rsvp_reminder_notifications', True):
+            detail = (f'{name} has switched RSVP reminders off in their own notification '
+                      f'settings. This rule deliberately does not override that.')
+        else:
+            detail = (f'No usable channel: no app installed, no Discord linked, no email, '
+                      f'and no verified phone with SMS consent.')
+        add('Has a channel to reach them on', False, detail)
+        return {'stages': stages, 'verdict': f'{who} would not be messaged.'}
+
+    pretty = {'push': 'a push notification', 'discord': 'a Discord DM with RSVP buttons',
+              'email': 'an email', 'sms': 'a text message'}
+    add('Has a channel to reach them on', True,
+        f'{name} would get {pretty.get(tier, tier)} — the highest channel they have '
+        f'enabled. Only one channel is used, not all of them.')
+    return {'stages': stages,
+            'verdict': f'{who} would be reminded about {len(fresh)} match(es) '
+                       f'by {pretty.get(tier, tier)}.'}
+
+
 def explain_for_user(session, rule, user_id):
     """Walk the whole pipeline for ONE person and say what happened.
 
@@ -1853,6 +2184,12 @@ def explain_for_user(session, rule, user_id):
         return {'stages': stages, 'verdict': f'{who} would not be messaged — the trigger is not firing.'}
     add('Trigger fires', True,
         f'The trigger currently fires for {len(events)} scope(s).')
+
+    # A native rule's audience is not a filter, so the generic walk below would
+    # resolve nobody and report "not in the audience" for someone who is in fact
+    # due a reminder. Hand off to a trace that knows the real rules.
+    if rule.native_action:
+        return _explain_native(session, rule, user, stages, add)
 
     # ── 2. Is this person in the audience, for any firing scope? ───────
     from types import SimpleNamespace
@@ -1929,6 +2266,71 @@ def explain_for_user(session, rule, user_id):
     return {'stages': stages, 'verdict': verdict}
 
 
+def _preview_native(session, rule):
+    """Who a built-in sender would reach if it ran right now.
+
+    Returns (count, [names], description).
+
+    Deliberately calls the SENDER's own collectors rather than re-implementing
+    the query here: a preview that drifts from the real audience is worse than
+    no preview, and the whole point of this rule is that an admin can trust the
+    numbers before switching the schedule around.
+
+    It applies the snooze list and the repeat cap, so the number matches what
+    would actually go out today -- not the raw roster.
+    """
+    if rule.native_action != NATIVE_ACTION_RSVP_DM:
+        return 0, [], 'Worked out by the built-in sender'
+
+    from datetime import date as _date
+    from app.models.communication import RsvpDmReminderLog
+    from app.services import rsvp_snooze_service
+    from app.tasks.tasks_rsvp_dm_reminders import (
+        _collect_pub_league_non_responders, _collect_ecs_fc_non_responders)
+    from app.utils.pacific_time import pacific_today
+
+    cfg = rule.trigger_config or {}
+    lookahead = int(cfg.get('lookahead_days', 4))
+    cap = int(cfg.get('max_reminders_per_match', 1))
+
+    today = pacific_today()
+    window_end = today + timedelta(days=lookahead)
+    snoozed = rsvp_snooze_service.get_all_snoozed_player_ids(session=session)
+
+    player_data = {}
+    _collect_pub_league_non_responders(session, today, window_end, snoozed, player_data)
+    _collect_ecs_fc_non_responders(session, today, window_end, snoozed, player_data)
+
+    # Scoped to the matches in the window, same as the real send -- this runs
+    # inside a web request, so it must not scan the whole log table.
+    # match_id is not unique across match_type, so the IN() is a prefilter only;
+    # the dict key still carries match_type and stays exact.
+    window_match_ids = {m['match_id'] for d in player_data.values() for m in d['matches']}
+    sent_counts = {}
+    if window_match_ids:
+        sent_counts = {
+            (r.player_id, r.match_id, r.match_type): r.n
+            for r in session.query(
+                RsvpDmReminderLog.player_id, RsvpDmReminderLog.match_id,
+                RsvpDmReminderLog.match_type, func.count(RsvpDmReminderLog.id).label('n')
+            ).filter(RsvpDmReminderLog.delivery_status == 'sent',
+                     RsvpDmReminderLog.match_id.in_(window_match_ids))
+             .group_by(RsvpDmReminderLog.player_id, RsvpDmReminderLog.match_id,
+                       RsvpDmReminderLog.match_type).all()
+        }
+
+    names = []
+    for pid, data in player_data.items():
+        if any(sent_counts.get((pid, m['match_id'], m['match_type']), 0) < cap
+               for m in data['matches']):
+            names.append(data['player'].name or f'Player {pid}')
+
+    described = (f'Everyone with an unanswered match in the next {lookahead} '
+                 f'day{"s" if lookahead != 1 else ""}, excluding snoozed players '
+                 f'and anyone already reminded {cap}x about that match')
+    return len(names), sorted(names)[:10], described
+
+
 def preview_rule(session, rule, refresh=False):
     """What this rule would do right now, without sending anything.
 
@@ -1952,7 +2354,8 @@ def preview_rule(session, rule, refresh=False):
         # 'already_run' never matches a real run and the modal claims nothing
         # has ever been sent.
         scope_key = build_scope_key(event['season_id'], event['league_id'],
-                                    event.get('subject_type'), event.get('subject_id'))
+                                    event.get('subject_type'), event.get('subject_id'),
+                                    event.get('occurrence'))
         pseudo_run = SimpleNamespace(
             season_id=event['season_id'], league_id=event['league_id'],
             subject_type=event.get('subject_type'), subject_id=event.get('subject_id'))
@@ -1960,6 +2363,23 @@ def preview_rule(session, rule, refresh=False):
                     .filter(AutomationRun.rule_id == rule.id,
                             AutomationRun.scope_key == scope_key)
                     .first())
+
+        # A native rule has no audience filter to resolve -- running the generic
+        # path would report 0 recipients for a rule that in fact reaches
+        # everybody with an unanswered match, which is worse than no preview.
+        if rule.native_action:
+            count, sample, described = _preview_native(session, rule)
+            scopes.append({
+                'scope_key': scope_key,
+                'label': event.get('label', scope_key),
+                'event_at': event['event_at'],
+                'scheduled_for': event['event_at'] + timedelta(hours=rule.delay_hours or 0),
+                'recipient_count': count,
+                'sample': sample,
+                'already_run': existing.status if existing else None,
+                'filter_description': described,
+            })
+            continue
 
         if refresh and rule.audience_type == 'drafted_not_in_discord':
             try:

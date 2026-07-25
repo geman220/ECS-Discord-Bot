@@ -77,41 +77,9 @@ def update_rsvp(match_id, player_id, response, discord_id=None):
         )
         
         if success:
-            # Emit WebSocket update for real-time sync
-            try:
-                from app.sockets.rsvp import emit_rsvp_update
-                from app.models import Player, Match
-                
-                # Get player and match details for WebSocket emission
-                player = session.query(Player).get(player_id)
-                match = session.query(Match).get(match_id)
-                
-                if player and match:
-                    # Determine team_id for the player
-                    team_id = None
-                    if hasattr(match, 'home_team') and match.home_team:
-                        if player in match.home_team.players:
-                            team_id = match.home_team_id
-                    if not team_id and hasattr(match, 'away_team') and match.away_team:
-                        if player in match.away_team.players:
-                            team_id = match.away_team_id
-                    
-                    # Emit the RSVP update to WebSocket clients
-                    emit_rsvp_update(
-                        match_id=match_id,
-                        player_id=player_id,
-                        availability=response,
-                        source='sms',
-                        player_name=player.name,
-                        team_id=team_id
-                    )
-                    
-                    logger.info(f"📤 WebSocket RSVP update emitted from SMS: match={match_id}, player={player.name}, response={response}")
-                    
-            except Exception as e:
-                logger.error(f"⚠️ Failed to emit WebSocket RSVP update from SMS: {e}")
-                # Don't fail the SMS RSVP - database update was successful
-            
+            # Fan-out (cache, websocket, Discord embed + reaction) is handled inside
+            # RSVPService._fan_out_sync. This path previously emitted to websockets
+            # but never refreshed the Discord embed at all -- centralising fixed that.
             logger.info(f"✅ Enterprise SMS RSVP update successful: player={player_id}, match={match_id}, "
                        f"response={response}, operation_id={operation_id}")
             return True, message

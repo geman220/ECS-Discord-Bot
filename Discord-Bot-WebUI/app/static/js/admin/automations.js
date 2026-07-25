@@ -107,10 +107,24 @@ function renderNewTriggerFields(trigger) {
         const cls = 'w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 ' +
                     'dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 ' +
                     'focus:ring-ecs-green focus:border-ecs-green';
+        const labelHtml = `<label for="${id}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(spec.label)}</label>`;
+        if (spec.type === 'multi') {
+            const picked = new Set(spec.default || []);
+            const boxes = (spec.choices || []).map(([v, l]) =>
+                `<label class="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white cursor-pointer">` +
+                `<input type="checkbox" value="${escapeHtml(v)}" ${picked.has(v) ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green">` +
+                `<span>${escapeHtml(l)}</span></label>`).join('');
+            return `<div>${labelHtml}<div data-nf-multi="${escapeHtml(name)}" ` +
+                   `class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">${boxes}</div>${help}</div>`;
+        }
+        if (spec.type === 'text') {
+            return `<div>${labelHtml}<input type="text" id="${id}" data-nf-field="${escapeHtml(name)}" ` +
+                   `maxlength="${spec.max_length || 200}" value="${escapeHtml(spec.default || '')}" class="${cls}">${help}</div>`;
+        }
         if (spec.type === 'choice') {
             const opts = (spec.choices || []).map(([v, l]) =>
                 `<option value="${escapeHtml(v)}" ${v === spec.default ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('');
-            return `<div><label for="${id}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(spec.label)}</label>` +
+            return `<div>${labelHtml}` +
                    `<select id="${id}" data-nf-field="${escapeHtml(name)}" class="${cls}">${opts}</select>${help}</div>`;
         }
         const min = (spec.min !== null && spec.min !== undefined) ? `min="${spec.min}"` : '';
@@ -228,6 +242,11 @@ async function handleCreateAutomation() {
     document.querySelectorAll('[data-nf-field]').forEach((el) => {
         payload[el.dataset.nfField] = el.type === 'number'
             ? parseInt(el.value || '0', 10) : el.value;
+    });
+    document.querySelectorAll('[data-nf-multi]').forEach((group) => {
+        payload[group.dataset.nfMulti] = Array.from(
+            group.querySelectorAll('input[type="checkbox"]:checked')
+        ).map((cb) => cb.value);
     });
 
     try {
@@ -719,6 +738,18 @@ function collectRuleForm() {
         payload[name] = el.type === 'number'
             ? (el.value === '' ? null : parseInt(el.value, 10))
             : el.value;
+    });
+
+    // Multi-select knobs (the weekly schedule's days) are a checkbox group, so
+    // they send a list. An empty list is sent as-is rather than dropped: the
+    // server rejects it with "pick at least one day", which is the honest
+    // outcome. Silently keeping the old days would ignore a deliberate edit.
+    document.querySelectorAll('[data-multi-field]').forEach((group) => {
+        const name = group.dataset.multiField;
+        if (!name) return;
+        payload[name] = Array.from(
+            group.querySelectorAll('input[type="checkbox"]:checked')
+        ).map((cb) => cb.value);
     });
 
     return payload;

@@ -422,11 +422,22 @@ class RsvpDmReminderLog(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
     match_id = db.Column(db.Integer, nullable=False)
     match_type = db.Column(db.String(10), nullable=False)  # 'pub' or 'ecs_fc'
-    discord_id = db.Column(db.String(100), nullable=False)
+    # Nullable since the log covers every channel, not just Discord. A player
+    # reminded by push or email has no discord_id to record.
+    discord_id = db.Column(db.String(100), nullable=True)
     sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     delivery_status = db.Column(db.String(20), default='sent', nullable=False)  # 'sent', 'failed', 'dm_disabled'
+    # 'discord' | 'orchestrator'. Rows written before this column existed are all
+    # Discord DMs, so NULL reads as 'discord'.
+    #
+    # ⚠️ This table is what enforces "most reminders per match". It MUST get a row
+    # for every channel: when only the Discord path logged, a player on push or
+    # email could be reminded about the same match on every single run, because
+    # the cap had nothing to count. Any new delivery path added below needs a row
+    # here too or it silently escapes the cap.
+    channel = db.Column(db.String(20), nullable=True)
     error_message = db.Column(db.String(255), nullable=True)
-    batch_id = db.Column(db.String(36), nullable=True)  # UUID grouping one beat run
+    batch_id = db.Column(db.String(36), nullable=True)  # UUID grouping one send
 
     player = db.relationship('Player', backref='rsvp_dm_logs')
 

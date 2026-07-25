@@ -6,6 +6,7 @@ Handles channels, roles, permissions, and member role management.
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from discord.ext import commands
+from discord.http import Route
 from shared_states import get_bot_instance, bot_ready
 import logging
 import discord
@@ -48,50 +49,45 @@ async def create_channel(guild_id: int, request: ChannelRequest, bot: commands.B
     if not guild:
         raise HTTPException(status_code=404, detail="Guild not found")
 
-    overwrites = {}
+    # Permission overwrites are forwarded to Discord verbatim rather than being
+    # round-tripped through discord.PermissionOverwrite. That conversion only
+    # preserves bits the installed discord.py has a name for, so any permission
+    # newer than the library (PIN_MESSAGES on 2.4.0, for example) was silently
+    # dropped with no error. Forwarding raw also removes the dependency on the
+    # target role being in the bot's cache -- team roles are created seconds
+    # before the channel, and a cache miss used to discard the overwrite entirely.
+    payload = {"name": request.name, "type": request.type}
+
+    if request.parent_id:
+        payload["parent_id"] = str(request.parent_id)
 
     if request.permission_overwrites:
-        for overwrite_data in request.permission_overwrites:
-            target_id = overwrite_data.id
-            overwrite_type = overwrite_data.type
-            allow = int(overwrite_data.allow)
-            deny = int(overwrite_data.deny)
+        payload["permission_overwrites"] = [
+            {
+                "id": str(ow.id),
+                "type": ow.type,
+                "allow": str(ow.allow or "0"),
+                "deny": str(ow.deny or "0"),
+            }
+            for ow in request.permission_overwrites
+        ]
 
-            # Get the role or member object
-            if overwrite_type == 0:  # Role
-                target = guild.get_role(target_id)
-            elif overwrite_type == 1:  # Member
-                target = guild.get_member(target_id)
-            else:
-                continue  # Invalid type, skip
-
-            if not target:
-                logger.warning(f"Target with ID {target_id} not found")
-                continue
-
-            # Create PermissionOverwrite object
-            permissions = discord.PermissionOverwrite.from_pair(
-                discord.Permissions(allow), discord.Permissions(deny)
-            )
-            overwrites[target] = permissions
-
-    if request.type == 4:  # Category creation
-        try:
-            new_category = await guild.create_category(request.name, overwrites=overwrites)
-            return {"id": new_category.id, "name": new_category.name}
-        except Exception as e:
-            logger.error(f"Failed to create category: {e}")
-            raise HTTPException(status_code=500, detail="Failed to create category")
-    else:  # Text channel creation
-        try:
-            parent_category = guild.get_channel(request.parent_id) if request.parent_id else None
-            new_channel = await guild.create_text_channel(
-                request.name, category=parent_category, overwrites=overwrites
-            )
-            return {"id": new_channel.id, "name": new_channel.name}
-        except Exception as e:
-            logger.error(f"Failed to create channel: {e}")
-            raise HTTPException(status_code=500, detail="Failed to create channel")
+    what = "category" if request.type == 4 else "channel"
+    try:
+        # Sent through the bot's own HTTP client so Discord's rate limits, auth
+        # and retries are still handled by discord.py -- only the lossy typed
+        # permission conversion is bypassed.
+        data = await bot.http.request(
+            Route('POST', '/guilds/{guild_id}/channels', guild_id=guild_id),
+            json=payload,
+        )
+        return {"id": int(data["id"]), "name": data["name"]}
+    except discord.HTTPException as e:
+        logger.error(f"Failed to create {what} '{request.name}': {e.status} {e.text}")
+        raise HTTPException(status_code=500, detail=f"Failed to create {what}: {e.text}")
+    except Exception as e:
+        logger.error(f"Failed to create {what} '{request.name}': {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create {what}")
 
 @router.patch("/channels/{channel_id}")
 async def update_channel(channel_id: int, request: UpdateChannelRequest, bot: commands.Bot = Depends(get_bot)):
@@ -223,14 +219,38 @@ async def update_channel_permissions(guild_id: int, channel_id: int, role_id: in
         # Log the intended permissions
         logger.info(f"Attempting to set permissions for role ID {role_id} on channel ID {channel_id} with allow={request.allow} and deny={request.deny}")
 
-        # Option 1: Use the bot's API (preferred)
-        allow_permissions = discord.Permissions(int(request.allow))
-        deny_permissions = discord.Permissions(int(request.deny))
-        overwrite = discord.PermissionOverwrite.from_pair(allow_permissions, deny_permissions)
-        await channel.set_permissions(guild.get_role(role_id), overwrite=overwrite)
+        # Sent raw for the same reason as channel creation: PermissionOverwrite
+        # only round-trips bits the installed discord.py knows about, so newer
+        # permissions were silently stripped. Still goes through bot.http, so
+        # discord.py's rate limiting and auth apply.
+        await bot.http.request(
+            Route(
+                'PUT', '/channels/{channel_id}/permissions/{target_id}',
+                channel_id=channel_id, target_id=role_id,
+            ),
+            json={"allow": str(request.allow), "deny": str(request.deny), "type": 0},
+        )
         logger.info(f"Permissions set successfully using bot's internal API")
 
         return {"status": "Permissions updated"}
+
+    except discord.RateLimited as bot_api_error:
+        # Only reachable if max_ratelimit_timeout is ever configured on the bot;
+        # RateLimited does not subclass HTTPException, so it needs its own arm.
+        logger.error(f"Rate limited setting permissions on channel {channel_id}: {bot_api_error}")
+        raise HTTPException(status_code=429, detail="Rate limited by Discord")
+
+    except discord.HTTPException as bot_api_error:
+        logger.error(f"Failed to update permissions via bot's API: {bot_api_error}")
+
+        # Never fall back on a rate limit -- the fallback is a bare aiohttp PUT
+        # with no rate limit handling, so retrying a 429 there would make it worse.
+        if bot_api_error.status == 429:
+            raise HTTPException(status_code=429, detail="Rate limited by Discord")
+
+        logger.info("Falling back to direct Discord API call...")
+        bot_token = os.getenv("DISCORD_BOT_TOKEN")  # Make sure to set this in your environment
+        return await direct_api_permission_update(channel_id, role_id, request.allow, request.deny, bot_token)
 
     except Exception as bot_api_error:
         logger.error(f"Failed to update permissions via bot's API: {bot_api_error}")

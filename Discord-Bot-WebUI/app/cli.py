@@ -660,3 +660,91 @@ def backfill_league_membership(batch_size, dry_run):
         click.echo("\n(Dry run - no changes committed. Remove --dry-run to apply.)")
     else:
         click.echo("\nNow re-run sql_check_league_membership_drift.sql; it should come back empty.")
+
+
+@click.command()
+@click.option('--dry-run', is_flag=True, help='Report what would change without renaming anything in Discord.')
+@with_appcontext
+def fix_ecs_fc_role_prefix(dry_run):
+    """Repair ECS FC League team roles created under the wrong prefix.
+
+    Team channels for ECS FC League used to create their per-team roles as
+    "ECS-FC-LEAGUE-<team>-Player/-Coach", but every consumer of those names
+    hardcodes "ECS-FC-PL-": get_expected_roles(), get_app_managed_roles(),
+    rename_team_roles_async_only() and the reconcile allowlist. The result was a
+    channel granting permissions to roles that nobody was ever assigned, so ECS FC
+    League players could not see their own channel and coaches got no moderation.
+
+    Channel creation is fixed going forward. This sweep repairs roles that already
+    exist. Renaming preserves the Discord role ID, so the channel's permission
+    overwrite keeps working and members keep the role.
+    """
+    import asyncio
+    import os
+    import aiohttp
+    from app.discord_utils import rename_role, normalize_name
+    from app.utils.discord_request_handler import make_discord_request
+    from web_config import Config
+
+    OLD_PREFIX = "ECS-FC-LEAGUE-"
+    NEW_PREFIX = "ECS-FC-PL-"
+
+    async def _run():
+        guild_id = int(os.getenv('SERVER_ID'))
+        async with aiohttp.ClientSession() as http:
+            url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/roles"
+            roles = await make_discord_request('GET', url, http)
+            if not roles:
+                click.echo("Could not fetch guild roles from the bot API. Is the bot running?")
+                return
+
+            by_normalized = {normalize_name(r['name']): r for r in roles}
+
+            stale = [r for r in roles
+                     if r['name'].startswith(OLD_PREFIX)
+                     and (r['name'].endswith('-Player') or r['name'].endswith('-Coach'))]
+
+            if not stale:
+                click.echo("No ECS-FC-LEAGUE-* team roles found - nothing to repair.")
+                return
+
+            click.echo(f"Found {len(stale)} role(s) with the stale prefix.\n")
+
+            renamed, conflicts = 0, []
+            for role in sorted(stale, key=lambda r: r['name']):
+                target = NEW_PREFIX + role['name'][len(OLD_PREFIX):]
+                existing = by_normalized.get(normalize_name(target))
+
+                if existing and str(existing['id']) != str(role['id']):
+                    # The calculators already made their own role under the correct
+                    # name and the members are on THAT one. Renaming would leave two
+                    # roles sharing a name and make every by-name lookup ambiguous.
+                    conflicts.append((role, existing, target))
+                    click.echo(f"  CONFLICT {role['name']}")
+                    click.echo(f"           '{target}' already exists (id {existing['id']}).")
+                    continue
+
+                if dry_run:
+                    click.echo(f"  would rename {role['name']}  ->  {target}")
+                else:
+                    await rename_role(guild_id, role['id'], target, http)
+                    click.echo(f"  renamed {role['name']}  ->  {target}")
+                renamed += 1
+
+            click.echo("\n--- Summary ---")
+            click.echo(f"Renamed:   {renamed}")
+            click.echo(f"Conflicts: {len(conflicts)}")
+
+            if conflicts:
+                click.echo(
+                    "\nConflicts were NOT touched. For each one the correctly-named role\n"
+                    "already holds the members, while the team channel's permission\n"
+                    "overwrite still points at the stale (empty) role. Fix by repointing\n"
+                    "the channel overwrite at the existing role id and updating\n"
+                    "teams.discord_player_role_id / discord_coach_role_id to match,\n"
+                    "then delete the stale role."
+                )
+            if dry_run:
+                click.echo("\n(Dry run - no roles renamed. Remove --dry-run to apply.)")
+
+    asyncio.run(_run())

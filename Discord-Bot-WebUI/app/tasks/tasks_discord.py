@@ -47,7 +47,6 @@ from app.utils.task_session_manager import task_session
 from app.discord_utils import (
     update_player_roles,
     rename_team_roles,
-    create_discord_channel,
     get_expected_roles,
     fetch_user_roles,
     process_single_player_update,

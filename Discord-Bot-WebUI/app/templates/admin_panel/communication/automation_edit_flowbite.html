@@ -50,10 +50,13 @@
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
       <i class="ti ti-help-circle" aria-hidden="true"></i><span>Why didn't someone get this?</span>
     </button>
+    {# A copy of a built-in would send everybody the same reminder twice. #}
+    {% if not rule.native_action %}
     <button type="button" data-action="automation-duplicate" data-rule-id="{{ rule.id }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
       <i class="ti ti-copy" aria-hidden="true"></i><span>Duplicate</span>
     </button>
+    {% endif %}
     <button type="button" data-action="automation-save" data-rule-id="{{ rule.id }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors">
       <i class="ti ti-device-floppy" aria-hidden="true"></i><span>Save</span>
@@ -216,11 +219,31 @@
         {% for name, spec in trigger_fields %}
         <div>
           <label for="tf_{{ name }}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">{{ spec.label }}</label>
-          {% if spec.type == 'choice' %}
+          {% if spec.type == 'multi' %}
+          {# Checkbox group. The save payload is assembled by JS from
+             data-multi-field, so the group needs no name= wiring. #}
+          <div data-multi-field="{{ name }}"
+               class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {% set picked = cfg.get(name, spec.default) or [] %}
+            {% for value, label in spec.choices %}
+            <label class="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white cursor-pointer">
+              <input type="checkbox" value="{{ value }}"
+                     {% if value in picked %}checked{% endif %}
+                     class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green">
+              <span>{{ label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          {% elif spec.type == 'text' %}
+          <input type="text" id="tf_{{ name }}" data-trigger-field="{{ name }}"
+                 maxlength="{{ spec.max_length | default(200) }}"
+                 value="{{ cfg.get(name, spec.default) }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+          {% elif spec.type == 'choice' %}
           <select id="tf_{{ name }}" data-trigger-field="{{ name }}"
                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
             {% for value, label in spec.choices %}
-            <option value="{{ value }}" {% if cfg.get(name, spec.default) == value %}selected{% endif %}>{{ label }}</option>
+            <option value="{{ value }}" {% if cfg.get(name, spec.default)|string == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
           {% else %}
@@ -250,20 +273,42 @@
 
       {% call section_card('2 · The audience — who gets it', icon='ti-users') %}
       <div class="p-4 sm:p-5 space-y-4">
+        {% if rule.native_action %}
+        {# A built-in message resolves its own recipients, so an audience picker
+           here would be a control that changes nothing. Say what it does
+           instead. Saving ignores audience_type for these rules server-side. #}
+        <div class="rounded-lg border border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 p-3">
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-wand text-ecs-green me-1" aria-hidden="true"></i>Worked out automatically
+          </p>
+          <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+            Everyone with a match inside the lookahead window who hasn&rsquo;t answered
+            yes, no or maybe. Anyone who hit <strong>Snooze</strong> is skipped, and so is
+            anyone already reminded about that match the maximum number of times.
+            Before the team reveal, Pub League matches are held back and ECS FC ones
+            still go out.
+          </p>
+        </div>
+        {% else %}
         <div>
           <label for="ruleAudienceType" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Audience</label>
           <select id="ruleAudienceType"
                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
             {% for value, label, help in audience_types %}
+            {% if value != 'automatic' %}
             <option value="{{ value }}" {% if rule.audience_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
             {% endfor %}
           </select>
           <div class="mt-2 space-y-1">
             {% for value, label, help in audience_types %}
+            {% if value != 'automatic' %}
             <p class="text-xs text-gray-500 dark:text-gray-400"><strong>{{ label }}:</strong> {{ help }}</p>
+            {% endif %}
             {% endfor %}
           </div>
         </div>
+        {% endif %}
 
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <label class="flex items-start gap-2.5 cursor-pointer">
@@ -322,6 +367,26 @@
              leads it: nothing below matters until you know which channels are
              on, and each channel needs different copy. ──────────────────── #}
         {% set active_channels = rule.channels or ['email'] %}
+        {% if rule.native_action %}
+        {# Channels are not a choice for a built-in: the sender routes each
+           person to their own best channel and Discord gets the interactive
+           version. Saving ignores `channels` for these rules server-side. #}
+        <div class="rounded-xl border-2 border-ecs-green/40 dark:border-ecs-green/50 bg-ecs-green/5 dark:bg-ecs-green/10 p-3 sm:p-4">
+          <p class="text-sm font-bold text-gray-900 dark:text-white">
+            <i class="ti ti-broadcast text-ecs-green me-1" aria-hidden="true"></i>Delivered on each person&rsquo;s best channel
+          </p>
+          <p class="mt-1.5 text-xs text-gray-600 dark:text-gray-300">
+            Push if they have the app, then Discord, then email, then SMS &mdash; one channel
+            each, never all four. Discord users get the version with
+            <strong>Yes / No / Maybe</strong> buttons and a Snooze dropdown, which is why
+            this message is built in rather than assembled from a channel list.
+          </p>
+          <p class="mt-1.5 text-xs text-gray-600 dark:text-gray-300">
+            Anyone who has turned RSVP reminders off in their own notification settings is
+            skipped on every channel.
+          </p>
+        </div>
+        {% else %}
         <div class="rounded-xl border-2 border-ecs-green/40 dark:border-ecs-green/50 bg-ecs-green/5 dark:bg-ecs-green/10 p-3 sm:p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <p class="text-sm font-bold text-gray-900 dark:text-white">
@@ -353,12 +418,17 @@
             system, so an unattended blast would quietly start failing halfway through.
           </p>
         </div>
+        {% endif %}
 
         <div>
           <label for="ruleSubject" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-            Subject line
+            {% if rule.native_action %}Title{% else %}Subject line{% endif %}
             <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">
+              {% if rule.native_action %}
+              Shown as the Discord embed heading and as the push / email title.
+              {% else %}
               Also used as the push / in-app notification title.
+              {% endif %}
             </span>
           </label>
           <input type="text" id="ruleSubject" value="{{ rule.subject }}"
@@ -433,6 +503,28 @@
           </label>
         </div>
 
+        {% if rule.native_action %}
+        {# For a built-in the body is not an email at all -- it is the opening
+           line of the Discord embed, above the per-match list and the buttons.
+           A rich-text editor here would invite formatting Discord cannot show,
+           so it is a plain textarea. #}
+        <div id="emailBodyWrap">
+          <label for="ruleBody" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
+            Discord opening line
+            <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">
+              The sentence above the match list and the RSVP buttons.
+            </span>
+          </label>
+          <textarea id="ruleBody" rows="3"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.body_html }}</textarea>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <strong>Plain text.</strong> Each unanswered match is listed underneath
+            automatically with its opponent, date, time and pitch &mdash; you do not need to
+            mention them here. Discord understands <code>**bold**</code> and
+            <code>*italic*</code>; any HTML is stripped.
+          </p>
+        </div>
+        {% else %}
         <div id="emailBodyWrap">
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <label for="ruleBody" class="block text-sm font-medium text-gray-900 dark:text-white">
@@ -480,6 +572,7 @@
             </p>
           </div>
         </div>
+        {% endif %}
 
         {# Variables panel — driven by MESSAGE_VARIABLES so it can never drift
            from what the engine actually fills. Global values are the LIVE ones. #}
@@ -488,6 +581,25 @@
           <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Type these into the subject or message and they get swapped for real values when it sends.
           </p>
+
+          {% if native_variables %}
+          {# Per-MATCH tokens, filled by the built-in sender rather than by the
+             email personaliser. Listed separately because they behave
+             differently: one line is produced per unanswered match. #}
+          <p class="mt-3 text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Different for each match</p>
+          <dl class="mt-1 space-y-1.5">
+            {% for name, description in native_variables.items() %}
+            <div class="flex flex-col sm:flex-row sm:gap-2">
+              <dt data-var-token="{{ '{' }}{{ name }}{{ '}' }}" class="font-mono text-xs text-ecs-green shrink-0 sm:w-32">&#123;{{ name }}&#125;</dt>
+              <dd class="text-xs text-gray-500 dark:text-gray-400">{{ description }}</dd>
+            </div>
+            {% endfor %}
+          </dl>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Only for the short message &mdash; the Discord version lists each match on its
+            own row, so these are not needed in the opening line.
+          </p>
+          {% endif %}
 
           <p class="mt-3 text-[11px] font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500">Different for each person</p>
           <dl class="mt-1 space-y-1.5">

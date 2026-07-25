@@ -43,6 +43,12 @@ TRIGGER_DRAFT_COMPLETE = 'draft_complete'
 TRIGGER_DRAFT_SESSION_COMPLETE = 'draft_session_complete'
 TRIGGER_SEASON_PHASE = 'season_phase'
 TRIGGER_SEASON_DATE = 'season_date'
+# Recurring triggers: fire on a weekly clock rather than on something happening.
+# Their runs carry an `occurrence` date in the scope key, which is what lets one
+# rule fire again next week without violating the (rule_id, scope_key) unique
+# constraint that makes every other trigger once-only.
+TRIGGER_RECURRING_WEEKLY = 'recurring_weekly'
+TRIGGER_RSVP_NOT_RESPONDED = 'rsvp_not_responded'
 # Per-subject triggers: one run per person, audience = that person.
 TRIGGER_USER_APPROVED = 'user_approved'
 TRIGGER_WAITLIST_STUCK = 'waitlist_stuck'
@@ -61,6 +67,8 @@ TRIGGER_TYPES = {
     TRIGGER_DRAFT_SESSION_COMPLETE: 'Draft clock marked complete (per league)',
     TRIGGER_SEASON_PHASE: 'Season enters a phase',
     TRIGGER_SEASON_DATE: 'Season start / end date',
+    TRIGGER_RECURRING_WEEKLY: 'On a weekly schedule',
+    TRIGGER_RSVP_NOT_RESPONDED: "Hasn't RSVP'd for an upcoming match",
     TRIGGER_USER_APPROVED: 'Someone was approved',
     TRIGGER_WAITLIST_STUCK: 'Stuck on the waitlist too long',
     TRIGGER_SUB_NO_REPLY: 'Sub was asked and never replied',
@@ -83,6 +91,74 @@ PER_SUBJECT_TRIGGERS = (
     TRIGGER_FEEDBACK_OPEN, TRIGGER_SUB_REQUEST_UNFILLED,
     TRIGGER_SUB_POOL_PENDING, TRIGGER_MATCH_RESCHEDULED,
 )
+
+# Triggers that fire on a CLOCK rather than on an event. Their detector returns
+# the most recent past occurrence of (weekday, hour), and the run's scope key
+# carries that occurrence date -- so next week is a different scope and fires
+# again, while re-evaluating within the same week is still idempotent.
+#
+# The engine's beat runs hourly (celery_config.py, 'evaluate-automations'), so an
+# occurrence is picked up within the hour it falls in, not to the minute. A rule
+# set to 12:00 sends at roughly 12:20. Do not promise minute accuracy in the UI.
+RECURRING_TRIGGERS = (
+    TRIGGER_RECURRING_WEEKLY,
+    TRIGGER_RSVP_NOT_RESPONDED,
+)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NATIVE ACTIONS
+#
+# A handful of messages cannot be expressed as "resolve an audience, send this
+# copy" -- the RSVP reminder builds a Discord embed with per-match Yes/No/Maybe
+# buttons and a Snooze dropdown, and works out its own recipients (whoever has
+# not responded to a match inside the lookahead window). Routing it through the
+# generic sender would downgrade it to a plain-text nag with no one-tap RSVP.
+#
+# So the rule owns the SCHEDULE, the AUDIENCE RULES and the COPY, and hands the
+# actual send to a purpose-built task. This is a fixed allow-list keyed by
+# string: `native_action` is never turned into an import path or a task name at
+# runtime, so a tampered column cannot dispatch anything not listed here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+NATIVE_ACTION_RSVP_DM = 'rsvp_dm_reminder'
+
+NATIVE_ACTIONS = {
+    NATIVE_ACTION_RSVP_DM: {
+        'label': 'Interactive RSVP reminder',
+        'trigger': TRIGGER_RSVP_NOT_RESPONDED,
+        'description': ('Sends the Discord DM with Yes / No / Maybe buttons and the '
+                        'Snooze dropdown, and falls back to push, email or SMS for '
+                        'anyone whose best channel is not Discord.'),
+        # Tokens the SENDER fills, per match rather than per person. They are not
+        # in MESSAGE_VARIABLES because nothing else can resolve them, but the
+        # enable-guard has to know they are legitimate or this rule could never
+        # be switched on.
+        'variables': {
+            'team': "The recipient's team in that match",
+            'opponent': 'Who they are playing',
+            'date': 'Match date, e.g. Saturday, April 05',
+            'time': 'Kick-off time, e.g. 06:30 PM',
+            'location': 'Where it is being played',
+        },
+    },
+}
+
+
+def native_variable_names(native_action):
+    """Extra {tokens} a native sender fills in, beyond MESSAGE_VARIABLES."""
+    return set((NATIVE_ACTIONS.get(native_action) or {}).get('variables') or {})
+
+# Triggers whose audience is decided by the sender, not by an audience filter.
+NATIVE_TRIGGERS = tuple(meta['trigger'] for meta in NATIVE_ACTIONS.values())
+
+
+def native_action_for(trigger_type):
+    """The native action a trigger must dispatch through, or None."""
+    for key, meta in NATIVE_ACTIONS.items():
+        if meta['trigger'] == trigger_type:
+            return key
+    return None
+
 
 # NOT offered: a "survey started but never finished" trigger. SurveyResponse.status
 # defaults to 'in_progress', but survey_service.record_response always overwrites it
@@ -130,6 +206,35 @@ TRIGGER_CATALOG = {
         'scope': 'Whole season',
         'group': 'Season',
         'default_audience': 'current_season_players',
+    },
+    TRIGGER_RECURRING_WEEKLY: {
+        'label': 'On a weekly schedule',
+        'help': ('Fires every week on the days you pick, at the hour you pick. Use it '
+                 'for a standing weekly message rather than a reaction to an event. '
+                 'The engine checks hourly, so a rule set to 12:00 goes out during '
+                 'the 12:00 hour, not on the dot.'),
+        'fields': ['weekdays', 'hour', 'max_event_age_days'],
+        'scope': 'Every week',
+        'group': 'Schedule',
+        'default_audience': 'current_season_players',
+        # A weekly send that was missed for a whole day is stale news, and firing
+        # it late is worse than skipping it. The 14-day default that suits event
+        # triggers would replay last week's message.
+        'field_defaults': {'max_event_age_days': 1},
+    },
+    TRIGGER_RSVP_NOT_RESPONDED: {
+        'label': "Hasn't RSVP'd for an upcoming match",
+        'help': ('The weekly RSVP chase. On the days and hour you pick, everyone with '
+                 'a match inside the lookahead window who has not answered yes, no or '
+                 'maybe gets a nudge. Discord users get the DM with Yes / No / Maybe '
+                 'buttons; everyone else gets their best channel. Players who hit '
+                 'Snooze are always left alone.'),
+        'fields': ['weekdays', 'hour', 'lookahead_days', 'max_reminders_per_match',
+                   'dm_footer', 'max_event_age_days'],
+        'scope': 'Everyone with an unanswered match',
+        'group': 'Schedule',
+        'default_audience': 'automatic',
+        'field_defaults': {'max_event_age_days': 1},
     },
     TRIGGER_USER_APPROVED: {
         'label': 'Someone was approved',
@@ -374,6 +479,19 @@ def describe_condition(cond):
     return (label + ' ' + phrase.format(v=cond.get('value', ''))).strip()
 
 
+def describe_schedule(cfg):
+    """'it is Thursday at 12:00 pm' — the recurrence in plain English."""
+    labels = dict(WEEKDAY_CHOICES)
+    picked = [str(d) for d in (cfg or {}).get('weekdays') or ['3']]
+    names = [labels[d] for d in labels if d in picked] or ['Thursday']
+    if len(names) == 1:
+        days = names[0]
+    else:
+        days = ', '.join(names[:-1]) + ' and ' + names[-1]
+    hour = dict(HOUR_CHOICES).get(str((cfg or {}).get('hour', '12')), '12:00 pm')
+    return f'it is {days} at {hour}'
+
+
 def summarize_rule(rule, audience_label=None):
     """One plain-English sentence describing what this automation does.
 
@@ -413,6 +531,11 @@ def summarize_rule(rule, audience_label=None):
     elif rule.trigger_type == TRIGGER_SUB_NO_REPLY:
         when = ("a sub has not answered a request for "
                 + _plural(cfg.get("silence_hours", 24), "hour"))
+    elif rule.trigger_type in RECURRING_TRIGGERS:
+        when = describe_schedule(cfg)
+        if rule.trigger_type == TRIGGER_RSVP_NOT_RESPONDED:
+            when += (" and someone has not answered a match in the next "
+                     + _plural(cfg.get('lookahead_days', 4), 'day'))
 
     delay = rule.delay_hours or 0
     if delay == 0:
@@ -429,7 +552,19 @@ def summarize_rule(rule, audience_label=None):
     names = [pretty.get(c, c) for c in channels]
     how = names[0] if len(names) == 1 else ', '.join(names[:-1]) + ' and ' + names[-1]
 
-    sentence = f"When {when}, {wait} message {who} by {how}."
+    if rule.native_action:
+        # A native rule picks its own recipients and its own channels, so naming
+        # an audience type or a channel list here would describe settings that
+        # have no effect on what actually goes out.
+        meta = NATIVE_ACTIONS.get(rule.native_action) or {}
+        # Lower only the first letter -- .lower() on the whole label turns
+        # "Interactive RSVP reminder" into "interactive rsvp reminder".
+        act = meta.get('label') or 'built-in message'
+        act = (act[0].lower() + act[1:]) if act else act
+        sentence = (f"When {when}, {wait} send the {act} "
+                    f"on each person's best channel.")
+    else:
+        sentence = f"When {when}, {wait} message {who} by {how}."
 
     conds = rule.conditions or []
     if conds:
@@ -452,7 +587,24 @@ def summarize_rule(rule, audience_label=None):
 #
 # 'int'    -> number input, clamped to min/max
 # 'choice' -> select, options are (value, label) pairs
+# 'multi'  -> checkbox group, value is a LIST drawn from 'choices'
+# 'text'   -> single-line free text, clamped to 'max_length'
+#
+# A trigger can override any spec's default via TRIGGER_CATALOG[t]['field_defaults'],
+# which is how the recurring triggers get a 1-day freshness window without
+# forcing that on every event trigger that shares the same field.
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Monday=0 .. Sunday=6, matching datetime.weekday(). NOT crontab's day_of_week
+# (Sunday=0), which is what the old hardcoded beat entry used -- mixing the two
+# conventions is how a "Thursday" reminder ends up going out on Friday.
+WEEKDAY_CHOICES = [
+    ('0', 'Monday'), ('1', 'Tuesday'), ('2', 'Wednesday'), ('3', 'Thursday'),
+    ('4', 'Friday'), ('5', 'Saturday'), ('6', 'Sunday'),
+]
+
+HOUR_CHOICES = [(str(h), f'{(h % 12) or 12}:00 {"am" if h < 12 else "pm"}')
+                for h in range(24)]
 
 TRIGGER_FIELD_SPECS = {
     'max_event_age_days': {
@@ -516,6 +668,33 @@ TRIGGER_FIELD_SPECS = {
     'waiting_days': {
         'label': 'Waiting for (days)', 'type': 'int', 'default': 3, 'min': 1, 'max': 365,
     },
+    'weekdays': {
+        'label': 'Send on', 'type': 'multi', 'default': ['3'],
+        'choices': WEEKDAY_CHOICES,
+        'help': ('Pick more than one day to chase the same people twice in a week — '
+                 'the cap below still limits how many times any one match is chased.'),
+    },
+    'hour': {
+        'label': 'At (Pacific)', 'type': 'choice', 'default': '12',
+        'choices': HOUR_CHOICES,
+        'help': 'The engine checks hourly, so this is the hour it goes out in, not the exact minute.',
+    },
+    'lookahead_days': {
+        'label': 'Look ahead (days)', 'type': 'int', 'default': 4, 'min': 1, 'max': 14,
+        'help': ('How far forward to look for unanswered matches. 4 days from a '
+                 'Thursday reaches Sunday, which covers a normal match week.'),
+    },
+    'max_reminders_per_match': {
+        'label': 'Most reminders per match', 'type': 'int', 'default': 1, 'min': 1, 'max': 5,
+        'help': ('Counted per player per match, across every send. 1 means a player is '
+                 'nudged about a given match once and never again, however many days '
+                 'you selected above.'),
+    },
+    'dm_footer': {
+        'label': 'Discord DM footer', 'type': 'text', 'max_length': 200,
+        'default': 'Click a button to RSVP, or Snooze to pause reminders',
+        'help': 'The small grey line under the Discord message. Leave blank for no footer.',
+    },
 }
 
 
@@ -530,13 +709,26 @@ def trigger_fields_for(trigger_type):
     return out
 
 
+def field_default(trigger_type, name):
+    """The default for one knob, honouring a trigger's field_defaults override."""
+    meta = TRIGGER_CATALOG.get(trigger_type) or {}
+    overrides = meta.get('field_defaults') or {}
+    if name in overrides:
+        return overrides[name]
+    spec = TRIGGER_FIELD_SPECS.get(name) or {}
+    default = spec.get('default')
+    # Lists are mutable: hand every caller its own copy, or one rule editing its
+    # weekdays would mutate the shared spec for the whole process.
+    return list(default) if isinstance(default, list) else default
+
+
 def default_trigger_config(trigger_type, league_type='Pub League'):
     """A complete, valid trigger_config for a newly created rule."""
     cfg = {'league_type': league_type}
-    for name, spec in trigger_fields_for(trigger_type):
-        cfg[name] = spec['default']
+    for name, _spec in trigger_fields_for(trigger_type):
+        cfg[name] = field_default(trigger_type, name)
     cfg.setdefault('max_event_age_days',
-                   TRIGGER_FIELD_SPECS['max_event_age_days']['default'])
+                   field_default(trigger_type, 'max_event_age_days'))
     return cfg
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -711,6 +903,26 @@ TRIGGER_OVERLAPS = {
         'nothing_else': True,
     },
 
+    # ── Schedule ─────────────────────────────────────────────────────────────
+    TRIGGER_RECURRING_WEEKLY: {
+        'text': ("Nothing else sends on a plain weekly clock, so there is no built-in "
+                 "clash. Do check your OWN rules though: two weekly rules on the same "
+                 "day and audience will both go out, and neither knows about the other."),
+        'avoid_channels': [],
+        'where': 'Nothing sends on a generic weekly schedule.',
+        'nothing_else': True,
+    },
+    TRIGGER_RSVP_NOT_RESPONDED: {
+        'text': ("This IS the weekly RSVP chase — it replaced the hardcoded Thursday "
+                 "noon DM, so there is no longer a second copy running behind it. It "
+                 "does still sit alongside the day-before match reminder at 18:00, "
+                 "which nudges non-responders again the evening before a match, and "
+                 "the manual nudge a coach can send from the team page. Someone who "
+                 "never answers can therefore hear from all three."),
+        'avoid_channels': [],
+        'where': 'Daily match reminder (18:00); coach "send reminder" button on a match.',
+    },
+
     # ── Joining ──────────────────────────────────────────────────────────────
     TRIGGER_WAITLIST_STUCK: {
         'text': ("Joining the waitlist sends ONE confirmation email at signup, and "
@@ -857,7 +1069,8 @@ def find_rule_conflicts(rules):
                 {'other_id': rule.id, 'other_name': rule.name, 'detail': detail})
     return conflicts
 
-def build_scope_key(season_id, league_id, subject_type=None, subject_id=None):
+def build_scope_key(season_id, league_id, subject_type=None, subject_id=None,
+                    occurrence=None):
     """Stable scope identifier for an AutomationRun.
 
     league_id is None for season-wide triggers; 'all' keeps those rows unique
@@ -868,10 +1081,18 @@ def build_scope_key(season_id, league_id, subject_type=None, subject_id=None):
     league. The two-part form is preserved verbatim when there is no subject, so
     scope keys written before per-subject triggers existed still match and those
     rules cannot re-fire.
+
+    RECURRING triggers append '@<occurrence>' (an ISO date). The unique
+    constraint is what makes every other trigger fire once and only once, so a
+    weekly rule needs something in the key that changes each week -- otherwise
+    the second Thursday collides with the first and silently never sends. Keys
+    written without an occurrence are unchanged, so nothing existing re-fires.
     """
     base = f"{season_id or 'none'}:{league_id or 'all'}"
     if subject_type and subject_id:
-        return f"{base}:{subject_type}:{subject_id}"
+        base = f"{base}:{subject_type}:{subject_id}"
+    if occurrence:
+        base = f"{base}@{occurrence}"
     return base
 
 
@@ -959,6 +1180,14 @@ class AutomationRule(db.Model):
     body_html = db.Column(db.Text, nullable=False)
     template_id = db.Column(db.Integer, db.ForeignKey('email_templates.id', ondelete='SET NULL'),
                             nullable=True)
+    # ── Action: hand off to a purpose-built sender instead ────────────────────
+    # NULL for an ordinary rule. Set to a key in NATIVE_ACTIONS when the message
+    # is something the generic sender cannot produce -- currently only the
+    # interactive RSVP DM, which needs per-match buttons and works out its own
+    # recipients. Validated against the allow-list on every write; the value is
+    # never used to import or name a task.
+    native_action = db.Column(db.String(64), nullable=True)
+
     # 'individual' so {first_name} personalization works; bcc_batch would send
     # one identical mail to everyone.
     send_mode = db.Column(db.String(20), nullable=False, default='individual')
@@ -1025,6 +1254,8 @@ class AutomationRule(db.Model):
             'channels': self.channels or ['email'],
             'steps': self.action_steps(),
             'stop_when_resolved': self.stop_when_resolved,
+            'native_action': self.native_action,
+            'is_recurring': self.trigger_type in RECURRING_TRIGGERS,
             'subject': self.subject,
             'short_message': self.short_message,
             'send_mode': self.send_mode,

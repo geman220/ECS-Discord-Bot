@@ -728,8 +728,9 @@ class CeleryConfig:
         # =====================================================================
         # UNIFIED NOTIFICATION SYSTEM - Automated Reminders
         # =====================================================================
-        # RSVP reminders: Handled by send_rsvp_dm_reminders (Thursday noon)
-        # which supports interactive Discord buttons + orchestrator tiers.
+        # RSVP reminders: Handled by send_rsvp_dm_reminders, which supports
+        # interactive Discord buttons + orchestrator tiers. It has no beat entry
+        # any more — an automation rule schedules it (see the note further down).
         # The old daily send_rsvp_reminders task was removed to prevent
         # duplicate notifications — players get ONE reminder per match.
 
@@ -780,20 +781,20 @@ class CeleryConfig:
         },
 
         # =====================================================================
-        # RSVP DM REMINDERS (Thursday Noon PST)
+        # RSVP DM REMINDERS — NO BEAT ENTRY, ON PURPOSE
         # =====================================================================
-        # DMs players who haven't RSVP'd for upcoming weekend matches.
-        # RSVP embeds go out Monday 2am, this reminds stragglers Thursday noon.
-        'send-rsvp-dm-reminders-thursday': {
-            'task': 'app.tasks.tasks_rsvp_dm_reminders.send_rsvp_dm_reminders',
-            'schedule': crontab(day_of_week='4', hour=12, minute=0),  # Thursday noon PST
-            'options': {
-                'queue': 'discord',
-                'expires': 3600,
-                'time_limit': 600,
-                'soft_time_limit': 540
-            }
-        },
+        # There used to be a 'send-rsvp-dm-reminders-thursday' entry here, fixed
+        # at crontab(day_of_week='4', hour=12). It is now driven by an automation
+        # rule instead ('rsvp_dm_reminder', trigger 'rsvp_not_responded') at
+        # /admin-panel/communication/automations, so an admin can change the day,
+        # the hour, how far ahead it looks, how many times one match may be
+        # chased, and the wording — without a deploy.
+        #
+        # Do NOT add the beat entry back alongside the rule. Both would fire and
+        # every player would get the reminder twice; nothing deduplicates across
+        # the two paths.
+        #
+        # The dispatcher is the hourly 'evaluate-automations' entry above.
 
         # =====================================================================
         # WEEKLY SUB AVAILABILITY POLL (Friday 2 PM PST)

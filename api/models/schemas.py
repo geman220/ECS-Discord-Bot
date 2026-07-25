@@ -161,6 +161,16 @@ class RSVPReminderMatch(BaseModel):
 
 
 class RSVPReminderDMRequest(BaseModel):
-    """Request to send an RSVP reminder DM with interactive buttons."""
+    """Request to send an RSVP reminder DM with interactive buttons.
+
+    title/description/footer are the admin-editable copy, owned by the
+    'rsvp_dm_reminder' automation rule in the web app. All three are OPTIONAL:
+    when absent (an older web app, or a field the admin blanked) the embed
+    builder falls back to the strings baked in here, so the DM is never sent
+    with an empty heading.
+    """
     discord_id: str
     matches: List[RSVPReminderMatch]
+    title: Optional[str] = None
+    description: Optional[str] = None
+    footer: Optional[str] = None

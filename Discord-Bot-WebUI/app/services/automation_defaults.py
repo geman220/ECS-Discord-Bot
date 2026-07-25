@@ -100,8 +100,74 @@ parties, and the usual chaos don't stop just because the league does.</p>
 """.strip()
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# RSVP reminder copy.
+#
+# This one is NOT email HTML. It drives a Discord embed and a push/email/SMS
+# notification, so every string here is plain text:
+#
+#   subject        -> the title, on every channel
+#   short_message  -> one line per unanswered match, on push / email / SMS.
+#                     {team} {opponent} {date} {time} {location} are filled per
+#                     MATCH by the sender, not per person.
+#   body_html      -> the Discord DM's opening line. Markup is stripped before
+#                     it reaches Discord, which cannot render HTML.
+# ─────────────────────────────────────────────────────────────────────────────
+
+RSVP_REMINDER_SUBJECT = 'RSVP Reminder'
+
+RSVP_REMINDER_SHORT = 'Please RSVP for {team} vs {opponent} on {date} at {time}'
+
+RSVP_REMINDER_DM_INTRO = ("You haven't RSVP'd for the following match(es). "
+                          "Use the buttons below to respond!")
+
+RSVP_REMINDER_FOOTER = 'Click a button to RSVP, or Snooze to pause reminders'
+
+
 # Seeded rules. `key` is the stable slug the SQL migration and code both use.
 SEEDED_RULES = [
+    {
+        'key': 'rsvp_dm_reminder',
+        'name': 'Weekly RSVP reminder',
+        'description': (
+            'The weekly chase for unanswered matches. Players on Discord get the DM '
+            'with Yes / No / Maybe buttons and a Snooze dropdown; everyone else gets '
+            'a push, email or text. Anyone who has snoozed is left alone.\n\n'
+            'This replaced a hardcoded Thursday-noon task, so it ships switched ON '
+            'with exactly the old settings. Turning it off stops RSVP reminders '
+            'entirely — there is no longer a second copy running behind it.'
+        ),
+        'trigger_type': 'rsvp_not_responded',
+        'native_action': 'rsvp_dm_reminder',
+        'trigger_config': {
+            'league_type': 'Pub League',
+            # '3' is Thursday under datetime.weekday() (Mon=0). The beat entry
+            # this replaced used crontab day_of_week='4', which is ALSO Thursday
+            # because crontab counts from Sunday=0. Same day, different numbers.
+            'weekdays': ['3'],
+            'hour': '12',
+            'lookahead_days': 4,
+            'max_reminders_per_match': 1,
+            'dm_footer': RSVP_REMINDER_FOOTER,
+            # A weekly reminder that is a day late is stale, and sending it late
+            # is worse than skipping it.
+            'max_event_age_days': 1,
+        },
+        # Send in the hour it fires. The old beat had no delay either.
+        'delay_hours': 0,
+        'audience_type': 'automatic',
+        'audience_config': {},
+        'channels': ['discord'],
+        'subject': RSVP_REMINDER_SUBJECT,
+        'short_message': RSVP_REMINDER_SHORT,
+        'body_html': RSVP_REMINDER_DM_INTRO,
+        'send_mode': 'individual',
+        'force_send': True,
+        # The ONE seeded rule that ships enabled. Everything else is off by
+        # default because it has never sent before; this one has been sending
+        # every Thursday for months and must not go quiet on deploy.
+        'enabled': True,
+    },
     {
         'key': 'draft_discord_invite',
         'name': 'Drafted players not in Discord',

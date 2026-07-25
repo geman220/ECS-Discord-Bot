@@ -40,12 +40,14 @@
     <div class="flex gap-3">
       <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
       <div class="text-sm text-blue-900 dark:text-blue-200 space-y-1.5">
-        <p><strong>These send without anyone pressing a button.</strong> A rule watches for
+        <p><strong>These send without anyone pressing a button.</strong> Most rules watch for
         something to happen &mdash; a league finishing its draft, the season turning over &mdash;
-        waits the configured delay, then emails whoever matches its audience.</p>
-        <p>Every send is recorded as a normal email blast, so you can open it and see exactly
-        who received it and whether it landed. A rule fires at most <em>once per league per
-        season</em>.</p>
+        wait the configured delay, then message whoever matches their audience. Those fire at
+        most <em>once per league per season</em>.</p>
+        <p>Rules on a <strong>weekly schedule</strong> work the other way round: they go out on
+        the days and hour you pick, every week. The RSVP reminder is one of these.</p>
+        <p>Email sends are recorded as a normal email blast, so you can open one and see exactly
+        who received it and whether it landed.</p>
       </div>
     </div>
   </div>
@@ -112,7 +114,16 @@
       <div class="p-4 sm:p-5">
         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div class="min-w-0">
-            <h2 class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">{{ rule.name }}</h2>
+            <h2 class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">
+              {{ rule.name }}
+              {% if rule.native_action %}
+              {# Says up front that this one is different: it cannot be deleted
+                 or copied, and its trigger is fixed. #}
+              <span class="align-middle ms-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                <i class="ti ti-lock text-[10px]" aria-hidden="true"></i>Built-in
+              </span>
+              {% endif %}
+            </h2>
             {% if summaries and summaries.get(rule.id) %}
             <p class="mt-1.5 text-sm text-gray-700 dark:text-gray-200 max-w-prose">{{ summaries[rule.id] }}</p>
             {% endif %}
@@ -161,22 +172,46 @@
             {% endif %}
 
             <dl class="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+              {% if rule.trigger_type in ('recurring_weekly', 'rsvp_not_responded') %}
+              {# A recurring rule's headline fact is WHEN it goes out, not how
+                 long it waits after an event -- there is no event to wait on. #}
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Runs</dt>
+                <dd class="font-semibold text-gray-900 dark:text-white">{{ rule_schedules.get(rule.id, '—') }}</dd>
+              </div>
+              {% else %}
               <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Waits</dt>
                 <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ rule.delay_hours }}h</dd>
               </div>
+              {% endif %}
               {% if rule.trigger_type == 'draft_complete' %}
               <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Threshold</dt>
                 <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ (rule.trigger_config or {}).get('min_players_per_team', 6) }}/team</dd>
               </div>
               {% endif %}
+              {% if rule.trigger_type == 'rsvp_not_responded' %}
+              <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Looks ahead</dt>
+                <dd class="font-mono font-semibold text-gray-900 dark:text-white">{{ (rule.trigger_config or {}).get('lookahead_days', 4) }}d
+                  <span class="font-sans font-normal text-xs text-gray-500 dark:text-gray-400">&middot; max {{ (rule.trigger_config or {}).get('max_reminders_per_match', 1) }}&times;/match</span>
+                </dd>
+              </div>
+              {% endif %}
               <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Sends via</dt>
                 <dd class="flex flex-wrap gap-1 mt-0.5">
+                  {% if rule.native_action %}
+                  {# Channels are not a setting for a built-in: the sender picks
+                     each person's best one. Listing rule.channels here would
+                     read as a configuration that does not exist. #}
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Best channel each</span>
+                  {% else %}
                   {% for ch in (rule.channels or ['email']) %}
                   <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ ch.replace('_', ' ') }}</span>
                   {% endfor %}
+                  {% endif %}
                 </dd>
               </div>
               <div>
@@ -203,12 +238,17 @@
                     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/15 hover:bg-amber-200 dark:hover:bg-amber-500/25 transition-colors">
               <i class="ti ti-bolt" aria-hidden="true"></i><span>Force run</span>
             </button>
+            {# Built-ins cannot be deleted: nothing here could rebuild one, and
+               the messages it drives would stop for good. The server refuses it
+               too; hiding the button just avoids offering a dead end. #}
+            {% if not rule.native_action %}
             <button type="button" data-action="automation-delete"
                     data-rule-id="{{ rule.id }}" data-rule-name="{{ rule.name }}"
                     title="Delete this automation"
                     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-500/15 hover:bg-red-100 dark:hover:bg-red-500/25 transition-colors">
               <i class="ti ti-trash" aria-hidden="true"></i><span class="sr-only">Delete</span>
             </button>
+            {% endif %}
             {% endif %}
             <a href="{{ url_for('admin_panel.automation_edit', rule_id=rule.id) }}"
                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">

@@ -44,11 +44,9 @@ from app.discord_utils import (
     get_role_names,
     get_or_create_category,
     create_category,
-    create_discord_roles,
     create_discord_channel_async_only,
     rename_team_roles_async_only,
     create_match_thread_async_only,
-    create_discord_channel,
     assign_roles_to_player,
     get_league_role_name,
     remove_player_roles,
@@ -1596,44 +1594,6 @@ class TestPermissionConstants:
         THEN it should be set to 50 (Discord's global rate limit)
         """
         assert GLOBAL_RATE_LIMIT == 50
-
-
-# =============================================================================
-# CREATE DISCORD ROLES TESTS
-# =============================================================================
-
-@pytest.mark.unit
-class TestCreateDiscordRoles:
-    """Test Discord role creation behaviors."""
-
-    @pytest.mark.asyncio
-    async def test_create_discord_roles_success(self, db, team, mock_env_vars):
-        """
-        GIVEN a team without Discord roles
-        WHEN creating Discord roles
-        THEN the player role should be created and saved to the team
-        """
-        with patch('app.discord_utils.get_or_create_role') as mock_get_role:
-            mock_get_role.return_value = 'new_role_123'
-
-            result = await create_discord_roles(db.session, team.name, team.id)
-
-            assert result['success'] is True
-            assert result['role_id'] == 'new_role_123'
-
-    @pytest.mark.asyncio
-    async def test_create_discord_roles_failure(self, db, team, mock_env_vars):
-        """
-        GIVEN role creation fails
-        WHEN creating Discord roles
-        THEN an error result should be returned
-        """
-        with patch('app.discord_utils.get_or_create_role') as mock_get_role:
-            mock_get_role.return_value = None
-
-            result = await create_discord_roles(db.session, team.name, team.id)
-
-            assert result['success'] is False
 
 
 # =============================================================================

@@ -24,11 +24,13 @@ from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
 from app.models import (AutomationRule, AutomationRun, User, TRIGGER_TYPES,
                         TRIGGER_CATALOG, PER_SUBJECT_TRIGGERS,
+                        RECURRING_TRIGGERS, NATIVE_TRIGGERS, NATIVE_ACTIONS,
+                        native_action_for, field_default,
                         CONDITION_FIELDS, CONDITION_OPS,
                         CONDITION_OPS_NEEDING_VALUE, condition_ops_for,
                         TRIGGER_FIELD_SPECS, trigger_fields_for,
                         default_trigger_config, MESSAGE_VARIABLES,
-                        known_variable_names, overlap_warning,
+                        known_variable_names, native_variable_names, overlap_warning,
                         channel_clashes, TRIGGER_OVERLAPS, find_rule_conflicts,
                         all_rule_channels, EmailTemplate)
 from app.utils.db_utils import transactional
@@ -68,12 +70,65 @@ def _coerce_field(name, spec, raw, fallback):
         if hi is not None:
             val = min(hi, val)
         return val
+    if spec['type'] == 'text':
+        return str(raw or '').strip()[:spec.get('max_length', 200)]
     valid = {c[0] for c in spec.get('choices', [])}
+    if spec['type'] == 'multi':
+        picked = [str(v) for v in (raw or []) if str(v) in valid] \
+            if isinstance(raw, (list, tuple)) else []
+        # An empty selection is not a valid schedule -- a weekly rule with no
+        # weekday would sit enabled and never fire, which reads as a bug.
+        return picked or fallback
     return str(raw) if str(raw) in valid else fallback
+
+
+def _validate_field(name, spec, raw):
+    """Strict validation for one trigger knob. Returns (value, error_message)."""
+    if spec['type'] == 'int':
+        try:
+            val = int(raw)
+        except (TypeError, ValueError):
+            return None, f"{spec['label']} must be a whole number"
+        lo, hi = spec.get('min'), spec.get('max')
+        if (lo is not None and val < lo) or (hi is not None and val > hi):
+            return None, f"{spec['label']} must be between {lo} and {hi}"
+        return val, None
+
+    if spec['type'] == 'text':
+        return str(raw or '').strip()[:spec.get('max_length', 200)], None
+
+    valid = {c[0] for c in spec.get('choices', [])}
+    if spec['type'] == 'multi':
+        if not isinstance(raw, (list, tuple)):
+            return None, f"{spec['label']} must be a list"
+        picked = [str(v) for v in raw]
+        unknown = [v for v in picked if v not in valid]
+        if unknown:
+            return None, f"{spec['label']}: unknown option {unknown[0]!r}"
+        if not picked:
+            return None, (f"Pick at least one option for “{spec['label']}” — "
+                          f"an empty schedule would never fire.")
+        # De-duplicate and store in the canonical order the choices declare, so
+        # two rules with the same days compare equal.
+        return [v for v, _ in spec['choices'] if v in set(picked)], None
+
+    if str(raw) not in valid:
+        return None, f"{spec['label']}: unknown option"
+    return str(raw), None
 
 
 def _audience_trigger_conflict(trigger_type, audience_type):
     """Return an error string if this audience cannot work with this trigger."""
+    # Native triggers hand the send to a purpose-built task that resolves its own
+    # recipients (for RSVP: whoever has an unanswered match in the window). An
+    # audience filter here would be a setting that changes nothing.
+    if trigger_type in NATIVE_TRIGGERS and audience_type != 'automatic':
+        return ('This trigger works out its own recipients, so it has to use '
+                '"Chosen by the automation". Picking an audience here would have '
+                'no effect on who actually gets the message.')
+    if audience_type == 'automatic' and trigger_type not in NATIVE_TRIGGERS:
+        return ('"Chosen by the automation" only applies to built-in messages that '
+                'resolve their own recipients. Pick a real audience for this trigger.')
     if trigger_type in _SEASON_WIDE_TRIGGERS and audience_type in _PER_LEAGUE_AUDIENCES:
         return ('That audience is scoped to the league that triggered the rule, but this '
                 'trigger fires for the whole season with no specific league — it would '
@@ -95,6 +150,9 @@ def _audience_trigger_conflict(trigger_type, audience_type):
 AUDIENCE_TYPES = [
     ('the_subject', 'Just the person it is about',
      'The one person the trigger fired for. Only works with a per-person trigger.'),
+    ('automatic', 'Chosen by the automation',
+     'The built-in message decides who needs it — for the RSVP chase, everyone with '
+     'an unanswered match in the window who has not snoozed.'),
     ('drafted_not_in_discord', 'Rostered players not in Discord',
      'Players on a team this season whose Discord account is missing or not in the server.'),
     ('current_season_players', 'Current season players',
@@ -182,10 +240,17 @@ def automations_list():
                          .limit(10).all()),
         }
 
-    from app.models import summarize_rule
+    from app.models import summarize_rule, describe_schedule
     _labels = {v: l for v, l, _ in AUDIENCE_TYPES}
     summaries = {r.id: summarize_rule(r, _labels.get(r.audience_type, r.audience_type).lower())
                  for r in rules}
+    # "Thursday at 12:00 pm" for the recurring rules, so the list answers WHEN
+    # without making an admin open the editor. describe_schedule returns a
+    # sentence fragment ("it is X"); strip the lead-in for a table cell.
+    rule_schedules = {
+        r.id: describe_schedule(r.trigger_config or {}).replace('it is ', '', 1)
+        for r in rules if r.trigger_type in RECURRING_TRIGGERS
+    }
 
     # Two kinds of "this may double-message someone": another ENABLED rule doing
     # the same job, and a hardcoded sender that already covers this trigger.
@@ -200,6 +265,7 @@ def automations_list():
         tab=tab,
         rules=rules,
         summaries=summaries,
+        rule_schedules=rule_schedules,
         conflicts=conflicts,
         hardcoded_overlaps=hardcoded_overlaps,
         runs=runs,
@@ -228,11 +294,18 @@ def automation_new():
     EVENT and the audience; the message, conditions and follow-up steps are then
     written in the editor, which already does all of that well.
     """
+    # Built-in triggers are seeded, never authored: there is exactly one RSVP
+    # reminder and a second would double-send. Hide them here rather than
+    # offering a choice that automation_create() then refuses.
+    buildable = {k: v for k, v in TRIGGER_CATALOG.items() if k not in NATIVE_TRIGGERS}
+    # Likewise "Chosen by the automation" only exists for those triggers.
+    pickable_audiences = [a for a in AUDIENCE_TYPES if a[0] != 'automatic']
+
     return render_template(
         'admin_panel/communication/automation_new_flowbite.html',
-        trigger_catalog=TRIGGER_CATALOG,
+        trigger_catalog=buildable,
         trigger_field_specs=TRIGGER_FIELD_SPECS,
-        audience_types=AUDIENCE_TYPES,
+        audience_types=pickable_audiences,
         per_subject_triggers=PER_SUBJECT_TRIGGERS,
         trigger_overlaps=TRIGGER_OVERLAPS,
         page_title='New Automation',
@@ -283,6 +356,10 @@ def automation_edit(rule_id):
         condition_fields=CONDITION_FIELDS,
         condition_ops=CONDITION_OPS,
         message_variables=MESSAGE_VARIABLES,
+        # Per-match tokens a built-in sender fills. Empty dict for ordinary
+        # rules, which is what hides the extra panel.
+        native_variables=(NATIVE_ACTIONS.get(rule.native_action) or {}).get('variables') or {},
+        native_meta=NATIVE_ACTIONS.get(rule.native_action),
         overlap=overlap_warning(rule.trigger_type),
         # Across the whole ladder, not just step 1.
         overlap_clashes=channel_clashes(rule.trigger_type, all_rule_channels(rule)),
@@ -321,6 +398,16 @@ def automation_create():
         return jsonify({'success': False, 'error': 'Give the automation a name'}), 400
     if trigger_type not in TRIGGER_CATALOG:
         return jsonify({'success': False, 'error': 'Pick a trigger'}), 400
+    # Built-in messages are seeded, not authored. A second RSVP rule would send
+    # a second reminder to the same people on the same day, and nothing in the
+    # engine deduplicates across rules.
+    if trigger_type in NATIVE_TRIGGERS:
+        return jsonify({
+            'success': False,
+            'error': ('That is a built-in message and there is already one of it. '
+                      'Open the existing automation and change its schedule or copy '
+                      'instead — a second one would send everybody twice.'),
+        }), 400
 
     audience = data.get('audience_type') or TRIGGER_CATALOG[trigger_type]['default_audience']
     if audience not in {a[0] for a in AUDIENCE_TYPES}:
@@ -391,6 +478,14 @@ def automation_duplicate(rule_id):
     src = session.query(AutomationRule).get(rule_id)
     if not src:
         return jsonify({'success': False, 'error': 'Rule not found'}), 404
+    # Copying a built-in would either double-send (if the copy kept its action)
+    # or produce a rule that fires and does nothing (if it did not).
+    if src.native_action:
+        return jsonify({
+            'success': False,
+            'error': ('Built-in messages cannot be copied — a second copy would send '
+                      'everybody the same reminder twice. Edit this one instead.'),
+        }), 400
 
     name = f'{src.name} (copy)'[:200]
     base_key = _re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')[:48] or 'automation'
@@ -434,6 +529,17 @@ def automation_delete(rule_id):
     rule = session.query(AutomationRule).get(rule_id)
     if not rule:
         return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    # Deleting a built-in is a one-way door: it is seeded, not authored, so the
+    # UI cannot rebuild it and the messages it drives simply stop for good. The
+    # Enabled switch does everything deleting would, and is reversible.
+    if rule.native_action:
+        return jsonify({
+            'success': False,
+            'error': ('This is a built-in message and it cannot be deleted — nothing '
+                      'in the admin panel could put it back, and the reminders it '
+                      'sends would stop permanently. Switch it off instead.'),
+        }), 400
 
     key = rule.key
     session.delete(rule)
@@ -580,7 +686,12 @@ def automation_update(rule_id):
     if 'short_message' in data:
         rule.short_message = (data.get('short_message') or '').strip()[:1000] or None
 
-    if 'channels' in data:
+    # A native rule's channels and audience are decided by its sender, not here.
+    # The editor renders them as read-only text, but the save payload is built
+    # from the whole form, so IGNORE them server-side rather than trusting the
+    # page to have omitted them -- otherwise an empty channel list from a
+    # rearranged form would 400 on a rule whose channels were never editable.
+    if 'channels' in data and not rule.native_action:
         requested = data.get('channels') or []
         if not isinstance(requested, list):
             return jsonify({'success': False, 'error': 'Channels must be a list'}), 400
@@ -622,20 +733,36 @@ def automation_update(rule_id):
                           'changed — the history would no longer line up. Duplicate it '
                           'instead and change the trigger on the copy.'),
             }), 400
+        # A built-in message is bound to its own trigger -- an RSVP rule pointed
+        # at "season starts" would try to send an interactive match reminder with
+        # no matches. Refuse rather than produce a rule that cannot work.
+        if rule.native_action or new_trigger in NATIVE_TRIGGERS:
+            return jsonify({
+                'success': False,
+                'error': ('This is a built-in message, so its trigger is fixed. You can '
+                          'change when it runs and what it says, but not what sets it '
+                          'off.'),
+            }), 400
         rule.trigger_type = new_trigger
         # Keep only the config keys the new trigger understands.
         allowed = set(TRIGGER_CATALOG[new_trigger].get('fields', []))
         cfg_now = {k: v for k, v in (rule.trigger_config or {}).items()
                    if k in allowed or k == 'league_type'}
-        cfg_now.setdefault('max_event_age_days', 14)
+        # Fill any knob the new trigger needs but the old one never had, using
+        # the new trigger's own defaults -- a recurring trigger arriving with no
+        # weekdays would be enabled and permanently inert.
+        for _n, _s in trigger_fields_for(new_trigger):
+            cfg_now.setdefault(_n, field_default(new_trigger, _n))
+        cfg_now.setdefault('max_event_age_days',
+                           field_default(new_trigger, 'max_event_age_days'))
         rule.trigger_config = cfg_now
         # A per-person trigger can only ever target the person it fired for.
         if new_trigger in PER_SUBJECT_TRIGGERS:
             rule.audience_type = 'the_subject'
-        elif rule.audience_type == 'the_subject':
+        elif rule.audience_type in ('the_subject', 'automatic'):
             rule.audience_type = TRIGGER_CATALOG[new_trigger]['default_audience']
 
-    if 'audience_type' in data:
+    if 'audience_type' in data and not rule.native_action:
         audience = data.get('audience_type')
         if audience not in {a[0] for a in AUDIENCE_TYPES}:
             return jsonify({'success': False, 'error': 'Unknown audience type'}), 400
@@ -664,26 +791,14 @@ def automation_update(rule_id):
         if _name not in data:
             continue
         raw = data.get(_name)
-        if raw in (None, ''):
+        # 'text' is the one type where empty is a legitimate answer (no footer).
+        if raw in (None, '') and _spec['type'] != 'text':
             return jsonify({'success': False,
                             'error': f"{_spec['label']} needs a value"}), 400
-        if _spec['type'] == 'int':
-            try:
-                val = int(raw)
-            except (TypeError, ValueError):
-                return jsonify({'success': False,
-                                'error': f"{_spec['label']} must be a whole number"}), 400
-            lo, hi = _spec.get('min'), _spec.get('max')
-            if (lo is not None and val < lo) or (hi is not None and val > hi):
-                return jsonify({'success': False,
-                                'error': f"{_spec['label']} must be between {lo} and {hi}"}), 400
-            cfg[_name] = val
-        else:
-            valid = {c[0] for c in _spec.get('choices', [])}
-            if str(raw) not in valid:
-                return jsonify({'success': False,
-                                'error': f"{_spec['label']}: unknown option"}), 400
-            cfg[_name] = str(raw)
+        val, err = _validate_field(_name, _spec, raw)
+        if err:
+            return jsonify({'success': False, 'error': err}), 400
+        cfg[_name] = val
 
     rule.trigger_config = cfg
 
@@ -714,7 +829,7 @@ def automation_toggle(rule_id):
         # per-recipient tokens are ever substituted. Anything else left in the
         # body ships literally -- the seeded season-wrap rule has a {survey_url}
         # button that would point nowhere.
-        known = known_variable_names()
+        known = known_variable_names() | native_variable_names(rule.native_action)
         body = f'{rule.subject or ""} {rule.body_html or ""} {rule.short_message or ""}'
         unresolved = sorted({m for m in re.findall(r'\{(\w+)\}', body)} - known)
         if unresolved:
@@ -754,7 +869,12 @@ def automation_toggle(rule_id):
         # than letting it sit pending with no visible reason.
         from app.services.automation_service import rule_leaks_team_names
         from app.services.team_visibility import teams_are_public
-        if rule_leaks_team_names(rule) and not teams_are_public():
+        # Native senders are not subject to the generic reveal hold -- the RSVP
+        # sender does its own, finer-grained thing (skip hidden Pub League
+        # matches, still chase ECS FC), so warning about a hold that will not
+        # happen would just be wrong.
+        if (not rule.native_action and rule_leaks_team_names(rule)
+                and not teams_are_public()):
             warnings.append(
                 'This message contains {team} and team assignments are still hidden, '
                 'so it will be held back automatically and send itself once you turn '

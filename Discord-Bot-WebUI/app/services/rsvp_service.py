@@ -599,6 +599,114 @@ class RSVPService:
         
         return health
     
+    def _resolve_team_id_for_match(self, player_id: int, match: Match) -> Optional[int]:
+        """Team the player belongs to for this match, without loading either roster."""
+        try:
+            from app.models import player_teams
+            row = self.session.query(player_teams).filter(
+                player_teams.c.player_id == player_id,
+                player_teams.c.team_id.in_([match.home_team_id, match.away_team_id])
+            ).first()
+            return row.team_id if row else None
+        except Exception as e:
+            logger.debug(f"Could not resolve team_id for player {player_id} / match {match.id}: {e}")
+            return None
+
+    def _fan_out_sync(
+        self,
+        match_id: int,
+        player_id: int,
+        new_response: str,
+        source: RSVPSource,
+        match: Optional[Match] = None,
+        player_name: Optional[str] = None,
+        discord_id: Optional[str] = None,
+        old_response: Optional[str] = None,
+    ) -> None:
+        """Push a committed RSVP change to every surface that mirrors it.
+
+        This is the ONE fan-out point for the sync path: read cache, websocket
+        clients (web + Flutter), and the Discord embed. Callers used to each
+        hand-roll some subset of these, so which surfaces refreshed depended on
+        which endpoint the user happened to hit -- the Discord embed was never
+        refreshed from the SMS or ECS FC paths, and the read cache was only
+        warmed from the Discord path. Anything that commits an RSVP should call
+        this instead of firing notifications itself.
+
+        Best-effort by design: the RSVP is already committed, so a notification
+        failure must never turn a successful update into a failed one. Each step
+        is isolated so one broken surface cannot starve the others.
+        """
+        team_id = self._resolve_team_id_for_match(player_id, match) if match else None
+
+        # 1. Read cache -- keeps subsequent reads from going to the database.
+        try:
+            from app.cache.rsvp_cache import rsvp_cache
+            rsvp_cache.update_player_rsvp(
+                match_id=match_id,
+                player_id=player_id,
+                availability=new_response,
+                player_name=player_name,
+            )
+        except Exception as e:
+            logger.warning(f"RSVP fan-out: cache update failed for match {match_id}: {e}")
+
+        # 2. WebSocket -- live update for web and mobile clients in the match room.
+        try:
+            from app.sockets.rsvp import emit_rsvp_update
+            emit_rsvp_update(
+                match_id=match_id,
+                player_id=player_id,
+                availability=new_response,
+                source=source.value if hasattr(source, 'value') else str(source),
+                player_name=player_name,
+                team_id=team_id,
+            )
+        except Exception as e:
+            logger.warning(f"RSVP fan-out: websocket emit failed for match {match_id}: {e}")
+
+        # 3. Discord -- re-render the match embed so it matches the database.
+        #
+        # There are two overlapping embed refreshers in the codebase:
+        #   - update_discord_embed_task, queued automatically inside
+        #     emit_rsvp_update() above whenever source != 'discord'
+        #   - notify_discord_of_rsvp_change_task, called here, which is rate
+        #     limited to one send per 10s per match and records
+        #     match.last_discord_notification
+        # Both are kept because notify_* is aliased to an ECS-FC-specific task in
+        # tasks_rsvp_ecs.py and update_discord_embed_task does not cover that case.
+        # This mirrors exactly what the web path already did, so every source now
+        # behaves like the best-tested one. Collapsing the two is a follow-up.
+        try:
+            from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
+            notify_discord_of_rsvp_change_task.delay(match_id)
+        except Exception as e:
+            logger.warning(f"RSVP fan-out: Discord notify failed for match {match_id}: {e}")
+
+        # 4. Discord -- move this user's own reaction on the match message.
+        #
+        # Skipped when the change CAME from Discord: the user just set their own
+        # reaction, so re-driving it means the bot reacting to its own input. The
+        # task has internal reaction-state checks that would probably no-op, but
+        # relying on that is a reaction feedback loop waiting to happen. The
+        # Discord path never fired this before centralisation and must not start.
+        #
+        # Note old_response is the value from BEFORE the commit. The web path used
+        # to re-read the availability row here, which had already been updated, so
+        # it always passed old_response == new_response and the task could not tell
+        # which reaction to remove.
+        if discord_id and source != RSVPSource.DISCORD:
+            try:
+                from app.tasks.tasks_rsvp import update_discord_rsvp_task
+                update_discord_rsvp_task.delay(
+                    match_id=match_id,
+                    discord_id=discord_id,
+                    new_response=new_response,
+                    old_response=old_response,
+                )
+            except Exception as e:
+                logger.warning(f"RSVP fan-out: Discord reaction update failed for match {match_id}: {e}")
+
     def update_rsvp_sync(
         self,
         match_id: int,
@@ -706,10 +814,24 @@ class RSVPService:
                 logger.error(f"❌ Database commit failed: {e}")
                 return False, f"Database error: {str(e)}", None
             
-            # Note: Event publishing skipped in sync version - handled by background consumers
+            # Async event publishing (event_publisher -> WebSocketBroadcaster /
+            # DiscordEmbedUpdater consumers) is not reachable from this sync path,
+            # so the fan-out happens inline here instead. Do NOT re-add per-caller
+            # notification code -- this is the single place every surface is told.
+            self._fan_out_sync(
+                match_id=match_id,
+                player_id=player_id,
+                new_response=new_response,
+                source=source,
+                match=match,
+                player_name=player.name,
+                discord_id=player.discord_id,
+                old_response=old_response,
+            )
+
             logger.info(f"✅ Sync RSVP update completed: {old_response} -> {new_response} "
                        f"for player {player.name} (op_id={operation_id})")
-            
+
             return True, f"RSVP updated to {new_response}", event
             
         except Exception as e:

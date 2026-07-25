@@ -4,7 +4,6 @@
 RSVP Reminder Task (Tiered Notifications)
 ==========================================
 
-Celery beat task that runs Thursday at noon PST.
 Reminds players who haven't RSVP'd for upcoming matches.
 
 Uses the NotificationOrchestrator's tiered delivery system:
@@ -13,10 +12,26 @@ Uses the NotificationOrchestrator's tiered delivery system:
 Discord DMs are handled specially with interactive RSVP buttons
 instead of the orchestrator's plain-text DMs.
 
-Schedule: Thursday 12:00 PM PST (America/Los_Angeles)
+WHEN THIS RUNS
+--------------
+There is no beat entry for this task any more. It is driven by an automation
+rule (trigger 'rsvp_not_responded', key 'rsvp_dm_reminder') at
+/admin-panel/communication/automations, which owns the schedule, the lookahead
+window, how many times one match may be chased, and every string that goes out.
+The engine's hourly pass dispatches it; see automation_service._dispatch_native.
+
+That means: if the rule is switched off or deleted, RSVP reminders stop. That is
+the point of moving it, but it is also the failure mode to check first if
+players say the reminders went quiet.
+
+Every option still defaults to the old hardcoded behaviour (Thursday noon
+Pacific, 4-day lookahead, one reminder per match, the original copy), so calling
+this with no arguments -- from a shell, a test, or a hand-queued task -- behaves
+exactly as it did before.
 """
 
 import logging
+import re
 import time
 import uuid
 from datetime import timedelta
@@ -28,15 +43,110 @@ from app.utils.pacific_time import pacific_today
 
 logger = logging.getLogger(__name__)
 
+# The behaviour the hardcoded Thursday beat had, kept as the fallback for every
+# caller that does not pass options. The seeded automation rule carries the same
+# values, so switching to the rule changes nothing until an admin edits it.
+DEFAULT_OPTIONS = {
+    'lookahead_days': 4,
+    'max_reminders_per_match': 1,
+    'title': 'RSVP Reminder',
+    'message_template': 'Please RSVP for {team} vs {opponent} on {date} at {time}',
+    'dm_description': "You haven't RSVP'd for the following match(es). "
+                      "Use the buttons below to respond!",
+    'dm_footer': 'Click a button to RSVP, or Snooze to pause reminders',
+}
+
+
+def _resolve_options(options):
+    """Merge caller options over the defaults, clamping the numeric knobs."""
+    opts = dict(DEFAULT_OPTIONS)
+    opts.update({k: v for k, v in (options or {}).items() if v is not None})
+
+    def _clamp(key, lo, hi):
+        try:
+            opts[key] = max(lo, min(hi, int(opts[key])))
+        except (TypeError, ValueError):
+            opts[key] = DEFAULT_OPTIONS[key]
+
+    # Mirrors TRIGGER_FIELD_SPECS in app/models/automation.py. Clamped again here
+    # because this task is also callable directly, where nothing validated them.
+    _clamp('lookahead_days', 1, 14)
+    _clamp('max_reminders_per_match', 1, 5)
+    return opts
+
+
+def _render_line(template, match_info):
+    """Fill the per-match tokens in an admin-authored message line.
+
+    Unknown tokens are left alone rather than raising: a typo like {oponent}
+    should ship visibly in the message, not take the whole weekly send down.
+    """
+    values = {
+        'team': match_info.get('team_name', ''),
+        'opponent': match_info.get('opponent_name', ''),
+        'date': match_info.get('match_date', ''),
+        'time': match_info.get('match_time', ''),
+        'location': match_info.get('location', ''),
+    }
+    return re.sub(r'\{(\w+)\}',
+                  lambda m: str(values.get(m.group(1), m.group(0))),
+                  template or '')
+
+
+def _finish_run(session, run_id, results):
+    """Write the outcome back onto the AutomationRun that dispatched this.
+
+    The engine leaves a native run in 'sending' precisely because only this task
+    knows how many people it reached -- it resolves its own audience. So this is
+    where the run gets its terminal status and its real recipient count.
+
+    The status is only written when the run is still 'sending'. On a multi-step
+    ladder the engine has already advanced it to 'pending' for the next step, and
+    overwriting that with 'sent' would cancel the rest of the ladder. The count
+    is recorded either way.
+
+    Best-effort throughout: the reminders have already gone out by the time we
+    get here, so a bookkeeping failure must never fail the task or trigger a
+    retry that would send them all a second time.
+    """
+    if not run_id:
+        return
+    try:
+        from app.models.automation import AutomationRun
+        run = session.query(AutomationRun).get(run_id)
+        if not run:
+            return
+        sent = results.get('orchestrator', 0) + results.get('discord_dm', 0)
+        run.recipient_count = sent
+        if run.status == 'sending':
+            # 'skipped', not 'sent', when nobody needed one -- same convention as
+            # the email path, so a zero does not hide behind a green tick.
+            run.status = 'sent' if sent else 'skipped'
+        if not sent:
+            run.error_message = ('Nobody needed a reminder — everyone with a match in '
+                                 'the window had already responded, snoozed, or been '
+                                 'reminded the maximum number of times.')
+        elif results.get('failed'):
+            run.error_message = f"{results['failed']} reminder(s) could not be delivered."
+        session.commit()
+    except Exception:
+        logger.exception("Could not record automation run %s outcome", run_id)
+
 
 @celery_task(max_retries=2, default_retry_delay=300)
-def send_rsvp_dm_reminders(self, session):
+def send_rsvp_dm_reminders(self, session, options=None, run_id=None):
     """
     Send tiered RSVP reminders to players who haven't RSVP'd.
 
     For push/email/sms: uses the orchestrator (tiered, so only the highest
     enabled channel fires). Discord is excluded from the orchestrator because
     we send interactive button DMs instead of plain text.
+
+    Args:
+        options: schedule-independent settings from the automation rule --
+                 lookahead_days, max_reminders_per_match and the copy. Omitted
+                 means DEFAULT_OPTIONS, i.e. the original hardcoded behaviour.
+        run_id:  AutomationRun to report back to, when dispatched by a rule.
     """
     from app.models import Match, EcsFcMatch, Player
     from app.models.communication import RsvpDmReminderLog
@@ -46,10 +156,12 @@ def send_rsvp_dm_reminders(self, session):
     )
     from web_config import Config
 
+    opts = _resolve_options(options)
+
     try:
         batch_id = str(uuid.uuid4())
         today = pacific_today()
-        window_end = today + timedelta(days=4)
+        window_end = today + timedelta(days=opts['lookahead_days'])
         bot_api_url = Config.BOT_API_URL
 
         # Clean up expired snoozes. Pass the task's session — there's no request
@@ -63,23 +175,45 @@ def send_rsvp_dm_reminders(self, session):
         pub_count = _collect_pub_league_non_responders(session, today, window_end, snoozed_ids, player_data)
         ecs_count = _collect_ecs_fc_non_responders(session, today, window_end, snoozed_ids, player_data)
 
-        # Dedup: remove matches where a reminder was already sent successfully
-        already_reminded = set(
-            (row.player_id, row.match_id, row.match_type)
-            for row in session.query(
-                RsvpDmReminderLog.player_id,
-                RsvpDmReminderLog.match_id,
-                RsvpDmReminderLog.match_type
-            ).filter(
-                RsvpDmReminderLog.delivery_status == 'sent'
-            ).all()
-        )
+        # Repeat cap: COUNT how many reminders this player has already had about
+        # this match and drop it once the cap is reached. This used to be a plain
+        # "have we ever sent one?" set, which made the reminder strictly
+        # once-per-match with no way to chase a persistent non-responder. A cap of
+        # 1 reproduces that exactly, so the default behaviour is unchanged.
+        #
+        # Only 'sent' rows count. A 'failed' or 'dm_disabled' attempt did not
+        # reach anybody, so it must not burn one of their reminders.
+        # Scoped to the matches actually in the window. The previous version read
+        # EVERY 'sent' row in the table on every run, which grows without bound
+        # across seasons -- and transaction hold time is the scarce resource here.
+        from sqlalchemy import func as _sa_func
+        cap = opts['max_reminders_per_match']
+        window_match_ids = {m['match_id']
+                            for d in player_data.values() for m in d['matches']}
+        sent_counts = {}
+        if window_match_ids:
+            sent_counts = {
+                (row.player_id, row.match_id, row.match_type): row.n
+                for row in session.query(
+                    RsvpDmReminderLog.player_id,
+                    RsvpDmReminderLog.match_id,
+                    RsvpDmReminderLog.match_type,
+                    _sa_func.count(RsvpDmReminderLog.id).label('n')
+                ).filter(
+                    RsvpDmReminderLog.delivery_status == 'sent',
+                    RsvpDmReminderLog.match_id.in_(window_match_ids)
+                ).group_by(
+                    RsvpDmReminderLog.player_id,
+                    RsvpDmReminderLog.match_id,
+                    RsvpDmReminderLog.match_type
+                ).all()
+            }
         dedup_skipped = 0
         for player_id in list(player_data.keys()):
             original = player_data[player_id]['matches']
             filtered = [
                 m for m in original
-                if (player_id, m['match_id'], m['match_type']) not in already_reminded
+                if sent_counts.get((player_id, m['match_id'], m['match_type']), 0) < cap
             ]
             if not filtered:
                 del player_data[player_id]
@@ -89,11 +223,15 @@ def send_rsvp_dm_reminders(self, session):
                 player_data[player_id]['matches'] = filtered
 
         logger.info(
-            f"RSVP reminders: {pub_count} pub + {ecs_count} ECS FC non-responders, "
-            f"{len(player_data)} unique players (skipped {dedup_skipped} already-reminded)"
+            f"RSVP reminders: {pub_count} pub + {ecs_count} ECS FC non-responders "
+            f"in the next {opts['lookahead_days']}d, {len(player_data)} unique players "
+            f"(skipped {dedup_skipped} already reminded {cap}x)"
         )
 
         if not player_data:
+            results = {'batch_id': batch_id, 'orchestrator': 0, 'discord_dm': 0,
+                       'failed': 0, 'skipped': 0}
+            _finish_run(session, run_id, results)
             return {'success': True, 'total': 0}
 
         results = {
@@ -139,15 +277,17 @@ def send_rsvp_dm_reminders(self, session):
                     for m in data['matches']:
                         key = (m['match_type'], m['match_id'])
                         if key not in match_users:
-                            match_users[key] = {'user_ids': [], 'match': m}
+                            match_users[key] = {'user_ids': [], 'player_ids': [], 'match': m}
                         match_users[key]['user_ids'].append(user.id)
+                        match_users[key]['player_ids'].append(player.id)
             elif tier == 'push':
                 # Orchestrator handles push
                 for m in data['matches']:
                     key = (m['match_type'], m['match_id'])
                     if key not in match_users:
-                        match_users[key] = {'user_ids': [], 'match': m}
+                        match_users[key] = {'user_ids': [], 'player_ids': [], 'match': m}
                     match_users[key]['user_ids'].append(user.id)
+                    match_users[key]['player_ids'].append(player.id)
                 # Shared tier: also send Discord DM with buttons if available
                 if shared_tier and player.discord_id and getattr(user, 'discord_notifications', True):
                     discord_dm_players.append(data)
@@ -156,8 +296,9 @@ def send_rsvp_dm_reminders(self, session):
                 for m in data['matches']:
                     key = (m['match_type'], m['match_id'])
                     if key not in match_users:
-                        match_users[key] = {'user_ids': [], 'match': m}
+                        match_users[key] = {'user_ids': [], 'player_ids': [], 'match': m}
                     match_users[key]['user_ids'].append(user.id)
+                    match_users[key]['player_ids'].append(player.id)
             else:
                 results['skipped'] += 1
 
@@ -168,11 +309,8 @@ def send_rsvp_dm_reminders(self, session):
             try:
                 orchestrator.send(NotificationPayload(
                     notification_type=NotificationType.RSVP_REMINDER,
-                    title="RSVP Reminder",
-                    message=(
-                        f"Please RSVP for {m['team_name']} vs {m['opponent_name']} "
-                        f"on {m['match_date']} at {m['match_time']}"
-                    ),
+                    title=opts['title'],
+                    message=_render_line(opts['message_template'], m),
                     user_ids=info['user_ids'],
                     data={'match_id': m['match_id'], 'match_type': m['match_type']},
                     priority='high' if days_until <= 1 else 'normal',
@@ -181,6 +319,18 @@ def send_rsvp_dm_reminders(self, session):
                     # tiered=True is the default - push > email > sms
                 ))
                 results['orchestrator'] += len(info['user_ids'])
+                # Log one row per player so the repeat cap can count these too.
+                # Without this the cap only ever governed Discord users.
+                for pid in info['player_ids']:
+                    session.add(RsvpDmReminderLog(
+                        player_id=pid,
+                        match_id=m['match_id'],
+                        match_type=m['match_type'],
+                        discord_id=None,
+                        channel='orchestrator',
+                        delivery_status='sent',
+                        batch_id=batch_id
+                    ))
             except Exception as e:
                 logger.error(f"Orchestrator notification failed for match {key}: {e}")
                 results['failed'] += len(info['user_ids'])
@@ -192,7 +342,7 @@ def send_rsvp_dm_reminders(self, session):
                 matches = data['matches']
 
                 status, error = _send_reminder_dm(
-                    bot_api_url, player.discord_id, matches
+                    bot_api_url, player.discord_id, matches, opts
                 )
 
                 for m in matches:
@@ -201,6 +351,7 @@ def send_rsvp_dm_reminders(self, session):
                         match_id=m['match_id'],
                         match_type=m['match_type'],
                         discord_id=player.discord_id,
+                        channel='discord',
                         delivery_status=status,
                         error_message=error,
                         batch_id=batch_id
@@ -223,6 +374,7 @@ def send_rsvp_dm_reminders(self, session):
             f"skipped={results['skipped']}, batch_id={batch_id}"
         )
         results['success'] = True
+        _finish_run(session, run_id, results)
         return results
 
     except Exception as e:
@@ -395,11 +547,23 @@ def _collect_ecs_fc_non_responders(session, today, window_end, snoozed_ids, play
     return count
 
 
-def _send_reminder_dm(bot_api_url, discord_id, matches):
-    """Send a reminder DM via the bot REST API (with interactive buttons)."""
+def _send_reminder_dm(bot_api_url, discord_id, matches, opts=None):
+    """Send a reminder DM via the bot REST API (with interactive buttons).
+
+    The embed copy travels in the payload so an admin can change it without a
+    bot redeploy. All three copy fields are OPTIONAL on the bot side: an older
+    bot ignores them and falls back to the strings baked into
+    rsvp_reminder_views.py, which are the same text as DEFAULT_OPTIONS here. So
+    a webapp deploy that lands before the bot redeploy still sends correctly, it
+    just ignores copy edits until the bot catches up.
+    """
+    opts = opts or DEFAULT_OPTIONS
     try:
         payload = {
             'discord_id': discord_id,
+            'title': opts.get('title') or None,
+            'description': opts.get('dm_description') or None,
+            'footer': opts.get('dm_footer') or None,
             'matches': [
                 {
                     'match_type': m['match_type'],
@@ -540,10 +704,15 @@ def send_coach_rsvp_reminder(self, session, match_id, player_ids, custom_message
                     # so the two share one convention in this column.
                     match_type=info['match_type'],
                     discord_id=player.discord_id,
+                    channel='discord',
                     delivery_status=status,
                     error_message=error,
                     batch_id=batch_id,
                 ))
+                # Note these rows DO count toward the automation's "most
+                # reminders per match" cap. A coach nudge and an automated nudge
+                # about the same match are the same message to the player, so
+                # spending one of their reminders is the intended behaviour.
                 if status == 'sent':
                     results['discord_dm'] += 1
                 else:

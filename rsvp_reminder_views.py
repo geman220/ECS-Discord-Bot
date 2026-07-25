@@ -84,7 +84,18 @@ class SnoozeSelectView(discord.ui.View):
         ))
 
 
-def build_rsvp_reminder_embed(matches):
+# Fallback copy. The web app normally supplies all three from the
+# 'rsvp_dm_reminder' automation rule, so these are what goes out only when it
+# sends nothing -- an older web app, or a field an admin left blank. Keep them in
+# step with DEFAULT_OPTIONS in the web app's tasks_rsvp_dm_reminders.py.
+DEFAULT_REMINDER_TITLE = "\u26bd RSVP Reminder"
+DEFAULT_REMINDER_DESCRIPTION = (
+    "You haven't RSVP'd for the following match(es). Use the buttons below to respond!"
+)
+DEFAULT_REMINDER_FOOTER = "Click a button to RSVP, or Snooze to pause reminders"
+
+
+def build_rsvp_reminder_embed(matches, title=None, description=None, footer=None):
     """
     Build the Discord embed for an RSVP reminder DM.
 
@@ -92,10 +103,14 @@ def build_rsvp_reminder_embed(matches):
         matches: List of match info dicts with keys:
             match_type, match_id, team_name, opponent_name,
             match_date, match_time, location
+        title/description/footer: admin-authored copy from the web app's
+            automation rule. Blank or missing falls back to the defaults above.
+            The footer is the one field allowed to end up genuinely empty --
+            an admin who clears it wants no footer line, not the default back.
     """
     embed = discord.Embed(
-        title="\u26bd RSVP Reminder",
-        description="You haven't RSVP'd for the following match(es). Use the buttons below to respond!",
+        title=(title or "").strip() or DEFAULT_REMINDER_TITLE,
+        description=(description or "").strip() or DEFAULT_REMINDER_DESCRIPTION,
         color=0xff9800  # Orange
     )
 
@@ -119,5 +134,9 @@ def build_rsvp_reminder_embed(matches):
             inline=False
         )
 
-    embed.set_footer(text="Click a button to RSVP, or Snooze to pause reminders")
+    # `footer is None` means "the caller said nothing" -> default. An empty
+    # string means "the admin deliberately cleared it" -> no footer at all.
+    footer_text = DEFAULT_REMINDER_FOOTER if footer is None else footer.strip()
+    if footer_text:
+        embed.set_footer(text=footer_text)
     return embed

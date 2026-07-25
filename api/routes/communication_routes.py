@@ -751,8 +751,14 @@ async def send_rsvp_reminder_dm(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Build embed and view
-    embed = build_rsvp_reminder_embed(matches)
+    # Build embed and view. The copy comes from the web app's automation rule;
+    # anything it omits falls back to the defaults in rsvp_reminder_views.
+    embed = build_rsvp_reminder_embed(
+        matches,
+        title=request.title,
+        description=request.description,
+        footer=request.footer,
+    )
     view = RSVPReminderView(matches)
 
     # Send DM

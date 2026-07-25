@@ -633,68 +633,15 @@ def rsvp(match_id):
         
         logger.debug(f"RSVP data: match_id={match_id}, player_id={player_id}, response={new_response}")
         
-        # Use the availability_api.update_availability_web endpoint instead of local implementation
-        from app.availability_api import update_availability_web
-        
-        # First do the local database update for immediate response
-        # This ensures we have a response for the user immediately
+        # local_update_rsvp goes through RSVPService.update_rsvp_sync, which now
+        # owns the entire fan-out: read cache, websocket broadcast, Discord embed
+        # re-render and the user's own Discord reaction. The hand-rolled block that
+        # used to live here has been removed -- do not re-add notification calls to
+        # this route, or every surface gets told twice.
         result = local_update_rsvp(match_id, player_id, new_response, discord_id)
         success = result.get('success', False)
         message = result.get('message', 'RSVP updated')
-        
-        if success:
-            # Emit WebSocket event for real-time updates
-            from app.sockets.rsvp import emit_rsvp_update
-            session = g.db_session
-            player = session.query(Player).get(player_id)
-            if player:
-                # Determine team_id
-                match = session.query(Match).get(match_id)
-                team_id = None
-                if match:
-                    if player in match.home_team.players:
-                        team_id = match.home_team_id
-                    elif player in match.away_team.players:
-                        team_id = match.away_team_id
-                
-                emit_rsvp_update(
-                    match_id=match_id,
-                    player_id=player.id,
-                    availability=new_response,
-                    source='web',
-                    player_name=player.name,
-                    team_id=team_id
-                )
-                logger.info(f"📤 Emitted WebSocket RSVP update: {player.name} -> {new_response} for match {match_id}")
-            
-            # Then trigger the API call to notify Discord
-            from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
-            from app.tasks.tasks_rsvp import update_discord_rsvp_task
-            
-            # Get the player to get discord_id if available
-            if player and player.discord_id:
-                discord_id = player.discord_id
-            
-            # Schedule the Discord notification
-            logger.info(f"Scheduling Discord notification for match {match_id}")
-            notify_discord_of_rsvp_change_task.delay(match_id)
-            
-            # If we have a discord_id, also update the reaction
-            if discord_id:
-                # Get the current availability record to determine old_response
-                availability = session.query(Availability).filter_by(
-                    match_id=match_id, player_id=player_id
-                ).first()
-                old_response = availability.response if availability else None
-                
-                logger.info(f"Player {player_id} has discord_id {discord_id}, will update reaction")
-                update_discord_rsvp_task.delay(
-                    match_id=match_id,
-                    discord_id=discord_id,
-                    new_response=new_response,
-                    old_response=old_response
-                )
-            
+
     except Exception as e:
         logger.exception(f"Error processing RSVP: {str(e)}")
         return jsonify({"success": False, "message": "Server error: Internal Server Error"}), 500

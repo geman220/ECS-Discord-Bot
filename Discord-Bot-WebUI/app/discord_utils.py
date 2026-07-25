@@ -37,26 +37,32 @@ SEND_MESSAGES_IN_THREADS = 274877906944
 CREATE_PUBLIC_THREADS = 34359738368
 MANAGE_MESSAGES = 8192
 USE_APPLICATION_COMMANDS = 2147483648
+# Discord split pinning out of MANAGE_MESSAGES (in effect since early 2026):
+# MANAGE_MESSAGES now only covers deleting other people's messages, and pinning
+# requires this bit explicitly. Discord's one-time migration only patched
+# overwrites that already existed, so anything we create must set it ourselves.
+PIN_MESSAGES = 1 << 51  # 2251799813685248
 
 # Permission sets for different roles
 TEAM_PLAYER_PERMISSIONS = (
-    VIEW_CHANNEL + 
-    SEND_MESSAGES + 
-    READ_MESSAGE_HISTORY + 
-    SEND_MESSAGES_IN_THREADS + 
-    CREATE_PUBLIC_THREADS + 
+    VIEW_CHANNEL +
+    SEND_MESSAGES +
+    READ_MESSAGE_HISTORY +
+    SEND_MESSAGES_IN_THREADS +
+    CREATE_PUBLIC_THREADS +
     USE_APPLICATION_COMMANDS
-)  # 277077967872
+)  # 311385197568
 
 LEADERSHIP_PERMISSIONS = (
-    VIEW_CHANNEL + 
-    SEND_MESSAGES + 
-    READ_MESSAGE_HISTORY + 
-    SEND_MESSAGES_IN_THREADS + 
-    CREATE_PUBLIC_THREADS + 
-    MANAGE_MESSAGES + 
+    VIEW_CHANNEL +
+    SEND_MESSAGES +
+    READ_MESSAGE_HISTORY +
+    SEND_MESSAGES_IN_THREADS +
+    CREATE_PUBLIC_THREADS +
+    MANAGE_MESSAGES +
+    PIN_MESSAGES +
     USE_APPLICATION_COMMANDS
-)  # 277077976064
+)  # 2252111198891008 (was 311385205760 before PIN_MESSAGES)
 
 # Legacy permission constant (for backward compatibility)
 TEAM_ROLE_PERMISSIONS = VIEW_CHANNEL + SEND_MESSAGES + READ_MESSAGE_HISTORY  # 68608
@@ -501,35 +507,6 @@ async def create_category(guild_id: int, category_name: str, session: aiohttp.Cl
 # Higher-Level Logic
 # ---------------------------
 
-async def create_discord_roles(session: Session, team_name: str, team_id: int) -> Dict[str, Any]:
-    """
-    Create or retrieve a 'Player' role for the team and store its ID in the database.
-
-    Args:
-        session (Session): The database session.
-        team_name (str): The team's name.
-        team_id (int): The team's ID.
-
-    Returns:
-        Dict[str, Any]: Result with success status and role ID or error message.
-    """
-    guild_id = int(os.getenv('SERVER_ID'))
-    player_role_name = f"ECS-FC-PL-{team_name}-Player"
-    try:
-        async with aiohttp.ClientSession() as http_session:
-            player_role_id = await get_or_create_role(guild_id, player_role_name, http_session)
-            if not player_role_id:
-                return {'success': False, 'error': 'Failed to create role'}
-            team = session.query(Team).get(team_id)
-            team.discord_player_role_id = player_role_id
-            session.commit()
-            logger.info(f"Created or retrieved role for team {team_name}: Player Role ID {player_role_id}")
-            return {'success': True, 'role_id': player_role_id}
-    except Exception as e:
-        logger.error(f"Error creating role: {str(e)}")
-        return {'success': False, 'error': str(e)}
-
-
 async def create_discord_channel_async_only(team_name: str, league_name: str, team_id: int,
                                             teams_public: bool = True) -> Dict[str, Any]:
     """
@@ -551,28 +528,42 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
         guild_id = int(os.getenv('SERVER_ID'))
         bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
 
-        # Determine category and channel naming based on league type
+        # Determine category and channel naming based on league type.
+        #
+        # NOTE: league type controls the CATEGORY, the CHANNEL name, the leadership
+        # role and the pre-reveal hiding -- but NOT the per-team role prefix. Team
+        # role names are always "ECS-FC-PL-<team>-Player/-Coach" because every
+        # consumer of those names hardcodes that prefix: get_expected_roles(),
+        # get_app_managed_roles(), rename_team_roles_async_only() and the reconcile
+        # allowlist (app_role_prefixes). Creating ECS FC League roles under an
+        # "ECS-FC-LEAGUE-" prefix produced roles that the channel granted permissions
+        # to but that no player or coach was ever assigned -- so ECS FC League
+        # members could not see their own channel.
         if league_name and 'ECS FC' in league_name and 'Pub League' not in league_name:
             # ECS FC league teams go under "ECS FC LEAGUE TEAMS"
+            is_ecs_fc_league = True
             category_name = "ECS FC LEAGUE TEAMS"
-            role_prefix = "ECS-FC-LEAGUE"
             channel_name = f"ecs-fc-{team_name}"  # ECS FC teams get ecs-fc- prefix
         elif league_name and 'Premier' in league_name:
             # Pub League Premier
+            is_ecs_fc_league = False
             category_name = "ECS FC PL Premier"
-            role_prefix = "ECS-FC-PL"
             channel_name = team_name  # Pub League uses team name as-is
         elif league_name and 'Classic' in league_name:
             # Pub League Classic
+            is_ecs_fc_league = False
             category_name = "ECS FC PL Classic"
-            role_prefix = "ECS-FC-PL"
             channel_name = team_name  # Pub League uses team name as-is
         else:
             # Default fallback
+            is_ecs_fc_league = False
             category_name = f"ECS FC PL {league_name.capitalize() if league_name else 'Teams'}"
-            role_prefix = "ECS-FC-PL"
             channel_name = team_name
-        
+
+        # Single source of truth for per-team role names -- must match the
+        # calculators in get_expected_roles()/get_app_managed_roles().
+        role_prefix = "ECS-FC-PL"
+
         async with aiohttp.ClientSession() as session:
             # First, get or create the category
             category_id = await get_or_create_category(guild_id, category_name, session)
@@ -592,20 +583,24 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
             coach_role_name = f"{role_prefix}-{team_name}-Coach"
             coach_role_id = await get_or_create_role(guild_id, coach_role_name, session)
             if not coach_role_id:
-                logger.warning(f"Failed to create coach role '{coach_role_name}' for {team_name}; continuing")
+                # Hard failure, matching the player role. Continuing here produced a
+                # channel with no coach overwrite -- coaches silently lost pin and
+                # moderation on their own channel with nothing surfaced to the admin.
+                return {'success': False, 'message': f"Failed to create coach role '{coach_role_name}'"}
 
             # Get admin and leadership roles (same for both league types)
             wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", session)
             # Use appropriate leadership role based on league type
-            if role_prefix == "ECS-FC-LEAGUE":
+            if is_ecs_fc_league:
                 leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC Leadership", session)
             else:
                 leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", session)
 
             # Set up permission overwrites
             # Pre-reveal (teams hidden), Pub League player roles are denied VIEW —
-            # players hold their team role but can't see the channel yet.
-            hide_from_players = not teams_public and role_prefix == "ECS-FC-PL"
+            # players hold their team role but can't see the channel yet. ECS FC
+            # League has no draft reveal, so it is never hidden.
+            hide_from_players = not teams_public and not is_ecs_fc_league
             if hide_from_players:
                 player_overwrite = {"id": str(player_role_id), "type": 0, "allow": "0", "deny": str(VIEW_CHANNEL)}
             else:
@@ -826,99 +821,6 @@ async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional
     
     logger.error(f"Failed to create thread after {max_retries} attempts for match {match_data.get('id', 'unknown')}")
     return None
-
-
-async def create_discord_channel(session: Session, team_name: str, league_name: str, team_id: int) -> Dict[str, Any]:
-    """
-    Create a dedicated Discord channel for a team under a specific category.
-
-    Args:
-        session (Session): The database session.
-        team_name (str): The team's name.
-        league_name (str): League name (e.g., "Pub League Premier", "Pub League Classic", "ECS FC").
-        team_id (int): The team's ID.
-
-    Returns:
-        Dict[str, Any]: Result with success status and channel ID or error message.
-    """
-    guild_id = int(os.getenv('SERVER_ID'))
-
-    # Determine category and channel naming based on league type
-    if league_name and 'ECS FC' in league_name and 'Pub League' not in league_name:
-        # ECS FC league teams go under "ECS FC LEAGUE TEAMS"
-        category_name = "ECS FC LEAGUE TEAMS"
-        is_ecs_fc_league = True
-        channel_name = f"ecs-fc-{team_name}"  # ECS FC teams get ecs-fc- prefix
-    elif league_name and 'Premier' in league_name:
-        category_name = "ECS FC PL Premier"
-        is_ecs_fc_league = False
-        channel_name = team_name
-    elif league_name and 'Classic' in league_name:
-        category_name = "ECS FC PL Classic"
-        is_ecs_fc_league = False
-        channel_name = team_name
-    else:
-        category_name = f"ECS FC PL {league_name.capitalize() if league_name else 'Teams'}"
-        is_ecs_fc_league = False
-        channel_name = team_name
-
-    try:
-        async with aiohttp.ClientSession() as http_session:
-            category_id = await get_or_create_category(guild_id, category_name, http_session)
-            if not category_id:
-                return {'success': False, 'error': f"Failed to get/create category '{category_name}'"}
-
-            role_result = await create_discord_roles(session, team_name, team_id)
-            if not role_result.get('success'):
-                return role_result
-
-            team = session.query(Team).get(team_id)
-            if not team.discord_player_role_id:
-                return {'success': False, 'error': 'Player role ID not found'}
-
-            wg_admin_role_id = await get_or_create_role(guild_id, "WG: ECS FC ADMIN", http_session)
-            # Use appropriate leadership role based on league type
-            if is_ecs_fc_league:
-                leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC Leadership", http_session)
-            else:
-                leadership_role_id = await get_or_create_role(guild_id, "WG: ECS FC PL Leadership", http_session)
-
-            # Pre-reveal (make_teams_public off), Pub League player roles are denied
-            # VIEW so drafted players can't see their team channel yet.
-            teams_public = True
-            if not is_ecs_fc_league:
-                from app.models.admin_config import AdminConfig
-                cfg = session.query(AdminConfig).filter_by(key='make_teams_public', is_enabled=True).first()
-                teams_public = cfg.parsed_value if cfg else True
-            if teams_public:
-                player_overwrite = {"id": str(team.discord_player_role_id), "type": 0, "allow": str(TEAM_PLAYER_PERMISSIONS), "deny": "0"}
-            else:
-                player_overwrite = {"id": str(team.discord_player_role_id), "type": 0, "allow": "0", "deny": str(VIEW_CHANNEL)}
-
-            permission_overwrites = [
-                {"id": str(guild_id), "type": 0, "deny": str(VIEW_CHANNEL), "allow": "0"},
-                player_overwrite,
-                {"id": str(wg_admin_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
-                {"id": str(leadership_role_id), "type": 0, "allow": str(LEADERSHIP_PERMISSIONS), "deny": "0"},
-            ]
-            payload = {
-                "name": channel_name,
-                "parent_id": category_id,
-                "type": 0,  # text channel
-                "permission_overwrites": permission_overwrites,
-            }
-            url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/channels"
-            response = await make_discord_request('POST', url, http_session, json=payload)
-            if response and 'id' in response:
-                team.discord_channel_id = response['id']
-                session.commit()
-                logger.info(f"Created Discord channel '{team_name}' with ID {team.discord_channel_id}")
-                return {'success': True, 'channel_id': team.discord_channel_id}
-            else:
-                return {'success': False, 'error': 'Failed to create channel'}
-    except Exception as e:
-        logger.error(f"Error creating channel: {str(e)}")
-        return {'success': False, 'error': str(e)}
 
 
 async def assign_roles_to_player(guild_id: int, player: Player) -> None:

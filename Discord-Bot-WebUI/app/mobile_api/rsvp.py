@@ -20,11 +20,8 @@ from app.mobile_api.middleware import jwt_or_discord_auth_required
 from app.core.session_manager import managed_session
 from app.models import Player, Match, Availability
 from app.models.players import player_teams
-from app.app_api_helpers import (
-    update_player_availability,
-    update_player_match_availability,
-    notify_availability_update,
-)
+from app.events.rsvp_events import RSVPSource
+from app.services.rsvp_service import create_rsvp_service_sync
 
 logger = logging.getLogger(__name__)
 
@@ -101,16 +98,19 @@ def update_availability():
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Update or create availability record
-        result = update_player_match_availability(
-            session=session_db,
+        # Commit through the canonical service so this path gets the same
+        # validation, the same no_response semantics, and the same fan-out to
+        # cache / websockets / Discord as the web, Discord and SMS paths.
+        rsvp_service = create_rsvp_service_sync(session_db)
+        success, message, _event = rsvp_service.update_rsvp_sync(
             match_id=match_id,
             player_id=player.id,
-            new_response=availability_response
+            new_response=availability_response,
+            source=RSVPSource.MOBILE,
         )
 
-        # Notify other systems of the update
-        notify_availability_update(match_id, player.id, availability_response)
+        if not success:
+            return jsonify({"msg": message}), 400
 
         return jsonify({
             "msg": "Availability updated",
@@ -148,14 +148,19 @@ def update_availability_web():
         if not player:
             return jsonify({"msg": "Player not found"}), 404
 
-        result = update_player_match_availability(
-            session=session_db,
+        # Same canonical path as /update_availability. This endpoint previously
+        # did no response validation at all -- update_rsvp_sync rejects anything
+        # outside yes/no/maybe/no_response.
+        rsvp_service = create_rsvp_service_sync(session_db)
+        success, message, _event = rsvp_service.update_rsvp_sync(
             match_id=match_id,
             player_id=player.id,
-            new_response=availability_response
+            new_response=availability_response,
+            source=RSVPSource.MOBILE,
         )
 
-        notify_availability_update(match_id, player.id, availability_response)
+        if not success:
+            return jsonify({"success": False, "msg": message}), 400
 
         return jsonify({
             "success": True,
@@ -190,6 +195,7 @@ def bulk_availability_update():
         if not player:
             return jsonify({"msg": "Player not found"}), 404
 
+        rsvp_service = create_rsvp_service_sync(session_db)
         results = []
         for update in updates:
             match_id = update.get('match_id')
@@ -213,16 +219,21 @@ def bulk_availability_update():
                 continue
 
             try:
-                update_player_match_availability(
-                    session=session_db,
+                # Previously wrote straight to the Availability row and notified
+                # nothing at all -- a bulk RSVP from the app left Discord, the web
+                # UI and the read cache stale until something else refreshed them.
+                # Going through the service fans each match out individually.
+                success, message, _event = rsvp_service.update_rsvp_sync(
                     match_id=match_id,
                     player_id=player.id,
-                    new_response=availability_response
+                    new_response=availability_response,
+                    source=RSVPSource.MOBILE,
                 )
                 results.append({
                     "match_id": match_id,
-                    "success": True,
-                    "availability": availability_response
+                    "success": success,
+                    "availability": availability_response,
+                    **({} if success else {"error": message}),
                 })
             except Exception as e:
                 results.append({

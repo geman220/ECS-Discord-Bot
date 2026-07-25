@@ -166,7 +166,45 @@ def settings():
                            enable_2fa_form=enable_2fa_form,
                            disable_2fa_form=disable_2fa_form,
                            is_2fa_enabled=safe_current_user.is_2fa_enabled,
+                           rsvp_reminder_schedule=_rsvp_reminder_schedule(session_db),
                            is_referee=is_referee)
+
+
+def _rsvp_reminder_schedule(session_db):
+    """When RSVP reminders actually go out, as a phrase like 'Thursdays at noon'.
+
+    This page used to state "Every Thursday at noon" in hardcoded copy. The
+    schedule is now an admin-editable automation rule, so the sentence has to
+    follow it -- telling a player Thursday when an admin moved it to Tuesday is
+    worse than saying nothing.
+
+    Returns None if the rule is missing or switched off, and the template then
+    drops the timing claim entirely rather than inventing one.
+    """
+    try:
+        from app.models.automation import (AutomationRule, WEEKDAY_CHOICES,
+                                           HOUR_CHOICES)
+        rule = (session_db.query(AutomationRule)
+                .filter(AutomationRule.key == 'rsvp_dm_reminder',
+                        AutomationRule.enabled.is_(True))
+                .first())
+        if not rule:
+            return None
+        cfg = rule.trigger_config or {}
+        labels = dict(WEEKDAY_CHOICES)
+        picked = [str(d) for d in (cfg.get('weekdays') or [])]
+        names = [f'{labels[d]}s' for d, _ in WEEKDAY_CHOICES if d in picked]
+        if not names:
+            return None
+        days = names[0] if len(names) == 1 else \
+            ', '.join(names[:-1]) + ' and ' + names[-1]
+        hour = str(cfg.get('hour', '12'))
+        pretty_hour = ('noon' if hour == '12' else
+                       dict(HOUR_CHOICES).get(hour, '12:00 pm'))
+        return f'{days} at {pretty_hour}'
+    except Exception:
+        logger.exception("Could not read the RSVP reminder schedule")
+        return None
 
 
 @account_bp.route('/update_notifications', methods=['POST'])
