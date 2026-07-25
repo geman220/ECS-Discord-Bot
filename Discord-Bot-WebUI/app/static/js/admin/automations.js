@@ -108,6 +108,15 @@ function renderNewTriggerFields(trigger) {
                     'dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 ' +
                     'focus:ring-ecs-green focus:border-ecs-green';
         const labelHtml = `<label for="${id}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">${escapeHtml(spec.label)}</label>`;
+        if (spec.type === 'bool') {
+            return `<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">` +
+                   `<label class="flex items-start gap-2.5 cursor-pointer">` +
+                   `<input type="checkbox" data-nf-bool="${escapeHtml(name)}" ${spec.default ? 'checked' : ''} ` +
+                   `class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">` +
+                   `<span class="text-sm text-gray-900 dark:text-white">${escapeHtml(spec.label)}` +
+                   (spec.help ? `<span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(spec.help)}</span>` : '') +
+                   `</span></label></div>`;
+        }
         if (spec.type === 'multi') {
             const picked = new Set(spec.default || []);
             const boxes = (spec.choices || []).map(([v, l]) =>
@@ -247,6 +256,9 @@ async function handleCreateAutomation() {
         payload[group.dataset.nfMulti] = Array.from(
             group.querySelectorAll('input[type="checkbox"]:checked')
         ).map((cb) => cb.value);
+    });
+    document.querySelectorAll('[data-nf-bool]').forEach((el) => {
+        payload[el.dataset.nfBool] = el.checked;
     });
 
     try {
@@ -750,6 +762,12 @@ function collectRuleForm() {
         payload[name] = Array.from(
             group.querySelectorAll('input[type="checkbox"]:checked')
         ).map((cb) => cb.value);
+    });
+
+    // Boolean knobs send a real true/false. Must be read from .checked, not
+    // .value — an unchecked box still has value="on".
+    document.querySelectorAll('[data-trigger-bool]').forEach((el) => {
+        payload[el.dataset.triggerBool] = el.checked;
     });
 
     return payload;

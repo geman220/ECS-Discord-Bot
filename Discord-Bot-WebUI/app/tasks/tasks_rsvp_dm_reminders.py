@@ -97,40 +97,19 @@ def _finish_run(session, run_id, results):
     """Write the outcome back onto the AutomationRun that dispatched this.
 
     The engine leaves a native run in 'sending' precisely because only this task
-    knows how many people it reached -- it resolves its own audience. So this is
-    where the run gets its terminal status and its real recipient count.
-
-    The status is only written when the run is still 'sending'. On a multi-step
-    ladder the engine has already advanced it to 'pending' for the next step, and
-    overwriting that with 'sent' would cancel the rest of the ladder. The count
-    is recorded either way.
-
-    Best-effort throughout: the reminders have already gone out by the time we
-    get here, so a bookkeeping failure must never fail the task or trigger a
-    retry that would send them all a second time.
+    knows how many people it reached -- it resolves its own audience. The shared
+    helper owns the status handoff; see automation_run_report for why it is not
+    as simple as setting 'sent'.
     """
-    if not run_id:
-        return
-    try:
-        from app.models.automation import AutomationRun
-        run = session.query(AutomationRun).get(run_id)
-        if not run:
-            return
-        sent = results.get('orchestrator', 0) + results.get('discord_dm', 0)
-        run.recipient_count = sent
-        if run.status == 'sending':
-            # 'skipped', not 'sent', when nobody needed one -- same convention as
-            # the email path, so a zero does not hide behind a green tick.
-            run.status = 'sent' if sent else 'skipped'
-        if not sent:
-            run.error_message = ('Nobody needed a reminder — everyone with a match in '
-                                 'the window had already responded, snoozed, or been '
-                                 'reminded the maximum number of times.')
-        elif results.get('failed'):
-            run.error_message = f"{results['failed']} reminder(s) could not be delivered."
-        session.commit()
-    except Exception:
-        logger.exception("Could not record automation run %s outcome", run_id)
+    from app.services.automation_run_report import report_native_run
+    report_native_run(
+        session, run_id,
+        sent=results.get('orchestrator', 0) + results.get('discord_dm', 0),
+        failed=results.get('failed', 0),
+        nobody_message=('Nobody needed a reminder — everyone with a match in the '
+                        'window had already responded, snoozed, or been reminded '
+                        'the maximum number of times.'),
+    )
 
 
 @celery_task(max_retries=2, default_retry_delay=300)

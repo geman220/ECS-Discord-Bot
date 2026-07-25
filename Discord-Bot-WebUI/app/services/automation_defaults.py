@@ -124,6 +124,32 @@ RSVP_REMINDER_DM_INTRO = ("You haven't RSVP'd for the following match(es). "
 RSVP_REMINDER_FOOTER = 'Click a button to RSVP, or Snooze to pause reminders'
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Day-before match reminder copy. Also plain text, and split across the rule's
+# fields because the digest is assembled from short sentences, not one body:
+#
+#   subject        -> title when a match still needs an answer
+#   body_html      -> the confirmation sentence (markup stripped)
+#   short_message  -> the chase sentence
+#   confirm_title / chase_footer live in trigger_config
+#
+# {opponent} {when} {time} {location} are filled per MATCH by the sender.
+# {when} is relative ("tomorrow"), worked out from the real gap, so moving the
+# schedule two days out changes the wording rather than making it lie.
+# ─────────────────────────────────────────────────────────────────────────────
+
+MATCH_DAY_CHASE_TITLE = '⚽ Please RSVP'
+
+MATCH_DAY_CONFIRM_TITLE = '⚽ Match Reminder'
+
+MATCH_DAY_CHASE_LINE = ("You haven't RSVP'd for your match against {opponent} "
+                        "{when} at {time}.")
+
+MATCH_DAY_CONFIRM_LINE = 'Your match against {opponent} is {when} at {time}'
+
+MATCH_DAY_CHASE_FOOTER = "Please RSVP or let your coach know if you can't make it."
+
+
 # Seeded rules. `key` is the stable slug the SQL migration and code both use.
 SEEDED_RULES = [
     {
@@ -163,9 +189,49 @@ SEEDED_RULES = [
         'body_html': RSVP_REMINDER_DM_INTRO,
         'send_mode': 'individual',
         'force_send': True,
-        # The ONE seeded rule that ships enabled. Everything else is off by
+        # One of two seeded rules that ship enabled. Everything else is off by
         # default because it has never sent before; this one has been sending
         # every Thursday for months and must not go quiet on deploy.
+        'enabled': True,
+    },
+    {
+        'key': 'match_day_reminder',
+        'name': 'Match coming up (day-before reminder)',
+        'description': (
+            'The run-up reminder. One message per player covering every match they '
+            'have the next day — a confirmation for the ones they said yes to, a '
+            'chase for the ones they never answered. People who said no or maybe '
+            'are left alone.\n\n'
+            'This replaced a hardcoded 18:00 daily task, so it ships switched ON. '
+            'One deliberate change from the old behaviour: it now honours the RSVP '
+            'Snooze button, which it previously ignored entirely.'
+        ),
+        'trigger_type': 'match_day_reminder',
+        'native_action': 'match_day_reminder',
+        'trigger_config': {
+            'league_type': 'Pub League',
+            # All seven days — this one runs daily, unlike the weekly RSVP chase.
+            'weekdays': ['0', '1', '2', '3', '4', '5', '6'],
+            'hour': '18',
+            'days_before': 1,
+            'reminder_audience': 'chase_and_confirm',
+            # The old task ignored the snooze list completely, so a player who
+            # paused reminders still heard from us before every match. Defaulting
+            # this ON is the one intentional behaviour change in the migration.
+            'respect_snooze': True,
+            'confirm_title': MATCH_DAY_CONFIRM_TITLE,
+            'chase_footer': MATCH_DAY_CHASE_FOOTER,
+            'max_event_age_days': 1,
+        },
+        'delay_hours': 0,
+        'audience_type': 'automatic',
+        'audience_config': {},
+        'channels': ['discord'],
+        'subject': MATCH_DAY_CHASE_TITLE,
+        'short_message': MATCH_DAY_CHASE_LINE,
+        'body_html': MATCH_DAY_CONFIRM_LINE,
+        'send_mode': 'individual',
+        'force_send': True,
         'enabled': True,
     },
     {

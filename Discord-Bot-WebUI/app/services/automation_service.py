@@ -54,7 +54,9 @@ from app.models.automation import (
     TRIGGER_FEEDBACK_OPEN, TRIGGER_SUB_REQUEST_UNFILLED,
     TRIGGER_SUB_POOL_PENDING, TRIGGER_MATCH_RESCHEDULED,
     TRIGGER_RECURRING_WEEKLY, TRIGGER_RSVP_NOT_RESPONDED,
+    TRIGGER_MATCH_DAY_REMINDER,
     RECURRING_TRIGGERS, NATIVE_ACTIONS, NATIVE_ACTION_RSVP_DM,
+    NATIVE_ACTION_MATCH_DAY,
 )
 from app.models.core import Season, League, User, Role, user_roles
 from app.models.players import Player, Team, player_teams
@@ -876,6 +878,7 @@ DETECTORS = {
     # recipients), not in when it fires.
     TRIGGER_RECURRING_WEEKLY: detect_recurring_weekly,
     TRIGGER_RSVP_NOT_RESPONDED: detect_recurring_weekly,
+    TRIGGER_MATCH_DAY_REMINDER: detect_recurring_weekly,
     TRIGGER_USER_APPROVED: detect_user_approved,
     TRIGGER_WAITLIST_STUCK: detect_waitlist_stuck,
     TRIGGER_SUB_NO_REPLY: detect_sub_no_reply,
@@ -1728,12 +1731,50 @@ def _rsvp_reminder_options(session, rule, step):
     }
 
 
+def _match_day_options(session, rule, step):
+    """Translate an automation rule into kwargs for the day-before digest task.
+
+    The digest is assembled from short sentences rather than one body, so the
+    copy is split across the rule's fields:
+
+        subject                   -> title when a match still needs an answer
+        trigger_config.confirm_title -> title when everything is already confirmed
+        short_message             -> the chase sentence
+        body_html                 -> the confirmation sentence
+        trigger_config.chase_footer  -> the "please RSVP or tell your coach" line
+
+    body_html is plain prose here, not email HTML, so markup is stripped rather
+    than rendered literally into a push notification.
+    """
+    cfg = rule.trigger_config or {}
+    step = step or {}
+
+    confirm = substitute_placeholders(session, step.get('body_html') or rule.body_html or '')
+    confirm = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', confirm)).strip()
+
+    return {
+        'days_before': int(cfg.get('days_before', 1)),
+        'reminder_audience': cfg.get('reminder_audience', 'chase_and_confirm'),
+        'respect_snooze': bool(cfg.get('respect_snooze', True)),
+        'chase_title': substitute_placeholders(
+            session, step.get('subject') or rule.subject or '')[:200],
+        'confirm_title': (cfg.get('confirm_title') or ''),
+        'chase_line': (step.get('short_message') or rule.short_message or ''),
+        'confirm_line': confirm,
+        'chase_footer': (cfg.get('chase_footer') or ''),
+    }
+
+
 # Each native action names the task to enqueue and how to build its kwargs.
 # Both are code, not data: `native_action` only ever selects a row here.
 NATIVE_DISPATCHERS = {
     NATIVE_ACTION_RSVP_DM: {
         'task': 'app.tasks.tasks_rsvp_dm_reminders.send_rsvp_dm_reminders',
         'options': _rsvp_reminder_options,
+    },
+    NATIVE_ACTION_MATCH_DAY: {
+        'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_daily',
+        'options': _match_day_options,
     },
 }
 
@@ -1929,8 +1970,13 @@ def force_run_rule(session, rule, scope_key=None):
 
     results = []
     for event in events:
+        # MUST include the occurrence, like evaluate_rule does. Without it a
+        # recurring rule force-runs under a scope key ('5:all') that the real
+        # evaluation never produces ('5:all@2026-07-25'), so the forced run is an
+        # orphan row that never lines up with the scheduled history.
         key = build_scope_key(event['season_id'], event['league_id'],
-                              event.get('subject_type'), event.get('subject_id'))
+                              event.get('subject_type'), event.get('subject_id'),
+                              event.get('occurrence'))
         if scope_key and key != scope_key:
             continue
 
@@ -2034,6 +2080,113 @@ def dispatch_due_runs(session):
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _explain_match_day(session, rule, user, stages, add):
+    """Trace one person through the day-before digest's real rules."""
+    from app.models import Match, EcsFcMatch
+    from app.models.communication import MatchReminderLog
+    from app.tasks.tasks_notification_reminders import _reminder_audience_status
+    from app.utils.pacific_time import pacific_today
+
+    who = user.username
+    cfg = rule.trigger_config or {}
+    days_before = int(cfg.get('days_before', 1))
+    chase_only = cfg.get('reminder_audience', 'chase_and_confirm') == 'chase_only'
+    target = pacific_today() + timedelta(days=days_before)
+    gap = ('today' if days_before == 0 else 'tomorrow' if days_before == 1
+           else f'in {days_before} days')
+
+    player = session.query(Player).filter(Player.user_id == user.id).first()
+    if not player:
+        add('Has a player profile', False,
+            'This account has no player profile, so it is never on a team sheet.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged.'}
+    name = player.name or who
+    who = name
+    add('Has a player profile', True, f'Player profile: {name}.')
+
+    # Every match on the target day this player is rostered for, with their RSVP.
+    mine = []
+    for m in session.query(Match).filter(
+            Match.date == target, Match.is_special_week.is_(False),
+            Match.week_type.in_(['REGULAR', 'PLAYOFF'])).all():
+        rosters = (list(m.home_team.players) if m.home_team else []) + \
+                  (list(m.away_team.players) if m.away_team else [])
+        if any(p.id == player.id for p in rosters):
+            responses = {a.player_id: a.response for a in (m.availability or []) if a.player_id}
+            mine.append(('pub', m.id, responses.get(player.id)))
+    for m in session.query(EcsFcMatch).filter(
+            EcsFcMatch.match_date == target, EcsFcMatch.status == 'SCHEDULED').all():
+        if m.team and any(p.id == player.id for p in m.team.players):
+            responses = {a.player_id: a.response for a in (m.availabilities or []) if a.player_id}
+            mine.append(('ecs_fc', m.id, responses.get(player.id)))
+
+    if not mine:
+        add(f'Has a match {gap}', False,
+            f'No match on {target.strftime("%A, %B %d")}. Note that before the team '
+            f'reveal, Pub League matches are deliberately held back.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged — no match {gap}.'}
+    add(f'Has a match {gap}', True, f'{len(mine)} match(es) on {target.strftime("%A, %B %d")}.')
+
+    eligible = []
+    for mtype, mid, resp in mine:
+        status = _reminder_audience_status(resp)
+        if status is None:
+            continue
+        if chase_only and status != 'no_response':
+            continue
+        eligible.append((mtype, mid, status))
+    if not eligible:
+        said = {r for _, _, r in mine}
+        if chase_only:
+            detail = ('This rule is set to chase non-responders only, and they have '
+                      'already answered every match.')
+        else:
+            detail = (f'They answered {", ".join(sorted(s or "nothing" for s in said))} '
+                      f'— "no" and "maybe" are never reminded.')
+        add('RSVP state includes them', False, detail)
+        return {'stages': stages, 'verdict': f'{who} would not be messaged.'}
+    add('RSVP state includes them', True,
+        f'{len(eligible)} match(es) qualify '
+        f'({sum(1 for _, _, s in eligible if s == "no_response")} unanswered).')
+
+    if cfg.get('respect_snooze', True):
+        from app.services import rsvp_snooze_service
+        if player.id in rsvp_snooze_service.get_all_snoozed_player_ids(session=session):
+            add('Not snoozed', False,
+                f'{name} has paused RSVP reminders, and this rule is set to honour '
+                f'that. Turn off "Honour the RSVP Snooze button" to reach them anyway.')
+            return {'stages': stages, 'verdict': f'{who} would not be messaged — snoozed.'}
+        add('Not snoozed', True, 'Reminders are not paused for this person.')
+    else:
+        add('Snooze is ignored by this rule', True,
+            'This rule is set NOT to honour the Snooze button, so a snoozed player '
+            'still gets this reminder.')
+
+    already = {(r.match_id, r.match_type) for r in session.query(
+        MatchReminderLog.match_id, MatchReminderLog.match_type).filter(
+        MatchReminderLog.user_id == user.id,
+        MatchReminderLog.reminder_type == 'daily',
+        MatchReminderLog.target_date == target,
+        MatchReminderLog.delivery_status == 'sent').all()}
+    fresh = [e for e in eligible if (e[1], e[0]) not in already]
+    if not fresh:
+        add('Not already reminded', False,
+            f'{name} has already had this reminder for {target.strftime("%A, %B %d")}. '
+            f'It only sends once per match per day.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged — already reminded.'}
+    add('Not already reminded', True, f'{len(fresh)} match(es) not yet reminded.')
+
+    if not getattr(user, 'match_reminder_notifications', True):
+        add('Match reminders switched on', False,
+            f'{name} has turned match reminders off in their own notification settings.')
+        return {'stages': stages, 'verdict': f'{who} would not be messaged.'}
+    add('Match reminders switched on', True,
+        'This person has match reminders enabled.')
+
+    return {'stages': stages,
+            'verdict': f'{who} would get one message covering {len(fresh)} match(es) {gap}.'}
+
+
 def _explain_native(session, rule, user, stages, add):
     """Trace one person through the RSVP reminder's real rules.
 
@@ -2044,6 +2197,8 @@ def _explain_native(session, rule, user, stages, add):
     computed rather than filtered.
     """
     who = user.username
+    if rule.native_action == NATIVE_ACTION_MATCH_DAY:
+        return _explain_match_day(session, rule, user, stages, add)
     if rule.native_action != NATIVE_ACTION_RSVP_DM:
         add('Audience', False, 'No trace is available for this built-in message.')
         return {'stages': stages, 'verdict': 'Cannot say for this automation.'}
@@ -2247,9 +2402,12 @@ def explain_for_user(session, rule, user_id):
                     'verdict': f'{who} would NOT be messaged — a condition excludes them.'}
 
     # ── 4. Has it already gone out to them? ────────────────────────────
+    # Occurrence included, or a recurring rule's trace looks up a scope key that
+    # was never written and always reports "never sent".
     scope_key = build_scope_key(
         matched_scope['season_id'], matched_scope['league_id'],
-        matched_scope.get('subject_type'), matched_scope.get('subject_id'))
+        matched_scope.get('subject_type'), matched_scope.get('subject_id'),
+        matched_scope.get('occurrence'))
     run = (session.query(AutomationRun)
            .filter(AutomationRun.rule_id == rule.id,
                    AutomationRun.scope_key == scope_key).first())
@@ -2266,6 +2424,75 @@ def explain_for_user(session, rule, user_id):
     return {'stages': stages, 'verdict': verdict}
 
 
+def _preview_match_day(session, rule):
+    """Who the day-before digest would reach if it ran right now.
+
+    Uses the sender's own audience rules -- RSVP state, the chase-only setting
+    and the snooze list -- rather than a second implementation that could drift.
+    """
+    from app.models import Match, EcsFcMatch
+    from app.models.communication import MatchReminderLog
+    from app.services.team_visibility import teams_are_public, is_current_pub_league_team
+    from app.tasks.tasks_notification_reminders import _reminder_audience_status
+    from app.utils.pacific_time import pacific_today
+
+    cfg = rule.trigger_config or {}
+    days_before = int(cfg.get('days_before', 1))
+    chase_only = cfg.get('reminder_audience', 'chase_and_confirm') == 'chase_only'
+    target = pacific_today() + timedelta(days=days_before)
+
+    snoozed = set()
+    if cfg.get('respect_snooze', True):
+        from app.services import rsvp_snooze_service
+        snoozed = rsvp_snooze_service.get_all_snoozed_player_ids(session=session)
+
+    pub = session.query(Match).filter(
+        Match.date == target, Match.is_special_week.is_(False),
+        Match.week_type.in_(['REGULAR', 'PLAYOFF'])).all()
+    if not teams_are_public():
+        pub = [m for m in pub
+               if not (is_current_pub_league_team(m.home_team)
+                       or is_current_pub_league_team(m.away_team))]
+    ecs = session.query(EcsFcMatch).filter(
+        EcsFcMatch.match_date == target,
+        EcsFcMatch.status == 'SCHEDULED').all()
+
+    # Already-reminded users are excluded, so the count is what WOULD go out now
+    # rather than the roster size.
+    already = {row.user_id for row in session.query(MatchReminderLog.user_id).filter(
+        MatchReminderLog.reminder_type == 'daily',
+        MatchReminderLog.target_date == target,
+        MatchReminderLog.delivery_status == 'sent').all()}
+
+    names = set()
+    def _consider(players, responses):
+        for p in players:
+            if not p.user or p.user.id in already or p.id in snoozed:
+                continue
+            status = _reminder_audience_status(responses.get(p.id))
+            if status is None or (chase_only and status != 'no_response'):
+                continue
+            names.add(p.name or f'Player {p.id}')
+
+    for m in pub:
+        responses = {a.player_id: a.response for a in (m.availability or []) if a.player_id}
+        _consider(list(m.home_team.players) if m.home_team else [], responses)
+        _consider(list(m.away_team.players) if m.away_team else [], responses)
+    for m in ecs:
+        if not m.team:
+            continue
+        responses = {a.player_id: a.response for a in (m.availabilities or []) if a.player_id}
+        _consider(list(m.team.players), responses)
+
+    gap = ('today' if days_before == 0 else 'tomorrow' if days_before == 1
+           else f'in {days_before} days')
+    described = ('Everyone with a match ' + gap
+                 + (' who has not responded' if chase_only
+                    else ' who has not responded, plus those who said yes')
+                 + (', excluding snoozed players' if snoozed else ''))
+    return len(names), sorted(names)[:10], described
+
+
 def _preview_native(session, rule):
     """Who a built-in sender would reach if it ran right now.
 
@@ -2279,6 +2506,8 @@ def _preview_native(session, rule):
     It applies the snooze list and the repeat cap, so the number matches what
     would actually go out today -- not the raw roster.
     """
+    if rule.native_action == NATIVE_ACTION_MATCH_DAY:
+        return _preview_match_day(session, rule)
     if rule.native_action != NATIVE_ACTION_RSVP_DM:
         return 0, [], 'Worked out by the built-in sender'
 

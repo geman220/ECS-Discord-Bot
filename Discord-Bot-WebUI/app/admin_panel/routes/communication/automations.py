@@ -57,6 +57,18 @@ _PER_LEAGUE_AUDIENCES = ('by_league',)
 
 
 
+def _as_bool(raw):
+    """Coerce a JSON/form value to a real bool.
+
+    Handles the string 'false', which is what a form field sends and which
+    Python would otherwise read as truthy — a toggle that could be turned on but
+    never off.
+    """
+    if isinstance(raw, str):
+        return raw.strip().lower() not in ('', 'false', '0', 'no', 'off')
+    return bool(raw)
+
+
 def _coerce_field(name, spec, raw, fallback):
     """Best-effort coerce one trigger-config value, falling back to the default."""
     if spec['type'] == 'int':
@@ -72,6 +84,8 @@ def _coerce_field(name, spec, raw, fallback):
         return val
     if spec['type'] == 'text':
         return str(raw or '').strip()[:spec.get('max_length', 200)]
+    if spec['type'] == 'bool':
+        return _as_bool(raw)
     valid = {c[0] for c in spec.get('choices', [])}
     if spec['type'] == 'multi':
         picked = [str(v) for v in (raw or []) if str(v) in valid] \
@@ -96,6 +110,9 @@ def _validate_field(name, spec, raw):
 
     if spec['type'] == 'text':
         return str(raw or '').strip()[:spec.get('max_length', 200)], None
+
+    if spec['type'] == 'bool':
+        return _as_bool(raw), None
 
     valid = {c[0] for c in spec.get('choices', [])}
     if spec['type'] == 'multi':
@@ -791,8 +808,9 @@ def automation_update(rule_id):
         if _name not in data:
             continue
         raw = data.get(_name)
-        # 'text' is the one type where empty is a legitimate answer (no footer).
-        if raw in (None, '') and _spec['type'] != 'text':
+        # 'text' allows empty (no footer); 'bool' allows False. Both would trip
+        # the emptiness guard below and become unsettable.
+        if raw in (None, '') and _spec['type'] not in ('text', 'bool'):
             return jsonify({'success': False,
                             'error': f"{_spec['label']} needs a value"}), 400
         val, err = _validate_field(_name, _spec, raw)
@@ -1345,6 +1363,21 @@ def automation_send_test(rule_id):
     rule = session.query(AutomationRule).get(rule_id)
     if not rule:
         return jsonify({'success': False, 'error': 'Rule not found'}), 404
+
+    # A built-in never sends email, and its copy is short prose carrying
+    # per-match tokens ({opponent}, {when}) that the email personaliser knows
+    # nothing about. Emailing it would deliver a bare sentence full of literal
+    # braces through a channel the rule does not use — a "test" that tests
+    # nothing and misrepresents the message. Point at the dry run instead.
+    if rule.native_action:
+        return jsonify({
+            'success': False,
+            'error': ('This is a built-in message — it goes out on Discord, push, '
+                      'email or SMS depending on the person, and is assembled per '
+                      'match. There is no single email to test. Use "Dry run" to see '
+                      'who it would reach, and "Why didn\'t someone get this?" to '
+                      'trace one person.'),
+        }), 400
 
     if not current_user.email:
         return jsonify({'success': False, 'error': 'Your account has no email address'}), 400

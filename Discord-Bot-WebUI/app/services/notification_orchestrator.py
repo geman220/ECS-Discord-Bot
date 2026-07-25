@@ -21,6 +21,7 @@ Key Features:
 
 import logging
 import os
+import re
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional, Any
 from enum import Enum
@@ -1202,11 +1203,25 @@ class NotificationOrchestrator:
             priority='high' if hours_until <= 2 else 'normal'
         ))
 
+    # Default copy for the day-before digest. The 'match_day_reminder'
+    # automation rule normally supplies all of these; they are the fallback for
+    # a direct call, and the seeded rule carries the same strings so switching to
+    # the rule changed nothing.
+    MATCH_DIGEST_COPY = {
+        'chase_title': "⚽ Please RSVP",
+        'confirm_title': "⚽ Match Reminder",
+        'chase_line': ("You haven't RSVP'd for your match against {opponent} {when} "
+                       "at {time}."),
+        'confirm_line': "Your match against {opponent} is {when} at {time}",
+        'chase_footer': "Please RSVP or let your coach know if you can't make it.",
+    }
+
     def send_match_reminders_digest(
         self,
         user_id: int,
         matches: List[Dict[str, Any]],
         target_date,
+        copy: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
         """
         Send one reminder DM to one player covering all their matches on
@@ -1219,7 +1234,23 @@ class NotificationOrchestrator:
 
         `matches` keys per entry: match_id, match_type, opponent, time_str,
         location, rsvp_status.
+
+        `copy` overrides MATCH_DIGEST_COPY, and is where the automation rule's
+        admin-authored wording arrives. Only the prose is overridable: the
+        multi-match bullet list is structure, not a sentence, so templating it
+        would invite an admin to break the layout with no way to see it first.
         """
+        c = dict(self.MATCH_DIGEST_COPY)
+        c.update({k: v for k, v in (copy or {}).items() if v is not None})
+
+        def _fill(template, m, when):
+            """Fill {opponent} {when} {time} {location}; leave typos visible."""
+            values = {'opponent': m.get('opponent', ''), 'when': when,
+                      'time': m.get('time_str', ''), 'location': m.get('location', '')}
+            return re.sub(r'\{(\w+)\}',
+                          lambda mo: str(values.get(mo.group(1), mo.group(0))),
+                          template or '')
+
         from app.utils.pacific_time import pacific_today
         today = pacific_today()
 
@@ -1233,18 +1264,16 @@ class NotificationOrchestrator:
             when = target_date.strftime('%A, %B %d').replace(' 0', ' ')
 
         has_chase = any(m.get('rsvp_status') == 'no_response' for m in matches)
-        title = "⚽ Please RSVP" if has_chase else "⚽ Match Reminder"
+        title = c['chase_title'] if has_chase else c['confirm_title']
 
         if len(matches) == 1:
             m = matches[0]
             if m.get('rsvp_status') == 'no_response':
-                message = (
-                    f"You haven't RSVP'd for your match against {m['opponent']} "
-                    f"{when} at {m['time_str']}. Please RSVP or let your coach "
-                    f"know if you can't make it."
-                )
+                message = _fill(c['chase_line'], m, when)
+                if c.get('chase_footer'):
+                    message += ' ' + c['chase_footer']
             else:
-                message = f"Your match against {m['opponent']} is {when} at {m['time_str']}"
+                message = _fill(c['confirm_line'], m, when)
             if m.get('location') and m['location'] != 'TBD':
                 message += f"\nLocation: {m['location']}"
         else:
@@ -1258,9 +1287,9 @@ class NotificationOrchestrator:
                 if m.get('location') and m['location'] != 'TBD':
                     line += f" ({m['location']})"
                 lines.append(line)
-            if has_chase:
+            if has_chase and c.get('chase_footer'):
                 lines.append("")
-                lines.append("Please RSVP or let your coach know if you can't make it.")
+                lines.append(c['chase_footer'])
             message = "\n".join(lines)
 
         return self.send(NotificationPayload(

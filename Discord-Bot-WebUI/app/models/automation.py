@@ -49,6 +49,7 @@ TRIGGER_SEASON_DATE = 'season_date'
 # constraint that makes every other trigger once-only.
 TRIGGER_RECURRING_WEEKLY = 'recurring_weekly'
 TRIGGER_RSVP_NOT_RESPONDED = 'rsvp_not_responded'
+TRIGGER_MATCH_DAY_REMINDER = 'match_day_reminder'
 # Per-subject triggers: one run per person, audience = that person.
 TRIGGER_USER_APPROVED = 'user_approved'
 TRIGGER_WAITLIST_STUCK = 'waitlist_stuck'
@@ -69,6 +70,7 @@ TRIGGER_TYPES = {
     TRIGGER_SEASON_DATE: 'Season start / end date',
     TRIGGER_RECURRING_WEEKLY: 'On a weekly schedule',
     TRIGGER_RSVP_NOT_RESPONDED: "Hasn't RSVP'd for an upcoming match",
+    TRIGGER_MATCH_DAY_REMINDER: 'Match coming up (day-before reminder)',
     TRIGGER_USER_APPROVED: 'Someone was approved',
     TRIGGER_WAITLIST_STUCK: 'Stuck on the waitlist too long',
     TRIGGER_SUB_NO_REPLY: 'Sub was asked and never replied',
@@ -103,6 +105,7 @@ PER_SUBJECT_TRIGGERS = (
 RECURRING_TRIGGERS = (
     TRIGGER_RECURRING_WEEKLY,
     TRIGGER_RSVP_NOT_RESPONDED,
+    TRIGGER_MATCH_DAY_REMINDER,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -121,14 +124,82 @@ RECURRING_TRIGGERS = (
 # ─────────────────────────────────────────────────────────────────────────────
 
 NATIVE_ACTION_RSVP_DM = 'rsvp_dm_reminder'
+NATIVE_ACTION_MATCH_DAY = 'match_day_reminder'
 
 NATIVE_ACTIONS = {
+    NATIVE_ACTION_MATCH_DAY: {
+        'label': 'Match day-before digest',
+        'trigger': TRIGGER_MATCH_DAY_REMINDER,
+        'description': ('One message per player covering every match they have on '
+                        'the target day. People who said yes get a confirmation, '
+                        'people who never answered get chased, and anyone who said '
+                        'no or maybe is left alone.'),
+        # Rendered in the editor in place of the audience picker and the channel
+        # picker. Kept here rather than in the template so a second built-in
+        # cannot inherit the first one's wording.
+        'audience_note': ('Everyone rostered for a match on the target day, minus '
+                          'anyone who answered no or maybe. Whether people who '
+                          'already said yes get a confirmation is the "Who it goes '
+                          'to" setting below. Before the team reveal, Pub League '
+                          'matches are held back and ECS FC ones still go out.'),
+        'channel_note': ('Push if they have the app, then Discord, then email, then '
+                         'SMS — one channel each, never all four. Anyone who has '
+                         'turned match reminders off in their own notification '
+                         'settings is skipped on every channel.'),
+        # What the three shared copy columns MEAN for this action. The digest is
+        # built from short sentences rather than one body, so "Subject line" and
+        # "Email message" would both be lies.
+        'copy_labels': {
+            'subject': 'Title when a match still needs an answer',
+            'subject_help': ('Used the moment one match is unanswered. When everything '
+                             'is already confirmed, the "Title when everything is '
+                             'confirmed" setting is used instead.'),
+            'short': 'Chase sentence',
+            'short_help': ('Sent to someone who has not answered. One line per match.'),
+            'body': 'Confirmation sentence',
+            'body_help': ('Sent to someone who already said yes. Plain text — this is a '
+                          'push notification and a Discord DM, not an email.'),
+        },
+        # Filled per MATCH by the sender. {when} is deliberately relative
+        # ("tomorrow") and derived from the real gap, so it stays truthful if the
+        # schedule is moved to fire two days out.
+        'variables': {
+            'opponent': 'Who they are playing',
+            'when': '"tomorrow", "today", or the weekday and date',
+            'time': 'Kick-off time, e.g. 6:30 PM',
+            'location': 'Where it is being played',
+        },
+    },
     NATIVE_ACTION_RSVP_DM: {
         'label': 'Interactive RSVP reminder',
         'trigger': TRIGGER_RSVP_NOT_RESPONDED,
         'description': ('Sends the Discord DM with Yes / No / Maybe buttons and the '
                         'Snooze dropdown, and falls back to push, email or SMS for '
                         'anyone whose best channel is not Discord.'),
+        'audience_note': ('Everyone with a match inside the lookahead window who has '
+                          'not answered yes, no or maybe. Anyone who hit Snooze is '
+                          'skipped, and so is anyone already reminded about that '
+                          'match the maximum number of times. Before the team '
+                          'reveal, Pub League matches are held back and ECS FC ones '
+                          'still go out.'),
+        'channel_note': ('Push if they have the app, then Discord, then email, then '
+                         'SMS — one channel each, never all four. Discord users get '
+                         'the version with Yes / No / Maybe buttons and a Snooze '
+                         'dropdown, which is why this message is built in rather '
+                         'than assembled from a channel list. Anyone who has turned '
+                         'RSVP reminders off in their own settings is skipped on '
+                         'every channel.'),
+        'copy_labels': {
+            'subject': 'Title',
+            'subject_help': 'Shown as the Discord embed heading and as the push / email title.',
+            'short': 'Short message',
+            'short_help': 'One line per unanswered match, for push / email / SMS.',
+            'body': 'Discord opening line',
+            'body_help': ('The sentence above the match list and the RSVP buttons. Each '
+                          'match is listed underneath automatically with its opponent, '
+                          'date, time and pitch, so you do not need to mention them here. '
+                          'Discord understands **bold** and *italic*; any HTML is stripped.'),
+        },
         # Tokens the SENDER fills, per match rather than per person. They are not
         # in MESSAGE_VARIABLES because nothing else can resolve them, but the
         # enable-guard has to know they are legitimate or this rule could never
@@ -235,6 +306,26 @@ TRIGGER_CATALOG = {
         'group': 'Schedule',
         'default_audience': 'automatic',
         'field_defaults': {'max_event_age_days': 1},
+    },
+    TRIGGER_MATCH_DAY_REMINDER: {
+        'label': 'Match coming up (day-before reminder)',
+        'help': ('The run-up reminder. On the days and hour you pick, everyone with '
+                 'a match the chosen number of days later gets one message covering '
+                 'all of them. People who said yes get a confirmation; people who '
+                 'never answered get chased. Leave "Send on" as all seven days to '
+                 'keep it running daily.'),
+        'fields': ['weekdays', 'hour', 'days_before', 'reminder_audience',
+                   'respect_snooze', 'confirm_title', 'chase_footer',
+                   'max_event_age_days'],
+        'scope': 'Everyone with a match coming up',
+        'group': 'Schedule',
+        'default_audience': 'automatic',
+        'field_defaults': {
+            'max_event_age_days': 1,
+            # Daily, not weekly -- this one runs every day by default.
+            'weekdays': ['0', '1', '2', '3', '4', '5', '6'],
+            'hour': '18',
+        },
     },
     TRIGGER_USER_APPROVED: {
         'label': 'Someone was approved',
@@ -481,14 +572,21 @@ def describe_condition(cond):
 
 def describe_schedule(cfg):
     """'it is Thursday at 12:00 pm' — the recurrence in plain English."""
-    labels = dict(WEEKDAY_CHOICES)
-    picked = [str(d) for d in (cfg or {}).get('weekdays') or ['3']]
-    names = [labels[d] for d in labels if d in picked] or ['Thursday']
-    if len(names) == 1:
-        days = names[0]
-    else:
-        days = ', '.join(names[:-1]) + ' and ' + names[-1]
+    picked = {str(d) for d in (cfg or {}).get('weekdays') or ['3']}
+    names = [label for value, label in WEEKDAY_CHOICES if value in picked] or ['Thursday']
     hour = dict(HOUR_CHOICES).get(str((cfg or {}).get('hour', '12')), '12:00 pm')
+
+    # Seven days is "every day", not a seven-item list. Weekdays and weekends
+    # get their own shorthand for the same reason -- a rule an admin can read
+    # back at a glance is one they can spot a mistake in.
+    if len(names) == 7:
+        return f'it is {hour}, every day'
+    if picked == {'0', '1', '2', '3', '4'}:
+        return f'it is a weekday at {hour}'
+    if picked == {'5', '6'}:
+        return f'it is the weekend at {hour}'
+
+    days = names[0] if len(names) == 1 else ', '.join(names[:-1]) + ' and ' + names[-1]
     return f'it is {days} at {hour}'
 
 
@@ -536,6 +634,11 @@ def summarize_rule(rule, audience_label=None):
         if rule.trigger_type == TRIGGER_RSVP_NOT_RESPONDED:
             when += (" and someone has not answered a match in the next "
                      + _plural(cfg.get('lookahead_days', 4), 'day'))
+        elif rule.trigger_type == TRIGGER_MATCH_DAY_REMINDER:
+            before = int(cfg.get('days_before', 1) or 0)
+            gap = ('today' if before == 0 else 'tomorrow' if before == 1
+                   else f'in {before} days')
+            when += f" and someone has a match {gap}"
 
     delay = rule.delay_hours or 0
     if delay == 0:
@@ -589,6 +692,7 @@ def summarize_rule(rule, audience_label=None):
 # 'choice' -> select, options are (value, label) pairs
 # 'multi'  -> checkbox group, value is a LIST drawn from 'choices'
 # 'text'   -> single-line free text, clamped to 'max_length'
+# 'bool'   -> single checkbox, value is a real JSON true/false
 #
 # A trigger can override any spec's default via TRIGGER_CATALOG[t]['field_defaults'],
 # which is how the recurring triggers get a 1-day freshness window without
@@ -694,6 +798,39 @@ TRIGGER_FIELD_SPECS = {
         'label': 'Discord DM footer', 'type': 'text', 'max_length': 200,
         'default': 'Click a button to RSVP, or Snooze to pause reminders',
         'help': 'The small grey line under the Discord message. Leave blank for no footer.',
+    },
+    'days_before': {
+        'label': 'Days before the match', 'type': 'int', 'default': 1, 'min': 0, 'max': 7,
+        'help': ('1 sends the evening before. 0 sends on match day itself. The message '
+                 'says "tomorrow" or "today" accordingly — it works the wording out '
+                 'from the real gap, so it cannot end up lying.'),
+    },
+    'reminder_audience': {
+        'label': 'Who it goes to', 'type': 'choice', 'default': 'chase_and_confirm',
+        'choices': [
+            ('chase_and_confirm', "Chase non-responders AND confirm the ones who said yes"),
+            ('chase_only', "Only chase people who haven't responded"),
+        ],
+        'help': ('People who answered no or maybe are never included either way. '
+                 '"Chase only" makes this purely an RSVP nudge.'),
+    },
+    'respect_snooze': {
+        'label': 'Honour the RSVP Snooze button', 'type': 'bool', 'default': True,
+        'help': ('On means a player who hit Snooze on their RSVP DM is left alone here '
+                 'too. Off means they still get this one — which is how it behaved '
+                 'before this became a rule, and why snoozed players kept hearing from '
+                 'us the evening before every match.'),
+    },
+    'confirm_title': {
+        'label': 'Title when everything is confirmed', 'type': 'text', 'max_length': 200,
+        'default': '⚽ Match Reminder',
+        'help': 'Used when the player has already said yes to everything. The main title '
+                'above is used instead as soon as one match still needs an answer.',
+    },
+    'chase_footer': {
+        'label': 'Chase line', 'type': 'text', 'max_length': 300,
+        'default': "Please RSVP or let your coach know if you can't make it.",
+        'help': ('Added when at least one match is unanswered. Leave blank to drop it.'),
     },
 }
 
@@ -915,12 +1052,21 @@ TRIGGER_OVERLAPS = {
     TRIGGER_RSVP_NOT_RESPONDED: {
         'text': ("This IS the weekly RSVP chase — it replaced the hardcoded Thursday "
                  "noon DM, so there is no longer a second copy running behind it. It "
-                 "does still sit alongside the day-before match reminder at 18:00, "
-                 "which nudges non-responders again the evening before a match, and "
-                 "the manual nudge a coach can send from the team page. Someone who "
-                 "never answers can therefore hear from all three."),
+                 "does sit alongside the day-before match reminder, which chases "
+                 "non-responders again nearer the match — that one is now a rule too, "
+                 "so you can see and change both. A coach can also nudge by hand from "
+                 "the team page."),
         'avoid_channels': [],
-        'where': 'Daily match reminder (18:00); coach "send reminder" button on a match.',
+        'where': 'The "Match coming up" automation; coach "send reminder" button on a match.',
+    },
+    TRIGGER_MATCH_DAY_REMINDER: {
+        'text': ("This replaced the hardcoded 18:00 daily reminder, so nothing is "
+                 "running behind it. It overlaps the weekly RSVP chase on purpose: "
+                 "that one asks early in the week, this one is the last call. Someone "
+                 "who never answers hears from both — set \"Who it goes to\" to chase "
+                 "only, or turn one off, if that is too much."),
+        'avoid_channels': [],
+        'where': 'The "Hasn\'t RSVP\'d" automation; coach "send reminder" button on a match.',
     },
 
     # ── Joining ──────────────────────────────────────────────────────────────

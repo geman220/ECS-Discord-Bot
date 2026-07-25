@@ -35,10 +35,14 @@
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
       <i class="ti ti-eye" aria-hidden="true"></i><span>Dry run</span>
     </button>
+    {# Built-ins send no email, so there is no single message to mail yourself.
+       The server refuses it too; hiding the button avoids a dead end. #}
+    {% if not rule.native_action %}
     <button type="button" data-action="automation-send-test" data-rule-id="{{ rule.id }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
       <i class="ti ti-mail-fast" aria-hidden="true"></i><span>Test to me</span>
     </button>
+    {% endif %}
     {% if user_roles and 'Global Admin' in user_roles %}
     <button type="button" data-action="automation-force-run"
             data-rule-id="{{ rule.id }}" data-rule-name="{{ rule.name }}"
@@ -217,6 +221,21 @@
         {# Trigger knobs, rendered from TRIGGER_FIELD_SPECS. Adding a knob to that
            dict is the ONLY change needed for it to appear here, validate and save. #}
         {% for name, spec in trigger_fields %}
+        {% if spec.type == 'bool' %}
+        {# Its own layout: the label belongs beside the checkbox, not above it. #}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <label class="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" data-trigger-bool="{{ name }}"
+                   {% if cfg.get(name, spec.default) %}checked{% endif %}
+                   class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+            <span class="text-sm text-gray-900 dark:text-white">{{ spec.label }}
+              {% if spec.help %}
+              <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ spec.help }}</span>
+              {% endif %}
+            </span>
+          </label>
+        </div>
+        {% else %}
         <div>
           <label for="tf_{{ name }}" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">{{ spec.label }}</label>
           {% if spec.type == 'multi' %}
@@ -257,6 +276,7 @@
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{{ spec.help }}</p>
           {% endif %}
         </div>
+        {% endif %}
         {% endfor %}
 
         <div>
@@ -281,12 +301,10 @@
           <p class="text-sm font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-wand text-ecs-green me-1" aria-hidden="true"></i>Worked out automatically
           </p>
+          {# From NATIVE_ACTIONS metadata, not written here — otherwise a second
+             built-in silently inherits the first one's description. #}
           <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
-            Everyone with a match inside the lookahead window who hasn&rsquo;t answered
-            yes, no or maybe. Anyone who hit <strong>Snooze</strong> is skipped, and so is
-            anyone already reminded about that match the maximum number of times.
-            Before the team reveal, Pub League matches are held back and ECS FC ones
-            still go out.
+            {{ (native_meta or {}).get('audience_note', 'Worked out by the built-in sender.') }}
           </p>
         </div>
         {% else %}
@@ -376,14 +394,7 @@
             <i class="ti ti-broadcast text-ecs-green me-1" aria-hidden="true"></i>Delivered on each person&rsquo;s best channel
           </p>
           <p class="mt-1.5 text-xs text-gray-600 dark:text-gray-300">
-            Push if they have the app, then Discord, then email, then SMS &mdash; one channel
-            each, never all four. Discord users get the version with
-            <strong>Yes / No / Maybe</strong> buttons and a Snooze dropdown, which is why
-            this message is built in rather than assembled from a channel list.
-          </p>
-          <p class="mt-1.5 text-xs text-gray-600 dark:text-gray-300">
-            Anyone who has turned RSVP reminders off in their own notification settings is
-            skipped on every channel.
+            {{ (native_meta or {}).get('channel_note', "Each person is reached on their best channel.") }}
           </p>
         </div>
         {% else %}
@@ -422,13 +433,10 @@
 
         <div>
           <label for="ruleSubject" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-            {% if rule.native_action %}Title{% else %}Subject line{% endif %}
+            {% set cl = (native_meta or {}).get('copy_labels') or {} %}
+            {{ cl.get('subject', 'Subject line') }}
             <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">
-              {% if rule.native_action %}
-              Shown as the Discord embed heading and as the push / email title.
-              {% else %}
-              Also used as the push / in-app notification title.
-              {% endif %}
+              {{ cl.get('subject_help', 'Also used as the push / in-app notification title.') }}
             </span>
           </label>
           <input type="text" id="ruleSubject" value="{{ rule.subject }}"
@@ -509,19 +517,14 @@
            A rich-text editor here would invite formatting Discord cannot show,
            so it is a plain textarea. #}
         <div id="emailBodyWrap">
+          {% set cl = (native_meta or {}).get('copy_labels') or {} %}
           <label for="ruleBody" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">
-            Discord opening line
-            <span class="block text-xs font-normal text-gray-500 dark:text-gray-400">
-              The sentence above the match list and the RSVP buttons.
-            </span>
+            {{ cl.get('body', 'Message') }}
           </label>
           <textarea id="ruleBody" rows="3"
                     class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">{{ rule.body_html }}</textarea>
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <strong>Plain text.</strong> Each unanswered match is listed underneath
-            automatically with its opponent, date, time and pitch &mdash; you do not need to
-            mention them here. Discord understands <code>**bold**</code> and
-            <code>*italic*</code>; any HTML is stripped.
+            <strong>Plain text.</strong> {{ cl.get('body_help', '') }}
           </p>
         </div>
         {% else %}

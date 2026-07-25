@@ -734,20 +734,15 @@ class CeleryConfig:
         # The old daily send_rsvp_reminders task was removed to prevent
         # duplicate notifications — players get ONE reminder per match.
 
-        # Match reminders: Daily at 6 PM PST for tomorrow's matches.
-        # Sends one DM per player covering all their matches. Yes responders
-        # get a confirmation; non-responders get an RSVP chase. Maybe and No
-        # responders are skipped.
-        'send-match-reminders-daily': {
-            'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_daily',
-            'schedule': crontab(hour=18, minute=0),
-            'options': {
-                'queue': 'celery',
-                'expires': 3540,
-                'time_limit': 300,
-                'soft_time_limit': 240
-            }
-        },
+        # Match reminders: NO BEAT ENTRY, on purpose.
+        # There used to be a 'send-match-reminders-daily' entry here at
+        # crontab(hour=18). It is now driven by the 'match_day_reminder'
+        # automation rule, so an admin can change the hour, how many days ahead
+        # it looks, whether it confirms as well as chases, and the wording.
+        #
+        # Do NOT add it back alongside the rule — both would fire and every
+        # player would be reminded twice. The dispatcher is the hourly
+        # 'evaluate-automations' entry above.
 
         # =====================================================================
         # LEAGUE EVENT REMINDERS (Dynamic)

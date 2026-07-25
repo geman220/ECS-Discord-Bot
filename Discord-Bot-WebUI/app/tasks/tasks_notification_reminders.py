@@ -107,30 +107,93 @@ def send_rsvp_reminders(self, session):
         raise self.retry(exc=e)
 
 
+# What the hardcoded 18:00 beat entry did, kept as the fallback for any caller
+# that passes no options. The seeded 'match_day_reminder' automation rule carries
+# the same values, so moving onto the rule changed nothing until an admin edits it.
+DEFAULT_MATCH_REMINDER_OPTIONS = {
+    'days_before': 1,
+    # 'chase_and_confirm' | 'chase_only'
+    'reminder_audience': 'chase_and_confirm',
+    # False reproduces the old behaviour, where a player who hit Snooze on their
+    # RSVP DM still got chased the evening before every match.
+    'respect_snooze': False,
+    'chase_title': "⚽ Please RSVP",
+    'confirm_title': "⚽ Match Reminder",
+    'chase_line': "You haven't RSVP'd for your match against {opponent} {when} at {time}.",
+    'confirm_line': "Your match against {opponent} is {when} at {time}",
+    'chase_footer': "Please RSVP or let your coach know if you can't make it.",
+}
+
+
+def _report_run(session, run_id, sent, skipped_dedup):
+    """Close out the AutomationRun, if this send came from a rule."""
+    from app.services.automation_run_report import report_native_run
+    report_native_run(
+        session, run_id, sent,
+        nobody_message=(
+            'Nobody needed this reminder — everyone with a match that day had '
+            'already been reminded, said no or maybe, or has reminders paused. '
+            f'({skipped_dedup} skipped as already reminded.)'
+        ),
+    )
+
+
+def _resolve_match_reminder_options(options):
+    """Merge caller options over the defaults, clamping days_before."""
+    opts = dict(DEFAULT_MATCH_REMINDER_OPTIONS)
+    opts.update({k: v for k, v in (options or {}).items() if v is not None})
+    try:
+        opts['days_before'] = max(0, min(7, int(opts['days_before'])))
+    except (TypeError, ValueError):
+        opts['days_before'] = DEFAULT_MATCH_REMINDER_OPTIONS['days_before']
+    if opts.get('reminder_audience') not in ('chase_and_confirm', 'chase_only'):
+        opts['reminder_audience'] = 'chase_and_confirm'
+    return opts
+
+
 @celery_task(max_retries=3, default_retry_delay=300)
-def send_match_reminders_daily(self, session):
+def send_match_reminders_daily(self, session, options=None, run_id=None):
     """
-    Send one consolidated DM per player covering every match they have tomorrow.
+    Send one consolidated DM per player covering every match they have on the
+    target day.
 
     Audience and tone depend on RSVP state per-match:
-      - Responded 'yes'            -> confirmation ("see you there")
+      - Responded 'yes'            -> confirmation ("see you there"), unless the
+                                      rule is set to chase only
       - No response                -> chase ("please RSVP or tell your coach")
       - Responded 'no' or 'maybe'  -> skipped
 
-    A player with two matches tomorrow gets ONE DM listing both. If some are
+    A player with two matches that day gets ONE DM listing both. If some are
     confirmed and some are unanswered, the DM mixes both.
 
     - Skips players who have already received this reminder (MatchReminderLog dedup)
     - Orchestrator enforces per-user preferences (match_reminder_notifications)
+    - Optionally honours the RSVP Snooze button (see DEFAULT_..._OPTIONS)
 
-    Run daily at 6 PM Pacific via celery beat.
+    WHEN THIS RUNS
+    --------------
+    No beat entry any more. The 'match_day_reminder' automation rule
+    (/admin-panel/communication/automations) owns the schedule, how many days
+    ahead it looks, who it goes to, and every string. Switching that rule off
+    stops these reminders — there is no second copy behind it.
+
+    Args:
+        options: settings from the rule. Omitted means the old hardcoded
+                 behaviour exactly.
+        run_id:  AutomationRun to report back to, when dispatched by a rule.
     """
     from app.models import Match, EcsFcMatch
     from app.models.communication import MatchReminderLog
     from app.services.notification_orchestrator import orchestrator
 
+    opts = _resolve_match_reminder_options(options)
+    digest_copy = {k: opts.get(k) for k in
+                   ('chase_title', 'confirm_title', 'chase_line',
+                    'confirm_line', 'chase_footer')}
+    chase_only = opts['reminder_audience'] == 'chase_only'
+
     try:
-        target_date = pacific_today() + timedelta(days=1)
+        target_date = pacific_today() + timedelta(days=opts['days_before'])
         batch_id = str(uuid.uuid4())
 
         pub_matches = session.query(Match).filter(
@@ -154,6 +217,16 @@ def send_match_reminders_daily(self, session):
             EcsFcMatch.status == 'SCHEDULED'
         ).all()
 
+        # The RSVP Snooze button used to have no effect here at all, so a player
+        # who explicitly paused reminders still got chased the evening before
+        # every match. Now it is a rule setting -- on by default -- and the
+        # player-id set is resolved once rather than per roster row.
+        snoozed_ids = set()
+        if opts['respect_snooze']:
+            from app.services import rsvp_snooze_service
+            rsvp_snooze_service.cleanup_expired(session=session)
+            snoozed_ids = rsvp_snooze_service.get_all_snoozed_player_ids(session=session)
+
         logger.info(
             f"Daily match reminder for {target_date}: "
             f"{len(pub_matches)} pub + {len(ecs_fc_matches)} ECS FC matches"
@@ -170,7 +243,9 @@ def send_match_reminders_daily(self, session):
                     if not player.user:
                         continue
                     status = _reminder_audience_status(responses.get(player.id))
-                    if status is None:
+                    if status is None or (chase_only and status != 'no_response'):
+                        continue
+                    if player.id in snoozed_ids:
                         continue
                     info = _pub_match_info(
                         match, opponent=match.away_team.name if match.away_team else 'TBD'
@@ -182,7 +257,9 @@ def send_match_reminders_daily(self, session):
                     if not player.user:
                         continue
                     status = _reminder_audience_status(responses.get(player.id))
-                    if status is None:
+                    if status is None or (chase_only and status != 'no_response'):
+                        continue
+                    if player.id in snoozed_ids:
                         continue
                     info = _pub_match_info(
                         match, opponent=match.home_team.name if match.home_team else 'TBD'
@@ -198,7 +275,9 @@ def send_match_reminders_daily(self, session):
                 if not player.user:
                     continue
                 status = _reminder_audience_status(responses.get(player.id))
-                if status is None:
+                if status is None or (chase_only and status != 'no_response'):
+                    continue
+                if player.id in snoozed_ids:
                     continue
                 info = _ecs_fc_match_info(ecs_match)
                 info['rsvp_status'] = status
@@ -206,6 +285,7 @@ def send_match_reminders_daily(self, session):
 
         if not user_digests:
             logger.info("No eligible players for daily match reminder")
+            _report_run(session, run_id, 0, 0)
             return {'success': True, 'total_reminders': 0, 'batch_id': batch_id}
 
         # Dedup against the audit log at (user, match) granularity — rerunning
@@ -232,6 +312,7 @@ def send_match_reminders_daily(self, session):
                 user_id=user_id,
                 matches=matches,
                 target_date=target_date,
+                copy=digest_copy,
             )
 
             delivered = (
@@ -259,6 +340,7 @@ def send_match_reminders_daily(self, session):
             f"Daily match reminders complete: {sent_count} players notified, "
             f"{skipped_dedup} skipped (already reminded), batch_id={batch_id}"
         )
+        _report_run(session, run_id, sent_count, skipped_dedup)
         return {
             'success': True,
             'total_reminders': sent_count,
