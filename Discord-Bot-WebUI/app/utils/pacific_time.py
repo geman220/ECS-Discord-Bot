@@ -45,3 +45,25 @@ def pacific_to_utc_naive(d: date, t: time) -> datetime:
     offset for that specific date instead of hardcoding one.
     """
     return pacific_datetime(d, t).astimezone(ZoneInfo('UTC')).replace(tzinfo=None)
+
+
+def utc_to_pacific(dt):
+    """Naive-UTC datetime -> aware Pacific. None passes through.
+
+    Almost every timestamp in this app is stored as naive UTC but MEANT to be
+    read in Pacific. Rendering one straight with .strftime() shows UTC, which
+    reads as flatly wrong to an admin: a reminder configured for 6:00 pm shows
+    up in the run history as 01:00 the next day, and the natural conclusion is
+    that it fired twice.
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(PACIFIC_TZ)
+    return dt.replace(tzinfo=ZoneInfo('UTC')).astimezone(PACIFIC_TZ)
+
+
+def format_pacific(dt, fmt='%b %d, %I:%M %p'):
+    """Render a naive-UTC timestamp in Pacific. Empty string for None."""
+    local = utc_to_pacific(dt)
+    return local.strftime(fmt).replace(' 0', ' ') if local else ''

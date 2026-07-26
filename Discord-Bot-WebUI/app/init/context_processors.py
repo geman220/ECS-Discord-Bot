@@ -170,6 +170,7 @@ def init_context_processors(app):
     # _register_season_processor(app) — REMOVED, see note below (dead query per render)
     _register_file_versioning_processor(app)
     _register_humanize_filter(app)
+    _register_pacific_filter(app)
     _register_theme_colors_processor(app)
     _register_ai_assistant_processor(app)
     _register_nav_counts_processor(app)
@@ -185,6 +186,17 @@ def _register_humanize_filter(app):
     System Command Center and available to any template."""
     from app.utils.humanize import humanize_identifier
     app.jinja_env.filters['humanize'] = humanize_identifier
+
+
+def _register_pacific_filter(app):
+    """Expose `| pacific` — render a naive-UTC timestamp in Pacific time.
+
+    Stored timestamps are naive UTC; the league is entirely Pacific. Any admin
+    screen showing a raw stored value is showing the wrong number, most visibly
+    in the automation run history where a 6pm rule appeared to fire at 01:00.
+    """
+    from app.utils.pacific_time import format_pacific
+    app.jinja_env.filters['pacific'] = format_pacific
 
 
 def _register_pending_access_processor(app):

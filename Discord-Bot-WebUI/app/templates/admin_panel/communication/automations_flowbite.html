@@ -236,7 +236,7 @@
               </div>
               <div>
                 <dt class="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">Last checked</dt>
-                <dd class="text-gray-900 dark:text-white">{{ rule.last_evaluated_at.strftime('%b %d, %H:%M') if rule.last_evaluated_at else 'Never' }}</dd>
+                <dd class="text-gray-900 dark:text-white">{{ rule.last_evaluated_at | pacific if rule.last_evaluated_at else 'Never' }}</dd>
               </div>
             </dl>
           </div>
@@ -304,7 +304,7 @@
         {% if status.never_evaluated %}
         No enabled rule has ever been evaluated.
         {% else %}
-        The last evaluation was {{ status.last_evaluation.strftime('%b %d, %H:%M') }} UTC.
+        The last evaluation was {{ status.last_evaluation | pacific }}.
         {% endif %}
         It should run every hour at :20.</p>
         <p class="mt-1.5">Most likely Celery <strong>beat</strong> is not running — it is a
@@ -316,7 +316,7 @@
       <i class="ti ti-circle-check text-green-600 dark:text-green-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
       <div class="text-sm text-green-900 dark:text-green-200">
         <p><strong>Engine is running.</strong> Last evaluated
-        {{ status.last_evaluation.strftime('%b %d, %H:%M') }} UTC across
+        {{ status.last_evaluation | pacific }} across
         {{ status.enabled_rules }} enabled rule{{ '' if status.enabled_rules == 1 else 's' }}.
         Next pass is at :20 past the hour.</p>
       </div>
@@ -361,7 +361,7 @@
             <tr>
               <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ run.rule.name if run.rule else '—' }}</td>
               <td class="px-4 py-3 hidden sm:table-cell text-gray-600 dark:text-gray-300">{{ run.league.name if run.league else (run.subject_type or 'Whole season') }}</td>
-              <td class="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ run.scheduled_for.strftime('%b %d, %H:%M') }} UTC</td>
+              <td class="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ run.scheduled_for | pacific }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -381,7 +381,7 @@
         {% for run in status.failures %}
         <li class="px-4 sm:px-5 py-3">
           <p class="text-sm font-medium text-gray-900 dark:text-white">{{ run.rule.name if run.rule else '—' }}
-            <span class="text-gray-400 dark:text-gray-500">· {{ run.detected_at.strftime('%b %d, %H:%M') }}</span></p>
+            <span class="text-gray-400 dark:text-gray-500">· {{ run.detected_at | pacific }}</span></p>
           {% if run.error_message %}<p class="mt-0.5 text-xs text-red-700 dark:text-red-300">{{ run.error_message }}</p>{% endif %}
         </li>
         {% endfor %}
@@ -431,10 +431,10 @@
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ _tone.get(run.status, 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300') }}">{{ run.status }}</span>
             </td>
             <td class="px-4 py-3 hidden lg:table-cell text-gray-600 dark:text-gray-300 whitespace-nowrap">
-              {{ run.event_at.strftime('%b %d, %H:%M') }}
+              {{ run.event_at | pacific }}
             </td>
             <td class="px-4 py-3 text-gray-600 dark:text-gray-300 whitespace-nowrap">
-              {{ run.scheduled_for.strftime('%b %d, %H:%M') }}
+              {{ run.scheduled_for | pacific }}
             </td>
             <td class="px-4 py-3 hidden sm:table-cell">
               {% if run.campaign_id %}

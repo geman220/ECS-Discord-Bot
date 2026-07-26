@@ -668,7 +668,7 @@
             <tr>
               <td class="py-2 pr-3 text-gray-900 dark:text-white">{{ run.league.name if run.league else 'Whole season' }}</td>
               <td class="py-2 pr-3 text-gray-600 dark:text-gray-300">{{ run.status }}</td>
-              <td class="py-2 pr-3 hidden sm:table-cell text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ run.scheduled_for.strftime('%b %d, %H:%M') }}</td>
+              <td class="py-2 pr-3 hidden sm:table-cell text-gray-600 dark:text-gray-300 whitespace-nowrap">{{ run.scheduled_for | pacific }}</td>
               <td class="py-2 font-mono text-gray-900 dark:text-white">{{ run.recipient_count }}</td>
             </tr>
             {% endfor %}
