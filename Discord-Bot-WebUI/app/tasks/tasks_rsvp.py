@@ -12,9 +12,10 @@ and monitoring overall RSVP system health.
 
 import logging
 import asyncio
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 
-from app.utils.pacific_time import pacific_today
+from app.utils.pacific_time import pacific_today, pacific_to_utc_naive
+from app.utils.rsvp_schedule import rsvp_post_schedule
 from typing import Optional, Dict, Any
 
 from app.core import socketio
@@ -202,6 +203,69 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
 
 
 @celery_task(name='app.tasks.tasks_rsvp.send_availability_message', max_retries=3, retry_backoff=True, queue='discord')
+def _availability_copy(message_data, metadata, is_special=False):
+    """Rendered copy for BOTH team channels, plus the response method.
+
+    Returns keys the bot merges over its own defaults:
+        copy_home / copy_away  -- {content, title, description, footer}
+        use_buttons            -- whether to attach buttons instead of reactions
+
+    An older bot ignores all of it and renders its built-in strings, so a webapp
+    deploy landing first still posts correctly.
+
+    Date/time are formatted to match what the bot has always produced
+    ('%-m/%-d/%y', '%-I:%M %p'), so switching to admin copy does not silently
+    restyle every date.
+    """
+    from app.utils import rsvp_copy
+    from app.models import AdminConfig
+
+    program = 'special' if is_special else 'pub'
+    try:
+        block = rsvp_copy.get_copy(program)
+        use_buttons = bool(AdminConfig.get_setting('rsvp_use_buttons', False))
+    except Exception:
+        logger.exception("Could not load RSVP copy; letting the bot use its defaults")
+        return {}
+
+    # Built component-wise, NOT with .lstrip('0') on the finished string: that
+    # only strips the leading zero of the whole thing, so 2026-08-02 came out as
+    # "8/02/26" while the bot has always rendered "8/2/26". Avoids the %-m / %-d
+    # glibc-only directives too.
+    def _date(raw):
+        try:
+            d = datetime.strptime(raw, '%Y-%m-%d')
+            return f"{d.month}/{d.day}/{d.strftime('%y')}"
+        except (ValueError, TypeError):
+            return raw or ''
+
+    def _time(raw):
+        try:
+            t = datetime.strptime(raw, '%H:%M:%S')
+            return f"{(t.hour % 12) or 12}:{t.strftime('%M %p')}"
+        except (ValueError, TypeError):
+            return raw or ''
+
+    date_str = _date(message_data.get('match_date'))
+    time_str = _time(message_data.get('match_time'))
+    home = message_data.get('home_team_name') or 'Home Team'
+    away = message_data.get('away_team_name') or 'Away Team'
+    display = metadata.get('display_name') if metadata else None
+
+    def _side(team, opponent):
+        return rsvp_copy.render_fields(block, program, {
+            'team': team, 'opponent': opponent, 'date': date_str,
+            'time': time_str, 'location': metadata.get('location', '') if metadata else '',
+            'display_name': display or '',
+        }, use_buttons=use_buttons)
+
+    return {
+        'copy_home': _side(home, away),
+        'copy_away': _side(away, home),
+        'use_buttons': use_buttons,
+    }
+
+
 def send_availability_message(self, session, scheduled_message_id: int) -> Dict[str, Any]:
     """
     Send an availability message to Discord.
@@ -289,7 +353,14 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
             message_data['is_special_week'] = True
             message_data['week_type'] = metadata.get('week_type')
             message_data['special_week_display'] = metadata.get('display_name')
-        
+
+        # Admin-edited wording, rendered HERE (where the config lives) and passed
+        # to the bot. Rendered TWICE because each team channel gets its own post
+        # and {team}/{opponent} are reversed between them -- the away side must
+        # not be told it is playing itself.
+        message_data.update(_availability_copy(message_data, metadata,
+                                               is_special=message_data.get('is_special_week')))
+
         # Use synchronous Discord client to send availability message
         from app.utils.sync_discord_client import get_sync_discord_client
         discord_client = get_sync_discord_client()
@@ -500,7 +571,11 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
                     msg = session.query(ScheduledMessage).get(message_data['id'])
                     if msg:
                         msg.status = 'QUEUED'
-                        msg.queued_at = datetime.utcnow()
+                        # last_send_attempt, NOT queued_at -- there is no
+                        # queued_at column. SQLAlchemy declarative accepts the
+                        # assignment silently as an instance attribute and drops
+                        # it on commit, so this timestamp was never stored.
+                        msg.last_send_attempt = datetime.utcnow()
 
                     processed_count += 1
                     results.append({
@@ -515,8 +590,15 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
                     msg = session.query(ScheduledMessage).get(message_data['id'])
                     if msg:
                         msg.status = 'FAILED'
-                        msg.last_error = str(e)
-                        msg.error_timestamp = datetime.utcnow()
+                        # send_error / last_send_attempt are the real columns.
+                        # This wrote last_error + error_timestamp, neither of
+                        # which exists, so every failure was recorded as a bare
+                        # 'FAILED' with no reason -- the one field you actually
+                        # need when an RSVP does not go out. Truncated because
+                        # send_error is String(255) and a long traceback would
+                        # raise StringDataRightTruncation while handling an error.
+                        msg.send_error = str(e)[:255]
+                        msg.last_send_attempt = datetime.utcnow()
                     failed_count += 1
                     results.append({
                         'message_id': message_data['id'],
@@ -1004,7 +1086,7 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
     This task runs every Monday to:
       - Find all Sunday matches for the upcoming week
       - Schedule RSVP messages for each match without existing scheduled messages
-      - Set send time to 8 AM PST (16:00 UTC) on Monday (6 days before match)
+      - Set send time from the admin-configured Pacific hour and lead time
       - Create ScheduledMessage records in the database
       - Schedules messages with varying countdown times to prevent rate limiting
       
@@ -1015,6 +1097,8 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         Retries the task on errors with exponential backoff.
     """
     try:
+        post_days_before, post_hour = rsvp_post_schedule()
+
         # Find all Sunday matches that need RSVP messages scheduled
         # Look ahead for all Sunday matches in the next 14 days to handle bye weeks
         today = datetime.utcnow().date()
@@ -1102,12 +1186,12 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         for i, match_data in enumerate(matches_data):
             if not match_data['has_message']:
-                # Calculate send time: Monday 8:00 AM PST (16:00 UTC), 6 days before Sunday match
                 match_date = match_data['date']
 
-                # For Sunday matches, RSVP goes out 6 days before (Monday at 8am PST)
-                # Example: Sunday 4/12 match → RSVP on Monday 4/6 at 8am PST
-                rsvp_send_date = match_date - timedelta(days=6)
+                # How many days before the match the RSVP goes out, and at what
+                # Pacific hour. Both are admin-editable (Settings -> RSVP posting)
+                # rather than the constants that used to live here in three files.
+                rsvp_send_date = match_date - timedelta(days=post_days_before)
 
                 # Only schedule if the RSVP date is in the future (use < to allow same-day)
                 if rsvp_send_date < today:
@@ -1118,8 +1202,13 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
                 batch_number = i // batch_size
                 batch_minutes_offset = batch_number * stagger_minutes
 
-                # Set to 8:00 AM PST (16:00 UTC)
-                base_send_time = datetime.combine(rsvp_send_date, datetime.min.time()) + timedelta(hours=16)
+                # PACIFIC hour converted to naive UTC for storage. This used to be
+                # `datetime.combine(date, midnight) + timedelta(hours=16)` with a
+                # comment claiming "8:00 AM PST" -- true only in winter. Pacific is
+                # UTC-7 from March to November, so for most of the season every RSVP
+                # went out an hour later than intended. zoneinfo now picks the right
+                # offset for the actual date.
+                base_send_time = pacific_to_utc_naive(rsvp_send_date, time(hour=post_hour))
 
                 # Add the batch offset for staggered sending
                 send_time = base_send_time + timedelta(minutes=batch_minutes_offset)

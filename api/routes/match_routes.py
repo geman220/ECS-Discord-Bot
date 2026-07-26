@@ -121,14 +121,34 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
                 "React with 👍 for Yes, 👎 for No, or 🤷 for Maybe."
             )
 
-        home_message = await home_channel.send(home_msg_text, embed=home_embed)
-        away_message = await away_channel.send(away_msg_text, embed=away_embed)
-        
+        # Admin copy wins where present. A field the admin deliberately blanked
+        # is respected; only a MISSING key falls back to the text above.
+        if request.copy_home and request.copy_home.get('content'):
+            home_msg_text = request.copy_home['content']
+        if request.copy_away and request.copy_away.get('content'):
+            away_msg_text = request.copy_away['content']
+
+        # Buttons or reactions. A view is built per TEAM because the custom_id
+        # must carry which roster a click is checked against -- the same
+        # (match, team) resolution the reaction path does by message_id lookup,
+        # but decided up front instead.
+        home_view = away_view = None
+        if request.use_buttons:
+            from rsvp_channel_views import RSVPChannelView
+            home_view = RSVPChannelView(request.match_id, request.home_team_id)
+            away_view = RSVPChannelView(request.match_id, request.away_team_id)
+
+        home_message = await home_channel.send(home_msg_text, embed=home_embed, view=home_view)
+        away_message = await away_channel.send(away_msg_text, embed=away_embed, view=away_view)
+
         for message in [home_message, away_message]:
-            logger.debug(f"Adding reactions to message {message.id}")
-            await message.add_reaction("👍")
-            await message.add_reaction("👎")
-            await message.add_reaction("🤷")
+            # Reactions ONLY when not using buttons -- both would be confusing
+            # and would double-count.
+            if not request.use_buttons:
+                logger.debug(f"Adding reactions to message {message.id}")
+                await message.add_reaction("\U0001F44D")
+                await message.add_reaction("\U0001F44E")
+                await message.add_reaction("\U0001F937")
             bot_state.add_managed_message_id(message.id)
         
         logger.debug("Storing message and channel IDs in web UI")

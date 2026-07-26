@@ -71,7 +71,33 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
                 'success': False,
                 'message': f'ECS FC match {ecs_fc_match_id} not found'
             }
-        
+
+        # IDEMPOTENCY GUARD — must come before anything is sent.
+        #
+        # Two independent paths can post an ECS FC RSVP: this one (via
+        # ScheduledMessage) and post_missing_ecs_fc_rsvps, the hourly sweep that
+        # looks for EcsFcMatch.discord_message_id IS NULL. They did not know
+        # about each other, and this path only ever wrote the id into
+        # ScheduledMessage.message_metadata -- never onto the match -- so the
+        # sweep would still see NULL and post the same RSVP a second time.
+        #
+        # Both paths now agree that EcsFcMatch.discord_message_id is the marker
+        # for "already posted".
+        if match.discord_message_id:
+            message.status = 'SENT'
+            message.sent_at = message.sent_at or datetime.utcnow()
+            logger.info(
+                f"ECS FC match {match.id} already has Discord message "
+                f"{match.discord_message_id}; skipping duplicate RSVP post"
+            )
+            return {
+                'success': True,
+                'skipped': True,
+                'message': 'RSVP already posted for this match',
+                'match_id': match.id,
+                'discord_message_id': match.discord_message_id,
+            }
+
         # Build the RSVP message
         match_date_str = match.match_date.strftime("%B %d, %Y")
         match_time_str = match.match_time.strftime("%I:%M %p")
@@ -158,6 +184,10 @@ def send_ecs_fc_availability_message(self, session, scheduled_message_id: int) -
                     if not message.message_metadata:
                         message.message_metadata = {}
                     message.message_metadata['discord_message_id'] = result['message_id']
+                    # AND on the match itself — this is what the hourly sweep
+                    # checks. Writing only to metadata left the sweep blind and
+                    # was half of the double-post race.
+                    match.discord_message_id = str(result['message_id'])
                 # Commit happens automatically in @celery_task decorator
                 
                 logger.info(f"ECS FC RSVP reminder sent successfully for match {match.id}")
@@ -312,13 +342,17 @@ def post_missing_ecs_fc_rsvps(self, session) -> Dict[str, Any]:
         skipped_count = 0
         failed_count = 0
 
+        # Same lead time the scheduler uses. Read ONCE outside the loop -- this
+        # was a third independent copy of "6 days" and could drift from the
+        # other two the moment anyone changed one of them.
+        from app.utils.rsvp_schedule import rsvp_post_schedule
+        post_days_before, _post_hour = rsvp_post_schedule()
+
         for match in matches:
             try:
-                # Calculate when RSVP should be posted (6 days before match)
-                # This aligns with the logic in EcsFcScheduleManager._schedule_rsvp_reminder
-                ideal_post_date = match.match_date - timedelta(days=6)
+                ideal_post_date = match.match_date - timedelta(days=post_days_before)
 
-                # Only post if the 6-day-before date has passed (or is today)
+                # Only post once the lead-time date has passed (or is today)
                 if ideal_post_date <= today:
                     send_ecs_fc_match_notification.delay(match.id, 'created')
                     posted_count += 1

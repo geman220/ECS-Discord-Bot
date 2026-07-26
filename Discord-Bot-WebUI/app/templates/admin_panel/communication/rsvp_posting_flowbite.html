@@ -1,0 +1,205 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}RSVP Posting{% endblock %}
+{% block panel_description %}When the RSVP request goes out, what it says, and how people answer{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+  </div>
+</li>
+<li>
+  <div class="flex items-center">
+    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">RSVP Posting</span>
+  </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+
+<div data-page="rsvp-posting" class="space-y-5 sm:space-y-6">
+
+  {% call page_header('RSVP Posting', subtitle='Communication / The availability request') %}
+    <a href="{{ url_for('admin_panel.automations_list') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+      <i class="ti ti-robot" aria-hidden="true"></i><span>Reminder automations</span>
+    </a>
+    <button type="button" data-action="rsvp-posting-save"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i><span>Save</span>
+    </button>
+  {% endcall %}
+
+  <div class="rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-4 flex gap-3">
+    <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+    <div class="text-sm text-blue-900 dark:text-blue-200 space-y-1.5">
+      <p>This is the <strong>request itself</strong> &mdash; the message posted to a team's
+      Discord channel asking who is available.</p>
+      <p>Chasing people who don't answer is separate: those are rules under
+      <a href="{{ url_for('admin_panel.automations_list') }}" class="font-semibold underline">Reminder automations</a>.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
+
+    <!-- ============ LEFT: settings + copy ============ -->
+    <div class="lg:col-span-3 space-y-5">
+
+      {% call section_card('1 · When it goes out', icon='ti-clock') %}
+      <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="daysBefore" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">Days before the match</label>
+          <input type="number" id="daysBefore" min="0" max="14" value="{{ days_before }}"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            Default {{ default_days }} &mdash; a Sunday match posts on the Monday before.
+            0 posts on match day.
+          </p>
+        </div>
+        <div>
+          <label for="postHour" class="block mb-1.5 text-sm font-medium text-gray-900 dark:text-white">At (Pacific)</label>
+          <select id="postHour"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 focus:ring-ecs-green focus:border-ecs-green">
+            {% for h in range(24) %}
+            <option value="{{ h }}" {% if h == post_hour %}selected{% endif %}>
+              {{ '%02d:00'|format(h) }} &mdash; {{ (h % 12) or 12 }}:00 {{ 'am' if h < 12 else 'pm' }}
+            </option>
+            {% endfor %}
+          </select>
+          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <strong>Local time, all year.</strong> Daylight saving is handled for you &mdash;
+            this used to be stored as a fixed UTC hour, so the post drifted an hour
+            late from March to November.
+          </p>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% call section_card('2 · How people answer', icon='ti-hand-click') %}
+      <div class="p-4 sm:p-5 space-y-3">
+        <label class="flex items-start gap-2.5 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+          <input type="checkbox" id="useButtons" {% if use_buttons %}checked{% endif %}
+                 class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+          <span class="text-sm text-gray-900 dark:text-white">
+            Use <strong>Yes / No / Maybe buttons</strong> instead of emoji reactions
+            <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Buttons are one tap to answer and one tap to change, they tell the player
+              straight away that it registered, and someone who isn't on the team gets a
+              polite "not your team" instead of having their reaction quietly removed.
+            </span>
+          </span>
+        </label>
+        <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+          <p class="text-xs text-amber-900 dark:text-amber-200">
+            <strong>Only affects new posts.</strong> RSVPs already sitting in Discord keep
+            their reactions and keep working &mdash; a posted message can't be converted.
+            Turning this off rolls straight back for anything posted after.
+          </p>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% call section_card('3 · What it says', icon='ti-message-2') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div class="flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+          {% for key, label, blurb in programs %}
+          <button type="button" data-action="rsvp-program-tab" data-program="{{ key }}"
+                  class="rsvp-tab inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
+                  {% if loop.first %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200{% endif %}">
+            {{ label }}
+          </button>
+          {% endfor %}
+        </div>
+
+        {% for key, label, blurb in programs %}
+        <div class="rsvp-program {% if not loop.first %}hidden{% endif %}" data-program="{{ key }}">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">{{ blurb }}</p>
+          {% for field in fields %}
+          {% set is_multiline = field in ('description',) %}
+          <div class="mb-3">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <label class="block text-sm font-medium text-gray-900 dark:text-white">
+                {{ {'content': 'Message above the card', 'title': 'Card heading',
+                    'description': 'Card body', 'footer': 'Small print'}[field] }}
+              </label>
+              <button type="button" data-action="rsvp-reset-field"
+                      data-program="{{ key }}" data-field="{{ field }}"
+                      class="text-xs font-semibold text-gray-500 hover:text-ecs-green">Reset</button>
+            </div>
+            {% if is_multiline %}
+            <textarea rows="2" data-copy-field data-program="{{ key }}" data-field="{{ field }}"
+                      class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 font-mono focus:ring-ecs-green focus:border-ecs-green">{{ copy[key][field] }}</textarea>
+            {% else %}
+            <input type="text" data-copy-field data-program="{{ key }}" data-field="{{ field }}"
+                   value="{{ copy[key][field] }}"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-2.5 font-mono focus:ring-ecs-green focus:border-ecs-green">
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+
+        <div class="rounded-lg bg-gray-50 dark:bg-gray-700/40 border border-gray-200 dark:border-gray-700 p-3">
+          <p class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Placeholders</p>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Click one to copy it.</p>
+          <dl class="mt-2 space-y-1.5">
+            {% for name, desc in tokens.items() %}
+            <div class="flex flex-col sm:flex-row sm:gap-2">
+              <dt data-action="rsvp-copy-token" data-token="{{ '{' }}{{ name }}{{ '}' }}"
+                  class="font-mono text-xs text-ecs-green shrink-0 sm:w-32 cursor-pointer hover:underline">&#123;{{ name }}&#125;</dt>
+              <dd class="text-xs text-gray-500 dark:text-gray-400">{{ desc }}</dd>
+            </div>
+            {% endfor %}
+          </dl>
+        </div>
+      </div>
+      {% endcall %}
+    </div>
+
+    <!-- ============ RIGHT: live preview ============ -->
+    <div class="lg:col-span-2">
+      <div class="lg:sticky lg:top-4 space-y-3">
+        {% call section_card('Preview', icon='ti-eye') %}
+        <div class="p-4">
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+            Rendered by the same code that posts it, using sample data.
+          </p>
+
+          {# Discord-ish chrome: dark surface, left accent bar on the embed. #}
+          <div class="rounded-lg bg-[#313338] p-3 text-[#dbdee1] text-sm leading-relaxed">
+            <div class="flex gap-2.5">
+              <div class="w-9 h-9 rounded-full bg-ecs-green shrink-0 flex items-center justify-center text-white text-xs font-bold">ECS</div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-baseline gap-2">
+                  <span class="font-semibold text-white">ECS Bot</span>
+                  <span class="px-1 py-px rounded bg-[#5865f2] text-[10px] font-semibold text-white">APP</span>
+                  <span class="text-[11px] text-[#949ba4]">Today at {{ '%d:00'|format((post_hour % 12) or 12) }} {{ 'AM' if post_hour < 12 else 'PM' }}</span>
+                </div>
+                <div id="pvContent" class="mt-0.5 whitespace-pre-wrap break-words"></div>
+
+                <div class="mt-2 rounded border-l-4 border-[#1a472a] bg-[#2b2d31] p-3">
+                  <div id="pvTitle" class="font-semibold text-white break-words"></div>
+                  <div id="pvDescription" class="mt-1 text-[13px] whitespace-pre-wrap break-words text-[#dbdee1]"></div>
+                  <div id="pvFields" class="mt-2 space-y-1.5"></div>
+                  <div id="pvFooter" class="mt-2 text-[11px] text-[#949ba4] break-words"></div>
+                </div>
+
+                <div id="pvResponse" class="mt-2"></div>
+              </div>
+            </div>
+          </div>
+
+          <p id="pvNote" class="mt-3 text-xs text-gray-500 dark:text-gray-400"></p>
+        </div>
+        {% endcall %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="rsvpPostingDefaults">{{ defaults|tojson }}</script>
+{% endblock %}

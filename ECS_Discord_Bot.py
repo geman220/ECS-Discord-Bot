@@ -1524,6 +1524,17 @@ async def load_cogs():
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
     
+    # Re-attach handlers for RSVP channel buttons posted before this restart.
+    # discord.py only routes clicks for persistent views registered here; skip
+    # it and every button already sitting in a channel goes inert with no error
+    # anywhere -- players tap, nothing happens, and nobody finds out until
+    # someone reports the RSVP is broken.
+    try:
+        from rsvp_channel_views import register_persistent_views
+        register_persistent_views(bot)
+    except Exception:
+        logger.exception("Could not register persistent RSVP channel views")
+
     # Set bot instance in shared state and log startup
     set_bot_instance(bot)
     bot_state.log_activity(f"Bot connected to Discord as {bot.user.name}")
@@ -2426,12 +2437,81 @@ async def on_interaction(interaction: discord.Interaction):
     if interaction.type != discord.InteractionType.component:
         return
     custom_id = interaction.data.get('custom_id', '')
-    if custom_id.startswith('rsvp:'):
+    if custom_id.startswith('rsvpc:'):
+        # Channel RSVP post. Checked BEFORE 'rsvp:' — startswith('rsvp:') would
+        # not match 'rsvpc:' today, but the two prefixes are one typo apart and
+        # a mis-dispatch would silently record availability on the wrong thing.
+        await _handle_rsvp_channel_interaction(interaction, custom_id)
+    elif custom_id.startswith('rsvp:'):
         await _handle_rsvp_reminder_interaction(interaction, custom_id)
     elif custom_id.startswith('match_reminder:'):
         await _handle_match_reminder_interaction(interaction, custom_id)
     elif custom_id.startswith('subs:v1:reachout:'):
         await _handle_subs_reachout_interaction(interaction, custom_id)
+
+
+async def _handle_rsvp_channel_interaction(interaction: discord.Interaction, custom_id: str):
+    """Process a Yes/No/Maybe click on an RSVP post in a team channel.
+
+    Differs from the DM handler in three ways that matter:
+
+      * The message is PUBLIC and shared by a whole team, so the reply must be
+        ephemeral — nobody wants their answer announced, and the message itself
+        must not be edited out from under everyone else.
+      * Team membership has to be checked. A DM only ever reaches its recipient;
+        a channel post is visible to anyone who can see the channel. The old
+        reaction flow let a non-member react and then quietly stripped it, which
+        reads as the bot being broken.
+      * The shared embed is re-rendered afterwards so the tallies move for
+        everyone, exactly as the reaction path does.
+    """
+    from rsvp_channel_views import parse_custom_id, CONFIRMATIONS
+
+    parsed = parse_custom_id(custom_id)
+    if not parsed:
+        logger.warning(f"Unparseable RSVP channel custom_id: {custom_id!r}")
+        return
+    match_id, team_id, response = parsed
+
+    # Ephemeral: this is a public channel. Deferred first because the membership
+    # check and the web-app write together can outrun Discord's 3s budget.
+    await interaction.response.defer(ephemeral=True)
+    discord_id = str(interaction.user.id)
+
+    try:
+        if not await is_user_on_team(discord_id, team_id):
+            await interaction.followup.send(
+                "This RSVP is for a different team, so your response was not recorded.",
+                ephemeral=True)
+            return
+
+        success = await sync_rsvp_with_web_ui(match_id, discord_id, response)
+        if not success:
+            await interaction.followup.send(
+                "Could not record your RSVP just then. Please try again in a moment.",
+                ephemeral=True)
+            return
+
+        await interaction.followup.send(CONFIRMATIONS.get(response, "Response recorded"),
+                                        ephemeral=True)
+
+        # Re-render the shared embed so the counts move for the whole channel.
+        # Failing here does NOT fail the RSVP -- it is already saved, and the
+        # next response (or the periodic refresh) will redraw it.
+        try:
+            await update_discord_embed(match_id)
+        except Exception as e:
+            logger.warning(f"RSVP saved but channel embed not refreshed "
+                           f"(match {match_id}): {e}")
+
+    except Exception:
+        logger.exception(f"Error handling RSVP channel button (match {match_id}, "
+                         f"team {team_id}, {response})")
+        try:
+            await interaction.followup.send(
+                "Something went wrong recording your RSVP.", ephemeral=True)
+        except Exception:
+            pass
 
 
 async def _handle_rsvp_reminder_interaction(interaction: discord.Interaction, custom_id: str):

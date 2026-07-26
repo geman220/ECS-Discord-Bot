@@ -524,10 +524,21 @@ class EcsFcScheduleManager:
             match_datetime = datetime.combine(match.match_date, match.match_time)
             now = datetime.utcnow()
 
-            # The ideal post day is: match day - 6 days (day after the previous match)
-            # For Wednesday match (weekday 2): post on Thursday of previous week (match_date - 6 days)
-            ideal_post_date = match.match_date - timedelta(days=6)
-            ideal_post_time = datetime.combine(ideal_post_date, datetime.strptime("09:00", "%H:%M").time())
+            # Lead time and hour come from AdminConfig (Settings -> RSVP posting),
+            # shared with Pub League. This used to be its own copy of "6 days" at
+            # a DIFFERENT hour (09:00) than the Pub League path (16:00 UTC), for
+            # no stated reason.
+            from app.utils.pacific_time import pacific_to_utc_naive
+            from app.utils.rsvp_schedule import rsvp_post_schedule
+            from datetime import time as _time
+
+            post_days_before, post_hour = rsvp_post_schedule()
+            ideal_post_date = match.match_date - timedelta(days=post_days_before)
+            # Naive UTC, because it is compared against utcnow() just below and
+            # stored in ScheduledMessage.scheduled_send_time. The old
+            # datetime.combine(...) built a naive PACIFIC value and compared it
+            # to UTC, so it fired 7-8 hours early.
+            ideal_post_time = pacific_to_utc_naive(ideal_post_date, _time(hour=post_hour))
 
             # If the ideal post time has already passed, post immediately
             if ideal_post_time <= now:
@@ -554,10 +565,20 @@ class EcsFcScheduleManager:
                 logger.warning(f"No team found for ECS FC match {match.id}")
                 return
             
-            # Create scheduled message with ECS FC metadata
+            # Create scheduled message with ECS FC metadata.
+            #
+            # 'PENDING', not 'QUEUED'. process_scheduled_messages only ever
+            # queries status == 'PENDING', so every ECS FC row written here was
+            # invisible to the dispatcher and this whole scheduling path was
+            # dead code -- ECS FC RSVPs only went out via the immediate-fire
+            # branch above and the hourly post_missing_ecs_fc_rsvps sweep.
+            #
+            # Safe to make live now: send_ecs_fc_availability_message guards on
+            # EcsFcMatch.discord_message_id, which is the same marker the sweep
+            # uses, so the two paths cannot both post.
             scheduled_message = ScheduledMessage(
                 scheduled_send_time=send_time,
-                status='QUEUED',
+                status='PENDING',
                 message_type='ecs_fc_rsvp',
                 message_metadata={
                     'ecs_fc_match_id': match.id,

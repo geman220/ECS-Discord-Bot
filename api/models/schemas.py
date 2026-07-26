@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 
 class PermissionOverwriteRequest(BaseModel):
@@ -50,6 +50,15 @@ class AvailabilityRequest(BaseModel):
     is_special_week: bool = False
     week_type: Optional[str] = None
     special_week_display: Optional[str] = None
+    # Admin-edited wording from the web app, already rendered and already
+    # per-side ({team}/{opponent} are reversed between the two channels).
+    # All OPTIONAL: an older web app sends none of it and the bot falls back to
+    # the strings baked into rsvp_utils, so the two can deploy independently.
+    copy_home: Optional[Dict[str, str]] = None
+    copy_away: Optional[Dict[str, str]] = None
+    # Attach Yes/No/Maybe buttons instead of emoji reactions. Off unless the
+    # web app says otherwise, so an old payload keeps today's behaviour.
+    use_buttons: bool = False
 
 
 class WeekReminderRequest(BaseModel):

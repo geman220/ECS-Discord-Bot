@@ -44,5 +44,6 @@ def register_communication_routes():
         email_broadcasts,
         email_templates,
         automations,
+        rsvp_posting,
         ajax,
     )

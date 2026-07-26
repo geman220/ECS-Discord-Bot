@@ -30,3 +30,18 @@ def pacific_today() -> date:
 def pacific_datetime(d: date, t: time) -> datetime:
     """Combine a Pacific-intent date+time into an aware Pacific datetime."""
     return datetime.combine(d, t, tzinfo=PACIFIC_TZ)
+
+
+def pacific_to_utc_naive(d: date, t: time) -> datetime:
+    """A Pacific-local wall-clock moment as the naive UTC value the DB stores.
+
+    Use this for anything compared against `datetime.utcnow()` — scheduled send
+    times, beat windows, expiry stamps.
+
+    Why it exists: the obvious shortcut is `datetime.combine(d, t) + timedelta(
+    hours=8)`, and that is wrong for two thirds of the year. Pacific is UTC-8
+    only in winter; from March to November it is UTC-7, so a fixed offset drifts
+    an hour and the "8am" send silently becomes 9am. Let zoneinfo work out the
+    offset for that specific date instead of hardcoding one.
+    """
+    return pacific_datetime(d, t).astimezone(ZoneInfo('UTC')).replace(tzinfo=None)

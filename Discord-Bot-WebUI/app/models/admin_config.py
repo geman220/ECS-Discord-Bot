@@ -533,6 +533,50 @@ class AdminConfig(db.Model):
                 'category': 'pub_league',
                 'data_type': 'string'
             },
+            # RSVP posting — when the availability request goes out to team
+            # channels. Applies to Pub League AND ECS FC; nothing to do with the
+            # MLS settings below, which are a separate subsystem.
+            #
+            # These replace three duplicated copies of "6 days before" that had
+            # drifted to two different hours (16:00 UTC in tasks_rsvp.py, 09:00
+            # naive in ecs_fc_schedule.py).
+            {
+                'key': 'rsvp_post_days_before',
+                'value': '6',
+                'description': ('Days before a match to post the RSVP request to the '
+                                'team channel (default: 6, i.e. Monday for a Sunday match)'),
+                'category': 'pub_league',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'rsvp_post_hour',
+                'value': '8',
+                'description': ('Hour of day (0-23, PACIFIC time) to post the RSVP '
+                                'request. Daylight saving is handled automatically — '
+                                '8 means 8am local all year (default: 8)'),
+                'category': 'pub_league',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'rsvp_use_buttons',
+                'value': 'false',
+                'description': ('Post RSVP requests with Yes/No/Maybe BUTTONS instead of '
+                                'emoji reactions. Only affects NEW posts — messages '
+                                'already in Discord keep their reactions and keep '
+                                'working. Turn off to roll back instantly.'),
+                'category': 'pub_league',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'rsvp_message_copy',
+                'value': '{}',
+                'description': ('Admin-edited wording for RSVP requests, keyed by program '
+                                '(pub / ecs_fc / special / bye). Empty means use the '
+                                'built-in defaults. Edited via Communication -> RSVP '
+                                'posting, not by hand.'),
+                'category': 'pub_league',
+                'data_type': 'json'
+            },
             # MLS Match Management Settings
             {
                 'key': 'mls_thread_creation_hours_before',

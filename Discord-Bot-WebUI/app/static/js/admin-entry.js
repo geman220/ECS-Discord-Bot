@@ -25,6 +25,7 @@ import './admin/scheduled-messages.js';
 import './admin/email-broadcasts.js';
 import './admin/email-templates.js';
 import './admin/automations.js';
+import './admin/rsvp-posting.js';
 import '../custom_js/admin_actions.js';
 import '../custom_js/admin-discord-management.js';
 import '../custom_js/admin-manage-subs.js';

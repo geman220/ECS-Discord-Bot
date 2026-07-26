@@ -153,9 +153,21 @@ def create_team_embed(match_request: AvailabilityRequest, rsvp_data, team_type='
     else:
         title = f"{team_name} vs {opponent_name}"
 
-    embed = discord.Embed(title=title,
-                          description=f"Date: {match_date}\nTime: {match_time}",
-                          color=0x00ff00)
+    description = f"Date: {match_date}\nTime: {match_time}"
+
+    # Admin-edited copy from the web app, already rendered for THIS side.
+    # Absent (older web app) -> the strings above. Present but blank -> the
+    # admin cleared that line on purpose, so respect it.
+    side_copy = (match_request.copy_home if team_type == 'home'
+                 else match_request.copy_away) or {}
+    if side_copy.get('title'):
+        title = side_copy['title']
+    if 'description' in side_copy:
+        description = side_copy['description']
+
+    embed = discord.Embed(title=title, description=description, color=0x00ff00)
+    if side_copy.get('footer'):
+        embed.set_footer(text=side_copy['footer'])
     
     if rsvp_data:
         for status in ['yes', 'no', 'maybe']:
