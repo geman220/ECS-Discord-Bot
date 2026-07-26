@@ -33,15 +33,16 @@ _ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 PROGRAM_LABELS = [
     ('pub', 'Pub League', 'The weekly Sunday fixture post, sent to both team channels.'),
     ('special', 'Special weeks', 'Fun Week, tournaments, bonus weeks — still takes an RSVP.'),
-    ('bye', 'BYE weeks', 'Informational only. Never carries a way to respond.'),
 ]
 
-# ECS FC copy is defined in rsvp_copy.DEFAULTS but its send path
-# (tasks_ecs_fc_scheduled -> sync_discord_client.send_ecs_fc_rsvp_message) does
-# NOT carry copy_* yet, so anything typed there would be silently ignored.
-# Deliberately not offered as a tab until that path is wired — a settings field
-# that changes nothing is worse than no field. Timing and the buttons flag DO
-# apply to ECS FC; only the wording does not.
+# ECS FC and BYE copy are defined in rsvp_copy.DEFAULTS but neither send path
+# carries copy_* yet:
+#   ECS FC -> tasks_ecs_fc_scheduled -> sync_discord_client.send_ecs_fc_rsvp_message
+#   BYE    -> tasks_rsvp.send_bye_reminder -> the bot's WeekReminderRequest,
+#             which has no copy fields at all
+# Neither is offered as a tab until its path is wired — a settings field that
+# changes nothing is worse than no field. Timing and the buttons flag DO apply
+# to both; only the wording does not.
 
 # Sample values for the live preview. Deliberately obvious placeholders so
 # nobody mistakes the preview for a real fixture.

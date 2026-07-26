@@ -67,18 +67,65 @@ async def test_update_embed_for_message_success(mock_aiohttp_session, monkeypatc
     mock_response.json.side_effect = [mock_rsvp_data, mock_match_data]
     mock_response.status = 200
     
+    # The posted message carries admin-authored copy (title/description/footer are
+    # rendered once, at post time, from the RSVP Posting settings). Give the mock
+    # a realistic existing embed so the preserve-vs-rebuild behaviour is exercised.
+    existing = discord.Embed(title="Sounders \u2014 Fun Week!",
+                             description="Custom description",
+                             color=0x00ff00)
+    existing.set_footer(text="Custom footer")
+    mock_message.embeds = [existing]
+
     result = await update_embed_for_message("456", "123", 1, 1, mock_bot)
-    
+
     assert result is True
-    # Verify message was edited
     mock_message.edit.assert_called_once()
-    # Check that embed was created correctly
     args, kwargs = mock_message.edit.call_args
     embed = kwargs["embed"]
     assert isinstance(embed, discord.Embed)
-    assert embed.title == "Sounders vs Timbers"
+
+    # PRESERVED, not regenerated. This used to assert "Sounders vs Timbers" --
+    # i.e. that the heading was rebuilt from match data every update. That is
+    # exactly what silently reverted admin-customised wording the moment the
+    # first person responded, so the behaviour was deliberately changed.
+    assert embed.title == "Sounders \u2014 Fun Week!"
+    assert embed.description == "Custom description"
+    assert embed.footer.text == "Custom footer"
+
+    # The tally fields ARE refreshed from live RSVP data.
     assert len(embed.fields) == 3
     assert "Alice" in embed.fields[0].value
+
+
+@pytest.mark.asyncio
+async def test_update_embed_for_message_falls_back_without_existing_embed(monkeypatch, mock_aiohttp_session):
+    """No prior embed to read copy from -> rebuild from match data.
+
+    Covers a message that somehow lost its embed; the update must still produce a
+    usable heading rather than a blank one.
+    """
+    monkeypatch.setattr("api.utils.rsvp_utils.WEBUI_API_URL", "https://api.example.com")
+    # Mirror the sibling test's wiring: get_channel is sync, fetch_message is not.
+    mock_bot = MagicMock()
+    mock_channel = AsyncMock()
+    mock_message = AsyncMock()
+    mock_bot.get_channel.return_value = mock_channel
+    mock_channel.fetch_message.return_value = mock_message
+    mock_message.embeds = []
+    mock_session, mock_response = mock_aiohttp_session
+    mock_response.json.side_effect = [
+        {"yes": [{"player_name": "Alice"}], "no": [], "maybe": []},
+        {"home_team_id": 1, "home_team_name": "Sounders",
+         "away_team_name": "Timbers", "match_date": "2024-05-12", "match_time": "19:00"},
+    ]
+    mock_response.status = 200
+
+    result = await update_embed_for_message("456", "123", 1, 1, mock_bot)
+
+    assert result is True
+    embed = mock_message.edit.call_args.kwargs["embed"]
+    assert embed.title == "Sounders vs Timbers"
+    assert len(embed.fields) == 3
 
 @pytest.mark.asyncio
 async def test_update_embed_for_message_channel_not_found(mock_bot_fixture):
@@ -176,7 +223,11 @@ async def test_update_embed_message_with_players():
     await update_embed_message_with_players(mock_message, rsvp_data)
     
     # Should call set_field_at three times (yes, no, maybe)
-    assert mock_embed.set_field_at.call_count == 3
+    # clear_fields + add_field, NOT set_field_at: set_field_at raises IndexError
+    # when the field is not already present, which happens whenever the RSVP
+    # fetch failed at post time and the embed was created with no fields.
+    mock_embed.clear_fields.assert_called_once()
+    assert mock_embed.add_field.call_count == 3
     mock_message.edit.assert_called_once()
 
 @pytest.fixture

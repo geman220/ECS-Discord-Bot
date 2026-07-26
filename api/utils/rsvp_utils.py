@@ -67,6 +67,23 @@ def extract_channel_and_message_id(message_id_str):
         raise ValueError(f"Invalid message ID format: {message_id_str}")
 
 # Main RSVP functions
+def _embed_colour(embed, default=0x00ff00):
+    """The embed's colour as something discord.Embed will accept.
+
+    discord.Embed(color=...) only takes Colour, int or None and raises TypeError
+    on anything else. Falls back to the default rather than letting a surprising
+    value fail an RSVP update.
+    """
+    if embed is None:
+        return default
+    value = getattr(embed, 'colour', None) or getattr(embed, 'color', None)
+    if isinstance(value, discord.Colour):
+        return value
+    if isinstance(value, int):
+        return value
+    return default
+
+
 async def update_embed_message_with_players(message, rsvp_data):
     """
     Update the embed with both the current reaction counts and the player names.
@@ -82,10 +99,20 @@ async def update_embed_message_with_players(message, rsvp_data):
     # Assuming there's one embed in the message
     embed = message.embeds[0]
 
-    # Update the reaction counts and player names
-    embed.set_field_at(0, name=f"👍 Yes ({yes_count})", value=yes_players, inline=False)
-    embed.set_field_at(1, name=f"👎 No ({no_count})", value=no_players, inline=False)
-    embed.set_field_at(2, name=f"🤷 Maybe ({maybe_count})", value=maybe_players, inline=False)
+    # Rebuild the three tally fields rather than set_field_at(0/1/2).
+    #
+    # set_field_at raises IndexError when the field is not already there, and
+    # that is reachable: create_team_embed only adds these fields `if rsvp_data`,
+    # and fetch_team_rsvp_data returns None whenever the web-app call fails. So a
+    # single failed fetch at post time produced an embed with no fields, and then
+    # EVERY later RSVP on that message raised.
+    #
+    # clear_fields() touches only the fields -- title, description, footer and
+    # colour (which carry the admin-authored copy) stay exactly as posted.
+    embed.clear_fields()
+    embed.add_field(name=f"👍 Yes ({yes_count})", value=yes_players, inline=False)
+    embed.add_field(name=f"👎 No ({no_count})", value=no_players, inline=False)
+    embed.add_field(name=f"🤷 Maybe ({maybe_count})", value=maybe_players, inline=False)
 
     # Edit the message with the updated embed
     await message.edit(embed=embed)
@@ -293,12 +320,30 @@ async def update_embed_for_message(message_id: str, channel_id: str, match_id: i
             match_date = match_data.get('match_date', "TBD")
             match_time = match_data.get('match_time', "TBD")
 
-        # Create the embed
+        # Rebuild the embed, but KEEP whatever heading the original post carried.
+        #
+        # The wording is admin-editable in the web app and is rendered once, at
+        # post time. Regenerating "Team vs Opponent" here would quietly throw it
+        # away the moment the first person responded -- the message would look
+        # right until someone RSVP'd, then revert to the built-in strings with
+        # nothing in any log to explain it.
+        #
+        # The posted message is the source of truth for its own copy: read it
+        # back rather than trying to re-derive it (the bot has no access to the
+        # settings that produced it).
+        existing = message.embeds[0] if message.embeds else None
         embed = discord.Embed(
-            title=f"{team_name} vs {opponent_name}",
-            description=f"Date: {match_date}\nTime: {match_time}",
-            color=0x00ff00
+            title=(existing.title if existing and existing.title
+                   else f"{team_name} vs {opponent_name}"),
+            description=(existing.description if existing and existing.description
+                         else f"Date: {match_date}\nTime: {match_time}"),
+            # Only a Colour/int is valid here. Reading .color off an arbitrary
+            # embed object and passing it straight through raises TypeError for
+            # anything else, which would fail the whole update.
+            color=_embed_colour(existing)
         )
+        if existing and existing.footer and existing.footer.text:
+            embed.set_footer(text=existing.footer.text)
 
         # Add fields for each RSVP status with proper player lists
         for status in ['yes', 'no', 'maybe']:
