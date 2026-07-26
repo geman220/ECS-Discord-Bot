@@ -31,6 +31,34 @@ def _pst_form_time_to_utc(value):
     return pst.localize(local_dt).astimezone(pytz.utc).replace(tzinfo=None)
 
 
+def _stamp_pst(messages):
+    """Attach `scheduled_send_time_pst` to each row for the templates.
+
+    `scheduled_send_time` is stored as naive UTC; every scheduled-message
+    template displays PST. There is no model property for it, so each route has
+    to stamp it — and one of them forgot, which is what produced the misleading
+    "Verify database connection" error on the main scheduled-messages page.
+
+    Transient by design: it is not a column and must never be flushed. These are
+    read-only pages, so nothing commits, but do not add writes to a route that
+    calls this without clearing the attribute first.
+    """
+    import pytz
+    pst = pytz.timezone('America/Los_Angeles')
+    utc = pytz.utc
+    for message in messages or []:
+        if getattr(message, 'scheduled_send_time', None):
+            message.scheduled_send_time_pst = (
+                utc.localize(message.scheduled_send_time).astimezone(pst))
+        else:
+            # Unreachable: scheduled_send_time is NOT NULL. Defensive only --
+            # and it falls back to the raw value rather than None because the
+            # templates call .strftime() on it, so None would raise the very
+            # failure this helper exists to prevent. A slightly mislabelled
+            # timestamp beats a 500.
+            message.scheduled_send_time_pst = message.scheduled_send_time
+
+
 @admin_panel_bp.route('/communication/scheduled-messages')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -41,6 +69,15 @@ def scheduled_messages():
         scheduled_messages = ScheduledMessage.query.order_by(
             ScheduledMessage.scheduled_send_time.desc()
         ).limit(50).all()
+
+        # The template renders `message.scheduled_send_time_pst`, which is NOT a
+        # model column -- it is a transient attribute each route is expected to
+        # stamp before rendering (see schedule_new_message and the admin
+        # scheduling routes, which both do this). This one never did, so the
+        # page raised AttributeError on the first row and every visit fell into
+        # the except below as "Verify database connection" -- pointing at the
+        # database for what was purely a missing attribute.
+        _stamp_pst(scheduled_messages)
 
         pending_messages = ScheduledMessage.query.filter_by(status='PENDING').count()
         sent_messages = ScheduledMessage.query.filter_by(status='SENT').count()

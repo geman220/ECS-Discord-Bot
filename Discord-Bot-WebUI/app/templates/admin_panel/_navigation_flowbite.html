@@ -263,10 +263,10 @@
                     <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-mail-forward text-gray-400 text-xs"></i>Email Blasts</a>
                     <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-bell text-gray-400 text-xs"></i>Push Notifications</a>
                     <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-send text-gray-400 text-xs"></i>Direct Message</a>
+                    <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clock text-gray-400 text-xs"></i>Match RSVP Posts</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Automated Messaging</div>
                     {% if endpoint_exists('admin_panel.automations_list') %}<a href="{{ url_for('admin_panel.automations_list') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-robot text-gray-400 text-xs"></i>Automation Rules</a>{% endif %}
                     {% if endpoint_exists('admin_panel.rsvp_posting_settings') %}<a href="{{ url_for('admin_panel.rsvp_posting_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-calendar-check text-gray-400 text-xs"></i>RSVP Posting</a>{% endif %}
-                    <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clock text-gray-400 text-xs"></i>Match RSVP Posts</a>
                     <a href="{{ url_for('admin_panel.league_settings') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-adjustments text-gray-400 text-xs"></i>Discord Welcome Messages</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Publish &amp; Collect</div>
                     <a href="{{ url_for('admin_panel.announcements') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-speakerphone text-gray-400 text-xs"></i>Homepage Announcements</a>
@@ -650,14 +650,17 @@
                         <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-send text-gray-400"></i>Direct Message
                         </a>
+                        <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-clock text-gray-400"></i>Match RSVP Posts
+                        </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                         <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Automated Messaging</div>
                         {% if endpoint_exists('admin_panel.automations_list') %}<a href="{{ url_for('admin_panel.automations_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-robot text-gray-400"></i>Automation Rules
                         </a>{% endif %}
-                        <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-clock text-gray-400"></i>Match RSVP Posts
-                        </a>
+                        {% if endpoint_exists('admin_panel.rsvp_posting_settings') %}<a href="{{ url_for('admin_panel.rsvp_posting_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-calendar-check text-gray-400"></i>RSVP Posting
+                        </a>{% endif %}
                         <a href="{{ url_for('admin_panel.league_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-adjustments text-gray-400"></i>Discord Welcome Messages
                         </a>
