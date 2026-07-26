@@ -32,10 +32,16 @@ _ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 # model layer stays free of presentation.
 PROGRAM_LABELS = [
     ('pub', 'Pub League', 'The weekly Sunday fixture post, sent to both team channels.'),
-    ('ecs_fc', 'ECS FC', 'Includes shirt colours and home/away, which Pub League has no concept of.'),
     ('special', 'Special weeks', 'Fun Week, tournaments, bonus weeks — still takes an RSVP.'),
     ('bye', 'BYE weeks', 'Informational only. Never carries a way to respond.'),
 ]
+
+# ECS FC copy is defined in rsvp_copy.DEFAULTS but its send path
+# (tasks_ecs_fc_scheduled -> sync_discord_client.send_ecs_fc_rsvp_message) does
+# NOT carry copy_* yet, so anything typed there would be silently ignored.
+# Deliberately not offered as a tab until that path is wired — a settings field
+# that changes nothing is worse than no field. Timing and the buttons flag DO
+# apply to ECS FC; only the wording does not.
 
 # Sample values for the live preview. Deliberately obvious placeholders so
 # nobody mistakes the preview for a real fixture.

@@ -133,10 +133,22 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
         # (match, team) resolution the reaction path does by message_id lookup,
         # but decided up front instead.
         home_view = away_view = None
-        if request.use_buttons:
-            from rsvp_channel_views import RSVPChannelView
-            home_view = RSVPChannelView(request.match_id, request.home_team_id)
-            away_view = RSVPChannelView(request.match_id, request.away_team_id)
+        use_buttons = request.use_buttons
+        if use_buttons:
+            try:
+                from rsvp_channel_views import RSVPChannelView
+                home_view = RSVPChannelView(request.match_id, request.home_team_id)
+                away_view = RSVPChannelView(request.match_id, request.away_team_id)
+            except Exception:
+                # The flag lives in the WEB APP's database, so it can be switched
+                # on while this bot is still an older build without the view
+                # module. Falling through to reactions keeps the RSVP going out;
+                # raising here would mean no team gets one at all.
+                logger.exception("Could not build RSVP button view; "
+                                 "falling back to reactions for match %s",
+                                 request.match_id)
+                home_view = away_view = None
+                use_buttons = False
 
         home_message = await home_channel.send(home_msg_text, embed=home_embed, view=home_view)
         away_message = await away_channel.send(away_msg_text, embed=away_embed, view=away_view)
@@ -144,7 +156,7 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
         for message in [home_message, away_message]:
             # Reactions ONLY when not using buttons -- both would be confusing
             # and would double-count.
-            if not request.use_buttons:
+            if not use_buttons:
                 logger.debug(f"Adding reactions to message {message.id}")
                 await message.add_reaction("\U0001F44D")
                 await message.add_reaction("\U0001F44E")

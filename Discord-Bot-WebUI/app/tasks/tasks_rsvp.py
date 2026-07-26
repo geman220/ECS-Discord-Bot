@@ -217,16 +217,27 @@ def _availability_copy(message_data, metadata, is_special=False):
     ('%-m/%-d/%y', '%-I:%M %p'), so switching to admin copy does not silently
     restyle every date.
     """
+    try:
+        return _build_availability_copy(message_data, metadata, is_special)
+    except Exception:
+        # EVERYTHING here is optional decoration. This runs on the critical path
+        # of the weekly RSVP post, and the bot renders perfectly good built-in
+        # strings when it receives nothing -- so an exception must degrade to
+        # "no admin copy", never take the RSVP down. Only the AdminConfig read
+        # was guarded before; a bad template or an odd match row would still
+        # have raised out of here and failed the send.
+        logger.exception("Could not build RSVP copy; letting the bot use its defaults")
+        return {}
+
+
+def _build_availability_copy(message_data, metadata, is_special):
+    """Inner half of _availability_copy. See the wrapper for why it is split."""
     from app.utils import rsvp_copy
     from app.models import AdminConfig
 
     program = 'special' if is_special else 'pub'
-    try:
-        block = rsvp_copy.get_copy(program)
-        use_buttons = bool(AdminConfig.get_setting('rsvp_use_buttons', False))
-    except Exception:
-        logger.exception("Could not load RSVP copy; letting the bot use its defaults")
-        return {}
+    block = rsvp_copy.get_copy(program)
+    use_buttons = bool(AdminConfig.get_setting('rsvp_use_buttons', False))
 
     # Built component-wise, NOT with .lstrip('0') on the finished string: that
     # only strips the leading zero of the whole thing, so 2026-08-02 came out as

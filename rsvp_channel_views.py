@@ -23,11 +23,20 @@ message. The reaction path does a message_id -> (match, team) round-trip to the
 web app on every single click; carrying it here removes that lookup from the hot
 path, and a click can be authorised knowing exactly which roster to check.
 
-PERSISTENCE
-    timeout=None plus a static custom_id makes this a persistent view, but
-    discord.py only re-attaches handlers for views registered via
-    `bot.add_view(...)` on startup. Without that, every button posted before the
-    last bot restart silently stops responding. See register_persistent_views().
+SURVIVING RESTARTS
+    Clicks are handled by `on_interaction` in ECS_Discord_Bot.py, which is a
+    gateway event and fires for EVERY component interaction whether or not the
+    view object still exists. So buttons keep working across bot restarts with
+    no registration step, and this class only ever has to build the components.
+
+    That is also why the buttons below carry no callbacks: adding one would make
+    behaviour depend on the view being alive in memory, which after a restart it
+    is not. `bot.add_view()` would not help either -- it matches on exact
+    custom_id, and ours embed the match and team, so no fixed registration could
+    cover them.
+
+    The existing DM reminder view (rsvp_reminder_views.py) works the same way and
+    has been in production for months.
 """
 
 import logging
@@ -79,39 +88,11 @@ def parse_custom_id(custom_id):
 class RSVPChannelView(discord.ui.View):
     """Persistent Yes/No/Maybe buttons for one team's copy of a match post."""
 
-    def __init__(self, match_id=None, team_id=None):
+    def __init__(self, match_id, team_id):
+        # timeout=None so Discord keeps the components enabled indefinitely; the
+        # fixture may sit there for a week before kick-off.
         super().__init__(timeout=None)
-        # match_id/team_id are None when discord.py rebuilds the view on startup
-        # for persistence — the ids are already baked into each child's
-        # custom_id, so nothing needs to be re-derived here.
-        if match_id is None or team_id is None:
-            for value, label, style in RESPONSES:
-                # A placeholder id that parse_custom_id rejects. The real
-                # dispatch happens in on_interaction from the message's own
-                # custom_id, so these are never actually clicked.
-                self.add_item(discord.ui.Button(
-                    label=label, style=style,
-                    custom_id=build_custom_id(0, 0, value)))
-            return
-
         for value, label, style in RESPONSES:
             self.add_item(discord.ui.Button(
                 label=label, style=style,
                 custom_id=build_custom_id(match_id, team_id, value)))
-
-
-def register_persistent_views(bot):
-    """Re-attach button handling after a restart.
-
-    Without this every RSVP post from before the restart becomes inert: the
-    buttons still render, clicking does nothing, and there is no error anywhere
-    — the failure is completely silent, which is the worst kind for something
-    match-day critical.
-
-    Call once from on_ready.
-    """
-    try:
-        bot.add_view(RSVPChannelView())
-        logger.info("Registered persistent RSVP channel button view")
-    except Exception:
-        logger.exception("Could not register persistent RSVP channel view")

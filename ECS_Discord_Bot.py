@@ -1524,17 +1524,6 @@ async def load_cogs():
 async def on_ready():
     logger.info(f"Logged in as {bot.user.name} (ID: {bot.user.id})")
     
-    # Re-attach handlers for RSVP channel buttons posted before this restart.
-    # discord.py only routes clicks for persistent views registered here; skip
-    # it and every button already sitting in a channel goes inert with no error
-    # anywhere -- players tap, nothing happens, and nobody finds out until
-    # someone reports the RSVP is broken.
-    try:
-        from rsvp_channel_views import register_persistent_views
-        register_persistent_views(bot)
-    except Exception:
-        logger.exception("Could not register persistent RSVP channel views")
-
     # Set bot instance in shared state and log startup
     set_bot_instance(bot)
     bot_state.log_activity(f"Bot connected to Discord as {bot.user.name}")
