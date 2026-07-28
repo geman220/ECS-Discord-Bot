@@ -416,7 +416,7 @@ def send_rsvp_reminders(match_id: int):
             return create_api_response(False, "Unauthorized access to this match", status_code=403)
         
         # Parse optional target players
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         target_players = data.get('target_players')
         
         # Send reminders

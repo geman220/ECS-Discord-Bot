@@ -420,7 +420,7 @@ def draft_session_state():
 @transactional
 def draft_session_setup():
     """Create/replace the draft order + format for a (season, league). Status -> setup."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     season_id = data.get('season_id')
     league_id = data.get('league_id')
     team_order = data.get('team_order') or []   # ordered list of team ids
@@ -664,7 +664,7 @@ def draft_setup_page():
 def draft_session_timer():
     """Adjust the per-pick time live. Optionally extend the current pick's deadline."""
     from datetime import timedelta
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds:
         return jsonify({'success': False, 'message': 'No draft set up for this league'}), 404
@@ -710,7 +710,7 @@ def draft_session_timer():
 @transactional
 def draft_session_start():
     """Put the first team on the clock."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds:
         return jsonify({'success': False, 'message': 'No draft set up for this league'}), 404
@@ -741,7 +741,7 @@ def draft_session_start():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def draft_session_pause():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds or ds.status != 'active':
         return jsonify({'success': False, 'message': 'No active draft to pause'}), 400
@@ -766,7 +766,7 @@ def draft_session_pause():
 @transactional
 def draft_session_resume():
     from datetime import timedelta
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds or ds.status != 'paused':
         return jsonify({'success': False, 'message': 'No paused draft to resume'}), 400
@@ -804,7 +804,7 @@ def draft_session_resume():
 @transactional
 def draft_session_skip():
     """Advance the clock to the next team without recording a pick."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds or ds.status not in ('active', 'paused'):
         return jsonify({'success': False, 'message': 'No live draft to advance'}), 400
@@ -834,7 +834,7 @@ def draft_session_back():
     on-the-clock team's pick (e.g. an admin out-of-turn add, which never advanced the clock),
     we must NOT rewind — doing so would steal the real on-clock team's turn. Only step back
     when the removed pick actually advanced the clock (or the draft was completed)."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds or ds.status not in ('active', 'paused', 'complete'):
         return jsonify({'success': False, 'message': 'No live draft to step back'}), 400
@@ -868,7 +868,7 @@ def draft_session_back():
 @transactional
 def draft_session_end():
     """Stop/complete the draft immediately (clears the clock; keeps the order + history)."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds or ds.status not in ('active', 'paused'):
         return jsonify({'success': False, 'message': 'No live draft to end'}), 400
@@ -892,7 +892,7 @@ def draft_session_end():
 @transactional
 def draft_session_reset():
     """Return a draft to setup (keeps the order + format; clears live progress)."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ds = draft_clock.get_session(db.session, data.get('season_id'), data.get('league_id'), for_update=True)
     if not ds:
         return jsonify({'success': False, 'message': 'No draft to reset'}), 404

@@ -513,7 +513,9 @@ def void_pass(pass_id):
     """Void a wallet pass"""
     try:
         wallet_pass = WalletPass.query.get_or_404(pass_id)
-        reason = request.json.get('reason', 'Voided by admin')
+        # The reason is optional and both Void buttons post no body at all —
+        # bare request.json raises on an empty body, which surfaced as a 500.
+        reason = (request.get_json(silent=True) or {}).get('reason', 'Voided by admin')
 
         current_user = safe_current_user()
         pass_service.void_pass(

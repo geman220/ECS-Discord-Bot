@@ -150,7 +150,19 @@ def bulk_approve_users():
             'sub-ecs-fc': 'ECS FC Sub'
         }
 
-        new_role_name = role_mapping[default_league]
+        new_role_name = role_mapping.get(default_league)
+        if not new_role_name:
+            try:
+                from app.services import program_registry
+                _pr = program_registry.by_form_value(default_league)
+                if _pr:
+                    new_role_name = (_pr.flask_sub_role
+                                     if str(default_league).startswith('sub-')
+                                     else _pr.flask_league_role)
+            except Exception:
+                new_role_name = None
+        if not new_role_name:
+            raise ValueError(f'Unknown league type: {default_league}')
         new_role = Role.query.filter_by(name=new_role_name).first()
 
         if not new_role:
@@ -205,7 +217,14 @@ def bulk_approve_users():
                     if user.player:
                         from app.services.season_sync_service import SeasonSyncService
 
-                        # Map league_type to league name and type
+                        # Map league_type -> (League.name, Season.league_type).
+                        #
+                        # ⚠️ This half of the flow was left hardcoded while the
+                        # ROLE lookup above went registry-driven, so bulk-approving
+                        # into a newer program succeeded and granted its role, then
+                        # silently assigned NO league: the person ended up approved,
+                        # role-bearing, in no league, no draft pool and no roster --
+                        # without even a log line for the miss.
                         league_type_mapping = {
                             'classic': ('Classic', 'Pub League'),
                             'premier': ('Premier', 'Pub League'),
@@ -216,16 +235,48 @@ def bulk_approve_users():
                         }
 
                         mapping = league_type_mapping.get(default_league)
+                        if not mapping:
+                            try:
+                                from app.services import program_registry
+                                _lane = (default_league[4:] if default_league.startswith('sub-')
+                                         else default_league)
+                                _pr = (program_registry.by_form_value(_lane)
+                                       or program_registry.by_membership_lane(
+                                           _lane.replace('-', '_')))
+                                if _pr is not None:
+                                    mapping = (_pr.league_name, _pr.season_league_type)
+                            except Exception as _reg_err:
+                                logger.warning(f"registry lookup failed for "
+                                               f"'{default_league}': {_reg_err}")
+                        if not mapping:
+                            logger.error(f"Bulk approval: no league mapping for "
+                                         f"'{default_league}'; player "
+                                         f"{user.player.id} was NOT assigned a league")
                         if mapping:
                             league_name, season_league_type = mapping
                             current_league = SeasonSyncService.get_current_league_by_name(
                                 db.session, league_name, season_league_type
                             )
                             if current_league:
-                                user.player.primary_league_id = current_league.id
-                                user.player.league_id = current_league.id
+                                # Additive, matching the single-approval path.
+                                # A blind overwrite here evicted a dual-program
+                                # player's existing primary league, so the two
+                                # approval paths corrupted data differently.
+                                try:
+                                    from app.pub_league.services import PlayerActivationService
+                                    PlayerActivationService._assign_league_additively(
+                                        db.session, user.player, current_league)
+                                except Exception as _add_err:
+                                    logger.warning(f"additive league assign failed, "
+                                                   f"falling back to direct set: {_add_err}")
+                                    user.player.primary_league_id = current_league.id
+                                    user.player.league_id = current_league.id
                                 user.player.is_current_player = True
                                 logger.info(f"Bulk approval: assigned player {user.player.id} to league {current_league.id}")
+                            else:
+                                logger.error(f"Bulk approval: no CURRENT season league "
+                                             f"'{league_name}' ({season_league_type}); "
+                                             f"player {user.player.id} left unassigned")
 
                     # Phase-0 dual-write: mirror the bulk approval into the spine.
                     if user.player:

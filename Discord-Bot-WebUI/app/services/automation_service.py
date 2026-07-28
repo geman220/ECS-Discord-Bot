@@ -96,10 +96,35 @@ _STALENESS = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _current_season(session, league_type):
-    """The current season for one league_type, using the caller's session."""
-    return (session.query(Season)
-            .filter(Season.is_current.is_(True), Season.league_type == league_type)
-            .first())
+    """The current season for one league_type, using the caller's session.
+
+    `league_type` may name a Season.league_type ('Pub League'), a program key
+    ('pl_third'), or a League name ('Summer Sprint'). Rules are seeded with
+    'Pub League' and there is no admin field for this value (seeding is
+    SQL-only), so a program with its own season type would otherwise never fire
+    a single automation and there would be no way to fix it from the UI.
+    """
+    season = (session.query(Season)
+              .filter(Season.is_current.is_(True), Season.league_type == league_type)
+              .first())
+    if season is not None:
+        return season
+    try:
+        from app.services import program_registry
+        prog = (program_registry.by_key(league_type)
+                or program_registry.by_league_name(league_type)
+                or program_registry.by_membership_lane(league_type))
+        if prog is not None and prog.season_league_type != league_type:
+            return (session.query(Season)
+                    .filter(Season.is_current.is_(True),
+                            Season.league_type == prog.season_league_type)
+                    .first())
+    except Exception:
+        pass
+    return None
+
+
+
 
 
 def _leagues_for(session, season, league_names=None):
@@ -1461,6 +1486,17 @@ def _reveal_allows(session, rule, step=None):
         return True
     try:
         from app.services.team_visibility import teams_are_public
+        # Scope to the rule's OWN program. teams_are_public() with no key means
+        # "is EVERY gated program revealed?", so one pre-reveal program used to
+        # freeze team-naming automations for all the others -- indefinitely, and
+        # for programs on completely unrelated calendars.
+        _lt = getattr(rule, 'league_type', None)
+        if _lt:
+            from app.services import program_registry
+            _progs = [pr for pr in program_registry.by_season_league_type(_lt)
+                      if pr.hide_until_reveal]
+            if _progs:
+                return all(teams_are_public(pr.key) for pr in _progs)
         return bool(teams_are_public())
     except Exception:
         logger.warning("Could not read the team-reveal setting; allowing the send",

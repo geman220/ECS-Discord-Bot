@@ -31,8 +31,32 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Pub League division name (lower) -> the pl-* Flask role that drives its Discord role.
+# Fallback only -- division_league_role() is the real lookup.
 DIVISION_LEAGUE_ROLE = {'premier': 'pl-premier', 'classic': 'pl-classic'}
+
+
+def division_league_role(league_name):
+    """League.name -> the pl-* Flask role that drives its Discord division role.
+
+    Registry first. The bare dict covered only Premier and Classic, so drafting
+    a player into any newer program left them on the roster with no division
+    role and therefore no division channel access -- the exact failure the
+    Priority-3 branch of the Discord calculator exists to prevent.
+
+    Returns None when the league genuinely has no division role (ECS FC), which
+    keeps the deliberate no-op for that program.
+    """
+    if not league_name:
+        return None
+    try:
+        from app.services import program_registry
+        program = program_registry.by_league_name(league_name)
+        if program:
+            # ECS FC is add-only and intentionally excluded from this heal.
+            return program.flask_league_role if program.is_pub_league_like else None
+    except Exception:
+        pass
+    return DIVISION_LEAGUE_ROLE.get(str(league_name).strip().lower())
 
 
 def align_player_to_drafted_division(session, player_id, team):
@@ -53,12 +77,12 @@ def align_player_to_drafted_division(session, player_id, team):
     if team is None or team.league is None or not team.league.name:
         return result
     division = team.league.name.strip().lower()
-    if division not in DIVISION_LEAGUE_ROLE:
-        # ECS FC or a renamed league (e.g. "Premier Division") — leave everything
-        # alone. Log the no-op so a league rename that silently disables the heal
-        # is at least visible.
+    division_role = division_league_role(team.league.name)
+    if not division_role:
+        # ECS FC (deliberately add-only), or a league with no registry entry.
+        # Log the no-op so a rename that silently disables the heal is visible.
         logger.debug(f"Division align no-op for player {player_id}: team league "
-                     f"'{team.league.name}' is not a bare Classic/Premier division")
+                     f"'{team.league.name}' has no division role")
         return result
 
     player = session.query(Player).get(player_id)
@@ -91,7 +115,9 @@ def align_player_to_drafted_division(session, player_id, team):
         return result
 
     # 2) Ensure the drafted-division Flask role is present (additive only).
-    want_role = DIVISION_LEAGUE_ROLE[division]
+    # Resolved above; indexing the legacy dict here would KeyError for any
+    # program outside Premier/Classic even though the guard let it through.
+    want_role = division_role
     if want_role not in {r.name for r in player.user.roles}:
         role = session.query(Role).filter_by(name=want_role).first()
         if role is not None and role not in player.user.roles:

@@ -422,9 +422,10 @@ def get_season_awards():
 
         # Pre-reveal: leaderboards pair player names with current-team names.
         # Strip the team label for non-exempt viewers on current Premier/Classic.
-        from app.services.team_visibility import mobile_user_can_view_teams
+        from app.services.team_visibility import (
+            mobile_user_can_view_teams, reveal_gated_league_names)
         hide_team_names = (
-            league.name in ('Premier', 'Classic')
+            league.name in reveal_gated_league_names(session)
             and league.season and league.season.is_current
             and not mobile_user_can_view_teams(session, get_jwt_identity())
         )

@@ -1150,6 +1150,19 @@ document.addEventListener('DOMContentLoaded', function() {
             payload.player_ids = selectedPlayerIds;
         }
 
+        // Never send a narrowed request with nothing selected. `?.value` yields
+        // undefined and JSON.stringify drops the key, so the server would have
+        // seen no filter at all and contacted the ENTIRE sub pool.
+        const requiredFilter = { gender: payload.gender, position: payload.positions, specific: payload.player_ids }[recipientType];
+        if (recipientType !== 'all' && (!requiredFilter || requiredFilter.length === 0)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nothing selected',
+                text: 'Pick at least one option before sending, or choose "All" to contact the whole pool.'
+            });
+            return;
+        }
+
         try {
             const response = await fetch(`/ecs-fc/matches/${matchId}/sub-request`, {
                 method: 'POST',

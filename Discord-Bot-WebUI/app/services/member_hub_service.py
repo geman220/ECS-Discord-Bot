@@ -22,7 +22,23 @@ from app.models import (
 logger = logging.getLogger(__name__)
 
 _ROLE_ORDER = {'player': 0, 'coach': 1, 'sub': 2, 'waitlist': 3}
+# Fallback only -- _lane_label() prefers the program registry, so a new program
+# shows its display name instead of the raw lane key ('pl_third').
 _LANE_LABEL = {'classic': 'Classic', 'premier': 'Premier', 'ecs_fc': 'ECS FC'}
+
+
+def _lane_label(lane, default=None):
+    """Human label for a league_membership lane."""
+    if not lane:
+        return default
+    try:
+        from app.services import program_registry
+        program = program_registry.by_membership_lane(lane)
+        if program:
+            return program.display_name
+    except Exception:
+        pass
+    return _LANE_LABEL.get(lane, default if default is not None else lane)
 
 
 def _sess(session=None):
@@ -119,7 +135,7 @@ def get_member_360(user_id, session=None):
                 'season_id': lm.season_id,
                 'season_name': season_name,
                 'league_type': lm.league_type,
-                'lane_label': _LANE_LABEL.get(lm.league_type, lm.league_type),
+                'lane_label': _lane_label(lm.league_type, lm.league_type),
                 'role': lm.role,
                 'status': lm.status,
                 'team_id': lm.team_id,
@@ -178,7 +194,7 @@ def get_member_360(user_id, session=None):
         if wl:
             out['waitlist'] = {
                 'lane': wl['league_type'],
-                'lane_label': _LANE_LABEL.get(wl['league_type'], wl['league_type']),
+                'lane_label': _lane_label(wl['league_type'], wl['league_type']),
                 'status': wl['status'],
             }
 
@@ -204,7 +220,7 @@ def get_member_360(user_id, session=None):
         lane = _norm_league_type(user.waitlist_league)  # None for 'not_sure'
         out['waitlist'] = {
             'lane': lane,
-            'lane_label': _LANE_LABEL.get(lane, 'Undecided') if lane else 'Undecided',
+            'lane_label': _lane_label(lane, 'Undecided') if lane else 'Undecided',
             'status': 'waiting',
         }
 

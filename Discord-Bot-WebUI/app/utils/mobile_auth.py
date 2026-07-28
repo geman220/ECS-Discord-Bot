@@ -101,7 +101,6 @@ def api_key_required(f):
             # Store API key info for use in endpoint
             g.mobile_api_key_info = api_key_info
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.error(f"API key validation error: {str(e)}", exc_info=True)
@@ -109,6 +108,8 @@ def api_key_required(f):
                 'error': 'API key validation error',
                 'code': 'API_KEY_ERROR'
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 

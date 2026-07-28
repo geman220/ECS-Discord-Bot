@@ -1,4 +1,4 @@
-﻿# ECS_Discord_Bot.py
+# ECS_Discord_Bot.py
 
 from datetime import datetime
 import aiohttp
@@ -2632,7 +2632,10 @@ async def _handle_snooze_select(interaction: discord.Interaction, discord_id: st
         }
 
         async with session.post(
-            f"{WEBUI_API_URL}/api/rsvp-reminder/snooze",
+            # WEBUI_API_URL already ends in /api (every other call in this file is
+            # f"{WEBUI_API_URL}/get_..."), so the extra /api here resolved to
+            # /api/api/rsvp-reminder/snooze and every Pause-reminders tap 404'd.
+            f"{WEBUI_API_URL}/rsvp-reminder/snooze",
             json=payload,
             timeout=aiohttp.ClientTimeout(total=10)
         ) as resp:

@@ -1104,6 +1104,17 @@ def get_substitute_pool():
                 query = query.filter(SubstitutePool.league_type == league_type)
             if active_only:
                 query = query.filter(SubstitutePool.is_active == True)
+            else:
+                # active_only=false means "include members resting on break", not
+                # "include rejected applicants". A rejected row is
+                # approved_at IS NULL + is_active=False (reject_player_from_pool
+                # deactivates the applicant's own row; there is no status column),
+                # which is otherwise indistinguishable from an on-break member on
+                # the client, since both serialize as is_active=false.
+                query = query.filter(or_(
+                    SubstitutePool.approved_at.isnot(None),
+                    SubstitutePool.is_active == True,
+                ))
 
         pool_members = query.order_by(SubstitutePool.joined_pool_at.desc()).all()
 
@@ -2636,26 +2647,27 @@ def get_available_requests():
         if not player:
             return jsonify({"msg": "Player profile not found"}), 404
 
-        # Check if user is in substitute pool
-        pool_membership = session.query(SubstitutePool).filter(
-            SubstitutePool.player_id == player.id,
-            SubstitutePool.is_active == True
-        ).first()
+        # Which programs is this player actually an active sub for?
+        _my_pools = _pool_rows(session, player.id, active_only=True)
+        _my_league_types = [r.league_type for r in _my_pools if r.league_type]
 
-        if not pool_membership:
+        if not _my_pools:
             return jsonify({
                 "requests": [],
                 "count": 0,
                 "message": "You are not in the substitute pool"
             }), 200
 
-        # Get open requests
+        # Get open requests -- ONLY for programs this player subs for. Unscoped,
+        # a Classic-only sub was shown (and could respond to) every other
+        # program's requests.
         requests = session.query(SubstituteRequest).options(
             joinedload(SubstituteRequest.match).joinedload(Match.home_team),
             joinedload(SubstituteRequest.match).joinedload(Match.away_team),
             joinedload(SubstituteRequest.team)
         ).filter(
-            SubstituteRequest.status == 'OPEN'
+            SubstituteRequest.status == 'OPEN',
+            SubstituteRequest.league_type.in_(_my_league_types),
         ).order_by(SubstituteRequest.created_at.desc()).limit(50).all()
 
         # Filter out requests the user has already responded to
@@ -2757,11 +2769,10 @@ def respond_to_request(request_id: int):
 
         session.add(response)
 
-        # Update pool stats
-        pool_membership = session.query(SubstitutePool).filter(
-            SubstitutePool.player_id == player.id
-        ).first()
-
+        # Update pool stats on the row for THIS request's program -- crediting an
+        # arbitrary row corrupts the responsiveness metric the pool UI ranks on.
+        _rows = _pool_rows(session, player.id, league_type=sub_request.league_type)
+        pool_membership = _rows[0] if _rows else None
         if pool_membership:
             pool_membership.requests_received = (pool_membership.requests_received or 0) + 1
             if is_available:
@@ -2839,7 +2850,67 @@ def respond_to_request(request_id: int):
 #   targeted -> a specific set of players; the team is NEVER revealed to them.
 # ============================================================================
 
-PUB_LEAGUE_TYPES = ('Classic', 'Premier')
+PUB_LEAGUE_TYPES = ('Classic', 'Premier')  # fallback; see _pub_league_type_names()
+
+
+def _apply_pool_prefs(row, data):
+    """Apply a preferences payload to one SubstitutePool row."""
+    if 'preferred_positions' in data:
+        row.preferred_positions = data['preferred_positions']
+    if 'max_matches_per_week' in data:
+        try:
+            row.max_matches_per_week = int(data['max_matches_per_week'])
+        except (ValueError, TypeError):
+            pass
+    if 'sms_for_sub_requests' in data:
+        row.sms_for_sub_requests = bool(data['sms_for_sub_requests'])
+    if 'discord_for_sub_requests' in data:
+        row.discord_for_sub_requests = bool(data['discord_for_sub_requests'])
+    if 'email_for_sub_requests' in data:
+        row.email_for_sub_requests = bool(data['email_for_sub_requests'])
+    if 'is_active' in data:
+        row.is_active = bool(data['is_active'])
+    row.last_active_at = datetime.utcnow()
+
+
+def _pool_rows(session, player_id, league_type=None, active_only=False):
+    """This player's SubstitutePool rows, optionally narrowed to one program.
+
+    WARNING: SubstitutePool is keyed on (player_id, league_type) -- a player can
+    legitimately sub for several programs at once. Every endpoint below used
+    `filter(player_id == ...).first()`, which returns an ARBITRARY row once that
+    is true. The consequences were silent and wrong in both directions: joining
+    a second pool reported "already in the substitute pool", leaving one pool
+    could remove you from a different one, notification preferences were written
+    onto another program's row, and responsiveness counters were credited to the
+    wrong program.
+    """
+    from app.models.substitutes import SubstitutePool
+    q = session.query(SubstitutePool).filter(SubstitutePool.player_id == player_id)
+    if league_type:
+        q = q.filter(SubstitutePool.league_type == league_type)
+    if active_only:
+        q = q.filter(SubstitutePool.is_active.is_(True))
+    return q.all()
+
+def _pub_league_type_names():
+    """League.name values for pass-based pub-league-like programs.
+
+    Was the literal ('Classic', 'Premier'), repeated in three modules. A program
+    outside it is silently excluded from availability polls, reach-outs and
+    conflict checks -- so its subs can be double-booked and its pool never
+    settles.
+    """
+    try:
+        from app.services import program_registry
+        names = tuple(p.league_name for p in program_registry.all_programs()
+                      if p.is_pub_league_like)
+        if names:
+            return names
+    except Exception:
+        pass
+    return ('Classic', 'Premier')
+
 
 
 def _current_pub_league_season_id(session):
@@ -2886,8 +2957,8 @@ def create_substitute_reachout():
         return jsonify({"msg": "kind must be 'general' or 'targeted'"}), 400
 
     league_type = (data.get('league_type') or '').strip()
-    if league_type not in PUB_LEAGUE_TYPES:
-        return jsonify({"msg": f"league_type must be one of: {', '.join(PUB_LEAGUE_TYPES)}"}), 400
+    if league_type not in _pub_league_type_names():
+        return jsonify({"msg": f"league_type must be one of: {', '.join(_pub_league_type_names())}"}), 400
 
     match_date_raw = data.get('match_date')
     if not isinstance(match_date_raw, str):
@@ -3295,32 +3366,39 @@ def get_my_pool_status():
         if not player:
             return jsonify({"msg": "Player profile not found"}), 404
 
-        pool_membership = session.query(SubstitutePool).filter(
-            SubstitutePool.player_id == player.id
-        ).first()
+        _rows = _pool_rows(session, player.id)
+        pool_membership = _rows[0] if _rows else None
 
         if not pool_membership:
             return jsonify({
                 "in_pool": False,
-                "membership": None
+                "membership": None,
+                "memberships": []
             }), 200
 
+        def _ser(row):
+            return {
+                "id": row.id,
+                "league_type": row.league_type,
+                "is_active": row.is_active,
+                "preferred_positions": row.preferred_positions,
+                "max_matches_per_week": row.max_matches_per_week,
+                "sms_for_sub_requests": row.sms_for_sub_requests,
+                "discord_for_sub_requests": row.discord_for_sub_requests,
+                "email_for_sub_requests": row.email_for_sub_requests,
+                "requests_received": row.requests_received,
+                "requests_accepted": row.requests_accepted,
+                "matches_played": row.matches_played,
+                "joined_pool_at": row.joined_pool_at.isoformat() if row.joined_pool_at else None
+            }
+
+        # `membership` stays for older clients (it is simply the first row);
+        # `memberships` is the honest answer now that a player can sub for more
+        # than one program at a time.
         return jsonify({
             "in_pool": True,
-            "membership": {
-                "id": pool_membership.id,
-                "league_type": pool_membership.league_type,
-                "is_active": pool_membership.is_active,
-                "preferred_positions": pool_membership.preferred_positions,
-                "max_matches_per_week": pool_membership.max_matches_per_week,
-                "sms_for_sub_requests": pool_membership.sms_for_sub_requests,
-                "discord_for_sub_requests": pool_membership.discord_for_sub_requests,
-                "email_for_sub_requests": pool_membership.email_for_sub_requests,
-                "requests_received": pool_membership.requests_received,
-                "requests_accepted": pool_membership.requests_accepted,
-                "matches_played": pool_membership.matches_played,
-                "joined_pool_at": pool_membership.joined_pool_at.isoformat() if pool_membership.joined_pool_at else None
-            }
+            "membership": _ser(pool_membership),
+            "memberships": [_ser(r) for r in _rows]
         }), 200
 
 
@@ -3409,31 +3487,19 @@ def update_my_pool_status():
         if not player:
             return jsonify({"msg": "Player profile not found"}), 404
 
-        pool_membership = session.query(SubstitutePool).filter(
-            SubstitutePool.player_id == player.id
-        ).first()
-
-        if not pool_membership:
+        # Optional league_type narrows the update to one program; without it the
+        # preferences apply to EVERY pool this player is in (which is what a
+        # client that knows nothing about programs means by "my preferences").
+        # Writing to an arbitrary single row silently left the other programs on
+        # their old notification settings.
+        _rows = _pool_rows(session, player.id, league_type=(data or {}).get('league_type'))
+        if not _rows:
             return jsonify({"msg": "You are not in the substitute pool"}), 404
 
-        # Update fields
-        if 'preferred_positions' in data:
-            pool_membership.preferred_positions = data['preferred_positions']
-        if 'max_matches_per_week' in data:
-            try:
-                pool_membership.max_matches_per_week = int(data['max_matches_per_week'])
-            except (ValueError, TypeError):
-                pass
-        if 'sms_for_sub_requests' in data:
-            pool_membership.sms_for_sub_requests = bool(data['sms_for_sub_requests'])
-        if 'discord_for_sub_requests' in data:
-            pool_membership.discord_for_sub_requests = bool(data['discord_for_sub_requests'])
-        if 'email_for_sub_requests' in data:
-            pool_membership.email_for_sub_requests = bool(data['email_for_sub_requests'])
-        if 'is_active' in data:
-            pool_membership.is_active = bool(data['is_active'])
+        for pool_membership in _rows:
+            _apply_pool_prefs(pool_membership, data)
 
-        pool_membership.last_active_at = datetime.utcnow()
+        pool_membership = _rows[0]
         session.commit()
 
         return jsonify({
@@ -3478,10 +3544,12 @@ def join_substitute_pool():
         if not player:
             return jsonify({"msg": "Player profile not found"}), 404
 
-        # Check if already in pool
-        existing = session.query(SubstitutePool).filter(
-            SubstitutePool.player_id == player.id
-        ).first()
+        # Check if already in THIS program's pool. Unscoped, an existing Classic
+        # sub could never join a second pool -- they got "already in the
+        # substitute pool", or their Classic row was reactivated instead.
+        _join_lt = (data or {}).get('league_type')
+        _rows = _pool_rows(session, player.id, league_type=_join_lt)
+        existing = _rows[0] if _rows else None
 
         if existing:
             if existing.is_active:
@@ -3534,18 +3602,22 @@ def leave_substitute_pool():
         if not player:
             return jsonify({"msg": "Player profile not found"}), 404
 
-        membership = session.query(SubstitutePool).filter(
-            SubstitutePool.player_id == player.id
-        ).first()
+        # Optional league_type leaves ONE program's pool. Without it the player
+        # leaves them all -- never an arbitrary one, which is what .first() did
+        # (intending to leave Summer could remove you from Classic).
+        _leave_lt = (request.get_json(silent=True) or {}).get('league_type')
+        _rows = _pool_rows(session, player.id, league_type=_leave_lt)
 
-        if not membership:
+        if not _rows:
             return jsonify({"msg": "You are not in the substitute pool"}), 404
 
         # Deactivate rather than delete to preserve history
-        membership.is_active = False
+        for membership in _rows:
+            membership.is_active = False
         session.commit()
 
-        logger.info(f"Player {player.id} left substitute pool")
+        logger.info(f"Player {player.id} left substitute pool(s): "
+                    f"{[r.league_type for r in _rows]}")
 
         return jsonify({
             "success": True,

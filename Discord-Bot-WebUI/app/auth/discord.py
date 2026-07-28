@@ -33,7 +33,9 @@ from app.duplicate_prevention import (
     find_user_for_discord_login,
     perform_discord_login_actions,
     find_potential_duplicates,
+    record_discord_conflict,
 )
+from app.models import SOURCE_WEB_LOGIN
 
 logger = logging.getLogger(__name__)
 
@@ -292,16 +294,31 @@ def discord_callback():
                 f"Discord callback refusing login: blocked_reason={blocked_reason} "
                 f"discord_id={discord_id}"
             )
+            # Refusing is right; refusing silently is not. Discord is the only
+            # door into the portal, so a member who lost their old Discord
+            # account is stranded until an admin acts. Queue it.
+            record_discord_conflict(
+                db_session,
+                discord_id=discord_id,
+                discord_username=discord_username,
+                email=discord_email,
+                blocked_reason=blocked_reason,
+                source=SOURCE_WEB_LOGIN,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+            )
             session['sweet_alert'] = {
-                'title': 'Account Conflict',
+                'title': "We can't log you in yet",
                 'text': (
-                    "The email on this Discord account is already linked to a "
-                    "different Discord profile in our system. Please contact an "
-                    "admin so we can reconcile the accounts."
+                    "This Discord account looks like it belongs to an existing "
+                    "member, but it isn't the one on file. We've sent this to our "
+                    "admins to review — you'll be able to log in with this Discord "
+                    "once they approve it. Reach out in Discord if it's urgent."
                     if blocked_reason == 'email_in_use_by_other_discord'
                     else
-                    "We found multiple accounts that may match this Discord login. "
-                    "Please contact an admin so we can confirm which is yours."
+                    "We found more than one account that could be yours, so we "
+                    "can't safely pick one. We've sent this to our admins to "
+                    "confirm which is yours — no need to sign up again."
                 ),
                 'icon': 'warning',
             }

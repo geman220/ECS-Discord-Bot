@@ -632,7 +632,12 @@ def backfill_league_membership(batch_size, dry_run):
 
     current = _current_season_ids(db.session)
     click.echo(f"Current seasons: Pub League={current['pub_league']}, ECS FC={current['ecs_fc']}")
-    if not any(current.values()):
+    # Ignore the '_by_season_type' bookkeeping key. `any(current.values())` was
+    # true whenever that nested dict was non-empty -- which it almost always is
+    # -- so the "nothing to do" guard was dead and both WARNING branches printed
+    # together.
+    _season_lists = [v for k, v in current.items() if not k.startswith('_')]
+    if not any(_season_lists):
         click.echo("No current season for either program - nothing to do.")
         return
     if not current['pub_league']:
@@ -748,3 +753,396 @@ def fix_ecs_fc_role_prefix(dry_run):
                 click.echo("\n(Dry run - no roles renamed. Remove --dry-run to apply.)")
 
     asyncio.run(_run())
+
+
+# ---------------------------------------------------------------------------
+# Summer Sprint season seeder
+# ---------------------------------------------------------------------------
+#
+# The fixture list below is HAND-SPECIFIED rather than generated, on purpose.
+#
+# Counting the pairings it produces: A/B x2, C/D x2, A/C x2, B/D x2, A/D x2,
+# B/C x2 -- every pair exactly twice, six games per team. A textbook double
+# round-robin. But the WEEKLY distribution is 1, 2, 2, 1 games per team, and
+# `auto_schedule_generator` constraint C2 (_validate_all_constraints) requires
+# EXACTLY 2 games per team per week, with _generate_4_team_pairings always
+# emitting 2. The generator therefore cannot express this season.
+#
+# Rather than relax a shared constraint that Premier and Classic depend on,
+# this seeds the twelve fixtures directly. Nothing here reads or writes any
+# other program's rows.
+
+_SUMMER_TEAM_LETTERS = ['M', 'N', 'O', 'P']
+
+# (date, venue, first-kickoff, [(home_letter, away_letter, slot_index), ...], week_type)
+# slot_index 0 = first kickoff, 1 = second. Two fields, so same-slot matches
+# run in parallel.
+_SUMMER_WEEKS = [
+    ('2026-08-02', 'Eagle Staff',       '11:30',
+     [('A', 'B', 0), ('C', 'D', 0)],                                   'REGULAR'),
+    ('2026-08-09', 'Eagle Staff',       '11:30',
+     [('A', 'C', 0), ('B', 'D', 0), ('A', 'D', 1), ('B', 'C', 1)],     'REGULAR'),
+    ('2026-08-16', 'Eckstein',          '11:00',
+     [('A', 'B', 0), ('C', 'D', 0), ('A', 'C', 1), ('B', 'D', 1)],     'REGULAR'),
+    ('2026-08-23', 'Eagle Staff',       '11:30',
+     [('A', 'D', 0), ('B', 'C', 0)],                                   'REGULAR'),
+    # Aug 30 is playoffs: bracket depends on standings, so no fixtures are
+    # seeded. The week exists (dated, with its venue) so RSVPs and Discord
+    # posting work; matches get filled in from the schedule editor.
+    ('2026-08-30', 'Lower Woodland #2', '11:00', [],                    'PLAYOFF'),
+]
+
+# Aug 23 also has a "Randomizer/Fun game" after the two fixtures. Not modelled
+# as a match: it has no fixed teams and no result. Add it as a FUN week row from
+# the schedule editor if it needs to show on the calendar.
+
+_SUMMER_SLOT_MINUTES = 80   # 70-minute match + 10-minute break, as Premier uses
+_SUMMER_FIELDS = ['North', 'South']
+
+
+@click.command()
+@click.option('--season-name', default='2026 Summer', show_default=True)
+@click.option('--dry-run', is_flag=True, help='Show what would be created, then roll back.')
+@with_appcontext
+def seed_summer_sprint(season_name, dry_run):
+    """Create the Summer Sprint season: league, 4 teams, weeks and 12 fixtures.
+
+    Idempotent -- re-running will not duplicate a season, league, team, week or
+    match that already exists.
+
+    Deliberately scoped: every query filters on this season's own league, so it
+    cannot read or modify Premier, Classic or ECS FC. It also does NOT create
+    Discord channels; run the normal team-resource task afterwards once you are
+    happy with the roster.
+    """
+    from datetime import datetime as _dt, timedelta
+    from app.models import Season, League, Team, Match, Schedule, WeekConfiguration
+    from app.core.session_manager import managed_session
+
+    with managed_session() as session:
+        try:
+            from app.services import program_registry
+            # include_inactive: the whole point of this command is to set the
+            # program up BEFORE it is switched on.
+            program = program_registry.by_key('pl_third', include_inactive=True)
+        except Exception:
+            program = None
+        if program is None:
+            raise click.ClickException(
+                "Program 'pl_third' not found. Run sql_create_program_registry.sql first."
+            )
+
+        season_type = program.season_league_type
+        league_name = program.league_name
+
+        # --- Flask roles --------------------------------------------------
+        # Nothing else creates these. app/init/database.py seeds only
+        # pl-unverified and pl-waitlist, so without this every downstream heal
+        # degrades to a SILENT no-op rather than an error:
+        #   player_division_service -> Role.filter_by(name=...).first() is None
+        #   coach_assignment        -> draft coach auto-promotion never fires
+        #   approvals               -> 404 "Role <name> not found"
+        from app.models import Role
+        for _role_name, _desc in (
+            (program.flask_league_role, f'{program.display_name} player'),
+            (program.flask_coach_role,  f'{program.display_name} division coach'),
+            (program.flask_sub_role,    f'{program.display_name} substitute'),
+        ):
+            if not _role_name:
+                continue
+            if session.query(Role).filter_by(name=_role_name).first():
+                click.echo(f"Role already exists: {_role_name}")
+                continue
+            session.add(Role(name=_role_name, description=_desc))
+            session.flush()
+            click.echo(f"Created role {_role_name}")
+
+        # --- Season -------------------------------------------------------
+        season = session.query(Season).filter_by(
+            name=season_name, league_type=season_type).first()
+        if season:
+            click.echo(f"Season already exists: {season.name} (id={season.id})")
+        else:
+            season = Season(
+                name=season_name, league_type=season_type,
+                # NOT is_current: setting it here would be the only write that
+                # could affect another program's "current season" resolution.
+                # Flip it deliberately from the admin UI when the season opens.
+                is_current=False,
+                start_date=_dt.strptime(_SUMMER_WEEKS[0][0], '%Y-%m-%d').date(),
+                end_date=_dt.strptime(_SUMMER_WEEKS[-1][0], '%Y-%m-%d').date(),
+                phase='preseason',
+            )
+            session.add(season)
+            session.flush()
+            click.echo(f"Created season {season.name} (id={season.id}, "
+                       f"league_type={season_type}, is_current=False)")
+
+        # --- League -------------------------------------------------------
+        league = session.query(League).filter_by(
+            name=league_name, season_id=season.id).first()
+        if league:
+            click.echo(f"League already exists: {league.name} (id={league.id})")
+        else:
+            league = League(name=league_name, season_id=season.id)
+            session.add(league)
+            session.flush()
+            click.echo(f"Created league {league.name} (id={league.id})")
+
+        # --- Teams --------------------------------------------------------
+        # M/N/O/P continues the existing scheme: Classic A-D, Premier E-L.
+        teams_by_slot = {}
+        for slot, letter in zip('ABCD', _SUMMER_TEAM_LETTERS):
+            tname = f"Team {letter}"
+            team = session.query(Team).filter_by(name=tname, league_id=league.id).first()
+            if not team:
+                team = Team(name=tname, league_id=league.id)
+                session.add(team)
+                session.flush()
+                click.echo(f"Created team {tname} (id={team.id})  [slot {slot}]")
+            else:
+                click.echo(f"Team already exists: {tname} (id={team.id})  [slot {slot}]")
+            teams_by_slot[slot] = team
+
+        # --- Weeks + fixtures ---------------------------------------------
+        created_matches = 0
+        for idx, (date_str, venue, start_str, fixtures, week_type) in enumerate(_SUMMER_WEEKS, start=1):
+            wdate = _dt.strptime(date_str, '%Y-%m-%d').date()
+            wstart = _dt.strptime(start_str, '%H:%M').time()
+
+            wc = session.query(WeekConfiguration).filter_by(
+                league_id=league.id, week_date=wdate).first()
+            if not wc:
+                wc = WeekConfiguration(
+                    league_id=league.id, week_date=wdate, week_type=week_type,
+                    week_order=idx, venue=venue, start_time=wstart,
+                    field_names=','.join(_SUMMER_FIELDS),
+                    is_playoff_week=(week_type == 'PLAYOFF'),
+                )
+                session.add(wc)
+                session.flush()
+                click.echo(f"Week {idx}: {wdate} {venue} @ {start_str} ({week_type})")
+            else:
+                # Keep venue/time in step without clobbering a manual edit to
+                # anything else on the row.
+                wc.venue, wc.start_time = venue, wstart
+                click.echo(f"Week {idx} already exists: {wdate} (venue/time refreshed)")
+
+            for home_slot, away_slot, slot_idx in fixtures:
+                home, away = teams_by_slot[home_slot], teams_by_slot[away_slot]
+                mtime = (_dt.combine(wdate, wstart) +
+                         timedelta(minutes=_SUMMER_SLOT_MINUTES * slot_idx)).time()
+                field = _SUMMER_FIELDS[
+                    sum(1 for h, a, s in fixtures
+                        if s == slot_idx and (h, a) < (home_slot, away_slot)) % len(_SUMMER_FIELDS)
+                ]
+
+                existing = session.query(Match).filter_by(
+                    date=wdate, home_team_id=home.id, away_team_id=away.id).first()
+                if existing:
+                    click.echo(f"    exists  {home.name} v {away.name} {mtime} {field}")
+                    continue
+
+                # Two Schedule rows per fixture (one per team's perspective) --
+                # this mirror pair is what update_match/delete_match resolve on.
+                sched_home = Schedule(week=str(idx), date=wdate, time=mtime,
+                                      location=field, team_id=home.id,
+                                      opponent=away.id, season_id=season.id)
+                sched_away = Schedule(week=str(idx), date=wdate, time=mtime,
+                                      location=field, team_id=away.id,
+                                      opponent=home.id, season_id=season.id)
+                session.add_all([sched_home, sched_away])
+                session.flush()
+
+                match = Match(date=wdate, time=mtime, location=field, venue=venue,
+                              home_team_id=home.id, away_team_id=away.id,
+                              schedule_id=sched_home.id, week_type='REGULAR')
+                session.add(match)
+                created_matches += 1
+                click.echo(f"    created {home.name} v {away.name} {mtime} "
+                           f"{venue} / {field}")
+
+        # Start this program HIDDEN, explicitly.
+        #
+        # ⚠️ hide_until_reveal only marks a program as gate-ABLE. With no
+        # make_teams_public:<key> row, teams_are_public(key) falls through to the
+        # GLOBAL flag -- which is normally TRUE mid-season for Pub League. So
+        # flipping is_active=TRUE while Pub League is revealed would publish this
+        # program's rosters instantly, before its draft. A spoiled reveal cannot
+        # be un-spoiled, so the seeder writes the override rather than trusting
+        # an operator to run a SQL snippet at the right moment.
+        from app.models.admin_config import AdminConfig
+        from app.services.team_visibility import program_reveal_key
+        _rk = program_reveal_key(program.key)
+        if not session.query(AdminConfig).filter_by(key=_rk).first():
+            session.add(AdminConfig(
+                key=_rk, value='false',
+                description=f'Reveal {program.display_name} team assignments.',
+                category='pub_league', data_type='boolean', is_enabled=True))
+            click.echo(f"  set {_rk} = false (rosters hidden until reveal)")
+
+        if dry_run:
+            session.rollback()
+            click.echo(f"\n(Dry run - rolled back. Would have created {created_matches} matches.)")
+        else:
+            session.commit()
+            AdminConfig._l2_invalidate()
+            click.echo(f"\nDone. {created_matches} matches created.")
+            click.echo("Next: set the season current when ready, draft/assign the "
+                       "rosters, then create Discord resources for the 4 teams.")
+
+
+@click.command()
+@click.option('--program', 'program_key', required=True,
+              help="Program key, e.g. 'pl_third'.")
+@click.option('--apply-renames', is_flag=True,
+              help='PATCH live Discord objects whose name no longer matches the registry.')
+@click.option('--dry-run', is_flag=True, help='Report only; write nothing.')
+@with_appcontext
+def sync_program_discord(program_key, apply_renames, dry_run):
+    """Bind a program's Discord category/role IDs, and optionally rename them.
+
+    Run WITHOUT --apply-renames first: that only captures the snowflakes of
+    objects it can match by name. Run it right after a program's Discord
+    resources are created, while names still agree.
+
+    Run WITH --apply-renames after changing a program's display name in the
+    registry: it PATCHes each already-bound object to the new name. Renaming by
+    ID preserves every member assignment and channel overwrite, which is exactly
+    what the name-based get_or_create_* helpers cannot do -- they would create a
+    duplicate and silently strip access.
+    """
+    from app.core.session_manager import managed_session
+    from app.services.program_discord_sync import bind_program_discord_ids
+
+    with managed_session() as session:
+        report = bind_program_discord_ids(
+            session, program_key, apply_renames=apply_renames, dry_run=dry_run)
+
+        for item in report.get('bound', []):
+            click.echo(f"  bound    {item['kind']:<9} {item['name']}  -> {item['id']}")
+        for item in report.get('renamed', []):
+            mark = 'RENAMED ' if item.get('applied') else 'would-be'
+            click.echo(f"  {mark} {item['kind']:<9} {item['from']!r} -> {item['to']!r}")
+        for item in report.get('unmatched', []):
+            note = f"  ({item['note']})" if item.get('note') else ''
+            click.echo(f"  no match {item['kind']:<9} {item['name']}{note}")
+        for err in report.get('errors', []):
+            click.echo(f"  ERROR    {err}")
+
+        if dry_run:
+            session.rollback()
+            click.echo("\n(Dry run - nothing written.)")
+        else:
+            session.commit()
+            # Invalidate AFTER the commit -- before it, a concurrent read in
+            # this process would re-cache the pre-commit state for 300s.
+            try:
+                from app.services import program_registry
+                program_registry.invalidate()
+            except Exception:
+                pass
+            click.echo("\nDone.")
+            if report.get('category_cache_cleared') or any(
+                    r.get('applied') for r in report.get('renamed', [])):
+                click.echo("⚠️  Renames applied. RESTART the webapp and Celery "
+                           "workers: the registry cache and the Discord "
+                           "category memo are process-local, so those "
+                           "processes still hold the old names.")
+        if not apply_renames and report.get('renamed'):
+            click.echo("Names differ from the registry. Re-run with --apply-renames "
+                       "to rename the live Discord objects in place.")
+
+
+@click.command()
+@click.option('--program', 'program_key', required=True, help="Program key, e.g. 'pl_third'.")
+@click.option('--dry-run', is_flag=True, help='Show what would be created, then roll back.')
+@with_appcontext
+def seed_program_automations(program_key, dry_run):
+    """Clone the league-scoped automation rules for one program.
+
+    Rules are pinned to a `league_type` in their trigger_config and are
+    SQL-seeded -- nothing in the app inserts SEEDED_RULES and there is no admin
+    field for that value -- so a program with its own season type gets none.
+
+    ⚠️ BUILT-IN (native_action) RULES ARE DELIBERATELY SKIPPED.
+
+    `rsvp_dm_reminder` and `match_day_reminder` are native senders, and neither
+    filters its recipients by league or season: `_dispatch_native` passes no
+    league_type/season_id and the collectors query matches globally. A second
+    copy therefore does not narrow anything -- it just sends everybody the same
+    reminder TWICE. The admin UI refuses to copy them for exactly this reason
+    (automations.py: "a second copy would send everybody the same reminder
+    twice"); this command honours the same rule rather than routing around it.
+
+    Cloned rules are always created DISABLED. Idempotent.
+    """
+    from app.core.session_manager import managed_session
+    from app.models import AutomationRule
+    from app.services.automation_defaults import SEEDED_RULES
+    from app.services import program_registry
+
+    with managed_session() as session:
+        program = program_registry.by_key(program_key, include_inactive=True)
+        if program is None:
+            raise click.ClickException(f"No program with key '{program_key}'.")
+
+        created = skipped = refused = 0
+        for rule in SEEDED_RULES:
+            cfg = dict(rule.get('trigger_config') or {})
+            if 'league_type' not in cfg:
+                continue    # not league-scoped; a clone would duplicate work
+
+            if rule.get('native_action'):
+                click.echo(f"  skipped  {rule['key']}  (built-in sender — a copy "
+                           f"would double-send, it does not narrow by league)")
+                refused += 1
+                continue
+
+            new_key = f"{rule['key']}__{program.key}"
+            if session.query(AutomationRule).filter_by(key=new_key).first():
+                click.echo(f"  exists   {new_key}")
+                skipped += 1
+                continue
+
+            cfg['league_type'] = program.season_league_type
+            session.add(AutomationRule(
+                key=new_key,
+                name=f"{rule['name']} ({program.display_name})"[:200],
+                description=rule.get('description'),
+                # ALWAYS disabled: an admin reviews and enables deliberately.
+                enabled=False,
+                trigger_type=rule['trigger_type'],
+                trigger_config=cfg,
+                delay_hours=rule.get('delay_hours', 24),
+                audience_type=rule.get('audience_type', 'drafted_not_in_discord'),
+                audience_config=rule.get('audience_config'),
+                # subject/body_html are NOT NULL with no server default. Omitting
+                # them let --dry-run pass (autoflush is off, so nothing flushed
+                # before the rollback) and then blew up on the real commit.
+                subject=rule.get('subject') or rule['name'],
+                body_html=rule.get('body_html') or '',
+                send_mode=rule.get('send_mode', 'individual'),
+                force_send=rule.get('force_send', False),
+                # channels is NOT NULL with a lambda default; passing an
+                # explicit None risks tripping the constraint instead of taking
+                # the default, so only set it when the source actually has one.
+                **({'channels': rule['channels']} if rule.get('channels') else {}),
+                **({'short_message': rule['short_message']}
+                   if rule.get('short_message') else {}),
+            ))
+            # Flush now so a NOT NULL / type error surfaces during --dry-run
+            # rather than only on the real commit.
+            session.flush()
+            created += 1
+            click.echo(f"  created  {new_key}  (disabled, league_type={cfg['league_type']})")
+
+        if dry_run:
+            session.rollback()
+            click.echo(f"\n(Dry run - rolled back. Would create {created}, "
+                       f"skip {skipped}, refuse {refused}.)")
+        else:
+            session.commit()
+            click.echo(f"\nDone. {created} created (all disabled), {skipped} already "
+                       f"present, {refused} built-in rules skipped.")
+            click.echo("Enable them at /admin-panel/communication/automations after review.")

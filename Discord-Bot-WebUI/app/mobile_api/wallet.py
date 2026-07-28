@@ -23,6 +23,7 @@ from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Player, Season
 from app.models.wallet import WalletPass
+from app.services.team_visibility import reveal_gated_league_names
 
 logger = logging.getLogger(__name__)
 
@@ -111,10 +112,12 @@ def get_membership_pass_info():
             league_name = player.league.name if player.league else "Pub League"
 
             # Get current season
-            current_season = session_db.query(Season).filter_by(
-                league_type='Pub League',
-                is_current=True
-            ).first()
+            # Season resolved from the PLAYER'S OWN program. Pairing the
+            # player's league with a hardcoded 'Pub League' season gave a
+            # pass the wrong season name and the wrong expiry.
+            from app.services.season_sync_service import SeasonSyncService
+            current_season = SeasonSyncService.current_season_for_league_name(
+                session_db, league_name)
             season_name = current_season.name if current_season else "Spring 2025"
 
             barcode_value = _resolve_member_barcode(session_db, current_user_id, player, team_name, season_name)
@@ -257,7 +260,7 @@ def generate_membership_pass():
     try:
         with managed_session() as session_db:
             current_user_id = int(get_jwt_identity())
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
 
             # Get user and player
             user = session_db.query(User).get(current_user_id)
@@ -282,10 +285,12 @@ def generate_membership_pass():
             league_name = player.league.name if player.league else "Pub League"
 
             # Get current season
-            current_season = session_db.query(Season).filter_by(
-                league_type='Pub League',
-                is_current=True
-            ).first()
+            # Season resolved from the PLAYER'S OWN program. Pairing the
+            # player's league with a hardcoded 'Pub League' season gave a
+            # pass the wrong season name and the wrong expiry.
+            from app.services.season_sync_service import SeasonSyncService
+            current_season = SeasonSyncService.current_season_for_league_name(
+                session_db, league_name)
             season_name = current_season.name if current_season else "Spring 2025"
 
             preferred_format = data.get('barcode_format', 'qr')
@@ -708,7 +713,7 @@ def validate_membership_pass():
                     .join(Season, League.season_id == Season.id)
                     .filter(
                         Team.name == wallet_pass.team_name,
-                        League.name.in_(('Premier', 'Classic')),
+                        League.name.in_(reveal_gated_league_names()),
                         Season.is_current == True  # noqa: E712
                     ).first()
                 )
@@ -758,10 +763,12 @@ def refresh_membership_pass():
             league_name = player.league.name if player.league else "Pub League"
 
             # Get current season
-            current_season = session_db.query(Season).filter_by(
-                league_type='Pub League',
-                is_current=True
-            ).first()
+            # Season resolved from the PLAYER'S OWN program. Pairing the
+            # player's league with a hardcoded 'Pub League' season gave a
+            # pass the wrong season name and the wrong expiry.
+            from app.services.season_sync_service import SeasonSyncService
+            current_season = SeasonSyncService.current_season_for_league_name(
+                session_db, league_name)
             season_name = current_season.name if current_season else "Spring 2025"
 
             barcode_value = _resolve_member_barcode(session_db, current_user_id, player, team_name, season_name)

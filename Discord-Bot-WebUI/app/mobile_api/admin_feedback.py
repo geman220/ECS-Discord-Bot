@@ -304,7 +304,7 @@ def admin_get_feedback(feedback_id: int):
 def admin_reply_to_feedback(feedback_id: int):
     """Add an admin reply (visible to owner). Fires FEEDBACK_REPLY to the owner."""
     actor_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'msg': 'content is required'}), 400
@@ -375,7 +375,7 @@ def admin_reply_to_feedback(feedback_id: int):
 def admin_add_note(feedback_id: int):
     """Add an internal note (admin-only; never sent to owner endpoints, no FCM)."""
     actor_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'msg': 'content is required'}), 400
@@ -420,7 +420,7 @@ def admin_add_note(feedback_id: int):
 def admin_patch_feedback(feedback_id: int):
     """Update status and/or priority. Fires FCM on status change."""
     actor_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_status = data.get('status')
     new_priority = data.get('priority')
 
@@ -532,7 +532,7 @@ def admin_bulk_feedback():
            "value": str (required for set_status/set_priority)}
     """
     actor_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     feedback_ids = data.get('feedback_ids') or []
     action = (data.get('action') or '').strip()
     value = data.get('value')

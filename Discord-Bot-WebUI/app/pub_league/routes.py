@@ -523,7 +523,7 @@ def verify_order():
     Returns:
         Order data and line items
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     token = data.get('token')
 
@@ -585,7 +585,7 @@ def link_self():
     Returns:
         Updated line item data
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     line_item_id = data.get('line_item_id')
 
@@ -714,7 +714,7 @@ def confirm_link():
     Request JSON:
         order_id, line_item_id, token (optional; falls back to session)
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     line_item_id = data.get('line_item_id')
 
@@ -794,7 +794,7 @@ def reject_auto_link():
     Request JSON:
         order_id, line_item_id, token (optional; falls back to session)
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     line_item_id = data.get('line_item_id')
 
@@ -896,7 +896,7 @@ def assign_to_user():
     Returns:
         Updated line item data
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     line_item_id = data.get('line_item_id')
     player_id = data.get('player_id')
@@ -967,7 +967,7 @@ def send_claim():
     Returns:
         Claim link data
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     line_item_id = data.get('line_item_id')
     recipient_email = data.get('recipient_email', '').strip() or None
@@ -1052,7 +1052,7 @@ def resolve_conflicts():
     Returns:
         Success status
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     resolutions = data.get('resolutions', [])
 
     if not resolutions:
@@ -1089,7 +1089,7 @@ def activate_player():
     Returns:
         Success status
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
     line_item_id = data.get('line_item_id')
     jersey_size = data.get('jersey_size')
@@ -1169,7 +1169,7 @@ def update_profile():
     Returns:
         {success: bool}
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
 
     try:
         session = get_db_session()
@@ -1207,7 +1207,7 @@ def generate_pass():
     Returns:
         Wallet pass data with download links
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     line_item_id = data.get('line_item_id')
 
     if not line_item_id:
@@ -1335,7 +1335,7 @@ def process_claim():
     Returns:
         Claim result and pass data
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     claim_token = data.get('claim_token') or session.get('pub_league_claim_token')
 
     if not claim_token:

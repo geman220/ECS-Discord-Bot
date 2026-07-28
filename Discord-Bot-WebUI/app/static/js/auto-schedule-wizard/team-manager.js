@@ -18,7 +18,10 @@ export function updateTeamSections() {
         if (ecsFcSection) ecsFcSection.classList.add('hidden');
         updateTeamPreview('premier');
         updateTeamPreview('classic');
-    } else if (leagueType === 'ECS FC') {
+    } else {
+        // Any other season type uses the single-league layout. As an
+        // `else if (leagueType === 'ECS FC')` this left BOTH sections hidden
+        // for a newer program, so step 3 had no team-count input at all.
         if (pubLeagueSection) pubLeagueSection.classList.add('hidden');
         if (ecsFcSection) ecsFcSection.classList.remove('hidden');
         updateTeamPreview('ecsFc');

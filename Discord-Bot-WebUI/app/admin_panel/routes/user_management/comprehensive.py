@@ -42,7 +42,7 @@ LEAGUE_TO_ROLE_MAP = {
     'ecs-fc': 'pl-ecs-fc',
 }
 
-# Mapping from league names to sub role names
+# Mapping from league names to sub role names. FALLBACK -- use league_to_sub_role().
 LEAGUE_TO_SUB_ROLE_MAP = {
     'classic': 'Classic Sub',
     'premier': 'Premier Sub',
@@ -50,10 +50,49 @@ LEAGUE_TO_SUB_ROLE_MAP = {
     'ecs-fc': 'ECS FC Sub',
 }
 
+
+def league_to_sub_role_map():
+    """Lowercased League.name (and lane) -> sub role name, every program."""
+    out = dict(LEAGUE_TO_SUB_ROLE_MAP)
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs():
+            if not p.flask_sub_role:
+                continue
+            if p.league_name:
+                out[p.league_name.lower()] = p.flask_sub_role
+            if p.membership_lane:
+                out[p.membership_lane.replace('_', '-')] = p.flask_sub_role
+    except Exception:
+        pass
+    return out
+
 # All league-related roles that should be managed (including subs)
-LEAGUE_ROLES = ['pl-classic', 'pl-premier', 'pl-ecs-fc']
-SUB_ROLES = ['Classic Sub', 'Premier Sub', 'ECS FC Sub']
-ALL_LEAGUE_RELATED_ROLES = LEAGUE_ROLES + SUB_ROLES
+LEAGUE_ROLES = ['pl-classic', 'pl-premier', 'pl-ecs-fc']  # fallback; see league_roles()
+
+
+def league_roles():
+    """Every program's Flask league role name (registry-driven)."""
+    try:
+        from app.services import program_registry
+        return list(program_registry.league_role_names())
+    except Exception:
+        return list(LEAGUE_ROLES)
+SUB_ROLES = ['Classic Sub', 'Premier Sub', 'ECS FC Sub']  # fallback; see sub_roles()
+
+
+def sub_roles():
+    """Every program's sub role name (registry-driven)."""
+    try:
+        from app.services import program_registry
+        return list(program_registry.sub_role_names())
+    except Exception:
+        return list(SUB_ROLES)
+ALL_LEAGUE_RELATED_ROLES = LEAGUE_ROLES + SUB_ROLES  # fallback
+
+
+def all_league_related_roles():
+    return list(league_roles()) + list(sub_roles())
 
 
 def get_role_for_league(league):
@@ -135,7 +174,13 @@ def _compute_sub_conflicts(users):
         pools_by_player.setdefault(pid, []).append(ltype)
 
     # Map role name -> division label (e.g. 'Classic Sub' -> 'Classic').
-    role_to_div = {r: SUB_ROLE_TO_POOL[r][1] for r in PUB_LEAGUE_SUB_ROLE_NAMES}
+    # Both sides from the SAME registry-backed source; PUB_LEAGUE_SUB_ROLE_NAMES
+    # is dynamic and SUB_ROLE_TO_POOL is a 3-key literal, so pairing them raised
+    # KeyError on an unwrapped admin action (hard 500).
+    from app.services.sub_status_service import sub_role_to_pool, pub_league_sub_role_names
+    _pool_map = sub_role_to_pool()
+    role_to_div = {r: _pool_map[r][1] for r in pub_league_sub_role_names()
+                   if r in _pool_map}
 
     for u in users:
         if not u.player or u.player.id not in rostered:
@@ -916,25 +961,25 @@ def edit_user_comprehensive(user_id):
                 if league_id:
                     primary_league = League.query.get(int(league_id))
                     if primary_league:
-                        sub_role = LEAGUE_TO_SUB_ROLE_MAP.get(primary_league.name.lower().strip())
+                        sub_role = league_to_sub_role_map().get(primary_league.name.lower().strip())
                         if sub_role:
                             required_sub_roles.add(sub_role)
                 if secondary_league_id:
                     secondary_league = League.query.get(int(secondary_league_id))
                     if secondary_league:
-                        sub_role = LEAGUE_TO_SUB_ROLE_MAP.get(secondary_league.name.lower().strip())
+                        sub_role = league_to_sub_role_map().get(secondary_league.name.lower().strip())
                         if sub_role:
                             required_sub_roles.add(sub_role)
                 if tertiary_league_id:
                     tertiary_league = League.query.get(int(tertiary_league_id))
                     if tertiary_league:
-                        sub_role = LEAGUE_TO_SUB_ROLE_MAP.get(tertiary_league.name.lower().strip())
+                        sub_role = league_to_sub_role_map().get(tertiary_league.name.lower().strip())
                         if sub_role:
                             required_sub_roles.add(sub_role)
 
                 # Remove league roles that are no longer needed
                 # BUT skip any role the admin explicitly checked in the form
-                for league_role in LEAGUE_ROLES:
+                for league_role in league_roles():
                     if league_role in current_role_names and league_role not in required_league_roles:
                         if league_role in explicitly_selected_role_names:
                             continue
@@ -945,7 +990,7 @@ def edit_user_comprehensive(user_id):
 
                 # Remove sub roles for leagues the user is no longer in
                 # BUT skip any role the admin explicitly checked in the form
-                for sub_role in SUB_ROLES:
+                for sub_role in sub_roles():
                     if sub_role in current_role_names and sub_role not in required_sub_roles:
                         if sub_role in explicitly_selected_role_names:
                             continue

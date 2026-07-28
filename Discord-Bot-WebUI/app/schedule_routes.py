@@ -1,4 +1,4 @@
-﻿# app/schedule_routes.py
+# app/schedule_routes.py
 
 """
 Schedule Routes Module
@@ -326,6 +326,10 @@ class ScheduleManager:
             date=match_date,
             time=match_time,
             location=data['location'],
+            # Site the match is played at. NULL for every existing caller, which
+            # is exactly the previous behaviour -- location alone (the FIELD)
+            # stays the whole story for leagues that never move.
+            venue=data.get('venue'),
             latitude=float(data['latitude']) if data.get('latitude') else None,
             longitude=float(data['longitude']) if data.get('longitude') else None,
             home_team_id=data['team_a'],

@@ -210,7 +210,12 @@ def clear_cache():
 
         # Support both form data and JSON
         if request.is_json:
-            cache_type = request.json.get('cache_type', 'all')
+            # No silent default here: cache_type 'all' maps to the '*' pattern,
+            # so an empty JSON body would flush every key in Redis.
+            _json = request.get_json(silent=True)
+            if _json is None:
+                return jsonify({'success': False, 'message': 'cache_type is required'}), 400
+            cache_type = _json.get('cache_type', 'all')
         else:
             cache_type = request.form.get('cache_type', 'all')
 
@@ -662,9 +667,13 @@ def api_send_emergency_alert():
         from app.services.notification_service import notification_service
 
         current_user_safe = safe_current_user
-        data = request.get_json() or {}
+        # Body REQUIRED: the defaults below would otherwise turn a bodyless POST
+        # into a real emergency push to every active device on file.
+        data = request.get_json(silent=True)
+        if not data or not (data.get('message') or '').strip():
+            return jsonify({'success': False, 'message': 'A message is required to send an alert.'}), 400
 
-        message = data.get('message', 'Emergency alert from ECS Soccer League administration.')
+        message = data.get('message')
         title = data.get('title', '🚨 EMERGENCY ALERT')
 
         # Get all active FCM tokens
@@ -715,7 +724,7 @@ def api_export_system_data():
         from app.models import Season, League, Team, Match
 
         current_user_safe = safe_current_user
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         export_type = data.get('type', 'summary')
 
         export_data = {
@@ -773,7 +782,7 @@ def api_toggle_maintenance_mode():
     """Toggle maintenance mode on/off."""
     try:
         current_user_safe = safe_current_user
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         enable = data.get('enable')  # If not provided, toggle current state
 
         # Get current maintenance mode setting
@@ -818,7 +827,11 @@ def api_clear_system_logs():
     """Clear old system logs."""
     try:
         current_user_safe = safe_current_user
-        data = request.get_json() or {}
+        # Body REQUIRED: this permanently deletes audit rows, so the retention
+        # window must be stated by the caller, never inferred from an empty body.
+        data = request.get_json(silent=True)
+        if data is None:
+            return jsonify({'success': False, 'message': 'days_to_keep is required'}), 400
         days_to_keep = data.get('days_to_keep', 30)
 
         cutoff_date = datetime.utcnow() - timedelta(days=days_to_keep)

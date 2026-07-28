@@ -872,7 +872,7 @@ def mls_espn_preview_by_date():
         from app.api_utils import async_to_sync, extract_match_details
         from app.services.espn_service import get_espn_service
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         date_str = data.get('date')
         competition_code = data.get('competition')
 
@@ -1011,7 +1011,7 @@ def mls_espn_confirm():
         from app.api_utils import async_to_sync
         from app.services.espn_service import get_espn_service
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         match_ids = data.get('match_ids', [])
         mode = data.get('mode', 'all')
 
@@ -1121,7 +1121,7 @@ def mls_create_match():
             text = re.sub(r'^-+|-+$', '', text)
             return text[:max_length]
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
 
         # Validate required fields
         if not data.get('opponent'):
@@ -1218,7 +1218,7 @@ def mls_edit_match(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
 
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
 
         old_date_time = match.date_time
         changes_made = []
@@ -2085,7 +2085,7 @@ def mls_cancel_task():
     try:
         from app.core import celery
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         task_id = data.get('task_id')
 
         if not task_id:
@@ -2177,7 +2177,7 @@ def mls_settings_update():
     session = g.db_session
 
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
 
         # Define valid settings and their validation rules
         valid_settings = {

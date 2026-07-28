@@ -140,7 +140,7 @@ def survey_preview_audience(survey_id):
     """Resolve a recipient count for the chosen targeting filter."""
     try:
         Survey.query.get_or_404(survey_id)
-        filter_criteria = (request.get_json(force=True) or {}).get('filter_criteria') or {}
+        filter_criteria = (request.get_json(force=True, silent=True) or {}).get('filter_criteria') or {}
         recipients = survey_service.resolve_recipients(g.db_session, filter_criteria)
         description = survey_service.build_filter_description(g.db_session, filter_criteria)
         return jsonify({'success': True, 'count': len(recipients), 'description': description})
@@ -161,7 +161,7 @@ def survey_send_email(survey_id):
     """Email the survey link to a resolved audience via the broadcast engine."""
     try:
         survey = Survey.query.get_or_404(survey_id)
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
         filter_criteria = data.get('filter_criteria')
         if not filter_criteria or not filter_criteria.get('type'):
             return jsonify({'success': False, 'error': 'Audience is required.'}), 400
@@ -227,7 +227,7 @@ def survey_send_email(survey_id):
 @transactional
 def survey_send_discord_embed(survey_id):
     survey = Survey.query.get_or_404(survey_id)
-    data = request.get_json(force=True) or {}
+    data = request.get_json(force=True, silent=True) or {}
     channel_id = str(data.get('channel_id') or '').strip()
     if not channel_id:
         return jsonify({'success': False, 'error': 'A Discord channel ID is required.'}), 400
@@ -351,7 +351,7 @@ def survey_send_native_poll(survey_id):
     current-season team channel (all_team_channels: true) — the capability
     that replaced the legacy League Polls system."""
     survey = Survey.query.get_or_404(survey_id)
-    data = request.get_json(force=True) or {}
+    data = request.get_json(force=True, silent=True) or {}
 
     # Native polls map to exactly one choice question.
     choice_qs = [q for q in survey.questions if q.question_type in ('single_choice', 'multi_choice')]
@@ -417,7 +417,11 @@ def survey_send_native_poll(survey_id):
                 # the push deep link and the form rejects them as still 'draft'.
 def survey_send_push(survey_id):
     survey = Survey.query.get_or_404(survey_id)
-    data = request.get_json(force=True) or {}
+    # Body REQUIRED: target_type defaults to 'all', so an empty body would push
+    # this survey to every registered device instead of the chosen audience.
+    data = request.get_json(force=True, silent=True)
+    if data is None:
+        return jsonify({'success': False, 'message': 'target_type is required'}), 400
     target_type = data.get('target_type', 'all')
     target_ids = data.get('target_ids')
     try:

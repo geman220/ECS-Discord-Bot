@@ -48,6 +48,7 @@ from app.profile_helpers import (
 from app.tasks.player_sync import sync_players_with_woocommerce
 from app.utils.sync_data_manager import get_sync_data, delete_sync_data
 from app.sockets.presence import PresenceManager
+from app.services.team_visibility import reveal_gated_league_names
 
 
 logger = logging.getLogger(__name__)
@@ -201,7 +202,7 @@ def get_player_team_history(player_id):
         if not user_can_view_teams(safe_current_user, session=session):
             history = [row for row in history
                        if not (row[2].is_current and row[1].league
-                               and row[1].league.name in ('Premier', 'Classic'))]
+                               and row[1].league.name in reveal_gated_league_names())]
 
         return render_template('_team_history_flowbite.html', title='Team History', team_history=history)
     except SQLAlchemyError as e:
@@ -283,7 +284,7 @@ def player_profile(player_id):
     viewer_can_see_teams = user_can_view_teams(safe_current_user, session=session)
     if not viewer_can_see_teams:
         current_season_teams = [t for t in current_season_teams
-                                if not (t.league and t.league.name in ('Premier', 'Classic'))]
+                                if not (t.league and t.league.name in reveal_gated_league_names())]
 
     # Check access permissions
     from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
@@ -564,7 +565,7 @@ def player_profile(player_id):
             team_history=[pts for pts in player.season_assignments
                           if viewer_can_see_teams
                           or not (pts.season and pts.season.is_current and pts.team
-                                  and pts.team.league and pts.team.league.name in ('Premier', 'Classic'))],
+                                  and pts.team.league and pts.team.league.name in reveal_gated_league_names())],
             current_season_teams=current_season_teams,
             draft_history=draft_history,
             # Permission-based access variables

@@ -251,7 +251,30 @@ def handle_order_completed():
                     season_name = extract_season_name(pub_league_items[0]['product_name']) if pub_league_items else None
                     season = None
                     if season_name:
-                        season = Season.query.filter_by(name=season_name).first()
+                        # ⚠️ Scope by league_type. Pub League and ECS FC can both
+                        # have a current season with the SAME name, so an
+                        # unscoped .first() binds a paid Pub League order to the
+                        # ECS FC season -- it then vanishes from the admin order
+                        # list and mints a wrong-season pass. The service layer
+                        # already guards this; the webhook did not.
+                        season = Season.query.filter_by(
+                            name=season_name, league_type='Pub League').first()
+                        if season is None:
+                            try:
+                                from app.services import program_registry
+                                _prog = None
+                                for _it in (data.get('line_items') or []):
+                                    _prog = program_registry.by_woo_product(
+                                        product_id=_it.get('product_id'),
+                                        product_name=_it.get('name'))
+                                    if _prog:
+                                        break
+                                if _prog and _prog.season_league_type != 'Pub League':
+                                    season = Season.query.filter_by(
+                                        name=season_name,
+                                        league_type=_prog.season_league_type).first()
+                            except Exception as _sl_err:
+                                logger.warning(f"season lookup by program failed: {_sl_err}")
 
                     # Create PubLeagueOrder with NOT_STARTED status
                     from datetime import datetime, timedelta
@@ -407,7 +430,7 @@ def test_webhook():
         })
 
     # POST - test with sample data
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     return jsonify({
         'status': 'ok',
         'message': 'Webhook test received',

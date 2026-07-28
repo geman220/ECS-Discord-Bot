@@ -721,7 +721,7 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Primary Team</p>
                                     <p class="font-medium text-gray-900 dark:text-white text-sm">
                                         {% set _pt = safe_current_user.player.primary_team %}
-                                        {% if _pt and not viewer_can_see_teams and _pt.league and _pt.league.name in ('Premier', 'Classic') %}
+                                        {% if _pt and _pt.league and _pt.league.name in hidden_team_league_names %}
                                         Revealed soon
                                         {% else %}
                                         {{ _pt.name if _pt else 'None' }}

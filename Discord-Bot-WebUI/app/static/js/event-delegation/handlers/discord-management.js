@@ -524,11 +524,22 @@ window.EventDelegation.register('player-sort-change', function(element, e) {
 // ============================================================================
 
 /**
- * Helper: submit Discord ID update to backend
+ * Helper: read the CSRF token for admin POSTs
  */
-function submitDiscordIdUpdate(playerId, discordId) {
-    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+function discordCsrfToken() {
+    return document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+}
 
+/**
+ * Helper: submit Discord ID update to backend
+ *
+ * A 409 means another player already holds this Discord ID — almost always a
+ * duplicate account the member created before we relinked them. That used to
+ * be a dead end: the uniqueness constraint blocks the fix, and the other
+ * player may not even be reachable from this page. Offer to take the ID off
+ * them instead of making the admin go hunt it down.
+ */
+function submitDiscordIdUpdate(playerId, discordId, takeFromOther) {
     window.Swal.fire({
         title: 'Updating...',
         allowOutsideClick: false,
@@ -539,12 +550,15 @@ function submitDiscordIdUpdate(playerId, discordId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
+            'X-CSRFToken': discordCsrfToken()
         },
-        body: JSON.stringify({ discord_id: discordId })
+        body: JSON.stringify({
+            discord_id: discordId,
+            take_from_other: !!takeFromOther
+        })
     })
-    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-    .then(({ ok, data }) => {
+    .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
+    .then(({ ok, status, data }) => {
         if (ok && data.success) {
             window.Swal.fire({
                 icon: 'success',
@@ -553,13 +567,32 @@ function submitDiscordIdUpdate(playerId, discordId) {
                 timer: 3000,
                 showConfirmButton: false
             }).then(() => location.reload());
-        } else {
-            window.Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.error || 'Failed to update Discord ID'
-            });
+            return;
         }
+
+        if (status === 409 && data.conflicting_player_name && !takeFromOther) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Already linked elsewhere',
+                html: `<p>This Discord account is currently linked to <strong>${escapeHtml(String(data.conflicting_player_name))}</strong>.</p>
+                       <p class="text-sm text-gray-500 mt-2">If that's a duplicate account the same person made, unlink it and continue.</p>`,
+                showCancelButton: true,
+                confirmButtonText: 'Unlink and continue',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitDiscordIdUpdate(playerId, discordId, true);
+                }
+            });
+            return;
+        }
+
+        window.Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.error || 'Failed to update Discord ID'
+        });
     })
     .catch(error => {
         window.Swal.fire({
@@ -627,6 +660,162 @@ window.EventDelegation.register('edit-player-discord', function(element, e) {
                     submitDiscordIdUpdate(playerId, null);
                 }
             });
+        }
+    });
+});
+
+// ============================================================================
+// ACCOUNT RECOVERY QUEUE
+// ============================================================================
+// A member who lost their Discord account cannot log in at all until one of
+// these is approved, so both actions are one click plus a confirmation.
+
+/**
+ * Helper: POST an account-recovery decision
+ *
+ * Mirrors submitDiscordIdUpdate's 409 handling — approving can collide with a
+ * duplicate account the same person created while locked out.
+ */
+function submitRelinkDecision(requestId, action, payload) {
+    window.Swal.fire({
+        title: action === 'approve' ? 'Relinking...' : 'Dismissing...',
+        allowOutsideClick: false,
+        didOpen: () => window.Swal.showLoading()
+    });
+
+    fetch(`/admin-panel/discord/account-recovery/${requestId}/${action}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': discordCsrfToken()
+        },
+        body: JSON.stringify(payload || {})
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, status: response.status, data })))
+    .then(({ ok, status, data }) => {
+        if (ok && data.success) {
+            window.Swal.fire({
+                icon: 'success',
+                title: action === 'approve' ? 'Relinked' : 'Dismissed',
+                text: data.message,
+                timer: 4000,
+                showConfirmButton: false
+            }).then(() => location.reload());
+            return;
+        }
+
+        if (status === 409 && data.conflicting_player_name && !(payload || {}).take_from_other) {
+            window.Swal.fire({
+                icon: 'warning',
+                title: 'Already linked elsewhere',
+                html: `<p>That Discord account is currently linked to <strong>${escapeHtml(String(data.conflicting_player_name))}</strong>.</p>
+                       <p class="text-sm text-gray-500 mt-2">That's usually a duplicate account they made while locked out. Unlink it and continue?</p>`,
+                showCancelButton: true,
+                confirmButtonText: 'Unlink and continue',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitRelinkDecision(requestId, action, Object.assign({}, payload, { take_from_other: true }));
+                }
+            });
+            return;
+        }
+
+        window.Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: data.error || 'Could not complete that action.'
+        });
+    })
+    .catch(error => {
+        window.Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Request failed: ' + error.message
+        });
+    });
+}
+
+/**
+ * Approve a relink request — move the new Discord ID onto the member's player
+ */
+window.EventDelegation.register('relink-request-approve', function(element, e) {
+    e.preventDefault();
+
+    const requestId = element.dataset.requestId;
+    if (!requestId) {
+        console.error('[relink-request-approve] Missing request ID');
+        return;
+    }
+
+    // Ambiguous requests render a <select> instead of a single candidate —
+    // there is no safe default, so refuse to guess here too.
+    const picker = document.getElementById(`relink-player-${requestId}`);
+    const playerId = picker ? picker.value : element.dataset.playerId;
+    const playerName = picker
+        ? (picker.options[picker.selectedIndex]?.text || 'this member')
+        : (element.dataset.playerName || 'this member');
+
+    if (!playerId) {
+        window.Swal.fire({
+            icon: 'info',
+            title: 'Pick an account first',
+            text: 'More than one account could be theirs. Choose which one this Discord belongs to.'
+        });
+        return;
+    }
+
+    const discordUsername = element.dataset.discordUsername || element.dataset.discordId || 'the new Discord account';
+
+    window.Swal.fire({
+        title: 'Relink this account?',
+        html: `<p><strong>${escapeHtml(String(playerName))}</strong> will be linked to
+               <strong>${escapeHtml(String(discordUsername))}</strong>.</p>
+               <p class="text-sm text-gray-500 mt-2">They keep all their history and roles, and can log in
+               with the new Discord immediately. Their old Discord account loses access.</p>
+               <p class="text-sm text-gray-500 mt-2">Only approve if you've confirmed it's really them.</p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, relink',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28c76f'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitRelinkDecision(requestId, 'approve', { player_id: playerId });
+        }
+    });
+});
+
+/**
+ * Dismiss a relink request — not a real member, or already handled
+ */
+window.EventDelegation.register('relink-request-reject', function(element, e) {
+    e.preventDefault();
+
+    const requestId = element.dataset.requestId;
+    if (!requestId) {
+        console.error('[relink-request-reject] Missing request ID');
+        return;
+    }
+    const discordUsername = element.dataset.discordUsername || 'this request';
+
+    window.Swal.fire({
+        title: 'Dismiss this request?',
+        html: `<p>Dismiss the recovery request from <strong>${escapeHtml(String(discordUsername))}</strong>?</p>
+               <p class="text-sm text-gray-500 mt-2">Nothing changes for them — they stay locked out. Use this
+               if it isn't a real member, or you already fixed it another way.</p>`,
+        input: 'text',
+        inputPlaceholder: 'Optional note (why)',
+        inputAttributes: { autocomplete: 'off', maxlength: 200 },
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Dismiss',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitRelinkDecision(requestId, 'reject', { note: (result.value || '').trim() });
         }
     });
 });

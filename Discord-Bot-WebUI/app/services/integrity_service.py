@@ -27,7 +27,77 @@ logger = logging.getLogger(__name__)
 SEV_HIGH, SEV_MED, SEV_LOW = 'high', 'med', 'low'
 
 # Pub League division names (lowercased) used across detectors.
-PUB_DIVISIONS = ('classic', 'premier')
+PUB_DIVISIONS = ('classic', 'premier')          # fallback
+
+
+def _all_league_role_names():
+    """Every program's `pl-*` Flask league role."""
+    try:
+        from app.services import program_registry
+        names = {p.flask_league_role for p in program_registry.all_programs()
+                 if p.flask_league_role}
+        if names:
+            return names
+    except Exception:
+        pass
+    return {'pl-classic', 'pl-premier', 'pl-ecs-fc'}
+
+
+def _all_sub_role_names():
+    """Every program's `<X> Sub` Flask role."""
+    try:
+        from app.services import program_registry
+        names = {p.flask_sub_role for p in program_registry.all_programs()
+                 if p.flask_sub_role}
+        if names:
+            return names
+    except Exception:
+        pass
+    return {'Classic Sub', 'Premier Sub', 'ECS FC Sub'}
+
+
+def _coach_role_to_division():
+    """{'<X> Coach': '<lowercased league name>'} for pub-league-like programs.
+
+    G9's DETECTOR was hardcoded to two entries while its fixer was made
+    registry-driven, so a stale coach role for any newer program was never
+    detected -- the fixer's new capability was unreachable.
+    """
+    try:
+        from app.services import program_registry
+        out = {p.flask_coach_role: (p.league_name or '').strip().lower()
+               for p in program_registry.all_programs()
+               if p.is_pub_league_like and p.flask_coach_role and p.league_name}
+        if out:
+            return out
+    except Exception:
+        pass
+    return {'Premier Coach': 'premier', 'Classic Coach': 'classic'}
+
+
+def pub_divisions():
+    """Lowercased League.name values treated as pub-league divisions.
+
+    G8 (double-rostering) and the division fixers are blind to any program
+    outside this tuple, so a newer program's members are neither checked nor
+    fixable.
+
+    ⚠️ Returns LOWERCASED LEAGUE NAMES, not membership lanes. Every call site
+    compares against `func.lower(League.name)` or a form value derived from it,
+    so returning lanes would silently match nothing for any program whose lane
+    differs from its league name (e.g. lane 'pl_third' vs league 'Summer
+    Sprint') -- the check would quietly pass instead of running.
+    """
+    try:
+        from app.services import program_registry
+        names = tuple((p.league_name or '').strip().lower()
+                      for p in program_registry.all_programs()
+                      if p.is_pub_league_like and p.league_name)
+        if names:
+            return names
+    except Exception:
+        pass
+    return PUB_DIVISIONS
 
 
 @dataclass
@@ -51,26 +121,107 @@ class IntegrityFinding:
         return asdict(self)
 
 
-APPROVE_LEAGUE_TYPES = ('classic', 'premier', 'ecs-fc',
-                        'sub-classic', 'sub-premier', 'sub-ecs-fc')
+# Fallback only -- approve_league_types() is the real source.
+_LEGACY_APPROVE_LEAGUE_TYPES = ('classic', 'premier', 'ecs-fc',
+                                'sub-classic', 'sub-premier', 'sub-ecs-fc')
+
+
+def approve_league_types():
+    """Every valid `approval_league` value, including the `sub-` variants.
+
+    Was a fixed 6-tuple. A program outside it could not be approved into at all,
+    and -- worse -- `_league_select` fell back to `'classic'` for anything
+    unrecognised, so approving someone for a newer program would silently file
+    them under Classic. That is data corruption, not an error, and nothing
+    downstream would flag it.
+    """
+    try:
+        from app.services import program_registry
+        vals = []
+        for p in program_registry.all_programs():
+            fv = p.form_value or p.membership_lane
+            if fv:
+                vals.append(fv)
+                vals.append(f'sub-{fv}')
+        if vals:
+            return tuple(vals)
+    except Exception:
+        pass
+    return _LEGACY_APPROVE_LEAGUE_TYPES
+
+
+# Back-compat: existing call sites read this name. Kept as the legacy tuple so
+# an import-time evaluation can never depend on the DB.
+APPROVE_LEAGUE_TYPES = _LEGACY_APPROVE_LEAGUE_TYPES
 
 
 def _league_select(selected=None):
     """Division picker spec for approve-style fixes. Includes the sub variants —
     re-approving a substitute as a full division member would be a silent upgrade,
     so the modal must be able to say 'sub'."""
+    options = []
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs():
+            fv = p.form_value or p.membership_lane
+            if not fv:
+                continue
+            options.append({'value': fv, 'label': p.display_name})
+            options.append({'value': f'sub-{fv}', 'label': f'{p.display_name} Sub'})
+    except Exception:
+        options = []
+    if not options:
+        options = [{'value': 'classic', 'label': 'Classic'},
+                   {'value': 'premier', 'label': 'Premier'},
+                   {'value': 'ecs-fc', 'label': 'ECS FC'},
+                   {'value': 'sub-classic', 'label': 'Classic Sub'},
+                   {'value': 'sub-premier', 'label': 'Premier Sub'},
+                   {'value': 'sub-ecs-fc', 'label': 'ECS FC Sub'}]
+
+    valid = {o['value'] for o in options}
+    # Genuinely PRESERVE an unrecognised selection instead of rewriting it.
+    #
+    # The previous fallback silently substituted a DIFFERENT league, which is
+    # how someone ends up filed in the wrong program with no error anywhere.
+    # Switching to the registry made that worse, not better: `options` is
+    # ordered by sort_order, so options[0] became PREMIER -- the paid, higher
+    # division. Confirming the pre-filled modal would have moved them there.
+    #
+    # An unrecognised value is surfaced as a disabled option so the admin can
+    # SEE what is stored and must consciously pick a replacement.
+    if selected and selected not in valid:
+        options = list(options) + [{'value': selected,
+                                    'label': f'{selected} (unrecognised)',
+                                    'disabled': True}]
     return {'name': 'league_type', 'label': 'Approve as',
-            'options': [{'value': 'classic', 'label': 'Classic'},
-                        {'value': 'premier', 'label': 'Premier'},
-                        {'value': 'ecs-fc', 'label': 'ECS FC'},
-                        {'value': 'sub-classic', 'label': 'Classic Sub'},
-                        {'value': 'sub-premier', 'label': 'Premier Sub'},
-                        {'value': 'sub-ecs-fc', 'label': 'ECS FC Sub'}],
-            'selected': selected if selected in APPROVE_LEAGUE_TYPES else 'classic'}
+            'options': options,
+            # NO preselection when we have no stored value. Defaulting to
+            # options[0] means whichever program sorts first -- currently
+            # PREMIER, the paid top division -- so one confirming click on a G3
+            # finding files the user there. The old code defaulted to 'classic'
+            # and my "fix" made it worse by reordering. An admin must choose.
+            'selected': selected if selected else None}
 
 
 # League.name (lowered) -> approve league_type value.
-_LEAGUE_NAME_TO_TYPE = {'classic': 'classic', 'premier': 'premier', 'ecs fc': 'ecs-fc'}
+_LEGACY_LEAGUE_NAME_TO_TYPE = {'classic': 'classic', 'premier': 'premier', 'ecs fc': 'ecs-fc'}
+
+
+def league_name_to_approve_type(league_name):
+    """League.name -> approve league_type value, or None if unknown."""
+    if not league_name:
+        return None
+    try:
+        from app.services import program_registry
+        p = program_registry.by_league_name(league_name)
+        if p:
+            return p.form_value or p.membership_lane
+    except Exception:
+        pass
+    return _LEGACY_LEAGUE_NAME_TO_TYPE.get(str(league_name).strip().lower())
+
+
+_LEAGUE_NAME_TO_TYPE = _LEGACY_LEAGUE_NAME_TO_TYPE
 
 
 # Metadata for every check (drives the dashboard cards + ordering).
@@ -188,7 +339,7 @@ def _season_phase(session):
         # Divisions whose draft has happened: >=1 playing (non-coach) roster row on a
         # current-season team in that division.
         drafted = {div for (div,) in session.query(func.lower(League.name)).filter(
-            func.lower(League.name).in_(list(PUB_DIVISIONS)),
+            func.lower(League.name).in_(list(pub_divisions())),
             League.season_id.in_(season_ids),
             exists().where(and_(
                 Team.league_id == League.id,
@@ -235,7 +386,7 @@ def detect_g1_pending_rostered(session, player_ids=None):
         if pid in seen:
             continue
         seen[pid] = True
-        guess = _LEAGUE_NAME_TO_TYPE.get(lname)
+        guess = league_name_to_approve_type(lname)
         findings.append(IntegrityFinding(
             code='G1', severity=SEV_HIGH, category='approval',
             title='Pending user is rostered', name=name, player_id=pid, user_id=uid,
@@ -275,7 +426,7 @@ def detect_g2_approval_drift(session, player_ids=None):
     for uid, uname, pid, pname, appr_league in rows:
         guess = next((t for r, t in role_to_type.items()
                       if r in roles_map.get(uid, set())), None)
-        if guess is None and appr_league in APPROVE_LEAGUE_TYPES:
+        if guess is None and appr_league in approve_league_types():
             guess = appr_league
         findings.append(IntegrityFinding(
             code='G2', severity=SEV_HIGH, category='approval',
@@ -311,12 +462,15 @@ def detect_g3_approved_no_league_role(session, player_ids=None):
         q = q.filter(Player.id.in_(player_ids))
     rows = q.all()
     roles_map = _roles_by_user(session, [r[0] for r in rows])
-    league_roles = {'pl-classic', 'pl-premier', 'pl-ecs-fc'}
+    # Registry-driven: a member holding a newer program's league role was
+    # otherwise flagged G3 "approved but no league role" (SEV_HIGH) with a
+    # one-click fix that refiled them under a DIFFERENT division.
+    league_roles = _all_league_role_names()
     # Substitutes are approved WITHOUT a pl-* role — their sub role is what maps to
     # a managed Discord role — so a sub role satisfies this check (else every
     # approved sub is a false positive with a dangerous 'upgrade to full division'
     # one-click fix attached).
-    sub_roles = {'Classic Sub', 'Premier Sub', 'ECS FC Sub'}
+    sub_roles = _all_sub_role_names()
     # Preselect from the league they were approved for.
     appr_map = dict(session.query(User.id, User.approval_league).filter(
         User.id.in_([r[0] for r in rows])).all()) if rows else {}
@@ -325,7 +479,7 @@ def detect_g3_approved_no_league_role(session, player_ids=None):
         rnames = roles_map.get(uid, set())
         if 'pl-unverified' in rnames or not (rnames & (league_roles | sub_roles)):
             why = 'still holds pl-unverified' if 'pl-unverified' in rnames else 'has no pl-* league or sub role'
-            guess = appr_map.get(uid) if appr_map.get(uid) in APPROVE_LEAGUE_TYPES else None
+            guess = appr_map.get(uid) if appr_map.get(uid) in approve_league_types() else None
             findings.append(IntegrityFinding(
                 code='G3', severity=SEV_HIGH, category='approval',
                 title='Approved but no league role', name=pname or uname, player_id=pid, user_id=uid,
@@ -352,7 +506,10 @@ def detect_g4_denied_active(session, player_ids=None):
         q = q.filter(Player.id.in_(player_ids))
     rows = q.all()
     roles_map = _roles_by_user(session, [r[0] for r in rows])
-    league_roles = {'pl-classic', 'pl-premier', 'pl-ecs-fc'}
+    # Registry-driven: a member holding a newer program's league role was
+    # otherwise flagged G3 "approved but no league role" (SEV_HIGH) with a
+    # one-click fix that refiled them under a DIFFERENT division.
+    league_roles = _all_league_role_names()
     rostered = set()
     pids = [r[2] for r in rows if r[2]]
     if pids and season_ids:
@@ -396,10 +553,32 @@ def detect_g5_sub_role_pool_mismatch(session, player_ids=None):
     from app.models.core import user_roles
     from app.models.substitutes import SubstitutePool
 
-    role_to_type = {'Classic Sub': 'Classic', 'Premier Sub': 'Premier', 'ECS FC Sub': 'ECS FC'}
-    # ECS FC pool lives in a separate table (mid-merge); only reason about
-    # Classic/Premier here to avoid false positives.
-    CHECKED = {'Classic', 'Premier'}
+    # Registry-driven, mirroring the FIXERS. This detector was left hardcoded to
+    # three entries while _sub_league_type / _sub_role_name_for / _fix_add_to_pool
+    # were all rewritten to resolve a newer program's 'X Sub' -- so no finding
+    # could ever carry that league_type and the new fixer capability was
+    # unreachable. Exactly the G9 defect, repeated. Every role-without-pool state
+    # a newer program can reach was therefore invisible on the dashboard.
+    role_to_type = {}
+    CHECKED = set()
+    try:
+        from app.services import program_registry
+        for _pr in program_registry.all_programs(session):
+            if not _pr.flask_sub_role or not _pr.league_name:
+                continue
+            role_to_type[_pr.flask_sub_role] = _pr.league_name
+            # Only programs backed by SubstitutePool are checkable here; ECS FC
+            # keeps its own EcsFcSubPool table (mid-merge), so reasoning about it
+            # from this table produces false positives.
+            if _pr.is_pub_league_like:
+                CHECKED.add(_pr.league_name)
+    except Exception as _reg_err:
+        logger.warning(f"G5: program registry unavailable, using legacy vocabulary: {_reg_err}")
+    if not role_to_type:
+        role_to_type = {'Classic Sub': 'Classic', 'Premier Sub': 'Premier',
+                        'ECS FC Sub': 'ECS FC'}
+    if not CHECKED:
+        CHECKED = {'Classic', 'Premier'}
 
     # Map player <-> user, SCOPED FIRST so the role/pool scans below only touch this
     # page's players (not every sub-role holder in the DB).
@@ -525,7 +704,7 @@ def detect_g9_stale_coach_role(session, player_ids=None):
     from app.models import Role
     from sqlalchemy import func
 
-    coach_role_div = {'Premier Coach': 'premier', 'Classic Coach': 'classic'}
+    coach_role_div = _coach_role_to_division()
     drafted = _season_phase(session)['drafted_divisions']
     if not drafted:
         return []  # pre-draft everywhere — team-less coaches are expected
@@ -600,8 +779,39 @@ def detect_g7_cross_league_primary_team(session, player_ids=None):
     )
     if player_ids is not None:
         q = q.filter(Player.id.in_(player_ids))
+
+    # WARNING: a mismatch is only a DEFECT when the two leagues belong to the
+    # same season family. Multi-program membership is legitimate and expected:
+    # _assign_league_additively deliberately leaves a dual-program player's
+    # primary_league on Premier while the draft sets primary_team to their
+    # Summer team. Flagging that fired SEV_HIGH on every legitimate dual-program
+    # player, and the offered "fix" then overwrote their Premier primary league
+    # -- so the integrity dashboard generated exactly the corruption the
+    # additive assignment exists to prevent, one confirming click at a time.
+    _season_type_by_league_id = {}
+    try:
+        from app.models import League as _L
+        from app.services import program_registry
+        _lt_by_name = {(pr.league_name or '').lower(): pr.season_league_type
+                       for pr in program_registry.all_programs(session)}
+        for _lid, _lname in session.query(_L.id, _L.name).all():
+            _season_type_by_league_id[_lid] = _lt_by_name.get((_lname or '').lower())
+    except Exception as _reg_err:
+        logger.warning(f"G7: could not resolve season families: {_reg_err}")
+
+    def _same_family(team_league_id, primary_league_id):
+        a = _season_type_by_league_id.get(team_league_id)
+        b = _season_type_by_league_id.get(primary_league_id)
+        # Unknown on either side -> treat as same family so we still report the
+        # genuine drift this check was written for.
+        if a is None or b is None:
+            return True
+        return a == b
+
     findings = []
     for pid, pname, tname, _tl, _pl in q.all():
+        if not _same_family(_tl, _pl):
+            continue
         findings.append(IntegrityFinding(
             code='G7', severity=SEV_HIGH, category='league',
             title='Primary team ≠ primary league', name=pname, player_id=pid,
@@ -630,7 +840,7 @@ def detect_g8_two_teams_one_division(session, player_ids=None):
     ).join(Team, Team.id == player_teams.c.team_id).join(
         League, League.id == Team.league_id
     ).filter(
-        func.lower(League.name).in_(list(PUB_DIVISIONS)),
+        func.lower(League.name).in_(list(pub_divisions())),
         # Count only PLAYING memberships. Coaching one team while playing another in
         # the same division is legitimate; is_coach IS NOT TRUE keeps NULL rows as
         # playing memberships (is_coach has no server_default).
@@ -750,7 +960,11 @@ def detect_g12_active_not_rostered(session, player_ids=None):
     is_sub = exists().where(and_(
         user_roles.c.user_id == Player.user_id,
         Role.id == user_roles.c.role_id,
-        Role.name.in_(['Classic Sub', 'Premier Sub', 'ECS FC Sub']),
+        # Registry-driven. A newer program's sub role was NOT in this exclusion
+        # list, so every one of its subs flagged as "active but not rostered"
+        # with a one-click "mark not a current player" that would deactivate a
+        # perfectly legitimate sub.
+        Role.name.in_(sorted(_all_sub_role_names())),
     ))
     q = session.query(Player.id, Player.name, League.season_id).outerjoin(
         League, League.id == Player.primary_league_id

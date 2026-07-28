@@ -64,6 +64,27 @@ LEAGUE_TYPES = {
 }
 
 
+def _league_config(league_type):
+    """LEAGUE_TYPES[league_type] but registry-backed and never KeyError.
+
+    Every guard in this module is (or is becoming) registry-driven, so a bare
+    LEAGUE_TYPES[...] subscript turns a value the guard just ACCEPTED into an
+    uncaught KeyError -- a 500 where a clean 400 used to live.
+    """
+    try:
+        from app.services import program_registry
+        pr = program_registry.by_league_name(league_type)
+        if pr:
+            return {'name': pr.display_name, 'role': pr.flask_sub_role,
+                    'color': pr.color or '#6b7280',
+                    'icon': pr.icon or 'ti ti-ball-football'}
+    except Exception:
+        pass
+    return LEAGUE_TYPES.get(league_type) or {
+        'name': league_type, 'role': None, 'color': '#6b7280',
+        'icon': 'ti ti-ball-football'}
+
+
 @substitute_pool_bp.route('/admin/substitute-pools')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
@@ -220,7 +241,7 @@ def manage_league_pool(league_type: str):
 
         return render_template('admin/league_substitute_pool_flowbite.html',
                              league_type=league_type,
-                             league_config=LEAGUE_TYPES[league_type],
+                             league_config=_league_config(league_type),
                              active_pools=active_pools,
                              available_players=available_players,
                              recent_activity=recent_activity,
@@ -272,7 +293,7 @@ def add_player_to_pool(league_type: str):
         return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
 
     # Get the required role
-    required_role_name = LEAGUE_TYPES[league_type]['role']
+    required_role_name = _league_config(league_type)['role']
     required_role = session.query(Role).filter_by(name=required_role_name).first()
     if not required_role:
         logger.error(f"Role '{required_role_name}' not found in database")
@@ -459,14 +480,15 @@ def remove_player_from_pool(league_type: str):
 
             if other_active_pools == 0:
                 # Remove all substitute roles if not in any active pools
-                for role_name in ['ECS FC Sub', 'Classic Sub', 'Premier Sub']:
+                from app.services import program_registry
+                for role_name in program_registry.sub_role_names():
                     role = session.query(Role).filter_by(name=role_name).first()
                     if role and role in user.roles:
                         user.roles.remove(role)
                         logger.info(f"Removed '{role_name}' Flask role from player {player.name}")
             else:
                 # Only remove the specific role for this league type
-                role_name = LEAGUE_TYPES[league_type]['role']
+                role_name = _league_config(league_type)['role']
                 role = session.query(Role).filter_by(name=role_name).first()
                 if role and role in user.roles:
                     # Check if they're in another pool of the same type
@@ -717,7 +739,7 @@ def search_players():
         
         # Filter by league type if specified
         if league_type:
-            required_role = LEAGUE_TYPES[league_type]['role']
+            required_role = _league_config(league_type)['role']
             base_query = base_query.filter(
                 User.roles.any(Role.name == required_role)
             )

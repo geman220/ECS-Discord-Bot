@@ -797,7 +797,12 @@ window.EventDelegation.register('send-sub-request', function(element, e) {
         subs_needed: subsNeeded
     };
 
-    // Add filter-specific data
+    // Add filter-specific data.
+    //
+    // These `if` guards used to OMIT the key when nothing was selected, and the
+    // server applies each filter behind `if <filter>:` — so an empty selection
+    // silently widened the send from "these people" to the entire active pool.
+    // Refuse to send instead.
     if (recipientType === 'gender') {
         const gender = document.querySelector('input[name="gender"]:checked')?.value;
         if (gender) payload.gender_filter = gender;
@@ -806,6 +811,20 @@ window.EventDelegation.register('send-sub-request', function(element, e) {
         if (positions.length > 0) payload.position_filters = positions;
     } else if (recipientType === 'specific') {
         if (selectedPlayerIds.length > 0) payload.player_ids = selectedPlayerIds;
+    }
+
+    const requiredFilter = {
+        gender: payload.gender_filter,
+        position: payload.position_filters,
+        specific: payload.player_ids,
+    }[recipientType];
+    if (recipientType !== 'all' && (!requiredFilter || requiredFilter.length === 0)) {
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Nothing selected',
+                'Pick at least one option before sending, or choose "All" to contact the whole pool.',
+                'warning');
+        }
+        return;
     }
 
     const previewCount = document.getElementById('contactPreviewCount')?.textContent || '0';

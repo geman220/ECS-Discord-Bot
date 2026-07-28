@@ -41,14 +41,27 @@ const DANGEROUS_PATTERNS = [
 
 /**
  * Escape HTML entities to prevent XSS
- * @param {string} str - String to escape
- * @returns {string} Escaped string safe for HTML insertion
+ *
+ * Escapes quotes too, which the previous textContent -> innerHTML trick did NOT:
+ * HTML serialization of a text node only escapes &, < and >. That is fine for a
+ * text position but unsafe in an attribute, and most callers here interpolate
+ * into one (`value="${escapeHtml(name)}"`, `src=`, `alt=`). A value containing a
+ * double quote closed the attribute early and could inject another one.
+ *
+ * @param {*} str - Value to escape (non-strings are coerced)
+ * @returns {string} Escaped string safe for HTML text AND quoted attributes
  */
+const HTML_ESCAPE_MAP = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+};
+
 export function escapeHtml(str) {
     if (str === null || str === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = String(str);
-    return div.innerHTML;
+    return String(str).replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]);
 }
 
 /**

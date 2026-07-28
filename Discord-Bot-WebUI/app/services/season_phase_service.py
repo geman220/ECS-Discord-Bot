@@ -5,9 +5,20 @@ Season phase service (Phase 1 of the registration-lifecycle overhaul).
 
 `Season.phase` (preseason | in_season | break | offseason) is the single driver
 for whether the waitlist and registration are open, and whether sub auto-rest runs.
-Only Pub League is phase-governed; ECS FC is pinned `in_season` and NEVER
-auto-flips or rolls over (user decision 2026-07-22) — every helper here scopes to
-`league_type = 'Pub League'`.
+ECS FC is pinned `in_season` and NEVER auto-flips or rolls over (user decision
+2026-07-22).
+
+TWO DIFFERENT SCOPES LIVE HERE, and the distinction is deliberate:
+
+  * **Phase ADVANCEMENT** (`sync_season_phase_from_dates`) runs for EVERY
+    phase-governed program, resolved from the registry. Without this a newer
+    program's `phase` was written once at season creation and then never moved
+    again -- a decorative column that said `preseason` through its whole season.
+
+  * **Waitlist SIDE EFFECTS** stay Pub-League-only. `pl-waitlist` is a single
+    GLOBAL population, not a per-program one, so clearing it on another
+    program's season boundary would wipe the live Pub League waitlist. Until the
+    waitlist itself is per-program, only Pub League may trigger those effects.
 
 Behavior is intentionally backward-compatible: the legacy
 `waitlist_registration_enabled` AdminConfig toggle survives as an OVERRIDE that can
@@ -169,6 +180,24 @@ def set_season_phase(session, season_id, phase):
     return season
 
 
+def phase_governed_season_types(session=None):
+    """Season types whose `phase` is advanced from dates.
+
+    Registry-driven: a program that rolls over is phase-governed. ECS FC does
+    not roll over and is pinned in_season, so it is excluded naturally.
+    """
+    try:
+        from app.services import program_registry
+        types = sorted({p.season_league_type for p in
+                        program_registry.all_programs(session)
+                        if p.rolls_over and p.season_league_type})
+        if types:
+            return types
+    except Exception:
+        pass
+    return ['Pub League']
+
+
 def _default_lead_lag():
     """(preseason_lead_days, offseason_lag_days) — buffers around the season dates.
 
@@ -218,29 +247,46 @@ def auto_advance_phases(session=None):
     s = _sess(session)
     today = date.today()
     changes = []
-    season = (s.query(Season)
-              .filter(Season.is_current.is_(True), Season.league_type == 'Pub League')
-              .first())
-    if season is None:
+    seasons = (s.query(Season)
+               .filter(Season.is_current.is_(True),
+                       Season.league_type.in_(phase_governed_season_types(s)))
+               .all())
+    if not seasons:
         return changes
 
+    lead, lag = _default_lead_lag()
+    for season in seasons:
+        changes.extend(_sync_one_season(s, season, today, lead, lag))
+    return changes
+
+
+def _sync_one_season(s, season, today, lead, lag):
+    """Advance one season's phase. Extracted so the loop above can cover every
+    phase-governed program without duplicating the transition logic."""
+    changes = []
     # Respect an admin's deliberate mid-season pause.
     if season.phase == 'break':
         return changes
 
-    lead, lag = _default_lead_lag()
     desired = compute_phase_for_dates(season.start_date, season.end_date, today, lead, lag)
     if desired and season.phase != desired:
         old = season.phase
         season.phase = desired
         _clear_phase_cache()
-        changes.append(f"Pub League season {season.id}: {old} -> {desired} (date-driven, "
-                       f"start={season.start_date}, end={season.end_date})")
+        changes.append(f"{season.league_type} season {season.id}: {old} -> {desired} "
+                       f"(date-driven, start={season.start_date}, "
+                       f"end={season.end_date})")
 
         # Entering offseason is a season boundary (same as rollover): the point-in-time
         # waitlist clears and everyone routes (unapproved -> approval queue, approved ->
         # normal inactive pool). Idempotent, so if rollover already cleared it this no-ops.
-        if desired == 'offseason' and old != 'offseason':
+        #
+        # ⚠️ PUB LEAGUE ONLY. `pl-waitlist` is one GLOBAL population, not a
+        # per-program one, so firing this on another program's season boundary
+        # would wipe the live Pub League waitlist. Phase ADVANCEMENT is now
+        # per-program; this side effect deliberately is not.
+        if (desired == 'offseason' and old != 'offseason'
+                and season.league_type == 'Pub League'):
             try:
                 routed = clear_and_route_waitlist(s, reason='offseason-auto')
                 if routed:

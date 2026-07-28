@@ -51,6 +51,43 @@ LEAGUE_TYPES = {
 }
 
 
+def pub_league_names():
+    """League.name values for pub-league-like programs; falls back to the pair."""
+    try:
+        from app.services import program_registry
+        names = tuple(p.league_name for p in program_registry.all_programs()
+                      if p.is_pub_league_like)
+        if names:
+            return names
+    except Exception:
+        pass
+    return ('Classic', 'Premier')
+
+
+def league_types_config():
+    """{League.name: {name, role, color, icon}} for every program.
+
+    Was a hardcoded 3-entry dict; ~12 endpoints in this module validate against
+    it and 400 on a miss, so a newer program could not be added to a pool,
+    approved, rested or removed through the admin UI at all.
+    """
+    try:
+        from app.services import program_registry
+        cfg = {}
+        for p in program_registry.all_programs():
+            cfg[p.league_name] = {
+                'name': p.display_name,
+                'role': p.flask_sub_role,
+                'color': p.color or '#6b7280',
+                'icon': p.icon or 'ti ti-ball-football',
+            }
+        if cfg:
+            return cfg
+    except Exception:
+        pass
+    return LEAGUE_TYPES
+
+
 @admin_panel_bp.route('/substitute-pools')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
@@ -69,11 +106,15 @@ def substitute_pools():
         # Determine which leagues to show based on context
         context = request.args.get('context', '')
         if context == 'ecs-fc':
-            filtered_types = {k: v for k, v in LEAGUE_TYPES.items() if k == 'ECS FC'}
+            filtered_types = {k: v for k, v in league_types_config().items() if k == 'ECS FC'}
         elif context == 'pub-league':
-            filtered_types = {k: v for k, v in LEAGUE_TYPES.items() if k in ('Classic', 'Premier')}
+            filtered_types = {k: v for k, v in league_types_config().items()
+                              if k in pub_league_names()}
         else:
-            filtered_types = LEAGUE_TYPES
+            # The no-context branch is the DEFAULT nav target, and it used the
+            # raw 3-key literal — so a newer program's pool page was reachable
+            # only by typing the URL.
+            filtered_types = league_types_config()
 
         # Log access
         AdminAuditLog.log_action(
@@ -102,7 +143,7 @@ def substitute_pools():
 
                 active_in_pool = [p for p in all_pools if p.is_active and p.approved_at]
                 on_break = [p for p in all_pools if not p.is_active and p.approved_at]
-                pending_approval = [p for p in all_pools if p.approved_at is None]
+                pending_approval = [p for p in all_pools if p.approved_at is None and p.is_active]
 
                 pools_data[league_type] = {
                     'config': config,
@@ -150,7 +191,7 @@ def substitute_pool_detail(league_type):
     Manage substitute pool for a specific league type.
     """
     try:
-        if league_type not in LEAGUE_TYPES:
+        if league_type not in league_types_config():
             flash('Invalid league type.', 'error')
             return redirect(url_for('admin_panel.substitute_pools'))
 
@@ -172,7 +213,7 @@ def substitute_pool_detail(league_type):
 
         active_pools = [p for p in all_pools if p.is_active and p.approved_at]
         on_break_pools = [p for p in all_pools if not p.is_active and p.approved_at]
-        pending_pools = [p for p in all_pools if p.approved_at is None]
+        pending_pools = [p for p in all_pools if p.approved_at is None and p.is_active]
 
         # Staleness: how long since each ACTIVE member was last used. The weekly
         # hygiene task auto-expires past STALE_SUB_INACTIVE_DAYS; here we surface
@@ -224,7 +265,7 @@ def substitute_pool_detail(league_type):
         return render_template(
             'admin_panel/match_operations/substitute_pool_detail_flowbite.html',
             league_type=league_type,
-            league_config=LEAGUE_TYPES[league_type],
+            league_config=league_types_config().get(league_type) or LEAGUE_TYPES.get(league_type, {}),
             active_pools=active_pools,
             on_break_pools=on_break_pools,
             pending_pools=pending_pools,
@@ -253,7 +294,7 @@ def add_player_to_pool(league_type):
     Uses pessimistic locking to prevent concurrent role modifications.
     Discord sync is deferred until after transaction commits.
     """
-    if league_type not in LEAGUE_TYPES:
+    if league_type not in league_types_config():
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
     from app.models import Player, User, Role, League, Season
@@ -276,7 +317,8 @@ def add_player_to_pool(league_type):
         return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
 
     # Get the required role
-    required_role_name = LEAGUE_TYPES[league_type]['role']
+    _cfg = league_types_config().get(league_type) or LEAGUE_TYPES.get(league_type) or {}
+    required_role_name = _cfg.get('role')
     required_role = Role.query.filter_by(name=required_role_name).first()
 
     if not required_role:
@@ -390,7 +432,7 @@ def remove_player_from_pool(league_type):
     Uses pessimistic locking to prevent concurrent role modifications.
     Discord sync is deferred until after transaction commits.
     """
-    if league_type not in LEAGUE_TYPES:
+    if league_type not in league_types_config():
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
     from app.models import Player, Role
@@ -400,17 +442,22 @@ def remove_player_from_pool(league_type):
     if not player_id:
         return jsonify({'success': False, 'message': 'Player ID is required'}), 400
 
-    # Find the pool entry
+    # Find the pool entry — NOT filtered on is_active.
+    #
+    # An "on break" member is is_active=False (see _pub_pool_status), and the
+    # Sub Pool tab shows Remove on their card, so filtering on is_active=True
+    # made Remove answer "Player not found in active pool" for every one of
+    # them. The table is UNIQUE on (player_id, league_type), so there is at
+    # most one row to find either way.
     pool_entry = SubstitutePool.query.options(
         joinedload(SubstitutePool.player)
     ).filter_by(
         player_id=player_id,
-        league_type=league_type,
-        is_active=True
+        league_type=league_type
     ).first()
 
     if not pool_entry:
-        return jsonify({'success': False, 'message': 'Player not found in active pool'}), 404
+        return jsonify({'success': False, 'message': 'Player not found in this pool'}), 404
 
     player = pool_entry.player
     if not player or not player.user:
@@ -434,7 +481,8 @@ def remove_player_from_pool(league_type):
 
             if other_active_pools == 0:
                 # Remove all substitute roles
-                for role_name in ['ECS FC Sub', 'Classic Sub', 'Premier Sub']:
+                from app.services import program_registry
+                for role_name in program_registry.sub_role_names():
                     role = Role.query.filter_by(name=role_name).first()
                     if role and role in user.roles:
                         user.roles.remove(role)
@@ -494,7 +542,7 @@ def remove_player_from_pool(league_type):
 def approve_pool_member(league_type):
     """Approve a Pending Approval pool member. Sets approved_at and approved_by
     so they transition to Active in Pool and become contactable."""
-    if league_type not in LEAGUE_TYPES:
+    if league_type not in league_types_config():
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
     from app.models_substitute_pools import SubstitutePool
@@ -547,7 +595,7 @@ def set_pool_member_active(league_type):
     """Toggle a pool member between Active in Pool and Approved · On Break.
     Body: {player_id, is_active: bool}. Idempotent. Does NOT touch approved_at
     or substitute roles — that's what /remove-player is for."""
-    if league_type not in LEAGUE_TYPES:
+    if league_type not in league_types_config():
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
     from app.models_substitute_pools import SubstitutePool
@@ -608,7 +656,7 @@ def reject_player_from_pool(league_type):
     This prevents the player from appearing in the "Available to Add" list
     without actually adding them to the pool. The rejection is recorded in history.
     """
-    if league_type not in LEAGUE_TYPES:
+    if league_type not in league_types_config():
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
     from app.models import Player
@@ -625,23 +673,44 @@ def reject_player_from_pool(league_type):
     if not player:
         return jsonify({'success': False, 'message': 'Player not found'}), 404
 
-    # Check if already in pool (shouldn't happen but check anyway)
+    # Only an APPROVED, active member blocks a reject — that person is a real
+    # pool member and the admin wants Remove, not Reject. A pending applicant
+    # is also is_active=True (approved_at IS NULL), so testing is_active alone
+    # matched exactly the people this button exists to reject.
     existing_pool = SubstitutePool.query.filter_by(
         player_id=player_id,
         league_type=league_type,
         is_active=True
-    ).first()
+    ).filter(SubstitutePool.approved_at.isnot(None)).first()
 
     if existing_pool:
-        return jsonify({'success': False, 'message': 'Player is already in this pool'}), 400
+        return jsonify({
+            'success': False,
+            'message': 'Player is already an approved member of this pool — use Remove instead'
+        }), 400
 
-    # Create a rejected pool entry (inactive with rejected status)
-    rejected_entry = SubstitutePool(
+    # Reject the applicant's OWN row when they have one.
+    #
+    # A "pending" applicant is `is_active=True, approved_at IS NULL` (see
+    # _pub_pool_status), so the is_active filter above matched their row and
+    # every Reject click answered "Player is already in this pool" — the button
+    # could never succeed for the only status that shows it. Inserting a second
+    # row would not have worked either: substitute_pools is UNIQUE on
+    # (player_id, league_type), so the INSERT below would raise IntegrityError.
+    rejected_entry = SubstitutePool.query.filter_by(
         player_id=player_id,
-        league_type=league_type,
-        is_active=False  # Marked as rejected/inactive
-    )
-    db.session.add(rejected_entry)
+        league_type=league_type
+    ).first()
+
+    if rejected_entry is not None:
+        rejected_entry.is_active = False
+    else:
+        rejected_entry = SubstitutePool(
+            player_id=player_id,
+            league_type=league_type,
+            is_active=False  # Marked as rejected/inactive
+        )
+        db.session.add(rejected_entry)
     db.session.flush()
 
     # Log to history
@@ -676,7 +745,7 @@ def reject_player_from_pool(league_type):
 def substitute_pool_statistics(league_type):
     """Get detailed statistics for a substitute pool."""
     try:
-        if league_type not in LEAGUE_TYPES:
+        if league_type not in league_types_config():
             return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
         from app.models_substitute_pools import SubstitutePool
@@ -748,7 +817,7 @@ def substitute_pool_player_search():
         if not query_str or len(query_str) < 2:
             return jsonify({'success': True, 'players': []})
 
-        if league_type and league_type not in LEAGUE_TYPES:
+        if league_type and league_type not in league_types_config():
             return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
         # Build base query (email is encrypted, search by Player.name and User.username only)
@@ -781,7 +850,7 @@ def substitute_pool_player_search():
         for player in players:
             # Check which leagues they're eligible for
             eligible_leagues = []
-            for lt, config in LEAGUE_TYPES.items():
+            for lt, config in league_types_config().items():
                 if player.user and any(role.name == config['role'] for role in player.user.roles):
                     eligible_leagues.append(lt)
 
@@ -796,7 +865,7 @@ def substitute_pool_player_search():
                 'phone_number': player.phone,
                 'eligible_leagues': eligible_leagues,
                 'current_pools': current_pool_types,
-                'can_add_to': [lt for lt in LEAGUE_TYPES.keys() if lt not in current_pool_types]
+                'can_add_to': [lt for lt in league_types_config().keys() if lt not in current_pool_types]
             })
 
         return jsonify({'success': True, 'players': results})

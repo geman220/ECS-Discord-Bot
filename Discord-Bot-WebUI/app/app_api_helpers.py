@@ -36,6 +36,7 @@ from app.models import (
     PlayerEvent, PlayerEventType
 )
 from app.models.players import PlayerTeamSeason, PlayerTeamHistory, player_teams
+from app.services.team_visibility import reveal_gated_league_names
 
 logger = logging.getLogger(__name__)
 
@@ -160,17 +161,46 @@ def process_discord_user(session, user_data: Dict) -> User:
         session, discord_id, email
     )
 
+    if blocked_reason:
+        # Queue the refusal for admin review (same Account Recovery queue the
+        # web paths feed) before raising. A member locked out of their old
+        # Discord hits this from the app too, and the app gives them even
+        # fewer clues about what to do next.
+        from app.duplicate_prevention import record_discord_conflict
+        from app.models import SOURCE_MOBILE
+        from flask import request as flask_request
+
+        try:
+            ip_address = flask_request.remote_addr
+            user_agent = flask_request.headers.get('User-Agent')
+        except RuntimeError:  # no request context (task/CLI callers)
+            ip_address = user_agent = None
+
+        record_discord_conflict(
+            session,
+            discord_id=discord_id,
+            discord_username=discord_username,
+            email=email,
+            blocked_reason=blocked_reason,
+            source=SOURCE_MOBILE,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
     if blocked_reason == 'email_in_use_by_other_discord':
         raise DiscordLoginConflictError(
             blocked_reason,
-            "The email on this Discord account is already linked to a different "
-            "Discord profile in our system. Please contact an admin to reconcile."
+            "This Discord account looks like it belongs to an existing member, "
+            "but it isn't the one on file. We've sent this to our admins to "
+            "review — you'll be able to log in with this Discord once they "
+            "approve it."
         )
     if blocked_reason == 'email_history_ambiguous':
         raise DiscordLoginConflictError(
             blocked_reason,
-            "We found multiple accounts that may match this Discord login. "
-            "Please contact an admin so we can confirm which is yours."
+            "We found more than one account that could be yours, so we can't "
+            "safely pick one. We've sent this to our admins to confirm which "
+            "is yours — no need to sign up again."
         )
 
     if existing_user is not None:
@@ -386,7 +416,7 @@ def build_player_season_stats_data(player_id: int, season_id_filter: Optional[in
     from app.services.team_visibility import request_viewer_can_view_teams
     if not request_viewer_can_view_teams(session):
         for row in season_stats_data:
-            if row['is_current_season'] and row['league_name'] in ('Premier', 'Classic'):
+            if row['is_current_season'] and row['league_name'] in reveal_gated_league_names():
                 row['team_id'] = None
                 row['team_name'] = None
 

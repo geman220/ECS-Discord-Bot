@@ -45,11 +45,25 @@ from app.models import (
 logger = logging.getLogger(__name__)
 
 # league membership Flask roles that mean "approved into this league" (no team required)
-_LEAGUE_ROLE_TO_TYPE = {
+_LEAGUE_ROLE_TO_TYPE = {          # fallback; see _league_role_to_lane()
     'pl-classic': 'classic',
     'pl-premier': 'premier',
     'pl-ecs-fc': 'ecs_fc',
 }
+
+
+def _league_role_to_lane(role_name, session=None):
+    """Flask league role ('pl-premier') -> membership lane, registry-backed."""
+    if not role_name:
+        return None
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs(session):
+            if p.flask_league_role == role_name:
+                return p.membership_lane
+    except Exception:
+        pass
+    return _LEAGUE_ROLE_TO_TYPE.get(role_name)
 
 # terminal status per role, used to retire a current-season row whose source fact is gone
 _TERMINAL = {
@@ -63,11 +77,34 @@ _UPSERT_FIELDS = ('team_id', 'source', 'paid_at', 'activated_at', 'rested_at',
                   'last_engaged_at', 'needs_reconfirm', 'notes')
 
 
-def _norm_league_type(value):
-    """Map any league-ish string ('Classic', 'sub-premier', 'ECS FC', 'ecs-fc') to the canonical lane."""
+def _norm_league_type(value, session=None):
+    """Map any league-ish string to the canonical membership lane.
+
+    Registry first, substring matching second. The substring rules only knew
+    classic/premier/ecs, so ANY newer program returned None -- and _build_desired
+    `continue`s on None, meaning no player rostered in that program ever got a
+    membership row. Self-concealing, too: the drift check compares per KNOWN
+    lane, so an unknown lane produces neither an expected row nor a discrepancy.
+    The spine reports "clean" while every member of that program is missing.
+    """
     if not value:
         return None
-    v = str(value).lower()
+    v = str(value).strip().lower()
+    # Strip the approval-form 'sub-' prefix before matching.
+    probe = v[4:] if v.startswith('sub-') else v
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs(session):
+            lane = (p.membership_lane or '').lower()
+            if probe in (lane, (p.form_value or '').lower(),
+                         (p.league_name or '').lower(), (p.key or '').lower()):
+                return p.membership_lane
+        # Fall back to a league-name match, which also handles drift.
+        pr = program_registry.by_league_name(value, session)
+        if pr:
+            return pr.membership_lane
+    except Exception:
+        pass
     if 'classic' in v:
         return 'classic'
     if 'premier' in v:
@@ -78,17 +115,24 @@ def _norm_league_type(value):
 
 
 def _current_season_ids(session):
-    """Return {'pub_league': id_or_None, 'ecs_fc': id_or_None} for the current seasons.
+    """{lane_group: current_season_id} keyed by Season.league_type.
 
-    Ordered by id asc so the highest id wins per league_type (last iteration) — matching
-    the sub-dispatch read's `order_by(Season.id.desc()).first()`, so read and write agree
-    on which season if a duplicate is_current ever exists.
+    ⚠️ Returns a dict keyed by SEASON TYPE, not by lane. Fixing the lane
+    without fixing this would be WORSE than leaving both broken: _season_for_lane
+    used to route everything non-ecs_fc to the Pub League season, so a newly
+    recognised lane would have written its rows against Premier/Classic's
+    season id -- wrong-season rows are harder to detect than missing ones.
+
+    Ordered by id asc so the highest id wins per league_type (last iteration) —
+    matching the sub-dispatch read's `order_by(Season.id.desc()).first()`, so
+    read and write agree on which season if a duplicate is_current ever exists.
     """
     rows = (session.query(Season.id, Season.league_type)
             .filter(Season.is_current.is_(True))
             .order_by(Season.id.asc()).all())
-    out = {'pub_league': None, 'ecs_fc': None}
+    out = {'pub_league': None, 'ecs_fc': None, '_by_season_type': {}}
     for sid, ltype in rows:
+        out['_by_season_type'][ltype] = sid
         if ltype == 'ECS FC':
             out['ecs_fc'] = sid
         elif ltype == 'Pub League':
@@ -97,8 +141,36 @@ def _current_season_ids(session):
 
 
 def _season_for_lane(current, league_type):
-    """Which current-season id a lane belongs to (classic/premier -> Pub League, ecs_fc -> ECS FC)."""
-    return current['ecs_fc'] if league_type == 'ecs_fc' else current['pub_league']
+    """The current-season id a lane belongs to, resolved PER PROGRAM.
+
+    Each program declares its own season_league_type, so a program with its own
+    dates (and therefore its own is_current row) is looked up directly rather
+    than being lumped in with Pub League.
+    """
+    if league_type == 'ecs_fc':
+        return current.get('ecs_fc')
+    try:
+        from app.services import program_registry
+        pr = program_registry.by_membership_lane(league_type)
+        if pr:
+            sid = (current.get('_by_season_type') or {}).get(pr.season_league_type)
+            if sid is not None:
+                return sid
+            # Program has no current season of its own -> NO row, rather than a
+            # row filed under someone else's season.
+            if pr.season_league_type not in ('Pub League',):
+                return None
+            return current.get('pub_league')
+    except Exception:
+        pass
+    # Reached only when the lane is UNRECOGNISED (registry down, or a lane with
+    # no program). Falling through to the Pub League season here would file the
+    # row under another program's season -- and a wrong-season row is harder to
+    # detect than a missing one, which is the whole reason _current_season_ids
+    # was reworked. Legacy lanes keep their mapping; anything else gets None.
+    if league_type in ('classic', 'premier'):
+        return current.get('pub_league')
+    return None
 
 
 def _build_desired(session, player, current):
@@ -119,7 +191,7 @@ def _build_desired(session, player, current):
     )
     rostered_lanes = set()
     for team_id, is_coach, lname, lseason in roster:
-        lt = _norm_league_type(lname)
+        lt = _norm_league_type(lname, session)
         if not lt or not lseason:
             continue
         rostered_lanes.add((lseason, lt))
@@ -131,8 +203,12 @@ def _build_desired(session, player, current):
     user = player.user if player.user_id else None
     role_names = {r.name for r in user.roles} if user else set()
     if user and user.is_approved:
-        for role_name, lt in _LEAGUE_ROLE_TO_TYPE.items():
-            if role_name not in role_names:
+        # Iterate the roles the USER actually holds and resolve each through the
+        # registry, rather than iterating a 3-key literal -- otherwise a newer
+        # program's league role is never even considered.
+        for role_name in role_names:
+            lt = _league_role_to_lane(role_name, session)
+            if not lt:
                 continue
             sid = _season_for_lane(current, lt)
             if sid and (sid, lt, 'player') not in desired:
@@ -140,7 +216,7 @@ def _build_desired(session, player, current):
 
     # --- 3. Substitute pools -> sub/{active,resting,pending} ------------------
     for sp in session.query(SubstitutePool).filter(SubstitutePool.player_id == pid).all():
-        lt = _norm_league_type(sp.league_type)
+        lt = _norm_league_type(sp.league_type, session)
         sid = _season_for_lane(current, lt) if lt else None
         if not sid:
             continue
@@ -166,7 +242,7 @@ def _build_desired(session, player, current):
 
     # --- 4. Waitlist (pl-waitlist role + waitlist_league lane) -> waitlist/waiting
     if user and 'pl-waitlist' in role_names:
-        lt = _norm_league_type(getattr(user, 'waitlist_league', None))
+        lt = _norm_league_type(getattr(user, 'waitlist_league', None), session)
         sid = _season_for_lane(current, lt) if lt else None
         if sid and (sid, lt, 'waitlist') not in desired:
             desired[(sid, lt, 'waitlist')] = {'status': 'waiting'}
@@ -196,7 +272,15 @@ def _upsert(session, player_id, season_id, league_type, role, values):
 
 def _do_resync(session, player):
     current = _current_season_ids(session)
-    current_ids = [sid for sid in (current['pub_league'], current['ecs_fc']) if sid]
+    # EVERY current season, not just the two named keys. _season_for_lane can
+    # now resolve a third program's season, and _build_desired emits desired
+    # keys against it -- but if that season id is missing from `current_ids`
+    # the retire sweep below never sees those rows, so a player pulled off that
+    # program's roster keeps status='rostered' forever. And when ONLY the third
+    # program has a current season, the early return skipped the resync
+    # entirely. Both are the same self-concealing shape as the lane bug.
+    current_ids = sorted({sid for sid in (current.get('_by_season_type') or {}).values() if sid}
+                         | {sid for sid in (current.get('pub_league'), current.get('ecs_fc')) if sid})
     if not current_ids:
         return
 
@@ -265,7 +349,7 @@ def seed_subs_for_season(session, to_season_id, lanes=None):
         seeded += 1
 
     for sp in session.query(SubstitutePool).all():
-        lane = _norm_league_type(sp.league_type)
+        lane = _norm_league_type(sp.league_type, session)
         if not lane:
             continue
         if sp.is_active and sp.approved_at is not None:
@@ -311,7 +395,8 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
     callable(done, total) for CLI output.
     """
     current = _current_season_ids(session)
-    if not any(current.values()):
+    # Skip the '_by_season_type' bookkeeping key -- see the note in cli.py.
+    if not any(v for k, v in current.items() if not k.startswith('_')):
         logger.warning("backfill_all_memberships: no current season for either program; nothing to do")
         return {'players': 0, 'batches': 0, 'errors': 0}
 

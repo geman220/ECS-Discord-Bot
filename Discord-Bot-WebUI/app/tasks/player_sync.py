@@ -172,6 +172,8 @@ def sync_players_with_woocommerce(self, user_id=None):
                 # Use Redis cache for leagues instead of loading all into memory
                 from app.utils.cache_manager import reference_cache
                 league_cache = {league['id']: league for league in reference_cache.get_leagues(session)}
+                # Per-run memo so the single parser is not re-run per order.
+                _league_memo = {}
                 logger.info(f"Loaded {len(league_cache)} leagues from cache")
                 
                 # Create indexed lookup for players instead of loading all into memory
@@ -210,7 +212,9 @@ def sync_players_with_woocommerce(self, user_id=None):
 
                     # Determine league based on the product name and current seasons - using cache for performance
                     product_name = order['product_name']
-                    league = determine_league_cached(product_name, current_seasons, league_cache)
+                    league = determine_league_cached(
+                        product_name, current_seasons, league_cache,
+                        session=session, _memo=_league_memo)
                     if not league:
                         continue
 

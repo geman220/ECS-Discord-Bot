@@ -400,18 +400,23 @@ def sync_match_rsvps(match_id):
             availabilities = session_db.query(Availability).filter_by(match_id=match_id).all()
             logger.debug(f"🔵 [AVAILABILITY_API] Found {len(availabilities)} availabilities to sync")
 
+            # Queue the Discord updates rather than calling the async helper.
+            # update_discord_rsvp is `async def`, and this is a sync (gevent)
+            # Flask route: the un-awaited call returned a coroutine, so
+            # result['status'] raised TypeError and this endpoint answered 500
+            # on EVERY request. Dispatching the Celery task directly is the same
+            # thing the helper ultimately does, minus the broken await.
+            from app.tasks.tasks_rsvp import update_discord_rsvp_task
+
             for availability in availabilities:
                 if availability.player.discord_id:
-                    logger.debug(f"🔵 [AVAILABILITY_API] Updating Discord RSVP for player {availability.player.name}")
-                    result = update_discord_rsvp(
-                        match=match,
-                        player=availability.player,
+                    logger.debug(f"🔵 [AVAILABILITY_API] Queueing Discord RSVP update for player {availability.player.name}")
+                    update_discord_rsvp_task.delay(
+                        match_id=match_id,
+                        discord_id=availability.player.discord_id,
                         new_response=availability.response,
                         old_response=None,
-                        session=session_db
                     )
-                    if result['status'] != 'success':
-                        logger.error(f"🔴 [AVAILABILITY_API] Failed to update Discord RSVP for player {availability.player_id}")
                 else:
                     logger.debug(f"🟡 [AVAILABILITY_API] Player {availability.player_id} has no Discord account; skipping update.")
 

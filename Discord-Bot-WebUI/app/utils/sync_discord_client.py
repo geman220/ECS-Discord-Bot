@@ -180,15 +180,21 @@ class SyncDiscordClient:
         Update Discord reactions using synchronous HTTP call.
         
         Args:
-            data: Dictionary containing message_id and reaction updates.
-            
+            data: Dictionary containing match_id, discord_id, new_response and
+                optional old_response (see tasks_rsvp.update_discord_reactions).
+
         Returns:
             Dictionary with success status and response data.
         """
-        discord_bot_url = "http://discord-bot:5001/api/update_reactions"
-        
+        # /api/update_reactions does not exist on the bot and never has -- every
+        # call 404'd, so reaction sync has been silently dead. The bot's real
+        # route is /api/update_user_reaction (api/routes/match_routes.py), and it
+        # expects exactly the keys this task already sends.
+        discord_bot_url = "http://discord-bot:5001/api/update_user_reaction"
+
         try:
-            logger.info(f"Updating Discord reactions for message {data.get('message_id')} (synchronous)")
+            logger.info(f"Updating Discord reactions for match {data.get('match_id')}, "
+                        f"user {data.get('discord_id')} (synchronous)")
             
             response = self.session.post(
                 discord_bot_url,
@@ -506,8 +512,13 @@ class SyncDiscordClient:
         Returns:
             Dictionary with success status and response data.
         """
-        discord_bot_url = "http://discord-bot:5001/api/update_rsvp"
-        
+        # /api/update_rsvp does not exist on the bot. The route that takes this
+        # exact payload ({match_id, discord_id, new_response, old_response}) is
+        # /api/update_user_reaction. The similarly-named /update_discord_rsvp
+        # wants "user_id" instead of "discord_id", so it is NOT the right target.
+        discord_bot_url = "http://discord-bot:5001/api/update_user_reaction"
+
+
         try:
             logger.info(f"Updating RSVP for match {data.get('match_id')}, user {data.get('discord_id')} (synchronous)")
             

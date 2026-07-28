@@ -252,16 +252,33 @@ def register_with_discord():
                 f"register_with_discord refusing login: blocked_reason={blocked_reason} "
                 f"discord_id={discord_id}"
             )
+            # Same stranded-member queue as the login callback — someone
+            # locked out of their old Discord often lands here, having tried
+            # to register their way back in.
+            from app.duplicate_prevention import record_discord_conflict
+            from app.models import SOURCE_WEB_REGISTER
+            record_discord_conflict(
+                db_session,
+                discord_id=discord_id,
+                discord_username=discord_username,
+                email=discord_email,
+                blocked_reason=blocked_reason,
+                source=SOURCE_WEB_REGISTER,
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent'),
+            )
             flask_session['sweet_alert'] = {
-                'title': 'Account Conflict',
+                'title': "We can't set that up yet",
                 'text': (
-                    "The email on this Discord account is already linked to a "
-                    "different Discord profile in our system. Please contact an "
-                    "admin so we can reconcile the accounts."
+                    "This Discord account looks like it belongs to an existing "
+                    "member, but it isn't the one on file. We've sent this to our "
+                    "admins to review — you'll be able to log in with this Discord "
+                    "once they approve it. Don't create another account."
                     if blocked_reason == 'email_in_use_by_other_discord'
                     else
-                    "We found multiple accounts that may match this Discord login. "
-                    "Please contact an admin so we can confirm which is yours."
+                    "We found more than one account that could be yours, so we "
+                    "can't safely pick one. We've sent this to our admins to "
+                    "confirm which is yours — no need to sign up again."
                 ),
                 'icon': 'warning',
             }

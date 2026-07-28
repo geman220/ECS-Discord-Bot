@@ -36,7 +36,12 @@ from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_r
 
 logger = logging.getLogger(__name__)
 
-# Valid leagues for drafting
+# Valid leagues for drafting.
+#
+# Fallback only. This dict is one of TEN verbatim copies of the same slug->name
+# mapping across draft_enhanced.py, sockets/draft.py and here; the registry is
+# now the source of truth and this survives purely so a registry outage keeps
+# the three original programs working instead of 400-ing every draft request.
 VALID_LEAGUES = {
     'classic': 'Classic',
     'premier': 'Premier',
@@ -45,12 +50,43 @@ VALID_LEAGUES = {
 
 
 def get_db_league_name(league_name: str) -> str:
-    """Convert URL league name to database league name."""
-    return VALID_LEAGUES.get(league_name.lower())
+    """Convert URL league slug to the database League.name.
+
+    Registry first so a new program's slug resolves without touching this file;
+    the hardcoded dict is the fallback. Returning None here is what produces the
+    `400 Invalid league name` the app sees, so an unresolvable slug must stay
+    unresolvable -- never guess a league.
+    """
+    if not league_name:
+        return None
+    slug = league_name.lower()
+    try:
+        from app.services import program_registry
+        program = program_registry.by_membership_lane(slug)
+        if program and program.uses_draft:
+            return program.league_name
+    except Exception:
+        pass
+    return VALID_LEAGUES.get(slug)
 
 
 # Roles allowed to VIEW/pick on the draft (coaches + admins)
-DRAFT_ROLES = ['Pub League Coach', 'Premier Coach', 'Classic Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin']
+# FALLBACK ONLY -- the gate is draft_roles(), resolved per request.
+# A static list cannot contain a program registered after this line, so a newer
+# program's coach passed the WEB board's registry-driven gate and then got a 403
+# from every mobile draft endpoint. The two gates must agree.
+_DRAFT_ROLES_FALLBACK = ['Pub League Coach', 'Premier Coach', 'Classic Coach',
+                         'Pub League Admin', 'Global Admin']
+DRAFT_ROLES = _DRAFT_ROLES_FALLBACK  # back-compat for existing references
+
+
+def draft_roles():
+    """Same coarse draft gate the web board uses, resolved per request."""
+    try:
+        from app.draft_enhanced import draft_access_roles
+        return draft_access_roles()
+    except Exception:
+        return list(_DRAFT_ROLES_FALLBACK)
 # Roles allowed to RUN the clock (start/skip/undo/pause/resume/end) — admins only
 DRAFT_ADMIN_ROLES = ['Pub League Admin', 'Global Admin']
 
@@ -128,12 +164,12 @@ def _draft_access_required(f):
         user_id = int(get_jwt_identity())
         with managed_session() as session:
             allowed = (
-                _user_has_any_role(session, user_id, DRAFT_ROLES)
+                _user_has_any_role(session, user_id, draft_roles())
                 or _is_current_season_team_coach(session, user_id)
             )
         if not allowed:
             return jsonify({
-                "msg": f"Access denied: Required roles: {', '.join(DRAFT_ROLES)}"
+                "msg": f"Access denied: Required roles: {', '.join(draft_roles())}"
             }), 403
         return f(*args, **kwargs)
     return wrapper
@@ -179,30 +215,46 @@ def get_draft_leagues():
     """
     current_user_id = int(get_jwt_identity())
     with managed_session() as session:
-        if not (_user_has_any_role(session, current_user_id, DRAFT_ROLES)
+        if not (_user_has_any_role(session, current_user_id, draft_roles())
                 or _is_current_season_team_coach(session, current_user_id)):
             return jsonify({
-                "msg": f"Access denied: Required roles: {', '.join(DRAFT_ROLES)}"
+                "msg": f"Access denied: Required roles: {', '.join(draft_roles())}"
             }), 403
 
-        # Get current season
-        current_season = session.query(Season).filter_by(
-            is_current=True,
-            league_type='Pub League'
-        ).first()
+        # Every CURRENT season whose program uses the draft, not just
+        # league_type='Pub League'. That literal is why ECS FC has never
+        # appeared in the mobile draft picker even though VALID_LEAGUES accepts
+        # 'ecs_fc' -- ECS FC's season carries league_type='ECS FC'.
+        #
+        # Seasons are collected PER PROGRAM: a program with its own dates has
+        # its own is_current row, so one .first() would pick an arbitrary one.
+        try:
+            from app.services import program_registry
+            _programs = [p for p in program_registry.all_programs(session) if p.uses_draft]
+        except Exception:
+            _programs = []
+        _season_types = sorted({p.season_league_type for p in _programs}) or ['Pub League']
+        _lane_by_league = {p.league_name: p.membership_lane for p in _programs}
 
-        if not current_season:
+        current_seasons = session.query(Season).filter(
+            Season.is_current.is_(True),
+            Season.league_type.in_(_season_types)
+        ).all()
+
+        if not current_seasons:
             return jsonify({
                 "leagues": [],
                 "message": "No current season found"
             }), 200
 
-        # Get leagues for current season. Eager-load teams + players in bulk —
+        _season_name_by_id = {s.id: s.name for s in current_seasons}
+
+        # Get leagues for those seasons. Eager-load teams + players in bulk —
         # the loop below used to lazy-load them per league / per team (N+1).
         leagues = session.query(League).options(
             selectinload(League.teams).selectinload(Team.players)
-        ).filter_by(
-            season_id=current_season.id
+        ).filter(
+            League.season_id.in_([s.id for s in current_seasons])
         ).all()
 
         league_data = []
@@ -219,9 +271,16 @@ def get_draft_leagues():
             league_data.append({
                 "id": league.id,
                 "name": league.name,
-                "url_name": league.name.lower().replace(' ', '_'),
+                # STABLE slug. Was league.name.lower().replace(' ', '_'), which
+                # derives the routing key from a DISPLAY name -- so a multi-word
+                # program produced a slug the server rejects, and any rename
+                # would silently break every draft deep link.
+                "url_name": _lane_by_league.get(league.name,
+                                                league.name.lower().replace(' ', '_')),
+                "program_key": next((p.key for p in _programs
+                                     if p.league_name == league.name), None),
                 "season_id": league.season_id,
-                "season_name": current_season.name,
+                "season_name": _season_name_by_id.get(league.season_id),
                 "team_count": team_count,
                 "total_drafted": total_drafted,
                 # Per-league: each league's own DraftSession.rounds (15 fallback)
@@ -808,7 +867,11 @@ def draft_player(league_name: str):
         try:
             from app.services.sub_status_service import remove_conflicting_sub_status
             sub_cleanup = remove_conflicting_sub_status(
-                session, player_id, performed_by_user_id=current_user_id
+                session, player_id, performed_by_user_id=current_user_id,
+                # Scope to the drafted team's own division family. Unscoped,
+                # a Premier draft pick also destroyed the player's sub status
+                # in every other concurrent program.
+                league_name=(team.league.name if team and team.league else None),
             )
         except Exception as _sub_err:
             logger.warning(f"Mobile sub-status cleanup skipped for player {player_id}: {_sub_err}")
@@ -1624,7 +1687,7 @@ def setup_draft_session(league_name: str):
     if not db_league_name:
         return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     team_order = data.get('team_order') or []
     if not team_order:
         return jsonify({"success": False, "msg": "team_order is required"}), 400
@@ -1718,7 +1781,7 @@ def reposition_drafted_player(league_name: str, player_id: int):
     if not db_league_name:
         return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     team_id = data.get('team_id')
     position = (data.get('position') or '').lower()
     if not team_id:
@@ -1820,7 +1883,7 @@ def edit_draft_pick(league_name: str, player_id: int):
     if not db_league_name:
         return jsonify({"msg": f"Invalid league name: {league_name}"}), 400
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_position = data.get('draft_position')
     new_slot = data.get('position')
     new_notes = data.get('notes')

@@ -34,6 +34,79 @@ logger = logging.getLogger(__name__)
 auto_schedule_bp = Blueprint('auto_schedule', __name__)
 
 
+def _season_type_rolls_over(league_type):
+    """True if this season type's programs roll over (deactivate + cleanup)."""
+    progs = _programs_for_season_type(league_type)
+    if progs:
+        return any(pr.rolls_over for pr in progs)
+    return league_type == 'Pub League'
+
+
+def _season_type_cleans_discord(league_type):
+    """True if this season type's programs tear down Discord at rollover."""
+    progs = _programs_for_season_type(league_type)
+    if progs:
+        return any(pr.discord_cleanup_on_rollover for pr in progs)
+    return league_type == 'Pub League'
+
+
+def _program_form_int(data, program, suffix, default=None):
+    """Read `<lane>_<suffix>` from the wizard payload, falling back to `ecs_fc_<suffix>`.
+
+    The wizard renders ONE single-league layout for every non-Pub-League season
+    type, and that layout's field ids are the ECS FC ones (`ecsFcTeamCount` ->
+    `ecs_fc_teams`). So a newer program posts `ecs_fc_*` keys even though the
+    backend would prefer `<lane>_*`. Accepting both means the existing form
+    works unchanged while a lane-specific payload (CLI, API) still wins.
+    """
+    for key in (f'{program.membership_lane}_{suffix}', f'ecs_fc_{suffix}'):
+        if key in data and data[key] not in (None, ''):
+            try:
+                return int(data[key])
+            except (TypeError, ValueError):
+                continue
+    return default
+
+
+def _programs_for_season_type(league_type):
+    """Registry programs filed under a Season.league_type; [] when unknown."""
+    try:
+        from app.services import program_registry
+        return list(program_registry.by_season_league_type(league_type))
+    except Exception as exc:
+        logger.warning(f"program registry unavailable for season type "
+                       f"'{league_type}': {exc}")
+        return []
+
+
+def _season_config_type_for_league(league):
+    """SeasonConfiguration.league_type for a League row.
+
+    The derivation this replaces was
+        'PREMIER' if ... else 'CLASSIC' if ... else 'ECS_FC'
+    whose DEFAULT branch handed every unrecognised league ECS FC's identity --
+    and therefore ECS FC's week counts and playoff structure. Silent.
+
+    Note the value is uppercase-with-underscore ('ECS_FC'), which is NOT the
+    same vocabulary as the Discord role slug ('ECS-FC', hyphen).
+    """
+    name = getattr(league, 'name', '') or ''
+    try:
+        from app.services import program_registry
+        t = program_registry.season_config_type_for(name)
+        if t:
+            return t
+    except Exception:
+        pass
+    upper = name.upper()
+    if upper == 'PREMIER':
+        return 'PREMIER'
+    if upper == 'CLASSIC':
+        return 'CLASSIC'
+    return 'ECS_FC'
+
+
+
 @auto_schedule_bp.route('/league/<int:league_id>/season-config', methods=['GET', 'POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
@@ -75,7 +148,7 @@ def season_config(league_id: int):
                 season_config.practice_game_number = practice_game_number
             else:
                 # Determine league type based on league name
-                league_type = 'PREMIER' if league.name.upper() == 'PREMIER' else 'CLASSIC' if league.name.upper() == 'CLASSIC' else 'ECS_FC'
+                league_type = _season_config_type_for_league(league)
                 
                 season_config = SeasonConfiguration(
                     league_id=league_id,
@@ -102,7 +175,7 @@ def season_config(league_id: int):
     
     # Get default values if no configuration exists
     if not season_config:
-        league_type = 'PREMIER' if league.name.upper() == 'PREMIER' else 'CLASSIC' if league.name.upper() == 'CLASSIC' else 'ECS_FC'
+        league_type = _season_config_type_for_league(league)
         season_config = AutoScheduleGenerator.create_default_season_configuration(league_id, league_type)
     
     return render_template('season_config_flowbite.html',
@@ -238,11 +311,30 @@ def view_seasonal_schedule(season_id):
                     m.week_type == 'PRACTICE' for m in first_window
                 )
 
+    # Datalist suggestions for the edit modal. Derived from what this season has
+    # ACTUALLY used rather than a hardcoded list, so a travelling season builds
+    # its own vocabulary as venues are entered -- the hardcoded North/South/East/
+    # West <select> is exactly what made the field unusable for anything else.
+    known_venues, known_fields = [], []
+    try:
+        league_ids = [lg.id for lg in leagues]
+        if league_ids:
+            rows = (session.query(Match.venue, Match.location)
+                    .join(Team, Match.home_team_id == Team.id)
+                    .filter(Team.league_id.in_(league_ids))
+                    .distinct().all())
+            known_venues = sorted({v for v, _ in rows if v})
+            known_fields = sorted({f for _, f in rows if f})
+    except Exception as e:
+        logger.warning(f"Could not derive venue/field suggestions: {e}")
+
     return render_template(
         'seasonal_schedule_view_flowbite.html',
         season=season,
         leagues=leagues,
-        schedule_by_week=schedule_by_week
+        schedule_by_week=schedule_by_week,
+        known_venues=known_venues,
+        known_fields=known_fields
     )
 
 
@@ -517,10 +609,30 @@ def update_match():
             match.time = datetime.strptime(data['time'], '%H:%M').time()
         if 'field' in data:
             match.location = data['field']
+        # Venue = the SITE (matches.location is the FIELD within it). Editable
+        # per match so a week can be moved to a different site without
+        # regenerating the schedule. Empty string clears it back to NULL
+        # ("the league's usual site") rather than storing ''.
+        if 'venue' in data:
+            match.venue = (data['venue'] or '').strip() or None
+        # Per-match DATE. update_week moves a whole week; this moves ONE match,
+        # which is what a rain-out or a single-pitch conflict actually needs.
+        new_date = None
+        if 'date' in data and data['date']:
+            try:
+                new_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({'success': False,
+                                'error': 'Date must be YYYY-MM-DD.'}), 400
+            match.date = new_date
+        # Assign the COERCED ints, not the raw <select> strings. Postgres would
+        # coerce on flush, but leaving a str on an Integer attribute means any
+        # in-session comparison against it is False, which is the same class of
+        # bug the _as_int guard above exists to fix.
         if 'home_team_id' in data:
-            match.home_team_id = data['home_team_id']
+            match.home_team_id = new_home
         if 'away_team_id' in data:
-            match.away_team_id = data['away_team_id']
+            match.away_team_id = new_away
 
         # Update corresponding schedule entries
         schedule = session.query(Schedule).get(match.schedule_id)
@@ -537,12 +649,20 @@ def update_match():
             schedule.location = match.location
             schedule.team_id = match.home_team_id
             schedule.opponent = match.away_team_id
+            if new_date is not None:
+                schedule.date = new_date
 
             if paired_schedule:
                 paired_schedule.time = match.time
                 paired_schedule.location = match.location
                 paired_schedule.team_id = match.away_team_id
                 paired_schedule.opponent = match.home_team_id
+                # Both mirror rows must move together. A Schedule pair is found
+                # by (team_id, opponent, week, date); if only one row's date
+                # changed, the pair could no longer be resolved and the NEXT
+                # edit or delete of this match would silently miss its mirror.
+                if new_date is not None:
+                    paired_schedule.date = new_date
         
         session.commit()
         return jsonify({'success': True, 'message': 'Match updated successfully'})
@@ -1671,11 +1791,35 @@ def schedule_manager():
         league_type='ECS FC', is_current=True
     ).first()
 
+    # Season types beyond the two the template hardcodes, so a newer program's
+    # season is creatable through the wizard rather than only via the CLI.
+    extra_season_types = []
+    try:
+        from app.services import program_registry
+        _seen = {'Pub League', 'ECS FC'}
+        _by_type = {}
+        for _pr in program_registry.all_programs(session):
+            if _pr.season_league_type in _seen:
+                continue
+            _by_type.setdefault(_pr.season_league_type, []).append(_pr)
+        for _st, _prs in _by_type.items():
+            _names = ' + '.join(pr.display_name for pr in _prs)
+            extra_season_types.append({
+                'season_league_type': _st,
+                'label': _names,
+                'subtitle': ('Single league' if len(_prs) == 1
+                             else f'{len(_prs)} divisions'),
+                'lanes': [pr.membership_lane for pr in _prs],
+            })
+    except Exception as _est_err:
+        logger.warning(f"Could not build extra season types: {_est_err}")
+
     return render_template('admin_panel/league_management/season_builder/index_flowbite.html',
                          pub_league_seasons=pub_league_seasons,
                          ecs_fc_seasons=ecs_fc_seasons,
                          current_pub_season=current_pub_season,
                          current_ecs_season=current_ecs_season,
+                         extra_season_types=extra_season_types,
                          title='Season Builder')
 
 
@@ -1800,9 +1944,50 @@ def _execute_season_creation(session, data):
                          or _even_error(int(data.get('premier_teams', 8)), 'Premier division'))
         elif league_type == 'ECS FC':
             _tc_error = _even_error(int(data.get('ecs_fc_teams', 8)), 'ECS FC')
+        else:
+            # Any other registered program. Same even-count rule -- the
+            # generator requires it so every team can play back-to-back.
+            for _pr in _programs_for_season_type(league_type):
+                _n = _program_form_int(data, _pr, 'teams', None)
+                if _n is not None:
+                    _tc_error = _even_error(_n, _pr.display_name)
+                    if _tc_error:
+                        break
         if _tc_error:
             # Nothing has been mutated yet — safe hard stop.
             return {'error': _tc_error}, 400
+
+        # Unknown season type must ALSO be rejected here, before any mutation.
+        # Returning 400 further down is not a safe stop: this route has no
+        # @transactional, and cleanup_request commits g.db_session whenever no
+        # exception propagates -- so a late return leaves a COMMITTED orphan
+        # Season with no leagues, and (if set_as_current) no current season at
+        # all for that type.
+        if league_type not in ('Pub League', 'ECS FC') and not _programs_for_season_type(league_type):
+            return {'error': f"No active program is registered for season type "
+                             f"'{league_type}'."}, 400
+
+        # The 'Pub League' branch further down is hardcoded to Premier + Classic.
+        # The model explicitly supports several programs SHARING a
+        # season_league_type ("Programs sharing a value share a season"), so a
+        # future program registered under 'Pub League' would take that branch and
+        # get no League, no teams and no schedule -- silently. Refuse here, while
+        # nothing has been written yet.
+        if league_type == 'Pub League':
+            try:
+                from app.services import program_registry
+                _unexpected = sorted({
+                    p.league_name for p in program_registry.by_season_league_type(
+                        'Pub League', include_inactive=True)
+                    if p.league_name not in ('Premier', 'Classic')})
+                if _unexpected:
+                    return {'error': (
+                        "This season type now has programs this creation path "
+                        f"cannot build: {', '.join(_unexpected)}. Give them their "
+                        "own season_league_type, or extend _execute_season_creation."
+                    )}, 400
+            except Exception as _pl_err:
+                logger.warning(f"Pub League program check skipped: {_pl_err}")
 
         # Handle rollover if setting as current season
         old_season = None
@@ -1820,20 +2005,55 @@ def _execute_season_creation(session, data):
             # New Pub League season starts with team assignments hidden —
             # admins flip make_teams_public back on at the reveal party.
             # (Channels created below honor this and start hidden.)
-            if league_type == 'Pub League':
+            # Registry-driven, not the 'Pub League' literal. This is the shared
+            # helper behind BOTH the Season Builder wizard and /rollover/execute
+            # -- i.e. the primary way a new program's season gets created. Left
+            # hardcoded, a reveal-gated program's rosters were public from the
+            # moment its season was created, spoiling the draft, while every
+            # sibling path (match_operations/seasons.py) had already gone
+            # registry-driven. Two paths, opposite behaviour on the same input.
+            try:
+                from app.services import program_registry
+                _hides = any(pr.hide_until_reveal for pr in
+                             program_registry.by_season_league_type(
+                                 league_type, include_inactive=True))
+            except Exception:
+                _hides = (league_type == 'Pub League')
+            if _hides:
                 from app.services.team_visibility import reset_teams_reveal
-                reset_teams_reveal(session)
+                # Scoped: re-hide only THIS season type's programs.
+                reset_teams_reveal(session, season_league_type=league_type)
 
         # Create new season
+        # Season.phase defaults to 'offseason' on the model, and the waitlist
+        # gate is phase-driven -- so a season created here opened with the
+        # waitlist CLOSED. A program that rolls over starts in preseason; one
+        # that does not (ECS FC) is pinned in_season.
+        _phase = 'preseason'
+        try:
+            _progs = _programs_for_season_type(league_type)
+            if _progs and not any(pr.rolls_over for pr in _progs):
+                _phase = 'in_season'
+        except Exception:
+            pass
+
         new_season = Season(
             name=season_name,
             league_type=league_type,
-            is_current=set_as_current
+            is_current=set_as_current,
+            phase=_phase
         )
         session.add(new_season)
         session.flush()  # Get the ID
         
-        # Create leagues based on type
+        # Create leagues based on type.
+        #
+        # ⚠️ The 'Pub League' branch below is hardcoded to Premier + Classic. The
+        # model explicitly supports several programs SHARING a
+        # season_league_type ("Programs sharing a value share a season"), so a
+        # future program registered under 'Pub League' would take this branch
+        # and get no League, no teams and no schedule -- silently. Detect that
+        # and refuse, rather than half-creating a season.
         if league_type == 'Pub League':
             premier_league = League(name="Premier", season_id=new_season.id)
             classic_league = League(name="Classic", season_id=new_season.id)
@@ -1927,6 +2147,47 @@ def _execute_season_creation(session, data):
                 ecs_fc_season_config.playoff_weeks = int(data['ecs_fc_playoff_weeks'])
                 
             session.add(ecs_fc_season_config)
+
+        else:
+            # Any other registered program. Previously this if/elif had NO else,
+            # so creating a season for a newer program returned HTTP 200 having
+            # created a bare `season` row with no League, no AutoScheduleConfig
+            # and no SeasonConfiguration -- and therefore no teams, no schedule
+            # and no draft. It even reported "created successfully with 0 teams".
+            # Validated up-front (see the pre-mutation guard); re-read here.
+            _programs = _programs_for_season_type(league_type)
+            for _pr in _programs:
+                _lane = _pr.membership_lane
+                _league = League(name=_pr.league_name, season_id=new_season.id)
+                session.add(_league)
+                session.flush()
+
+                session.add(AutoScheduleConfig(
+                    league_id=_league.id,
+                    # `or` chain, not .get(key, default): a key that EXISTS but
+                    # is blank returns '' and strptime('') is a 500, not a
+                    # default. The final literal is the backstop.
+                    start_time=datetime.strptime(
+                        (data.get(f'{_lane}_start_time') or '').strip()
+                        or (data.get('premier_start_time') or '').strip()
+                        or '08:20', '%H:%M').time(),
+                    match_duration_minutes=int(data.get('match_duration', 70)),
+                    break_duration_minutes=int(data.get('break_duration', 10)),
+                    weeks_count=_program_form_int(data, _pr, 'regular_weeks', 8),
+                    fields=data.get('fields', 'North,South'),
+                    created_by=current_user.id
+                ))
+
+                _cfg = AutoScheduleGenerator.create_default_season_configuration(
+                    _league.id, _pr.season_config_type or 'ECS_FC'
+                )
+                _pw = _program_form_int(data, _pr, 'playoff_weeks', None)
+                if _pw is not None:
+                    _cfg.playoff_weeks = _pw
+                _rw = _program_form_int(data, _pr, 'regular_weeks', None)
+                if _rw is not None:
+                    _cfg.regular_season_weeks = _rw
+                session.add(_cfg)
         
         # Perform rollover if setting as current and there was an old season
         rollover_performed = False
@@ -1941,7 +2202,10 @@ def _execute_season_creation(session, data):
                 # (PlayerActivationService.activate_player_for_league). Scoped to the OLD
                 # Pub League season's leagues so ECS FC players are never touched — ECS FC
                 # does not rotate. Mirrors create_pub_league_season in season_routes.py.
-                if old_season.league_type == 'Pub League':
+                # Registry-driven: a program that rolls over must deactivate
+                # last season's roster, or its players keep is_current_player
+                # (i.e. paid status) without paying again.
+                if _season_type_rolls_over(old_season.league_type):
                     old_pl_league_ids = [
                         l.id for l in session.query(League).filter_by(season_id=old_season.id).all()
                     ]
@@ -1964,7 +2228,7 @@ def _execute_season_creation(session, data):
                 # Queue Discord cleanup for Pub League seasons only, and only if
                 # the caller opted in (delete_discord_channels). This DELETES the
                 # old season's team channels + roles — off = keep them.
-                if old_season.league_type == 'Pub League' and delete_discord_channels:
+                if _season_type_cleans_discord(old_season.league_type) and delete_discord_channels:
                     try:
                         cleanup_pub_league_discord_resources_celery_task.delay(old_season.id)
                         discord_cleanup_queued = True
@@ -1972,7 +2236,7 @@ def _execute_season_creation(session, data):
                     except Exception as e:
                         logger.error(f"Failed to queue Discord cleanup: {e}")
                         # Don't fail the entire operation if Discord cleanup fails to queue
-                elif old_season.league_type == 'Pub League':
+                elif _season_type_cleans_discord(old_season.league_type):
                     logger.info(f"Discord channel cleanup skipped for {old_season.name} (delete toggle off)")
                         
             except Exception as e:
@@ -2027,7 +2291,36 @@ def _execute_season_creation(session, data):
                 session.add(team)
                 session.flush()  # Get team ID
                 created_teams.append(team.id)
-        
+
+        else:
+            # Any other registered program. Letters continue past the divisions
+            # that already exist in this season, matching the Classic A-D /
+            # Premier E-L convention, so two programs in one season never mint
+            # the same placeholder name.
+            _offset = 0
+            for _pr in _programs_for_season_type(league_type):
+                _league = session.query(League).filter_by(
+                    name=_pr.league_name, season_id=new_season.id).first()
+                if _league is None:
+                    continue
+                _count = _program_form_int(data, _pr, 'teams', 0) or 0
+                if _count <= 0:
+                    # Validation only runs when the key is PRESENT, so an absent
+                    # count silently produced a season with no teams that still
+                    # reported "created successfully with 0 teams".
+                    logger.warning(
+                        f"No team count supplied for {_pr.display_name}; created "
+                        f"the league with zero teams.")
+                for i in range(_count):
+                    team = Team(name=f"Team {chr(65 + _offset + i)}",
+                                league_id=_league.id)
+                    session.add(team)
+                    session.flush()
+                    created_teams.append(team.id)
+                    logger.info(f"Created {_pr.display_name} team: {team.name} "
+                                f"(ID: {team.id})")
+                _offset += _count
+
         session.commit()
         
         # Process week configurations from wizard data - store raw data for per-league processing
@@ -2051,6 +2344,15 @@ def _execute_season_creation(session, data):
         elif league_type == 'ECS FC':
             if ecs_fc_league:
                 leagues_to_schedule.append(ecs_fc_league)
+        else:
+            # Without this, a newer program's season was created and then had NO
+            # schedule generated for it -- silently, because the if/elif simply
+            # fell through with an empty list.
+            for _pr in _programs_for_season_type(league_type):
+                _lg = session.query(League).filter_by(
+                    name=_pr.league_name, season_id=new_season.id).first()
+                if _lg is not None:
+                    leagues_to_schedule.append(_lg)
         
         schedule_generation_messages = []
         failed_leagues = []
@@ -2074,12 +2376,23 @@ def _execute_season_creation(session, data):
                 league_week_configs = []
 
                 # Determine which week configs to use for this league
+                # Registry-backed: the hardcoded map returned None for any newer
+                # program, so every configured special week was silently dropped
+                # and the generator substituted generic weeks instead.
                 league_division_map = {
                     'Premier': 'premier',
                     'Classic': 'classic',
                     'ECS FC': 'ecs_fc'
                 }
                 expected_division = league_division_map.get(league.name)
+                if expected_division is None:
+                    try:
+                        from app.services import program_registry
+                        _pr = program_registry.by_league_name(league.name)
+                        if _pr:
+                            expected_division = _pr.membership_lane
+                    except Exception:
+                        pass
 
                 logger.info(f"=== CREATING WEEKS for {league.name} (ID: {league.id}) ===")
                 logger.info(f"Expected division: {expected_division}")
@@ -2095,6 +2408,14 @@ def _execute_season_creation(session, data):
                 elif expected_division == 'ecs_fc' and ecs_fc_week_configs:
                     division_weeks = ecs_fc_week_configs
                     logger.info(f"Using ecs_fc_week_configs: {len(division_weeks)} weeks")
+                elif expected_division and ecs_fc_week_configs and expected_division not in (
+                        'premier', 'classic'):
+                    # The wizard renders ONE single-league layout for every
+                    # non-Pub-League season type, and it posts its weeks under
+                    # `ecs_fc_week_configs` whatever the program is.
+                    division_weeks = ecs_fc_week_configs
+                    logger.info(f"Using single-league week configs for "
+                                f"{expected_division}: {len(division_weeks)} weeks")
                 elif week_configs:
                     # Legacy format: filter by division field
                     division_weeks = [w for w in week_configs if w.get('division') == expected_division]

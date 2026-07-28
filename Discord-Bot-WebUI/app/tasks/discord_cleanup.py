@@ -127,9 +127,12 @@ def validate_cleanup_target(season_id: int, league_name: str, team_name: str) ->
     Returns:
         bool: True if the target is safe to delete, False otherwise
     """
-    # Only allow cleanup of Premier and Classic team resources
-    if league_name not in ['Premier', 'Classic']:
-        logger.warning(f"Attempted to clean up non-team league: {league_name}")
+    # Only allow cleanup of leagues whose program opts into rollover teardown.
+    # NOTE: this validator currently has no callers -- it is a safety net kept
+    # in step with the three real gates so that wiring it up later cannot
+    # silently veto a program the rest of the module happily cleans up.
+    if league_name not in _cleanup_league_names():
+        logger.warning(f"Attempted to clean up league with cleanup disabled: {league_name}")
         return False
     
     # Don't allow cleanup of placeholder team names that might be system-wide
@@ -144,6 +147,38 @@ def validate_cleanup_target(season_id: int, league_name: str, team_name: str) ->
 # Celery task wrapper
 from app.decorators import celery_task
 
+def _cleanup_league_names(session=None):
+    """League names whose Discord resources are torn down at rollover.
+
+    ECS FC is deliberately excluded (discord_cleanup_on_rollover=False) -- its
+    channels are never cleaned up. Any pub-league-like program must be included
+    or its channels and roles accumulate one full set per season with nothing
+    that ever removes them, while the rollover reports success.
+    """
+    try:
+        from app.services import program_registry
+        names = {p.league_name for p in program_registry.all_programs(session)
+                 if p.discord_cleanup_on_rollover}
+        if names:
+            return names
+    except Exception as exc:
+        logger.warning(f"program registry unavailable for cleanup scope: {exc}")
+    return {'Premier', 'Classic'}
+
+
+def _cleanup_season_types(session=None):
+    """Season.league_type values whose seasons are eligible for cleanup."""
+    try:
+        from app.services import program_registry
+        types = {p.season_league_type for p in program_registry.all_programs(session)
+                 if p.discord_cleanup_on_rollover}
+        if types:
+            return types
+    except Exception:
+        pass
+    return {'Pub League'}
+
+
 def _extract_season_cleanup_data(session, old_season_id: int):
     """Extract all data needed for season Discord cleanup."""
     team_cleanup_data = []
@@ -153,20 +188,30 @@ def _extract_season_cleanup_data(session, old_season_id: int):
     if not old_season:
         raise ValueError(f"Season {old_season_id} not found")
     
-    # Only process Pub League seasons
-    if old_season.league_type != 'Pub League':
+    # Any season type whose programs opt into rollover cleanup. This was a hard
+    # `!= 'Pub League'` early return sitting ABOVE the registry-driven scoping
+    # below, which made that scoping dead code -- a newer program's season
+    # returned {'skip': True} before it was ever consulted.
+    if old_season.league_type not in _cleanup_season_types(session):
         return {
             'skip': True,
-            'message': f'Skipped non-Pub League season: {old_season.league_type}'
+            'message': f'Skipped season type with no cleanup-enabled program: '
+                       f'{old_season.league_type}'
         }
     
     # Get all leagues for this season
     leagues = session.query(League).filter_by(season_id=old_season_id).all()
     
     # Collect all team data that needs cleanup
+    # Registry-driven: tear down only programs flagged discord_cleanup_on_rollover.
+    # ECS FC is deliberately FALSE (its channels are never cleaned up), while any
+    # new pub-league-like program must be TRUE or its channels and roles pile up
+    # season after season with nothing to remove them.
+    _cleanup_names = _cleanup_league_names(session)
+
     for league in leagues:
-        # Only process Premier and Classic leagues
-        if league.name not in ['Premier', 'Classic']:
+        # Only process leagues whose program opts into rollover cleanup
+        if league.name not in _cleanup_names:
             logger.info(f"Skipping non-team league: {league.name}")
             continue
             
@@ -299,11 +344,11 @@ def _extract_league_cleanup_data(session, league_id: int):
     if not league:
         raise ValueError(f"League {league_id} not found")
     
-    # Only process Premier and Classic leagues (team-based leagues)
-    if league.name not in ['Premier', 'Classic']:
+    # Third hardcoded layer, same story as the season gate above.
+    if league.name not in _cleanup_league_names(session):
         return {
             'skip': True,
-            'message': f'Skipped non-team league: {league.name}'
+            'message': f'Skipped league with cleanup disabled: {league.name}'
         }
     
     # Get all teams in this league

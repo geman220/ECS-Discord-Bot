@@ -253,6 +253,11 @@ class TestDraftPageBranch:
         coach = _coach_user(session)
         AuthTestHelper.create_authenticated_session(client, coach)
         resp = client.get('/draft/classic', follow_redirects=False)
+        # Must actually SERVE a board. Asserting only the absence of
+        # 'draft-balanced-root' passes vacuously on a 302, so an access
+        # regression that redirected every coach away still looked green here --
+        # which is exactly how one slipped through.
+        assert resp.status_code == 200
         # Legacy path: whatever it renders, it must NOT be the balanced board.
         assert 'draft-balanced-root' not in resp.get_data(as_text=True)
 
@@ -265,6 +270,8 @@ class TestDraftPageBranch:
         session.flush()
         AuthTestHelper.create_authenticated_session(client, coach)
         resp = client.get('/draft/premier', follow_redirects=False)
+        # Same vacuous-pass hazard as above: require a served page first.
+        assert resp.status_code == 200
         assert 'draft-balanced-root' not in resp.get_data(as_text=True)
 
 

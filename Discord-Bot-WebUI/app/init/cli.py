@@ -23,7 +23,7 @@ def init_cli_commands(app):
         fix_duplicate_user_roles, add_user_roles_constraint,
         regenerate_phone_hashes, sync_profile_pictures,
         reencode_profile_pictures, backfill_league_membership,
-        fix_ecs_fc_role_prefix
+        fix_ecs_fc_role_prefix, seed_summer_sprint, sync_program_discord, seed_program_automations
     )
     app.cli.add_command(build_assets)
     app.cli.add_command(reencode_profile_pictures)
@@ -35,6 +35,9 @@ def init_cli_commands(app):
     app.cli.add_command(sync_profile_pictures)
     app.cli.add_command(backfill_league_membership)
     app.cli.add_command(fix_ecs_fc_role_prefix)
+    app.cli.add_command(seed_summer_sprint)
+    app.cli.add_command(sync_program_discord)
+    app.cli.add_command(seed_program_automations)
 
     # Register wallet CLI commands
     from app.wallet_pass.cli import wallet as wallet_cli

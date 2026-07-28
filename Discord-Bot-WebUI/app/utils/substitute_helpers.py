@@ -23,13 +23,44 @@ from app.models.substitutes import (
 
 logger = logging.getLogger(__name__)
 
-# Constants
+# WARNING: FALLBACKS ONLY -- go through league_types() / league_role_mapping().
+# SubstituteRequest.league_type carries a League.name ('Premier', 'Summer
+# Sprint'), and both literals below silently excluded any program added after
+# they were written: validate_league_type 400s the request, and
+# LEAGUE_ROLE_MAPPING.get() returning None means get_active_substitutes
+# contacts NOBODY while still answering HTTP 200.
 LEAGUE_TYPES = ['ECS FC', 'Classic', 'Premier', 'Pub League']
 LEAGUE_ROLE_MAPPING = {
     'ECS FC': 'ECS FC Sub',
     'Classic': 'Classic Sub',
     'Premier': 'Premier Sub'
 }
+
+
+def league_types():
+    """Every valid SubstituteRequest.league_type value."""
+    out = list(LEAGUE_TYPES)
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs():
+            if p.league_name and p.league_name not in out:
+                out.append(p.league_name)
+    except Exception:
+        pass
+    return out
+
+
+def league_role_mapping():
+    """League.name -> Flask sub role name, across every program."""
+    out = dict(LEAGUE_ROLE_MAPPING)
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs():
+            if p.league_name and p.flask_sub_role:
+                out[p.league_name] = p.flask_sub_role
+    except Exception:
+        pass
+    return out
 
 ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 COACH_ROLES = ['Pub League Coach', 'ECS FC Coach']
@@ -99,16 +130,42 @@ def actionable_sub_cutoff_date():
 
 def resolve_league_type_from_match(match, session) -> str:
     """
-    Resolve 'Pub League' to specific division ('Classic' or 'Premier')
-    using match → schedule → season chain.
+    Resolve a match to the League.name that SubstituteRequest.league_type wants.
+
+    WARNING: returns a League.name ('Premier', 'Summer Sprint'), NOT a
+    Season.league_type. Those are different vocabularies and the whole
+    substitute stack keys on the former: _sub_role_by_league_type() maps
+    League.name -> 'X Sub'.
+
+    This used to return season.league_type raw with one special case for the
+    literal 'Pub League'. Every OTHER multi-division season type sailed straight
+    through, so a request was stored carrying a season type no role mapping
+    knows -- get_active_substitutes returned [] and the request reached nobody,
+    with no error anywhere.
     """
+    _season_types = {'Pub League'}
     try:
-        if match.schedule and match.schedule.season:
-            return match.schedule.season.league_type
-        # Fallback via team → league → season
+        from app.services import program_registry
+        _season_types |= {p.season_league_type for p in program_registry.all_programs()
+                          if p.season_league_type}
+    except Exception:
+        pass
+
+    def _resolve(raw, team):
+        # A season type is ambiguous (several divisions share it) -> fall back to
+        # the team's actual league. Anything else is already a League.name.
+        if raw and raw not in _season_types:
+            return raw
+        if team and team.league:
+            return team.league.name
+        return raw
+
+    try:
         team = match.home_team or session.query(Team).get(match.home_team_id)
+        if match.schedule and match.schedule.season:
+            return _resolve(match.schedule.season.league_type, team) or 'Classic'
         if team and team.league and team.league.season:
-            return team.league.season.league_type
+            return _resolve(team.league.season.league_type, team) or 'Classic'
     except Exception:
         pass
     return 'Classic'
@@ -124,7 +181,7 @@ def validate_league_type(league_type: str) -> bool:
     Returns:
         bool: True if valid, False otherwise
     """
-    return league_type in LEAGUE_TYPES
+    return league_type in league_types()
 
 
 def get_user_substitute_permissions(user_id: int, session) -> Dict[str, Any]:
@@ -172,7 +229,7 @@ def get_user_substitute_permissions(user_id: int, session) -> Dict[str, Any]:
         }
 
         # Check substitute roles for each league type
-        for league_type, required_role in LEAGUE_ROLE_MAPPING.items():
+        for league_type, required_role in league_role_mapping().items():
             has_role = any(role.name == required_role for role in user.roles)
             permissions['substitute_roles'][league_type] = has_role
             permissions['can_respond_to_requests'][league_type] = has_role
@@ -207,7 +264,7 @@ def can_user_respond_to_request(user_id: int, league_type: str, session) -> bool
         bool: True if user can respond, False otherwise
     """
     try:
-        required_role = LEAGUE_ROLE_MAPPING.get(league_type)
+        required_role = league_role_mapping().get(league_type)
         if not required_role:
             return False
 

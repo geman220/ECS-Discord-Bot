@@ -32,6 +32,12 @@
         <p class="text-xs text-gray-500 dark:text-gray-400">
             One row per player/season/team, sorted by player then season.
         </p>
+        <p class="text-xs text-amber-600 dark:text-amber-400">
+            <i class="ti ti-alert-triangle text-[11px]"></i>
+            Jersey columns show each player's <strong>current</strong> size and number — not what
+            they wore that season. Sizes aren't stored per season, so an old roster is paired with
+            today's sizes.
+        </p>
         <div class="flex flex-wrap gap-3">
             <button type="submit" formaction="{{ url_for('admin_panel.roster_history_report') }}" class="{{ btn_secondary }}">
                 <i class="ti ti-eye"></i> Preview

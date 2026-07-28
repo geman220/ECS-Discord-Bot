@@ -69,7 +69,7 @@ def user_analytics_registration_trends():
 def export_user_analytics():
     """Export user analytics data."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         export_type = data.get('type', 'users')  # users, roles, activity, all
         format_type = data.get('format', 'json')  # json (csv/xlsx would need additional libs)
         date_range = data.get('date_range', 'all')  # 7_days, 30_days, 90_days, all

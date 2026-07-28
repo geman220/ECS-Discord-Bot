@@ -388,12 +388,21 @@ def feature_toggles():
 
 def _on_setting_changed(setting_key: str, new_value: str):
     """Side effects for settings that must propagate beyond the DB row."""
-    if setting_key == 'make_teams_public':
+    # Match the per-program override keys too (make_teams_public:<program_key>),
+    # not just the bare global. Each program reveals on its own date, and
+    # flipping a program's own toggle used to dispatch NOTHING -- the web UI
+    # revealed the rosters while that program's Discord channels stayed locked.
+    from app.services.team_visibility import TEAMS_PUBLIC_KEY
+    if setting_key == TEAMS_PUBLIC_KEY or setting_key.startswith(f'{TEAMS_PUBLIC_KEY}:'):
         try:
             from app.tasks.tasks_discord import sync_team_channel_visibility_task
-            make_public = str(new_value).lower() in ('true', '1', 'yes', 'on')
-            sync_team_channel_visibility_task.delay(make_public)
-            logger.info(f"Dispatched team channel visibility sync (make_public={make_public})")
+            _pkey = (setting_key.split(':', 1)[1]
+                     if setting_key.startswith(f'{TEAMS_PUBLIC_KEY}:') else None)
+            # The task resolves each program's state itself via
+            # teams_are_public(key); new_value is only a log hint.
+            sync_team_channel_visibility_task.delay(program_key=_pkey)
+            logger.info("Dispatched team channel visibility sync "
+                        f"(key={setting_key}, program={_pkey or 'ALL'}, value={new_value})")
         except Exception as e:
             logger.error(f"Failed to dispatch team channel visibility sync: {e}")
 

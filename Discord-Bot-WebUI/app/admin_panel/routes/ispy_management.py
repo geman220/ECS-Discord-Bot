@@ -887,7 +887,7 @@ def disallow_ispy_shot(shot_id):
     """Disallow (reject) an I-Spy shot."""
     try:
         shot = ISpyShot.query.get_or_404(shot_id)
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
 
         shot.status = 'disallowed'
         shot.disallowed_at = datetime.utcnow()

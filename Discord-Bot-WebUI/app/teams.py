@@ -47,6 +47,7 @@ from app.engagement_service import record_coach_engagement
 from app.decorators import role_required
 from app.admin_helpers import determine_match_league_type
 from app.utils.special_weeks import get_special_week_display_name
+from app.services.team_visibility import reveal_gated_league_names
 
 logger = logging.getLogger(__name__)
 teams_bp = Blueprint('teams', __name__)
@@ -181,7 +182,7 @@ def team_details(team_id):
     # Pre-reveal (make_teams_public off): current-season Pub League team pages
     # (rosters) are coach/admin-only. Historical teams stay visible.
     from app.services.team_visibility import user_can_view_teams
-    if (team.league and team.league.name in ('Premier', 'Classic')
+    if (team.league and team.league.name in reveal_gated_league_names()
             and team.league.season and team.league.season.is_current
             and not user_can_view_teams(safe_current_user, session=session)):
         show_warning('Team rosters are hidden until teams are announced.')
@@ -607,18 +608,37 @@ def teams_overview():
         .first()
     )
 
-    if not current_pub_season and not current_ecs_season:
-        show_warning('No current season found for either Pub League or ECS FC.')
+    # Every OTHER program's current season. Without this the route only ever
+    # selects Pub League + ECS FC teams, so the template's catch-all bucket is
+    # ALWAYS empty and a third program's teams are unreachable -- the fix has to
+    # be here, not only in the template.
+    other_current_seasons = []
+    try:
+        from app.services import program_registry
+        _extra_types = {pr.season_league_type
+                        for pr in program_registry.all_programs()} - {'Pub League', 'ECS FC'}
+        if _extra_types:
+            other_current_seasons = (
+                session.query(Season)
+                .filter(Season.is_current.is_(True),
+                        Season.league_type.in_(sorted(_extra_types)))
+                .all()
+            )
+    except Exception as _oc_err:
+        logger.warning(f"Could not resolve other programs' current seasons: {_oc_err}")
+
+    if not current_pub_season and not current_ecs_season and not other_current_seasons:
+        show_warning('No current season found.')
         return redirect(url_for('main.index'))
 
-    # Pre-reveal (make_teams_public off): the Pub League team list is
-    # coach/admin-only; ECS FC teams stay visible.
-    from app.services.team_visibility import user_can_view_teams
-    if current_pub_season and not user_can_view_teams(safe_current_user, session=session):
-        current_pub_season = None
-        if not current_ecs_season:
-            show_warning('Teams are hidden until they are announced.')
-            return redirect(url_for('main.index'))
+    # Pre-reveal: hidden teams are coach/admin-only. This is filtered PER LEAGUE
+    # (below), not by blanking a whole season -- with per-program reveal dates,
+    # Summer being pre-reveal must not also hide a mid-season Premier/Classic.
+    from app.services.team_visibility import (
+        user_is_team_exempt, reveal_gated_league_names, teams_are_public)
+    _viewer_exempt = user_is_team_exempt(safe_current_user, session=session)
+    _hidden_league_names = () if (_viewer_exempt or teams_are_public()) \
+        else tuple(reveal_gated_league_names(session))
 
     # Build conditions based on which current seasons exist.
     conditions = []
@@ -626,6 +646,8 @@ def teams_overview():
         conditions.append(League.season_id == current_pub_season.id)
     if current_ecs_season:
         conditions.append(League.season_id == current_ecs_season.id)
+    for _os in other_current_seasons:
+        conditions.append(League.season_id == _os.id)
 
     # Eager-load everything teams_overview_flowbite.html walks per row:
     # team.league.name, team.league.season.name and team.players|length. Left lazy,
@@ -641,12 +663,24 @@ def teams_overview():
         )
     )
 
-    if len(conditions) == 1:
-        teams_query = teams_query.filter(conditions[0])
-    elif len(conditions) == 2:
+    # or_() over ANY number of conditions. This used to be `if len == 1 / elif
+    # len == 2`, which was exhaustive only while there were exactly two possible
+    # current seasons. A third program pushes len to 3, both branches are
+    # skipped, and the query runs UNFILTERED -- every Team row in the database,
+    # every season, including reveal-gated ones, then fed to
+    # preload_team_stats_for_request. No error, just a spoiled reveal on a page
+    # that takes forever to load.
+    if conditions:
         teams_query = teams_query.filter(or_(*conditions))
 
+    if _hidden_league_names:
+        teams_query = teams_query.filter(~League.name.in_(_hidden_league_names))
+
     teams = teams_query.order_by(Team.name).all()
+
+    if not teams and _hidden_league_names:
+        show_warning('Teams are hidden until they are announced.')
+        return redirect(url_for('main.index'))
     
     # Preload team stats to avoid N+1 queries
     from app.team_performance_helpers import preload_team_stats_for_request
@@ -1075,6 +1109,27 @@ def view_standings():
     classic_standings = get_standings('Classic')
     ecsfc_standings = get_standings('ECS FC')
 
+    # Every OTHER program, so a newer one has a standings table at all. The three
+    # named variables above are kept because the template's three tabs read them
+    # by name; anything else arrives as `extra_standings` and gets its own tab.
+    extra_standings = []
+    try:
+        from app.services import program_registry
+        for _pr in program_registry.all_programs():
+            if _pr.league_name in ('Premier', 'Classic', 'ECS FC'):
+                continue
+            _rows = get_standings(_pr.league_name)
+            if _rows:
+                extra_standings.append({
+                    'key': _pr.key,
+                    'name': _pr.display_name,
+                    'league_name': _pr.league_name,
+                    'color': _pr.color,
+                    'standings': _rows,
+                })
+    except Exception as _std_err:
+        logger.warning(f"Could not build extra standings: {_std_err}")
+
     # premier_stats / classic_stats / ecsfc_stats REMOVED — along with their Redis cache.
     #
     # The template assigned them (`{% set stats = premier_stats.get(...) %}` at
@@ -1119,12 +1174,31 @@ def view_standings():
         )
 
     award_data = {}
-    for div in ('Premier', 'Classic', 'ECS FC'):
+    _award_divisions = ['Premier', 'Classic', 'ECS FC']
+    try:
+        from app.services import program_registry
+        for _pr in program_registry.all_programs():
+            if _pr.league_name not in _award_divisions:
+                _award_divisions.append(_pr.league_name)
+    except Exception:
+        pass
+    for div in _award_divisions:
         prefix = div.lower().replace(' ', '_')
         award_data[f'{prefix}_top_scorers'] = _top_stat(div, 'goals')
         award_data[f'{prefix}_top_assisters'] = _top_stat(div, 'assists')
         award_data[f'{prefix}_yellow_cards'] = _top_stat(div, 'yellow_cards')
         award_data[f'{prefix}_red_cards'] = _top_stat(div, 'red_cards')
+
+    # Attach each extra program's leaderboards to its own pane. award_data is
+    # keyed by a name-derived prefix that the template's three hardcoded tabs
+    # read directly; the extra panes iterate a list instead, so they need the
+    # rows carried on the item.
+    for _ex in extra_standings:
+        _pfx = _ex['league_name'].lower().replace(' ', '_')
+        _ex['top_scorers'] = award_data.get(f'{_pfx}_top_scorers', [])
+        _ex['top_assisters'] = award_data.get(f'{_pfx}_top_assisters', [])
+        _ex['yellow_cards'] = award_data.get(f'{_pfx}_yellow_cards', [])
+        _ex['red_cards'] = award_data.get(f'{_pfx}_red_cards', [])
 
     # Pre-reveal: leaderboards pair player names with their current team.
     from app.services.team_visibility import user_can_view_teams
@@ -1136,6 +1210,7 @@ def view_standings():
         premier_standings=premier_standings,
         classic_standings=classic_standings,
         ecsfc_standings=ecsfc_standings,
+        extra_standings=extra_standings,
         viewer_can_see_teams=viewer_can_see_teams,
         **award_data
     )
@@ -2003,8 +2078,17 @@ def coach_dashboard():
             match.is_ecs_fc = False
             match.home_team = session.query(Team).get(match.home_team_id)
             match.away_team = session.query(Team).get(match.away_team_id)
+            # Which side is THIS coach's team? The card's "Request Sub" button used
+            # `home_team_id if home_team_id else away_team_id`, so for every away
+            # fixture it requested a substitute for the OPPONENT's team.
+            match.coach_team_id = (
+                match.home_team_id if match.home_team_id in pub_league_team_ids
+                else match.away_team_id
+            )
             # Refine league type (Premier vs Classic)
-            if match.home_team and match.home_team.id in team_league_types:
+            if match.coach_team_id and match.coach_team_id in team_league_types:
+                match.league_type = team_league_types[match.coach_team_id]
+            elif match.home_team and match.home_team.id in team_league_types:
                 match.league_type = team_league_types[match.home_team.id]
 
         all_matches.extend(pub_matches)
@@ -2570,7 +2654,7 @@ def coach_update_player_rsvp(match_id, player_id):
     session = g.db_session
     user = safe_current_user
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_response = data.get('response', '').lower()
 
     if new_response not in ['yes', 'no', 'maybe', 'no_response']:
@@ -2691,7 +2775,7 @@ def send_match_rsvp_reminder(match_id):
     session = g.db_session
     user = safe_current_user
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     only_non_responders = data.get('only_non_responders', True)
     custom_message = data.get('message', '').strip()
 

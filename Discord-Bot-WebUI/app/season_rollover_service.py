@@ -293,7 +293,7 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
                     f"each team can play back-to-back games — you chose "
                     f"{divisions[div_name]['team_count']}."
                 )
-    else:  # ECS FC
+    elif league_type == 'ECS FC':
         new_leagues = ['ECS FC']
         ecs_count = int(team_counts.get('ecs_fc', 0) or 0)
         divisions = {
@@ -307,6 +307,44 @@ def build_rollover_preview(session, league_type: str, new_season_name: str,
             warnings.append(
                 f"ECS FC needs an even number of teams (at least 2) so each team "
                 f"can play back-to-back games — you chose {ecs_count}."
+            )
+    else:
+        # Any other registered program. This was the ECS FC `else`, so a preview
+        # for a newer program reported new_leagues=['ECS FC'] and read
+        # team_counts['ecs_fc'] -- it described the WRONG league entirely, and
+        # the admin would confirm a rollover based on it.
+        _progs = []
+        try:
+            from app.services import program_registry
+            _progs = list(program_registry.by_season_league_type(league_type, include_inactive=True))
+        except Exception as _rp_err:
+            logger.warning(f"rollover preview: registry unavailable for "
+                           f"'{league_type}': {_rp_err}")
+        new_leagues = [pr.league_name for pr in _progs]
+        divisions = {}
+        all_team_names = []
+        total_teams = 0
+        _offset = 0
+        for pr in _progs:
+            # Accept the lane-specific count first, then the generic
+            # single-league field the wizard actually posts.
+            _count = int(team_counts.get(pr.membership_lane)
+                         or team_counts.get('ecs_fc', 0) or 0)
+            _wk = (week_config_summary.get(pr.membership_lane)
+                   or week_config_summary.get('ecs_fc', {}))
+            divisions[pr.display_name] = _division_schedule_preview(_offset, _count, _wk)
+            all_team_names += divisions[pr.display_name]['team_names']
+            total_teams += _count
+            _offset += _count
+            if not divisions[pr.display_name]['even_ok']:
+                warnings.append(
+                    f"{pr.display_name} needs an even number of teams (at least 2) "
+                    f"so each team can play back-to-back games — you chose {_count}."
+                )
+        if not _progs:
+            warnings.append(
+                f"No active program is registered for season type '{league_type}', "
+                f"so there is nothing to roll over."
             )
 
     # --- Duplicate-name guard (dry run, no mutation) -----------------------

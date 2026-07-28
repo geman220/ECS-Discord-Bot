@@ -529,7 +529,11 @@ def sub_assign_json():
     # Pub League notify path) does NOT bump matches_played, and the notify TASK may
     # never run. Increment the pool counter + activity here so the count can't be lost.
     from app.models.substitutes import SubstitutePool as _SP
-    pool = session.query(_SP).filter_by(player_id=player_id).first()
+    # Credit THIS request's program. Unscoped, .first() bumped an arbitrary
+    # row's matches_played once a player subbed for more than one program.
+    pool = (session.query(_SP)
+            .filter_by(player_id=player_id, league_type=req.league_type).first()
+            or session.query(_SP).filter_by(player_id=player_id).first())
     if pool:
         pool.matches_played = (pool.matches_played or 0) + 1
         pool.last_active_at = now
@@ -715,7 +719,12 @@ def sub_reachout_web():
     from app.services.substitute_authority import can_request
     from app.services.substitute_notification_service import get_notification_service
 
-    PUB = ('Classic', 'Premier')
+    try:
+        from app.services import program_registry
+        PUB = tuple(pr.league_name for pr in program_registry.all_programs()
+                    if pr.is_pub_league_like) or ('Classic', 'Premier')
+    except Exception:
+        PUB = ('Classic', 'Premier')
     data = request.get_json(silent=True) or {}
 
     kind = (data.get('kind') or 'general').strip().lower()
@@ -1024,8 +1033,13 @@ def sub_request_create():
 
     # Resolve the division league_type (Classic/Premier).
     from app.utils.substitute_helpers import resolve_league_type_from_match
+    # resolve_league_type_from_match now returns a League.name for EVERY season
+    # type, not just 'Pub League'. The old inline special case covered that one
+    # literal only, so any other multi-division season type stored its own
+    # Season.league_type here -- a value no sub-role mapping knows, which meant
+    # the request was broadcast to nobody and still returned 200.
     league_type = resolve_league_type_from_match(match, session)
-    if league_type in (None, '', 'Pub League'):
+    if not league_type:
         team_obj = session.query(Team).get(team_id)
         league_type = team_obj.league.name if team_obj and team_obj.league else 'Classic'
 

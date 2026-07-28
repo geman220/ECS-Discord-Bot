@@ -31,7 +31,26 @@ from app.models.matches import Match, Schedule
 logger = logging.getLogger(__name__)
 
 # Canonical Pub League sub lanes. ECS FC is intentionally excluded (divergent backend).
-PUB_LEAGUE_TYPES = ('Classic', 'Premier')
+PUB_LEAGUE_TYPES = ('Classic', 'Premier')  # fallback; see _pub_league_type_names()
+
+def _pub_league_type_names():
+    """League.name values for pass-based pub-league-like programs.
+
+    Was the literal ('Classic', 'Premier'), repeated in three modules. A program
+    outside it is silently excluded from availability polls, reach-outs and
+    conflict checks -- so its subs can be double-booked and its pool never
+    settles.
+    """
+    try:
+        from app.services import program_registry
+        names = tuple(p.league_name for p in program_registry.all_programs()
+                      if p.is_pub_league_like)
+        if names:
+            return names
+    except Exception:
+        pass
+    return ('Classic', 'Premier')
+
 
 # Availability rows are segregated by SOURCE BUCKET so the two independent doors
 # (Discord poll vs admin reach-out) never clobber each other's slots. Reads
@@ -96,7 +115,7 @@ def sync_availability_from_poll_vote(session, poll, discord_user_id):
         if not bucket:
             continue
         league_type = bucket.get('league_type')
-        if league_type not in PUB_LEAGUE_TYPES:
+        if league_type not in _pub_league_type_names():
             continue
         agg = by_league.setdefault(league_type, {'slots': set(), 'match_ids': set()})
         agg['slots'].update(bucket.get('slots') or [])
@@ -148,7 +167,7 @@ def record_reachout_response(session, *, player_id, match_date, league_type,
     slots into the pool; a 'no' marks the row unavailable (keeps a record so we don't
     re-pester). The team is never part of this record — availability is team-agnostic.
     """
-    if league_type not in PUB_LEAGUE_TYPES:
+    if league_type not in _pub_league_type_names():
         logger.warning("record_reachout_response: unsupported league_type %r", league_type)
         return None
     return _upsert(
@@ -258,11 +277,15 @@ def player_sub_stats(session, player_id, season_id=None):
     acceptance rate (requests_accepted / requests_received), the same signal the
     board already surfaces.
     """
-    pool = session.query(SubstitutePool).filter_by(player_id=player_id).first()
-    matches_played = pool.matches_played if pool else 0
-    requests_received = pool.requests_received if pool else 0
-    requests_accepted = pool.requests_accepted if pool else 0
-    response_rate = round(pool.acceptance_rate, 1) if pool else 0.0
+    # Sum across every pool row. A player may sub for several programs at once
+    # and .first() reported one program's counters as their whole record --
+    # which is also the number the board ranks candidates on.
+    pools = session.query(SubstitutePool).filter_by(player_id=player_id).all()
+    matches_played = sum(p.matches_played or 0 for p in pools)
+    requests_received = sum(p.requests_received or 0 for p in pools)
+    requests_accepted = sum(p.requests_accepted or 0 for p in pools)
+    response_rate = round((requests_accepted / requests_received * 100), 1) \
+        if requests_received else 0.0
 
     subbed_this_season = 0
     if season_id:
@@ -427,10 +450,10 @@ def get_week_availability(session, match_date, league_type=None, season_id=None,
     )
     if available_only:
         q = q.filter(SubstituteAvailability.is_available.is_(True))
-    if league_type and league_type in PUB_LEAGUE_TYPES:
+    if league_type and league_type in _pub_league_type_names():
         q = q.filter(SubstituteAvailability.league_type == league_type)
     else:
-        q = q.filter(SubstituteAvailability.league_type.in_(list(PUB_LEAGUE_TYPES)))
+        q = q.filter(SubstituteAvailability.league_type.in_(list(_pub_league_type_names())))
 
     out = _aggregate(session, q.all(), season_id)
     out.sort(key=lambda d: (d['subbed_this_season'], -d['response_rate']))
@@ -445,7 +468,7 @@ def get_candidates_for_request(session, sub_request, season_id=None):
     that carried no match_ids (so a "can anyone sub?" yes still surfaces). Returns
     enriched dicts with a `conflict` flag when the sub plays/coaches the team.
     """
-    if not sub_request or sub_request.league_type not in PUB_LEAGUE_TYPES:
+    if not sub_request or sub_request.league_type not in _pub_league_type_names():
         return []
 
     match = session.query(Match).filter_by(id=sub_request.match_id).first()

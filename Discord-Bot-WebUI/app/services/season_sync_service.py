@@ -37,10 +37,37 @@ class SeasonSyncService:
     """
 
     @staticmethod
+    def current_season_for_league_name(session, league_name):
+        """The CURRENT Season for the program that owns `league_name`.
+
+        Wallet passes, check-in and membership cards all did
+        `Season.filter_by(league_type='Pub League', is_current=True)` while
+        taking the league name from the player. For a member of a program with
+        its own season that pairs the right league with the WRONG season: the
+        pass shows the Pub League season name and inherits its expiry, so a
+        five-week August program would mint a pass valid into December.
+
+        Returns None when the program has no current season -- callers keep
+        their existing fallback rather than silently using another program's.
+        """
+        from app.models import Season
+        league_type = 'Pub League'
+        try:
+            from app.services import program_registry
+            pr = program_registry.by_league_name(league_name)
+            if pr:
+                league_type = pr.season_league_type
+        except Exception:
+            pass
+        return (session.query(Season)
+                .filter_by(league_type=league_type, is_current=True)
+                .first())
+
+    @staticmethod
     def get_current_league_by_name(
         session: Session,
         league_name: str,
-        league_type: str = 'Pub League'
+        league_type: str = None
     ) -> Optional[League]:
         """
         Get the current season's league by name.
@@ -63,11 +90,51 @@ class SeasonSyncService:
             >>> league = SeasonSyncService.get_current_league_by_name(db.session, 'Classic')
             >>> league.id  # Returns current season's Classic league ID (e.g., 25)
         """
+        # league_type defaults to the program that owns this league, NOT to the
+        # literal 'Pub League'. The old default silently returned None for any
+        # program with its own season_league_type -- so pass activation set
+        # is_current_player=True and then failed to assign a league at all,
+        # leaving the buyer paid, active, in no league, on no roster, in no
+        # draft pool, traceable only in a log line.
+        if league_type is None:
+            try:
+                from app.services import program_registry
+                _pr = program_registry.by_league_name(league_name)
+                league_type = _pr.season_league_type if _pr else 'Pub League'
+            except Exception:
+                league_type = 'Pub League'
         return session.query(League).join(Season).filter(
             League.name == league_name,
             Season.is_current == True,
             Season.league_type == league_type
         ).first()
+
+    @staticmethod
+    def get_latest_league_by_name(
+        session: Session,
+        league_name: str,
+        league_type: str = None
+    ) -> Optional[League]:
+        """Newest season's league of this name, current or not.
+
+        Safety net for the window where a program's season has been created but
+        not yet made current. Scoped by season_league_type for the same reason
+        get_current_league_by_name is: 'ECS FC' and a Pub League division can
+        share a season NAME, and an unscoped lookup silently returns whichever
+        row the planner happens to produce.
+        """
+        if league_type is None:
+            try:
+                from app.services import program_registry
+                _pr = program_registry.by_league_name(league_name)
+                league_type = _pr.season_league_type if _pr else 'Pub League'
+            except Exception:
+                league_type = 'Pub League'
+        return (session.query(League).join(Season)
+                .filter(League.name == league_name,
+                        Season.league_type == league_type)
+                .order_by(Season.id.desc())
+                .first())
 
     @staticmethod
     def get_current_league_mapping(
@@ -107,6 +174,12 @@ class SeasonSyncService:
         league_type: str = 'Pub League'
     ) -> Optional[int]:
         """
+        ⚠️ HARDCODED and currently UNCALLED. Left as-is deliberately
+        rather than half-migrated: it predates the program registry and
+        knows only Premier/Classic/ECS FC. If you give it a caller,
+        route it through program_registry first -- otherwise it will
+        silently resolve a newer program to the wrong league.
+
         Convenience method to get just the league ID for a division name.
 
         Args:
@@ -272,6 +345,12 @@ class SeasonSyncService:
         role_name: str
     ) -> Optional[League]:
         """
+        ⚠️ HARDCODED and currently UNCALLED. Left as-is deliberately
+        rather than half-migrated: it predates the program registry and
+        knows only Premier/Classic/ECS FC. If you give it a caller,
+        route it through program_registry first -- otherwise it will
+        silently resolve a newer program to the wrong league.
+
         Get the current season league based on a Flask role name.
 
         This maps role names to league names:

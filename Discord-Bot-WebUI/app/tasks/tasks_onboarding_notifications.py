@@ -12,9 +12,15 @@ discord_management.py):
 - onboarding_reminder_window — '24h'/'48h'/'72h'/'1w'/'2w'/'never': the weekly
   reminder mentions signups pending longer than this. 'never' = off.
 
+The same channel also receives Account Recovery pings
+(notify_discord_relink_request) — a member locked out of the portal because
+they lost their Discord account is the same admin's problem as the approval
+queue, and needs a faster response.
+
 Posts go through the bot REST API's generic channel-message endpoint
-(POST {BOT_API_URL}/api/channels/message). Both tasks are best-effort: any
-failure logs and moves on — approval flow must never depend on Discord.
+(POST {BOT_API_URL}/api/channels/message). Every task here is best-effort:
+any failure logs and moves on — approval and login flows must never depend
+on Discord being reachable.
 """
 
 import logging
@@ -30,6 +36,7 @@ from app.models.admin_config import AdminConfig
 logger = logging.getLogger(__name__)
 
 APPROVALS_PATH = '/admin-panel/users/approvals'
+ACCOUNT_RECOVERY_PATH = '/admin-panel/discord/account-recovery'
 
 REMINDER_WINDOW_HOURS = {'24h': 24, '48h': 48, '72h': 72, '1w': 168, '2w': 336}
 REMINDER_WINDOW_LABELS = {
@@ -38,10 +45,14 @@ REMINDER_WINDOW_LABELS = {
 }
 
 
-def _approvals_url():
+def _portal_url(path):
     from flask import current_app
     base = (current_app.config.get('BASE_URL') or 'https://portal.ecsfc.com').rstrip('/')
-    return f'{base}{APPROVALS_PATH}'
+    return f'{base}{path}'
+
+
+def _approvals_url():
+    return _portal_url(APPROVALS_PATH)
 
 
 def _post_channel_message(channel_name, content):
@@ -147,4 +158,57 @@ def remind_pending_approvals(self, session):
         return {'posted': True, 'pending_count': len(stale)}
     except Exception as e:
         logger.warning(f'Could not post approval reminder to #{channel}: {e}')
+        return {'posted': False, 'error': str(e)}
+
+
+@celery_task
+def notify_discord_relink_request(self, session, request_id):
+    """Announce a stranded member in the Account Recovery queue.
+
+    Fires when a Discord login is REFUSED because the account it claims is
+    already linked to a different Discord ID -- almost always someone who
+    lost access to their old Discord and made a new one. They cannot get
+    back in without an admin, and Discord is the only door, so the ping
+    matters more than the usual approval notice.
+
+    Only dispatched for NEW requests; retries by the same stranded member
+    bump the existing row silently instead of re-pinging.
+
+    Shares onboarding_approval_notify_channel -- an admin watching the
+    approvals channel is the same person who resolves these. Best-effort:
+    never allowed to affect the login path that queued it.
+    """
+    from app.models import DiscordRelinkRequest, DiscordRelinkStatus
+
+    channel = (AdminConfig.get_setting('onboarding_approval_notify_channel', '') or '').strip()
+    if not channel:
+        return {'skipped': 'no notify channel configured'}
+
+    relink_request = session.query(DiscordRelinkRequest).get(request_id)
+    if not relink_request:
+        return {'skipped': f'relink request {request_id} not found'}
+    if relink_request.status != DiscordRelinkStatus.PENDING:
+        return {'skipped': 'request already resolved'}
+
+    # Name the person if we know who they claim to be -- "Gregg can't get in"
+    # is actionable in a way that a bare Discord ID is not.
+    who = None
+    if relink_request.candidate_player is not None:
+        who = relink_request.candidate_player.name
+    who = who or relink_request.requested_discord_username or 'Someone'
+
+    if relink_request.blocked_reason == 'email_history_ambiguous':
+        detail = 'we matched more than one account, so someone has to confirm which is theirs'
+    else:
+        detail = 'looks like they lost their old Discord and made a new one'
+
+    content = (
+        f"**{who}** is locked out of the portal — {detail}.\n"
+        f"Review and relink: {_portal_url(ACCOUNT_RECOVERY_PATH)}"
+    )
+    try:
+        result = _post_channel_message(channel, content)
+        return {'posted': True, 'channel': result.get('channel_name', channel)}
+    except Exception as e:
+        logger.warning(f'Could not post relink notification to #{channel}: {e}')
         return {'posted': False, 'error': str(e)}

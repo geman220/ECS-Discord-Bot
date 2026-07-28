@@ -12,11 +12,39 @@ WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
 # Division-wide coach roles (assigned team-independently). Per-team coach roles
 # follow the ECS-FC-PL-<team>-Coach pattern — pub league AND ECS FC teams alike
 # (e.g. ECS-FC-PL-FC-Rainier-Coach).
+# ⚠️ THIS LIST IS AUTHORITATIVE AND MUST BE UPDATED WHEN A PROGRAM IS ADDED.
+#
+# An earlier comment here claimed is_division_coach_role() "matches by shape so
+# a new program's division role is excluded automatically". It does not -- the
+# function is an exact-membership test against this set. The claim was
+# dangerous precisely because it told the next reader this file needs no edit.
+#
+# The bot cannot read the portal's program table, so there is no way to derive
+# these names at runtime. A missing entry is classified as a TEAM coach role,
+# which is the SAFE direction (the role is merely swept with the teams rather
+# than a whole division being attributed to one team) -- but it is still wrong.
 DIVISION_COACH_ROLES = {
     "ecs-fc-pl-premier-coach",
     "ecs-fc-pl-classic-coach",
     "ecs-fc-pl-ecs-fc-coach",
+    "ecs-fc-pl-summer-coach",
 }
+
+
+def is_division_coach_role(lowered: str) -> bool:
+    """True for a DIVISION coach role (ECS-FC-PL-<DIV>-COACH), not a per-team one.
+
+    Exact membership test against DIVISION_COACH_ROLES -- NOT a structural
+    match. It cannot be structural: 'ecs-fc-pl-summer-coach' and
+    'ecs-fc-pl-rainier-coach' are the same shape, and only the portal knows
+    which middle segments are programs.
+
+    Unknown roles fall through to False, i.e. they are treated as TEAM coach
+    roles. That is the safe direction (worst case the role is swept with the
+    teams), which is why the miss is quiet -- and why the list above carries a
+    warning to keep it updated.
+    """
+    return (lowered or "").strip().lower() in DIVISION_COACH_ROLES
 
 
 def is_coach_role_name(name: str) -> bool:
@@ -36,7 +64,7 @@ def get_coached_team_player_roles(member: discord.Member, guild: discord.Guild) 
     player_roles = []
     for role in member.roles:
         lowered = role.name.strip().lower()
-        if not is_coach_role_name(lowered) or lowered in DIVISION_COACH_ROLES:
+        if not is_coach_role_name(lowered) or is_division_coach_role(lowered):
             continue
         player_role = guild_roles_by_lower.get(lowered[:-len("-coach")] + "-player")
         if player_role and player_role not in player_roles:

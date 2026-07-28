@@ -367,19 +367,42 @@ class LeagueManagementService:
                 logger.info(f"Marked old season {old_current.name} as not current")
 
             # Create leagues based on type
+            # Leagues come from the registry: every program filed under this
+            # season_league_type. Previously this was an if/else that could only
+            # ever produce Premier+Classic or a lone ECS FC, so a season for any
+            # other program was created with NO leagues at all -- and a season
+            # with no leagues has no teams, no schedule and no draft.
             leagues = []
-            if league_type == 'Pub League':
-                # Create Premier and Classic
-                premier = League(name='Premier', season_id=season.id)
-                classic = League(name='Classic', season_id=season.id)
-                self.session.add(premier)
-                self.session.add(classic)
-                leagues = [premier, classic]
-            else:
-                # Create single ECS FC league
-                ecs_fc = League(name='ECS FC', season_id=season.id)
-                self.session.add(ecs_fc)
-                leagues = [ecs_fc]
+            league_names = []
+            try:
+                from app.services import program_registry
+                # include_inactive: a program is routinely seeded before it is
+                # switched on, and creating its season must not depend on the
+                # flip having happened yet.
+                league_names = [pr.league_name for pr in
+                                program_registry.by_season_league_type(
+                                    league_type, include_inactive=True)]
+            except Exception as _reg_err:
+                logger.warning(f"program registry unavailable creating leagues "
+                               f"for '{league_type}': {_reg_err}")
+            if not league_names:
+                # ⚠️ Only the two vocabularies that predate the registry get a
+                # literal fallback. Anything else must FAIL, not silently invent
+                # a league: the old `else ['ECS FC']` created a league literally
+                # named "ECS FC" inside another program's season, which then
+                # collides with the real ECS FC league on every name lookup.
+                if league_type == 'Pub League':
+                    league_names = ['Premier', 'Classic']
+                elif league_type == 'ECS FC':
+                    league_names = ['ECS FC']
+                else:
+                    raise ValueError(
+                        f"No program is registered for season type '{league_type}'. "
+                        f"Register it in the program table before creating a season.")
+            for _name in league_names:
+                _lg = League(name=_name, season_id=season.id)
+                self.session.add(_lg)
+                leagues.append(_lg)
 
             self.session.flush()  # Get league IDs
 

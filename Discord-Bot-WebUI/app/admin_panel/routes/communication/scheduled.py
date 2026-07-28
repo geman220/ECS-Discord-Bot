@@ -595,7 +595,7 @@ def send_scheduled_message_now(message_id):
 def bulk_queue_action():
     """Bulk cancel/delete/send selected pending scheduled messages."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         action = data.get('action')
         ids = data.get('ids') or []
         ids = [int(i) for i in ids if str(i).isdigit()]
@@ -658,7 +658,7 @@ def bulk_schedule_messages():
         from sqlalchemy.orm import joinedload
         from app.models import Match
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         scope = data.get('scope', 'week')
 
         start_date = datetime.utcnow().date()

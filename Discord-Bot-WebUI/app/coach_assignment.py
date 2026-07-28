@@ -30,8 +30,25 @@ def division_coach_role_name(league_name: str) -> str:
     """League display name -> the Flask role that marks a division coach.
 
     'Premier' -> 'Premier Coach', 'Classic' -> 'Classic Coach'.
+
+    Registry first. Deriving the role name by string concatenation only works
+    while the role happens to be "<League name> Coach"; a program whose league
+    is named "Summer Sprint" but whose coach role is "Summer Coach" would
+    derive a role that does not exist, and draft coach auto-promotion would
+    silently never fire. The registry stores the real role name, so the two
+    cannot drift.
     """
-    return f"{(league_name or '').strip()} Coach"
+    name = (league_name or '').strip()
+    if not name:
+        return ' Coach'
+    try:
+        from app.services import program_registry
+        program = program_registry.by_league_name(name)
+        if program and program.flask_coach_role:
+            return program.flask_coach_role
+    except Exception:
+        pass
+    return f"{name} Coach"
 
 
 def player_is_division_coach(session, player_id: int, league_name: str) -> bool:

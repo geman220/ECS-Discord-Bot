@@ -30,19 +30,70 @@ logger = logging.getLogger(__name__)
 
 # Pub League league_type values that conflict with being rostered.
 # 'ECS FC' is deliberately excluded (see module docstring).
-PUB_LEAGUE_SUB_LEAGUE_TYPES = ('Classic', 'Premier')
+PUB_LEAGUE_SUB_LEAGUE_TYPES = ('Classic', 'Premier')          # fallback
 
 # Flask role names that grant the corresponding Discord sub role.
-PUB_LEAGUE_SUB_ROLE_NAMES = ('Classic Sub', 'Premier Sub')
+PUB_LEAGUE_SUB_ROLE_NAMES = ('Classic Sub', 'Premier Sub')    # fallback
 
 # Sub Flask role -> the pool it is backed by.
 #   ('pl', <league_type>) -> SubstitutePool row with that league_type
 #   ('ecs_fc', None)      -> the separate EcsFcSubPool row
-SUB_ROLE_TO_POOL = {
+SUB_ROLE_TO_POOL = {                                          # fallback
     'Classic Sub': ('pl', 'Classic'),
     'Premier Sub': ('pl', 'Premier'),
     'ECS FC Sub': ('ecs_fc', None),
 }
+
+
+def _registry_programs():
+    try:
+        from app.services import program_registry
+        return list(program_registry.all_programs())
+    except Exception:
+        return []
+
+
+def pub_league_sub_league_types():
+    """League.name values whose sub status conflicts with being rostered."""
+    progs = _registry_programs()
+    names = tuple(p.league_name for p in progs if p.is_pub_league_like)
+    return names or PUB_LEAGUE_SUB_LEAGUE_TYPES
+
+
+def pub_league_sub_role_names():
+    """Flask sub-role names for pub-league-like programs."""
+    progs = _registry_programs()
+    names = tuple(p.flask_sub_role for p in progs
+                  if p.is_pub_league_like and p.flask_sub_role)
+    return names or PUB_LEAGUE_SUB_ROLE_NAMES
+
+
+def sub_role_to_pool():
+    """Flask sub role -> (pool kind, league_type).
+
+    ECS FC keeps its separate EcsFcSubPool table, which is why the value is a
+    tuple rather than just a league_type. Every other program is backed by a
+    SubstitutePool row keyed on its League.name.
+    """
+    progs = _registry_programs()
+    if not progs:
+        return dict(SUB_ROLE_TO_POOL)
+    out = {}
+    for p in progs:
+        if not p.flask_sub_role:
+            continue
+        if p.is_pub_league_like:
+            out[p.flask_sub_role] = ('pl', p.league_name)
+        elif p.key == 'ecs_fc':
+            # EcsFcSubPool is ECS FC's own legacy table -- it is not a generic
+            # "non-pub-league" pool. Mapping every non-pub-league program here
+            # would silently make a second such program share ECS FC's rows.
+            out[p.flask_sub_role] = ('ecs_fc', None)
+        else:
+            # Backed by SubstitutePool keyed on its own League.name, like every
+            # other program. Nothing else is special about ECS FC.
+            out[p.flask_sub_role] = ('pl', p.league_name)
+    return out or dict(SUB_ROLE_TO_POOL)
 
 
 def deactivate_sub_pool_for_role(session, player_id, role_name, performed_by_user_id=None):
@@ -53,7 +104,7 @@ def deactivate_sub_pool_for_role(session, player_id, role_name, performed_by_use
     league_type) and the separate EcsFcSubPool. Does NOT touch the Flask role
     itself and does NOT commit. Returns True if a membership was deactivated.
     """
-    mapping = SUB_ROLE_TO_POOL.get(role_name)
+    mapping = sub_role_to_pool().get(role_name)
     if not mapping:
         return False
     kind, league_type = mapping
@@ -108,26 +159,59 @@ def detect_conflicting_sub_status(session, player):
         pools = session.query(SubstitutePool).filter(
             SubstitutePool.player_id == player.id,
             SubstitutePool.is_active == True,  # noqa: E712
-            SubstitutePool.league_type.in_(PUB_LEAGUE_SUB_LEAGUE_TYPES),
+            SubstitutePool.league_type.in_(pub_league_sub_league_types()),
         ).all()
         pool_league_types = [p.league_type for p in pools]
 
     role_names = []
     if player is not None and player.user is not None:
         held = {r.name for r in player.user.roles}
-        role_names = [n for n in PUB_LEAGUE_SUB_ROLE_NAMES if n in held]
+        role_names = [n for n in pub_league_sub_role_names() if n in held]
 
     return {'pool_league_types': pool_league_types, 'role_names': role_names}
 
 
-def remove_conflicting_sub_status(session, player_id, performed_by_user_id=None):
-    """
-    Drop a player's Pub League (Classic/Premier) substitute status because they
-    became a rostered team member.
+def _conflicting_sub_roles(league_name=None):
+    """Sub roles that conflict with being rostered in `league_name`.
 
-    Deactivates any active Classic/Premier SubstitutePool row, removes the
-    'Classic Sub' / 'Premier Sub' Flask roles, and writes a pool-history audit
-    row. Leaves ECS FC sub status untouched.
+    ⚠️ "Conflicting" means THE SAME DIVISION FAMILY, not "every pub-league-like
+    program". Programs that share a `season_league_type` are mutually exclusive
+    divisions of one season (Premier vs Classic): you cannot be a rostered
+    Premier player and a Premier sub. Programs on DIFFERENT season types are
+    independent, concurrent leagues -- being rostered in one says nothing about
+    your sub status in another, exactly as _assign_league_additively already
+    decides for league membership.
+
+    Left unscoped, getting drafted into Premier deactivated the player's pool
+    row and stripped their sub role in every other program, and vice versa.
+    """
+    progs = _registry_programs()
+    if not progs:
+        return tuple(PUB_LEAGUE_SUB_ROLE_NAMES)
+    if league_name:
+        _self = next((p for p in progs
+                      if (p.league_name or '').lower() == str(league_name).lower()), None)
+        if _self is not None:
+            fam = [p for p in progs
+                   if p.is_pub_league_like
+                   and p.season_league_type == _self.season_league_type
+                   and p.flask_sub_role]
+            if fam:
+                return tuple(p.flask_sub_role for p in fam)
+    return pub_league_sub_role_names()
+
+
+def remove_conflicting_sub_status(session, player_id, performed_by_user_id=None,
+                                  league_name=None):
+    """
+    Drop a player's substitute status in the division family they were just
+    rostered into.
+
+    Deactivates that family's active SubstitutePool rows, removes its sub Flask
+    roles, and writes a pool-history audit row. Sub status in OTHER programs
+    (and ECS FC) is left untouched -- pass `league_name` (the League they were
+    rostered into) to get that scoping; without it the call falls back to the
+    old all-pub-league-programs behaviour.
 
     Does NOT commit and does NOT touch Discord. Returns a summary dict:
         {
@@ -152,8 +236,17 @@ def remove_conflicting_sub_status(session, player_id, performed_by_user_id=None)
     # For each Pub League sub role: deactivate its pool membership AND remove the
     # Flask role. Both are handled independently so data drift (role without pool,
     # or vice versa) is cleaned up either way. ECS FC sub status is never touched.
-    for role_name in PUB_LEAGUE_SUB_ROLE_NAMES:
-        _, league_type = SUB_ROLE_TO_POOL[role_name]
+    # Both sides must come from the SAME source. pub_league_sub_role_names() is
+    # registry-driven and can yield a role outside the static three-key legacy
+    # dict, so subscripting SUB_ROLE_TO_POOL here raised KeyError -- on the
+    # draft/roster path, which 500s a draft pick.
+    _pool_map = sub_role_to_pool()
+    for role_name in _conflicting_sub_roles(league_name):
+        _mapped = _pool_map.get(role_name)
+        if not _mapped:
+            logger.warning(f"no pool mapping for sub role '{role_name}'; skipping")
+            continue
+        _, league_type = _mapped
         if deactivate_sub_pool_for_role(session, player_id, role_name, performed_by_user_id):
             summary['pools_removed'].append(league_type)
         if role_name in held_roles:

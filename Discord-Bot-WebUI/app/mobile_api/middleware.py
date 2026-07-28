@@ -186,13 +186,20 @@ def jwt_or_discord_auth_required(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check for Discord bot authentication first
+        # ONLY the authentication work belongs in these try blocks.
+        #
+        # `return f(*args, **kwargs)` used to sit inside them, so ANY exception
+        # raised by the view itself -- a DB error, a KeyError, a body-parse
+        # failure -- was swallowed and reported to the mobile client as
+        # 401 "Authentication required". That sent Flutter into a re-login loop
+        # for faults that had nothing to do with auth, and hid the real error
+        # from anyone reading the app side. Let view exceptions propagate to the
+        # app's error handlers, which return the correct status.
         discord_user_id = request.headers.get('X-Discord-User')
         if discord_user_id:
             try:
                 g.current_user_id = discord_user_id
                 g.auth_source = 'discord'
-                return f(*args, **kwargs)
             except Exception as e:
                 logger.error(f"Error in Discord bot authentication: {str(e)}")
                 return jsonify({'error': 'Authentication error'}), 401
@@ -202,10 +209,11 @@ def jwt_or_discord_auth_required(f):
                 verify_jwt_in_request()
                 g.current_user_id = int(get_jwt_identity())
                 g.auth_source = 'jwt'
-                return f(*args, **kwargs)
             except Exception as e:
                 logger.error(f"JWT authentication failed: {str(e)}")
                 return jsonify({'error': 'Authentication required'}), 401
+
+        return f(*args, **kwargs)
 
     return decorated_function
 

@@ -110,7 +110,9 @@
                     {% else %}
                     <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors js-request-sub"
                             data-action="request-sub" data-match-id="{{ match.id }}" data-league-type="{{ match.league_type if match.league_type else 'Pub League' }}"
-                            data-team-id="{{ match.home_team_id if match.home_team_id else match.away_team_id }}">
+                            {# coach_team_id is the viewing coach's OWN side; falling back to
+                               home_team_id requested subs for the opponent on away fixtures. #}
+                            data-team-id="{{ match.coach_team_id or match.home_team_id or match.away_team_id }}">
                         <i class="ti ti-user-plus"></i>Request Sub
                     </button>
                     {% endif %}

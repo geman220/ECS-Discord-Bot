@@ -393,7 +393,8 @@ def get_player_team_history(player_id: int):
         # Pre-reveal: strip current-season Pub League entries for non-exempt users
         from app.services.team_visibility import mobile_user_can_view_teams
         if not mobile_user_can_view_teams(session, get_jwt_identity()):
-            hidden_leagues = ('Premier', 'Classic')
+            from app.services.team_visibility import reveal_gated_league_names
+            hidden_leagues = reveal_gated_league_names(session)
             result['season_history'] = [
                 e for e in result.get('season_history', [])
                 if not (e.get('is_current_season')

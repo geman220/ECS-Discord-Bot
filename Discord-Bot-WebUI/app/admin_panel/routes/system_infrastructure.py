@@ -594,7 +594,7 @@ def docker_restart_container():
     try:
         from app.admin_helpers import manage_docker_container
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         container_id = data.get('container_id')
 
         if not container_id:
@@ -629,7 +629,7 @@ def docker_stop_container():
     try:
         from app.admin_helpers import manage_docker_container
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         container_id = data.get('container_id')
 
         if not container_id:
@@ -664,7 +664,7 @@ def docker_start_container():
     try:
         from app.admin_helpers import manage_docker_container
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         container_id = data.get('container_id')
 
         if not container_id:
@@ -1310,7 +1310,11 @@ def redis_clear_cache():
     try:
         from app.utils.safe_redis import get_safe_redis
 
-        data = request.get_json() or {}
+        # Body REQUIRED: cache_type 'all' is the '*' pattern, so defaulting an
+        # empty body would flush the entire Redis keyspace.
+        data = request.get_json(silent=True)
+        if data is None:
+            return jsonify({'success': False, 'error': 'cache_type is required'}), 400
         cache_type = data.get('cache_type', 'all')
 
         redis_client = get_safe_redis()
@@ -1384,7 +1388,7 @@ def redis_delete_key():
     try:
         from app.utils.safe_redis import get_safe_redis
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         key_name = data.get('key')
 
         if not key_name:

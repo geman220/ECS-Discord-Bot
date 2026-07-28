@@ -63,9 +63,29 @@ def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
     if user_team_ids:
         is_my_team = match.home_team_id in user_team_ids or match.away_team_id in user_team_ids
 
-    # Determine division color
-    division = 'Premier' if getattr(match.home_team, 'league_id', None) == 10 else 'Classic'
-    color = '#1976d2' if division == 'Premier' else '#4caf50'
+    # Division label + colour from the program registry.
+    #
+    # This was `'Premier' if home_team.league_id == 10 else 'Classic'` — a
+    # hardcoded league ID with an else-branch that labelled EVERYTHING else
+    # 'Classic'. Two things were already wrong before any new program existed:
+    # every ECS FC match rendered as "Classic" in Classic's green, and league
+    # IDs are recreated by season rollover, so id 10 stops being Premier the
+    # next time the season rolls. Resolving by league NAME through the registry
+    # fixes both and gives a new program its own configured colour.
+    division = 'Classic'
+    color = '#4caf50'
+    try:
+        from app.services import program_registry
+        _league = getattr(match.home_team, 'league', None)
+        _program = program_registry.by_league_name(getattr(_league, 'name', None))
+        if _program:
+            division = _program.display_name
+            color = _program.color or color
+            program_key = _program.key
+        else:
+            program_key = None
+    except Exception:
+        program_key = None
 
     # Use the special-week label as the title for FUN/TST/BYE/BONUS placeholder
     # rows so the calendar shows e.g. "Fun Week!" instead of "FUN WEEK vs FUN WEEK".
@@ -85,8 +105,18 @@ def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
         'end': None,
         'all_day': False,
         'location': getattr(match, 'location', None),
+        # Site the match is played at; None for leagues that never move, where
+        # `location` (the field) is the whole story. Pre-joined for clients that
+        # just want one string.
+        'venue': getattr(match, 'venue', None),
+        'venue_display': (f"{match.venue} – {match.location}"
+                          if getattr(match, 'venue', None) and match.location
+                          else (getattr(match, 'venue', None) or match.location)),
         'color': color,
         'division': division,
+        # Stable program identifier. `division` is a DISPLAY name and changes on
+        # rebrand; clients must switch on this, never on the label.
+        'program_key': program_key,
         'is_my_team': is_my_team,
         'match_id': match.id,
         'home_team': {

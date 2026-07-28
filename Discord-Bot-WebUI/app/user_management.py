@@ -1,26 +1,29 @@
 # app/user_management.py
 
 """
-DEPRECATED 2026-03-31 — Blueprint unregistered, routes return 404.
-All functionality migrated to admin_panel user management (app/admin_panel/routes/user_management/).
+DEPRECATED 2026-03-31 — superseded by admin_panel user management
+(app/admin_panel/routes/user_management/). Nothing in the UI links here anymore.
+
+⚠️ These routes are STILL LIVE, despite what this docstring used to claim. The
+blueprint is registered at app/init/blueprints.py:273, so every endpoint below is
+reachable by URL and still enforces its own @role_required. Verified 2026-07-28:
+19 rules present in the running app's url_map. Do not assume "deprecated" means
+"returns 404" — check the url_map before relying on that.
+
 Safe to delete once no url_for('user_management.*') references remain in codebase.
+
+2026-07-28: export_player_profiles removed from this file — the player-profile
+Excel export now lives at admin_panel.members_export (/admin-panel/members/export),
+where it honors the Members page filters instead of league-only.
 
 Original: User Management Module — blueprint endpoints for user CRUD, approval, and filtering.
 """
 
 import logging
-from datetime import datetime
-import io
 
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, g, send_file, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, g
 from flask_login import login_required
 from sqlalchemy.orm import joinedload, selectinload
-
-try:
-    import pandas as pd
-    PANDAS_AVAILABLE = True
-except ImportError:
-    PANDAS_AVAILABLE = False
 
 from app.models import User, Role, Player, League, Season, Team, user_roles, PlayerTeamSeason
 from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
@@ -1483,175 +1486,6 @@ def get_sync_data_endpoint(task_id):
     except Exception as e:
         logger.exception(f"Error loading sync data: {str(e)}")
         return jsonify({'error': 'Internal Server Error'}), 500
-
-
-@user_management_bp.route('/export_player_profiles', endpoint='export_player_profiles', methods=['GET'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
-def export_player_profiles():
-    """
-    Export player profiles to Excel, filtered by league for active players.
-    Players will be included if the league is their primary or secondary league.
-    Only accessible by Pub League Admin and Global Admin roles.
-    """
-    if not PANDAS_AVAILABLE:
-        show_error('Excel export functionality requires pandas. Please install pandas: pip install pandas openpyxl')
-        return redirect(url_for('user_management.manage_users'))
-    
-    session = g.db_session
-    
-    try:
-        # Get the league filter from request args
-        league_id = request.args.get('league_id', type=int)
-        exclude_ecsfc = request.args.get('exclude_ecsfc', type=int)
-        
-        # Build base query for users with active players with efficient loading
-        query = session.query(User).options(
-            joinedload(User.player).joinedload(Player.primary_league),
-            joinedload(User.player).joinedload(Player.other_leagues),
-            joinedload(User.player).joinedload(Player.teams),
-            joinedload(User.player).joinedload(Player.primary_team)
-        ).join(Player).filter(Player.is_current_player == True)
-        
-        # Filter by league if specified (check both primary and secondary leagues)
-        if league_id:
-            league = session.query(League).get(league_id)
-            league_name = league.name if league else "Unknown League"
-            
-            # Filter players who have this league as either primary or secondary
-            query = query.filter(
-                (Player.primary_league_id == league_id) |
-                (Player.other_leagues.any(League.id == league_id))
-            )
-        elif exclude_ecsfc:
-            # Filter to exclude ECS FC league - only Premier and Classic
-            ecsfc_league = session.query(League).filter(League.name == 'ECS FC').first()
-            if ecsfc_league:
-                query = query.filter(
-                    (Player.primary_league_id != ecsfc_league.id) &
-                    (~Player.other_leagues.any(League.id == ecsfc_league.id))
-                )
-            league_name = "Premier and Classic"
-        else:
-            league_name = "All Active Players"
-        
-        users = query.all()
-        
-        if not users:
-            show_warning(f'No active players found for {league_name}.')
-            return redirect(url_for('user_management.manage_users'))
-        
-        # Sort users by team name for grouped export
-        def get_team_sort_key(user):
-            player = user.player
-            if player.teams:
-                if player.primary_team_id and player.primary_team:
-                    return player.primary_team.name
-                elif player.teams:
-                    return player.teams[0].name
-            return 'ZZ_No_Team'  # Sort players without teams to the end
-        
-        users.sort(key=get_team_sort_key)
-        
-        # Prepare data for Excel export
-        export_data = []
-        for user in users:
-            player = user.player
-            # Format last updated
-            last_updated = player.profile_last_updated.strftime('%Y-%m-%d %H:%M:%S') if player.profile_last_updated else 'Never'
-            
-            # Get current team information
-            current_team = ''
-            all_teams = []
-            if player.teams:
-                # Find primary team if set
-                if player.primary_team_id and player.primary_team:
-                    current_team = player.primary_team.name
-                    all_teams = [team.name for team in player.teams if team.id != player.primary_team_id]
-                elif player.teams:
-                    # If no primary team set, use first team
-                    current_team = player.teams[0].name
-                    all_teams = [team.name for team in player.teams[1:]]
-            
-            player_data = {
-                'Name': player.name,
-                'Username': user.username,
-                'Email': user.email,
-                'Phone': player.phone or '',
-                'Phone Verified': 'Yes' if player.is_phone_verified else 'No',
-                'SMS Consent': 'Yes' if player.sms_consent_given else 'No',
-                'Jersey Size': player.jersey_size or '',
-                'Jersey Number': player.jersey_number or '',
-                'Current Team': current_team,
-                'Other Teams': ', '.join(all_teams) if all_teams else '',
-                'Primary League': player.primary_league.name if player.primary_league else '',
-                'Secondary Leagues': ', '.join([league.name for league in player.other_leagues]) if player.other_leagues else '',
-                'Is Coach': 'Yes' if player.is_coach else 'No',
-                'Is Referee': 'Yes' if player.is_ref else 'No',
-                'Available for Ref': 'Yes' if player.is_available_for_ref else 'No',
-                'Is Sub': 'Yes' if player.is_sub else 'No',
-                'Discord ID': player.discord_id or '',
-                'Pronouns': player.pronouns or '',
-                'Expected Weeks Available': player.expected_weeks_available or '',
-                'Unavailable Dates': player.unavailable_dates or '',
-                'Willing to Referee': player.willing_to_referee or '',
-                'Favorite Position': player.favorite_position or '',
-                'Other Positions': player.other_positions or '',
-                'Positions NOT to Play': player.positions_not_to_play or '',
-                'Frequency Play Goal': player.frequency_play_goal or '',
-                'Additional Info': player.additional_info or '',
-                'Player Notes': player.player_notes or '',
-                'Team Swap': player.team_swap or '',
-                'Profile Last Updated': last_updated,
-                'User Approved': 'Yes' if user.is_approved else 'No'
-            }
-            export_data.append(player_data)
-        
-        # Create DataFrame
-        df = pd.DataFrame(export_data)
-        
-        # Create Excel file in memory
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Player Profiles')
-            
-            # Get the workbook and worksheet to format
-            workbook = writer.book
-            worksheet = writer.sheets['Player Profiles']
-            
-            # Auto-adjust column widths
-            for column in worksheet.columns:
-                max_length = 0
-                column_letter = column[0].column_letter
-                for cell in column:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = min(max_length + 2, 50)  # Cap at 50 characters
-                worksheet.column_dimensions[column_letter].width = adjusted_width
-        
-        output.seek(0)
-        
-        # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'player_profiles_{league_name.replace(" ", "_")}_{timestamp}.xlsx'
-        
-        # Create response
-        response = make_response(output.getvalue())
-        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        
-        logger.info(f"Player profiles exported successfully for {league_name}: {len(users)} players")
-        show_success(f'Successfully exported {len(users)} player profiles for {league_name}.')
-        
-        return response
-        
-    except Exception as e:
-        logger.exception(f"Error exporting player profiles: {str(e)}")
-        show_error('Internal Server Error')
-        return redirect(url_for('user_management.manage_users'))
 
 
 @user_management_bp.route('/reset_profile_compliance', endpoint='reset_profile_compliance', methods=['POST'])

@@ -98,6 +98,25 @@
     </a>
   </div>
 
+  {# ============ Off-grid scopes ============
+     The four tiles above all require a Discord ID, so a player with none is
+     invisible up there — which is exactly the person you need when linking a
+     Discord for the first time, or re-linking after an account recovery.
+     Account Recovery sits next to it because it's the same job. #}
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{{ url_for('admin_panel.discord_players', status='unlinked', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
+       aria-current="{{ 'true' if status_filter == 'unlinked' else 'false' }}"
+       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-3 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unlinked' %}border-ecs-green ring-1 ring-ecs-green/40 text-ecs-green bg-ecs-green/5{% else %}border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ecs-green/50 bg-white dark:bg-gray-800{% endif %}">
+      <i class="ti ti-unlink text-base" aria-hidden="true"></i>No Discord linked
+      <span class="font-mono font-semibold">{{ stats.unlinked }}</span>
+    </a>
+    <a href="{{ url_for('admin_panel.discord_account_recovery') }}"
+       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-ecs-green/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-lifebuoy text-base" aria-hidden="true"></i>Account Recovery
+      {% if nav_relink_requests > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ nav_relink_requests }}</span>{% endif %}
+    </a>
+  </div>
+
   {# ============ Command toolbar — search + scoping filters + page size ============ #}
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
     <div class="flex flex-col lg:flex-row lg:items-center gap-3 p-3 sm:p-4">

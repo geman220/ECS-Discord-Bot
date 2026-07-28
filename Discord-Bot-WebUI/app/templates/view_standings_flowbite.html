@@ -163,7 +163,7 @@
       <div class="flex-1 min-w-0">
         <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
         <div class="flex items-center gap-2 mt-1">
-          <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{{ player.teams[0].name if (player.teams and viewer_can_see_teams) else ('—' if player.teams else 'No team') }}</span>
+          <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[120px]">{{ player.teams[0].name if (player.teams and not (player.teams[0].league and player.teams[0].league.name in hidden_team_league_names)) else ('—' if player.teams else 'No team') }}</span>
           {% if leader_total %}
           <span class="flex-1 h-1 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden max-w-[80px]" aria-hidden="true">
             <span class="block h-full rounded-full {% if loop.index == 1 %}bg-ecs-green{% else %}bg-gray-300 dark:bg-gray-600{% endif %}" style="width: {{ (total / leader_total * 100)|round(1) }}%"></span>
@@ -208,7 +208,7 @@
                         {% if loop.index == 1 %}<i class="ti ti-{{ icon }} {{ color_class }}"></i>{% else %}{{ loop.index }}{% endif %}
                     </td>
                     <td class="px-3 py-2 text-gray-900 dark:text-white font-medium">{{ player.name }}</td>
-                    <td class="px-3 py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ player.teams[0].name if (player.teams and viewer_can_see_teams) else ('—' if player.teams else 'N/A') }}</td>
+                    <td class="px-3 py-2 text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ player.teams[0].name if (player.teams and not (player.teams[0].league and player.teams[0].league.name in hidden_team_league_names)) else ('—' if player.teams else 'N/A') }}</td>
                     <td class="px-3 py-2 text-center font-bold text-gray-900 dark:text-white">{{ total }}</td>
                 </tr>
                 {% endfor %}
@@ -290,6 +290,16 @@
             <i class="ti ti-shield" aria-hidden="true"></i>ECS FC
         </button>
         {% endif %}
+        {# One tab per program beyond the three named above. Without this a newer
+           program has no standings table anywhere in the app -- the rows are
+           written correctly (teams_helpers derives season+league from the team),
+           they were simply unreachable. #}
+        {% for _ex in extra_standings | default([]) %}
+        <button type="button" class="league-tab inline-flex items-center gap-2 h-10 px-4 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white border border-transparent transition-colors"
+                data-tab="{{ _ex.key }}" aria-selected="false" role="tab">
+            <i class="ti ti-trophy" aria-hidden="true"></i>{{ _ex.name }}
+        </button>
+        {% endfor %}
     </div>
 
     <!-- Premier Division -->
@@ -329,6 +339,25 @@
         </div>
     </div>
     {% endif %}
+
+    {# Standings pane per extra program. Uses the same division_overview macro
+       the three named divisions use, so formatting cannot drift. #}
+    {% for _ex in extra_standings | default([]) %}
+    <div id="{{ _ex.key }}-content" class="league-content space-y-6 hidden">
+        {% if _ex.standings %}{{ division_overview(_ex.standings, _ex.name ~ ' rosters', 'ti-shield-half') }}{% endif %}
+        {# The actual standings TABLE. Without this the pane rendered only the
+           roster overview card -- a Standings page with no P/W/D/L/GF/GA/GD/Pts
+           for that program, which is the one thing the page exists for. #}
+        {{ modern_standings_table(_ex.name, 'ti-trophy', _ex.standings,
+                                  _ex.key ~ 'Filter', _ex.name) }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ modern_leaderboard('Golden Boot', 'shoe', _ex.top_scorers | default([]), 'Goals', 'text-ecs-gold-500 dark:text-ecs-gold-400', 'No goals scored yet.') }}
+            {{ modern_leaderboard('Silver Boot', 'arrows-exchange', _ex.top_assisters | default([]), 'Assists', 'text-gray-400', 'No assists recorded yet.') }}
+            {{ modern_leaderboard('Yellow Cards', 'rectangle-filled', _ex.yellow_cards | default([]), 'Cards', 'text-amber-500', 'No yellow cards yet.') }}
+            {{ modern_leaderboard('Red Cards', 'rectangle-filled', _ex.red_cards | default([]), 'Cards', 'text-red-500', 'No red cards yet.') }}
+        </div>
+    </div>
+    {% endfor %}
 
     <!-- Legend -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 sm:px-5 py-4">

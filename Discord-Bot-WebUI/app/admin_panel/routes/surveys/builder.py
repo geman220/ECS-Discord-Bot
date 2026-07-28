@@ -248,7 +248,7 @@ def survey_get_json(survey_id):
 def survey_create():
     """Create a survey from the builder payload."""
     try:
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
         if not (data.get('title') or '').strip():
             return jsonify({'success': False, 'error': 'A title is required.'}), 400
         survey = survey_service.create_survey(g.db_session, data, current_user.id)
@@ -268,7 +268,7 @@ def survey_update(survey_id):
     """Update a survey. Editing questions is blocked once responses exist."""
     try:
         survey = Survey.query.get_or_404(survey_id)
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
 
         if 'questions' in data and survey.responses.count() > 0:
             # Don't let a structural edit orphan existing answers.
@@ -293,7 +293,7 @@ def survey_set_status(survey_id):
     """Lifecycle transitions: open | close | archive | draft."""
     try:
         survey = Survey.query.get_or_404(survey_id)
-        action = (request.get_json(force=True) or {}).get('action')
+        action = (request.get_json(force=True, silent=True) or {}).get('action')
         if action == 'open':
             if not survey.questions:
                 return jsonify({'success': False,

@@ -154,11 +154,29 @@ class EcsFcSubPool(db.Model):
 
 
 class SubstitutePool(db.Model):
-    """Model for general substitute pool."""
+    """Model for general substitute pool.
+
+    ⚠️ `player_id` used to be UNIQUE on its own, i.e. ONE pool row per player
+    across every program. That silently contradicted the code: three call sites
+    already look the row up as `(player_id, league_type)` and INSERT on a miss --
+    `admin_panel/routes/match_operations/substitute_pools.py:295`,
+    `services/sub_status_service.py:63`, and the member-hub add -- so a player
+    already pooled in one program raised IntegrityError when added to another.
+    Only `member_hub.py:1133` acknowledged it, with a comment about "claiming the
+    row for the chosen lane".
+
+    It is now unique per (player, league_type), which is what every reader
+    already assumed and what a person subbing in two programs requires.
+    Migration: sql_substitute_pool_per_program.sql.
+    """
     __tablename__ = 'substitute_pools'
-    
+    __table_args__ = (
+        db.UniqueConstraint('player_id', 'league_type',
+                            name='uq_substitute_pool_player_league_type'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
-    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False, unique=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
     league_type = db.Column(db.String(255), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     preferred_positions = db.Column(db.Text, nullable=True)
@@ -478,17 +496,30 @@ class SubstituteReachoutRecipient(db.Model):
         return datetime.utcnow() < self.token_expires_at
 
 
+def _sub_role_by_league_type():
+    """{League.name: '<X> Sub' Flask role} for every program, from the registry."""
+    try:
+        from app.services import program_registry
+        mapping = {p.league_name: p.flask_sub_role
+                   for p in program_registry.all_programs() if p.flask_sub_role}
+        if mapping:
+            return mapping
+    except Exception:
+        pass
+    return {'ECS FC': 'ECS FC Sub', 'Classic': 'Classic Sub', 'Premier': 'Premier Sub'}
+
+
 def get_eligible_players(league_type, positions=None, gender=None, session=None):
     """Get eligible players for substitute requests by league type."""
     if session is None:
         session = db.session
     
     # Map league types to role names
-    role_mapping = {
-        'ECS FC': 'ECS FC Sub',
-        'Classic': 'Classic Sub', 
-        'Premier': 'Premier Sub'
-    }
+    # Registry-driven. A league_type outside this map makes the caller return
+    # [] -- i.e. a sub request for that program contacts NOBODY, with no error.
+    # That is the same shape of silent outage that took the whole Pub League
+    # sub pool offline at the 2026 rollover.
+    role_mapping = _sub_role_by_league_type()
     
     required_role = role_mapping.get(league_type)
     if not required_role:
@@ -553,11 +584,11 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
         session = db.session
 
     # Map league types to role names
-    role_mapping = {
-        'ECS FC': 'ECS FC Sub',
-        'Classic': 'Classic Sub',
-        'Premier': 'Premier Sub'
-    }
+    # Registry-driven. A league_type outside this map makes the caller return
+    # [] -- i.e. a sub request for that program contacts NOBODY, with no error.
+    # That is the same shape of silent outage that took the whole Pub League
+    # sub pool offline at the 2026 rollover.
+    role_mapping = _sub_role_by_league_type()
 
     required_role = role_mapping.get(league_type)
     if not required_role:
@@ -573,6 +604,18 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
         joinedload(SubstitutePool.player).joinedload(Player.user).joinedload(User.roles)
     ).join(Player).join(User).join(User.roles).filter(
         Role.name == required_role,
+        # ⚠️ Scope to the POOL's league_type, not just the role.
+        #
+        # This filter was absent, and that was survivable only because
+        # substitute_pools.player_id was globally UNIQUE -- one row per player,
+        # so the role filter alone could not over-match. The moment that
+        # constraint becomes UNIQUE(player_id, league_type) (which is required
+        # for a person to sub in two programs), a player holding both
+        # 'Classic Sub' and 'Premier Sub' matches on the role and returns BOTH
+        # pool rows for a single-division broadcast -- two DMs, two SMS, and
+        # double-counted requests_received. Without this line the migration
+        # would change live Premier/Classic behaviour.
+        SubstitutePool.league_type == league_type,
         SubstitutePool.is_active == True,
         SubstitutePool.approved_at.isnot(None),
         User.is_approved == True

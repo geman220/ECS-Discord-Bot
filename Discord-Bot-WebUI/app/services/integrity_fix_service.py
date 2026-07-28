@@ -23,7 +23,32 @@ from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
 
 logger = logging.getLogger(__name__)
 
-PUB_DIVISIONS = ('classic', 'premier')
+PUB_DIVISIONS = ('classic', 'premier')          # fallback
+
+
+def pub_divisions():
+    """Lowercased League.name values treated as pub-league divisions.
+
+    G8 (double-rostering) and the division fixers are blind to any program
+    outside this tuple, so a newer program's members are neither checked nor
+    fixable.
+
+    ⚠️ Returns LOWERCASED LEAGUE NAMES, not membership lanes. Every call site
+    compares against `func.lower(League.name)` or a form value derived from it,
+    so returning lanes would silently match nothing for any program whose lane
+    differs from its league name (e.g. lane 'pl_third' vs league 'Summer
+    Sprint') -- the check would quietly pass instead of running.
+    """
+    try:
+        from app.services import program_registry
+        names = tuple((p.league_name or '').strip().lower()
+                      for p in program_registry.all_programs()
+                      if p.is_pub_league_like and p.league_name)
+        if names:
+            return names
+    except Exception:
+        pass
+    return PUB_DIVISIONS
 
 
 def _get_user(user_id):
@@ -72,7 +97,8 @@ def _fix_approve(user_id, player_id, params, admin_id):
     """
     league_type = (params or {}).get('league_type')
     from app.services.integrity_service import APPROVE_LEAGUE_TYPES
-    if league_type not in APPROVE_LEAGUE_TYPES:
+    from app.services.integrity_service import approve_league_types
+    if league_type not in approve_league_types():
         raise ValueError('Invalid division')
     if not user_id:
         raise ValueError('User not found')
@@ -101,7 +127,7 @@ def _fix_deny_cleanup(user_id, player_id, params, admin_id):
     user = _get_user(user_id)
     player = user.player
     did = []
-    for rname in ('pl-classic', 'pl-premier', 'pl-ecs-fc'):
+    for rname in _all_league_role_names_for_fix():
         role = _get_role(rname)
         if role and role in user.roles:
             user.roles.remove(role)
@@ -205,8 +231,24 @@ def _fix_align_league_to_team(user_id, player_id, params, admin_id):
         raise ValueError('Primary team no longer exists')
     if player.primary_league_id == team.league_id and player.league_id == team.league_id:
         return 'Already consistent — league already matches the team.'
+
+    # Preserve the league being displaced as a secondary membership. Overwriting
+    # primary_league_id outright dropped a dual-program player out of the other
+    # program's draft pool, division alignment and season-stats creation --
+    # silently, from one admin click on a dashboard that had flagged a perfectly
+    # legitimate state.
+    _displaced = player.primary_league_id
     player.primary_league_id = team.league_id
     player.league_id = team.league_id
+    if _displaced and _displaced != team.league_id:
+        try:
+            from app.models import League
+            _old = db.session.query(League).get(_displaced)
+            if _old is not None and _old not in (player.other_leagues or []):
+                player.other_leagues.append(_old)
+        except Exception as _keep_err:
+            logger.warning(f"could not preserve displaced league {_displaced} "
+                           f"for player {player.id}: {_keep_err}")
     _sync_discord(player)
     return f"Primary league set to match '{team.name}'; Discord roles queued for re-sync."
 
@@ -214,31 +256,98 @@ def _fix_align_league_to_team(user_id, player_id, params, admin_id):
 def _fix_remove_coach_role(user_id, player_id, params, admin_id):
     """G9: drop a stale division Coach Flask role (Discord follows on sync)."""
     division = (params or {}).get('division')
-    if division not in PUB_DIVISIONS:
+    if division not in pub_divisions():
         raise ValueError('Invalid division')
     user = _get_user(user_id)
-    role = _get_role(f'{division.title()} Coach')
+    # Registry-resolved. `f'{division.title()} Coach'` only works while the
+    # coach role is the league name plus " Coach" -- "summer sprint" would
+    # become "Summer Sprint Coach", a role that does not exist, so the fix
+    # raised instead of resolving the finding.
+    _coach_role = None
+    try:
+        from app.services import program_registry
+        _pr = program_registry.by_league_name(division)
+        if _pr:
+            _coach_role = _pr.flask_coach_role
+    except Exception:
+        pass
+    role = _get_role(_coach_role or f'{division.title()} Coach')
     if not role or role not in user.roles:
         return 'Already consistent — they no longer hold that coach role.'
     user.roles.remove(role)
     _sync_discord(user.player)
-    return f'{division.title()} Coach role removed; Discord roles queued for re-sync.'
+    # Name the role ACTUALLY removed. `division.title()` rebuilt it by
+    # concatenation, so removing 'Summer Coach' reported "Summer Sprint
+    # Coach role removed" -- a role that does not exist.
+    return f'{role.name} role removed; Discord roles queued for re-sync.'
 
 
 def _sub_league_type(params):
+    """Validate the sub pool's league_type against the registry.
+
+    This ran BEFORE every _sub_role_name_for() call and rejected anything
+    outside ('Classic', 'Premier'), so the registry-backed role resolver could
+    only ever be handed the two names the old concatenation already handled --
+    the helper was dead in practice, and G5 findings for any newer program were
+    unfixable with "Invalid sub league type".
+    """
     lt = (params or {}).get('league_type')
-    if lt not in ('Classic', 'Premier'):
+    valid = None
+    try:
+        from app.services import program_registry
+        valid = {p.league_name for p in program_registry.all_programs()
+                 if p.is_pub_league_like and p.league_name}
+    except Exception:
+        valid = None
+    if not valid:
+        valid = {'Classic', 'Premier'}
+    if lt not in valid:
         raise ValueError('Invalid sub league type')
     return lt
+
+
+def _all_league_role_names_for_fix():
+    """Every program's league role, for the deny-cleanup sweep.
+
+    The G4 DETECTOR is registry-driven but this fixer was not, so a denied user
+    holding only a newer program's role was flagged HIGH, the one-click fix
+    reported success while removing nothing, and the finding reappeared on
+    every scan -- an un-clearable row and a role that is never stripped.
+    """
+    try:
+        from app.services.integrity_service import _all_league_role_names
+        return tuple(_all_league_role_names())
+    except Exception:
+        return ('pl-classic', 'pl-premier', 'pl-ecs-fc')
+
+
+def _sub_role_name_for(league_type):
+    """The real `<X> Sub` Flask role name for a league_type.
+
+    Built by string concatenation (`f'{lt} Sub'`), which only works while a
+    program's sub role happens to be its League.name plus " Sub". A program
+    whose league is "Summer Sprint" but whose sub role is "Summer Sub" produced
+    "Summer Sprint Sub" -- a role that does not exist, so the fixer raised
+    "Role ... not found" and the integrity finding could never be resolved.
+    """
+    try:
+        from app.services import program_registry
+        pr = program_registry.by_league_name(league_type)
+        if pr and pr.flask_sub_role:
+            return pr.flask_sub_role
+    except Exception:
+        pass
+    return f'{league_type} Sub'
 
 
 def _fix_add_sub_role(user_id, player_id, params, admin_id):
     """G5 (pool without role): grant the matching Sub Flask role."""
     lt = _sub_league_type(params)
     user = _get_user(user_id)
-    role = _get_role(f'{lt} Sub')
+    _sub_role = _sub_role_name_for(lt)
+    role = _get_role(_sub_role)
     if not role:
-        raise ValueError(f'Role {lt} Sub not found')
+        raise ValueError(f'Role {_sub_role} not found')
     if role in user.roles:
         return 'Already consistent — they already hold the sub role.'
     user.roles.append(role)
@@ -250,7 +359,7 @@ def _fix_remove_sub_role(user_id, player_id, params, admin_id):
     """G5 (role without pool): drop the orphaned Sub Flask role."""
     lt = _sub_league_type(params)
     user = _get_user(user_id)
-    role = _get_role(f'{lt} Sub')
+    role = _get_role(_sub_role_name_for(lt))
     if not role or role not in user.roles:
         return 'Already consistent — they no longer hold the sub role.'
     user.roles.remove(role)
@@ -263,22 +372,28 @@ def _fix_add_to_pool(user_id, player_id, params, admin_id):
     from app.models.substitutes import SubstitutePool
     lt = _sub_league_type(params)
     player = _get_player(player_id)
-    row = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
+    # ⚠️ MUST scope by league_type. This changeset drops the global
+    # `substitute_pools.player_id` UNIQUE in favour of
+    # UNIQUE(player_id, league_type), so an unscoped .first() returns an
+    # ARBITRARY row: the "add to Classic pool" fix would grab the player's
+    # Premier row and either refuse (a fix that can never succeed while the
+    # right row sits one filter away) or repoint that other program's
+    # membership and collide with the new constraint.
+    row = db.session.query(SubstitutePool).filter_by(
+        player_id=player.id, league_type=lt).first()
     if row is None:
         db.session.add(SubstitutePool(
             player_id=player.id, league_type=lt, is_active=True,
             approved_by=admin_id, approved_at=datetime.utcnow(),
         ))
         return f'Added to the active {lt} sub pool.'
-    if row.is_active and row.league_type == lt:
+    if row.is_active:
         return 'Already consistent — active pool entry exists.'
-    if row.is_active and row.league_type != lt:
-        # One row per player: silently moving them would yank them out of the
-        # other division's pool. That trade-off belongs in the pool UI.
-        raise ValueError(
-            f'They already have an active {row.league_type} pool entry; '
-            'use the substitute pool page to move them between pools.')
-    row.league_type = lt
+    # The query above is scoped to this league_type, so `row` can only ever BE
+    # this lane. The old "already in another division's pool" branch existed
+    # because player_id was globally UNIQUE (one row per player); with
+    # UNIQUE(player_id, league_type) a player legitimately holds one row per
+    # program, and reactivating this one does not disturb the others.
     row.is_active = True
     row.approved_by = admin_id
     row.approved_at = datetime.utcnow()
@@ -303,7 +418,11 @@ def _fix_sync_ecs_pools(user_id, player_id, params, admin_id):
     """G6: mirror the player into whichever ECS FC pool table is missing them."""
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
     player = _get_player(player_id)
-    unified = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
+    # ECS FC's mirror row specifically -- see the note above about the dropped
+    # global UNIQUE. Unscoped, this could pick up a Premier/Classic row and
+    # sync it against EcsFcSubPool.
+    unified = db.session.query(SubstitutePool).filter_by(
+        player_id=player.id, league_type='ECS FC').first()
     dedicated = db.session.query(EcsFcSubPool).filter_by(player_id=player.id).first()
     unified_active = bool(unified and unified.is_active and unified.league_type == 'ECS FC')
     dedicated_active = bool(dedicated and dedicated.is_active)

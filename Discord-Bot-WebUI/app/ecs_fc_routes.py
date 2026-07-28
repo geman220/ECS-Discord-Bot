@@ -571,6 +571,23 @@ def create_sub_request(match_id: int):
         from app.models.admin_config import AdminConfig
         subs_needed = data.get('subs_needed', AdminConfig.get_setting('sub_default_needed', 1))
 
+        # Reject a narrowed recipient_type that carries no filter. notify_ecs_fc_pool
+        # applies each filter behind `if <filter>:`, so an empty one meant "no
+        # filter" and the request went to the ENTIRE active pool. The modal omits
+        # these keys when nothing is picked (`?.value` -> undefined, dropped by
+        # JSON.stringify), so this was one un-ticked radio away from a mass DM.
+        _required_filter = {
+            'gender': ('gender', gender_filter),
+            'position': ('positions', position_filters),
+            'specific': ('player_ids', specific_player_ids),
+        }.get(recipient_type)
+        if _required_filter and not _required_filter[1]:
+            return jsonify({
+                'success': False,
+                'message': f"Select at least one option for '{recipient_type}' before sending — "
+                           f"refusing to contact the whole pool"
+            }), 400
+
         # Create the sub request record
         sub_request = EcsFcSubRequest(
             match_id=match_id,

@@ -23,7 +23,9 @@
 function root() { return document.getElementById('substitute-command-center-root'); }
 
 function esc(s) {
-    if (window.escapeHtml) return window.escapeHtml(s);
+    // String() first: ids arrive from JSON as numbers, and an escaper that
+    // drops non-strings would render data-player-id="" (-> "Player ID is required").
+    if (window.escapeHtml) return window.escapeHtml(String(s == null ? '' : s));
     // Hard fallback so a missing global never degrades to raw (unescaped) insertion.
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];

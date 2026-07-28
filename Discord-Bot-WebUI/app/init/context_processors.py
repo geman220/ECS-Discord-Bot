@@ -44,12 +44,32 @@ def build_nav_sections(user_roles, admin_settings):
         # the seasons/coaches page; before the draft those coaches have no
         # player_teams.is_coach row and often no 'Pub League Coach' role, so the
         # division roles must open the draft links or draft-night coaches see nothing.
+        # Registry-backed role sets. These were hardcoded lists of the three
+        # original programs, so a member of any newer program lost Teams and
+        # Calendar from their sidebar entirely, and its coaches got no Draft
+        # section at all -- on draft night.
+        def _registry_roles(attr):
+            try:
+                from app.services import program_registry
+                return [getattr(pr, attr) for pr in program_registry.all_programs()
+                        if getattr(pr, attr, None)]
+            except Exception:
+                return []
+
+        _prog_league_roles = _registry_roles('flask_league_role') or [
+            'pl-classic', 'pl-premier', 'pl-ecs-fc']
+        _prog_coach_roles = _registry_roles('flask_coach_role') or [
+            'Premier Coach', 'Classic Coach', 'ECS FC Coach']
+
         can_view_draft = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach',
-                                 'Premier Coach', 'Classic Coach', 'ECS FC Coach')
+                                 *_prog_coach_roles)
         can_view_draft_predictions = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach')
-        can_view_teams = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach', 'pl-classic', 'pl-ecs-fc', 'pl-premier')
-        can_view_standings = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach')
-        can_view_calendar = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach', 'Pub League Ref', 'pl-classic', 'pl-premier', 'pl-ecs-fc')
+        can_view_teams = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach',
+                                 *_prog_coach_roles, *_prog_league_roles)
+        can_view_standings = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach',
+                                     *_prog_coach_roles)
+        can_view_calendar = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach',
+                                    'Pub League Ref', *_prog_coach_roles, *_prog_league_roles)
         store_enabled = admin_settings.get('store_navigation_enabled', True)
         can_view_store = has_any('Pub League Coach', 'Pub League Admin', 'Global Admin') and (store_enabled or 'Global Admin' in user_roles)
 
@@ -118,10 +138,27 @@ def build_nav_sections(user_roles, admin_settings):
         if can_view_draft and (admin_settings.get('drafts_navigation_enabled', True) or is_admin):
             # Classic lives in its own sidebar section (balanced draft);
             # this dropdown keeps the turn-based drafts only.
-            draft_children = [
-                item('Premier Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'premier'}),
-                item('ECS FC Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'ecs_fc'}),
-            ]
+            # Built from the registry, so a newer program's draft board is
+            # LINKED rather than reachable only by typing the URL. Classic is
+            # excluded because it lives in its own sidebar section above
+            # (balanced draft); this dropdown keeps the turn-based drafts.
+            draft_children = []
+            try:
+                from app.services import program_registry
+                for _pr in program_registry.all_programs():
+                    if not _pr.uses_draft or _pr.membership_lane == 'classic':
+                        continue
+                    draft_children.append(item(
+                        f'{_pr.display_name} Division', 'ti-point',
+                        'draft_enhanced.draft_league',
+                        args={'league_name': _pr.membership_lane}))
+            except Exception:
+                draft_children = []
+            if not draft_children:
+                draft_children = [
+                    item('Premier Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'premier'}),
+                    item('ECS FC Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'ecs_fc'}),
+                ]
             if can_view_draft_predictions:
                 draft_children.append(item('Draft Predictions', 'ti-point', 'draft_predictions.index'))
             if is_admin:
@@ -686,21 +723,36 @@ def _register_utility_processor(app):
         # True when teams are public or the viewer is coach/admin-exempt.
         if hasattr(g, '_viewer_can_see_teams'):
             viewer_can_see_teams = g._viewer_can_see_teams
+            hidden_team_league_names = getattr(g, '_hidden_team_league_names', ())
         else:
             viewer_can_see_teams = True
+            hidden_team_league_names = ()
             try:
-                from app.services.team_visibility import user_can_view_teams
-                viewer_can_see_teams = user_can_view_teams(
-                    safe_current_user, session=getattr(g, 'db_session', None)
-                )
+                from app.services.team_visibility import (
+                    user_can_view_teams, user_is_team_exempt,
+                    reveal_gated_league_names, teams_are_public)
+                _sess = getattr(g, 'db_session', None)
+                viewer_can_see_teams = user_can_view_teams(safe_current_user, session=_sess)
+                # Which leagues this viewer must NOT see team assignments for.
+                # Templates gate on THIS, not on the global boolean plus a
+                # hardcoded ('Premier', 'Classic') tuple -- that tuple silently
+                # exposed every newer program, and the global boolean hid every
+                # program the moment any ONE of them was pre-reveal.
+                if not (user_is_team_exempt(safe_current_user, session=_sess)
+                        or teams_are_public()):
+                    hidden_team_league_names = tuple(reveal_gated_league_names(_sess))
             except Exception as e:
                 logger.error(f"Error computing viewer_can_see_teams: {e}")
+                # Fail CLOSED on the per-league set: hide what is hidden today.
+                hidden_team_league_names = ('Premier', 'Classic')
             g._viewer_can_see_teams = viewer_can_see_teams
+            g._hidden_team_league_names = hidden_team_league_names
 
         return {
             'safe_current_user': safe_current_user,
             'user_roles': user_roles,
             'viewer_can_see_teams': viewer_can_see_teams,
+            'hidden_team_league_names': hidden_team_league_names,
             'has_permission': has_permission,
             'has_role': has_role,
             'is_admin': is_admin,
@@ -772,7 +824,8 @@ def _register_nav_counts_processor(app):
 
     @app.context_processor
     def inject_nav_counts():
-        empty = {'nav_pending_approvals': 0, 'nav_waitlist_count': 0}
+        empty = {'nav_pending_approvals': 0, 'nav_waitlist_count': 0,
+                 'nav_relink_requests': 0}
 
         # These two COUNTs used to run on EVERY render for EVERY user — including
         # anonymous visitors and mobile API callers — even though only admins see
@@ -814,9 +867,16 @@ def _register_nav_counts_processor(app):
                 User
             ).join(User.roles).filter(Role.name == 'pl-waitlist').scalar() or 0
 
+            # Members locked out of the portal (lost Discord account). Rare,
+            # but time-critical — Discord is the only way in, so until an admin
+            # acts they have no access at all. Cheap COUNT on a tiny table.
+            from app.models.discord_relink import DiscordRelinkRequest
+            relinks = DiscordRelinkRequest.pending_count(session_db)
+
             g._nav_counts = {
                 'nav_pending_approvals': pending,
                 'nav_waitlist_count': waitlist,
+                'nav_relink_requests': relinks,
             }
             return g._nav_counts
         except Exception:

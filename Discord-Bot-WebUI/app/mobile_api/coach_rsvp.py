@@ -400,7 +400,7 @@ def send_rsvp_reminder(team_id: int, match_id: int):
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     custom_message = data.get('message', '').strip()
     only_non_responders = data.get('only_non_responders', True)
     channels = data.get('channels', ['discord', 'email', 'sms'])

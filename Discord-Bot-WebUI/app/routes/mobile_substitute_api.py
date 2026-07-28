@@ -70,7 +70,7 @@ def approve_pool_member(league_type, player_id):
     """
     try:
         current_user_id = int(get_jwt_identity())
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         notes = data.get('notes', f'Approved for {league_type} substitute pool')
 
         with db.session() as session:
@@ -143,7 +143,7 @@ def remove_pool_member(league_type, player_id):
     """
     try:
         current_user_id = int(get_jwt_identity())
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         reason = data.get('reason', 'Removed by admin')
 
         with db.session() as session:

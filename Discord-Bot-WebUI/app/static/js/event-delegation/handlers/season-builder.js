@@ -745,10 +745,17 @@ function updateDiscordPreview() {
             roles.push(`Premier Team ${letter}`);
         }
     } else {
+        // Label from the SELECTED season type, not the literal "ECS FC". The
+        // single-league layout serves every non-Pub-League program, so a newer
+        // program's Discord preview claimed it would create #ecs-fc-team-a.
+        const sel = document.getElementById('leagueType');
+        const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
+        const label = (opt && opt.textContent || state.leagueType || 'ECS FC').trim();
+        const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         for (let i = 0; i < state.ecsFcTeams; i++) {
             const letter = String.fromCharCode(65 + i);
-            channels.push(`#ecs-fc-team-${letter.toLowerCase()}`);
-            roles.push(`ECS FC Team ${letter}`);
+            channels.push(`#${slug}-team-${letter.toLowerCase()}`);
+            roles.push(`${label} Team ${letter}`);
         }
     }
 
@@ -1227,11 +1234,24 @@ window.EventDelegation.register('sb-create-season', async function(element, e) {
             week_number: i + 1,
             type: c.type
         }));
+        const _pw = state.premierWeekConfigs || [];
+        const _cw = state.classicWeekConfigs || [];
+        payload.premier_regular_weeks = _pw.filter(c => c.type === 'REGULAR').length;
+        payload.premier_playoff_weeks = _pw.filter(c => c.type === 'PLAYOFF').length;
+        payload.classic_regular_weeks = _cw.filter(c => c.type === 'REGULAR').length;
+        payload.classic_playoff_weeks = _cw.filter(c => c.type === 'PLAYOFF').length;
     } else {
         payload.ecs_fc_week_configs = state.ecsFcWeekConfigs.map((c, i) => ({
             week_number: i + 1,
             type: c.type
         }));
+        // Derive the week counts from the calendar the admin actually laid out.
+        // Without these the backend's _program_form_int() found no key and fell
+        // back to its generic 8-regular / 1-playoff baseline, so the created
+        // SeasonConfiguration disagreed with the calendar on screen.
+        const _weeks = state.ecsFcWeekConfigs || [];
+        payload.ecs_fc_regular_weeks = _weeks.filter(c => c.type === 'REGULAR').length;
+        payload.ecs_fc_playoff_weeks = _weeks.filter(c => c.type === 'PLAYOFF').length;
     }
 
     // Show loading

@@ -22,6 +22,49 @@
 {% set approval = m.user.approval_status %}
 <div class="space-y-4">
 
+  {# ===== Locked out of Discord =====
+     Pending relink request = this person has NO portal access right now
+     (Discord OAuth is the only door). Resolve it before anything else on
+     this page matters, so it sits above the header. #}
+  {% if relink_request %}
+  <div class="rounded-xl border border-red-300 dark:border-red-500/50 bg-red-50 dark:bg-red-900/20 p-4 sm:p-5">
+    <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+      <div class="flex gap-3 min-w-0 flex-1">
+        <i class="ti ti-lock-exclamation text-red-600 dark:text-red-400 text-xl shrink-0 mt-0.5" aria-hidden="true"></i>
+        <div class="min-w-0 text-sm text-red-900 dark:text-red-200 space-y-1">
+          <p class="font-bold">Locked out — waiting on account recovery</p>
+          <p>
+            They tried to log in with a different Discord account
+            (<strong>{{ relink_request.requested_discord_username or relink_request.requested_discord_id }}</strong>{% if relink_request.requested_discord_email %} · {{ relink_request.requested_discord_email }}{% endif %}),
+            so we blocked it. Usually that means they lost the old one.
+            {% if relink_request.attempts > 1 %}They've tried {{ relink_request.attempts }} times.{% endif %}
+          </p>
+          <p class="text-red-800 dark:text-red-300 text-xs">
+            Approving links that Discord to this member and keeps all their history.
+            Confirm it's really them first.
+          </p>
+        </div>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+        <button type="button"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                data-action="relink-request-approve"
+                data-request-id="{{ relink_request.id }}"
+                data-player-id="{{ relink_request.candidate_player_id or (m.player.id if m.player else '') }}"
+                data-player-name="{{ m.player.name if m.player else m.user.username }}"
+                data-discord-id="{{ relink_request.requested_discord_id }}"
+                data-discord-username="{{ relink_request.requested_discord_username or '' }}">
+          <i class="ti ti-link" aria-hidden="true"></i>Approve &amp; relink
+        </button>
+        <a href="{{ url_for('admin_panel.discord_account_recovery') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/50 text-red-800 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 text-sm font-semibold">
+          <i class="ti ti-lifebuoy" aria-hidden="true"></i>Review queue
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ===== Header ===== -->
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
     <div class="flex items-start gap-4 flex-wrap">
@@ -53,13 +96,32 @@
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate">
           @{{ m.user.username }}{% if m.user.email %} · {{ m.user.email }}{% endif %}
         </p>
-        {% if m.player and m.player.discord_id %}
+        {# Discord identity — always rendered when there's a player, including
+           the "nothing linked" case. Discord is the only way into the portal,
+           so this line is the difference between a member who can log in and
+           one who can't; the relink control has to live where admins already
+           look up a person, not only on the Discord Players page. #}
+        {% if m.player %}
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1 flex-wrap">
           <i class="ti ti-brand-discord text-[14px] text-indigo-500"></i>
+          {% if m.player.discord_id %}
           <span class="font-medium text-gray-700 dark:text-gray-300">{{ m.player.discord_username or m.player.discord_id }}</span>
           {% if m.player.discord_username %}<span class="font-mono text-gray-400">· {{ m.player.discord_id }}</span>{% endif %}
           {% if m.player.discord_in_server %}<span class="text-green-600 dark:text-green-400">· in server</span>
           {% elif m.player.discord_in_server is not none %}<span class="text-amber-600 dark:text-amber-400">· not in server</span>{% endif %}
+          {% else %}
+          <span class="font-medium text-amber-600 dark:text-amber-400">No Discord linked</span>
+          <span class="text-gray-400">· they can't log in until one is</span>
+          {% endif %}
+          <button type="button"
+                  data-action="edit-player-discord"
+                  data-player-id="{{ m.player.id }}"
+                  data-player-name="{{ m.player.name }}"
+                  data-discord-id="{{ m.player.discord_id or '' }}"
+                  class="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[11px] font-semibold text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  title="Change or unlink this member's Discord account">
+            <i class="ti ti-pencil text-[12px]" aria-hidden="true"></i>{{ 'Relink' if m.player.discord_id else 'Link Discord' }}
+          </button>
         </p>
         {% endif %}
       </div>

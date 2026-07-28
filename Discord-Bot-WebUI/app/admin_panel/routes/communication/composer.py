@@ -81,7 +81,7 @@ def message_composer():
 def composer_preview():
     """Per-channel reachability preview for the chosen audience."""
     try:
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
         audience_type = data.get('audience_type', 'all_active')
         audience_ids = data.get('audience_ids') or []
         if audience_type not in audience_service.AUDIENCE_TYPES:
@@ -111,7 +111,7 @@ def composer_preview():
 def composer_send():
     """Create a ComposedMessage and queue it (now or at a scheduled PST time)."""
     try:
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
 
         title = (data.get('title') or '').strip()
         message = (data.get('message') or '').strip()

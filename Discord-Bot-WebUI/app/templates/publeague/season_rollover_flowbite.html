@@ -50,6 +50,12 @@
                         <select id="ro-league-type" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
                             <option value="Pub League">Pub League (Premier + Classic)</option>
                             <option value="ECS FC">ECS FC</option>
+                            {# One option per additional registered season type. The two
+                               hardcoded entries meant a newer program could never be
+                               rolled over through this wizard. #}
+                            {% for st in (extra_season_types or []) %}
+                            <option value="{{ st.season_league_type }}">{{ st.label }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                     <div>
@@ -101,43 +107,6 @@
                         <button type="button" id="ro-add-week" class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:underline"><i class="ti ti-plus"></i> Add week</button>
                     </div>
 
-                    <!-- Division Coaches — pre-filled with current coaches; add/remove applies live -->
-                    <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                            <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-whistle text-ecs-gold-500 dark:text-ecs-gold-400"></i> Division Coaches</h4>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">applies immediately · change later on the Coaches panel</span>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Pre-filled with your current coaches. Add or remove here — changes apply <strong>now</strong> and carry into the new season (coaches aren't tied to a team).</p>
-                        {% if not premier_role_id or not classic_role_id %}
-                        <div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">The <strong>Premier Coach</strong> / <strong>Classic Coach</strong> roles aren't set up yet — run <code class="font-mono">sql_create_division_coach_roles.sql</code>.</div>
-                        {% endif %}
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {% for col in [
-                              {'key':'premier','label':'Premier','tone':'text-ecs-gold-500 dark:text-ecs-gold-400','role_id':premier_role_id,'coaches':premier_coaches},
-                              {'key':'classic','label':'Classic','tone':'text-ecs-green','role_id':classic_role_id,'coaches':classic_coaches}
-                            ] %}
-                            <div data-rocoach-col="{{ col.key }}" data-role-id="{{ col.role_id or '' }}">
-                                <div class="flex items-center justify-between mb-1.5">
-                                    <span class="text-xs font-semibold uppercase tracking-wide {{ col.tone }}">{{ col.label }} Coaches</span>
-                                    <span data-rocoach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
-                                </div>
-                                <div class="relative mb-2">
-                                    <input type="text" data-rocoach-search autocomplete="off" placeholder="Search a player to add…" class="block w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green py-2 pl-3">
-                                    <div data-rocoach-results class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-lg"></div>
-                                </div>
-                                <ul data-rocoach-list class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-100 dark:border-gray-700">
-                                    {% for c in col.coaches %}
-                                    <li class="flex items-center justify-between gap-2 px-3 py-2" data-user-id="{{ c.user_id }}">
-                                        <span class="flex items-center gap-2 min-w-0"><i class="ti ti-whistle {{ col.tone }} shrink-0"></i><span class="text-sm text-gray-900 dark:text-white truncate">{{ c.name }}</span></span>
-                                        <button type="button" data-rocoach-remove data-user-id="{{ c.user_id }}" title="Remove coach" class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"><i class="ti ti-x text-sm"></i></button>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                <p data-rocoach-empty class="{% if col.coaches %}hidden {% endif %}text-xs text-gray-500 dark:text-gray-400 text-center py-2">No {{ col.label }} coaches yet.</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
                 </div>
 
                 <!-- ECS FC settings -->
@@ -163,6 +132,53 @@
                         <div id="ro-ecs-week-list" class="space-y-1"></div>
                         <button type="button" id="ro-ecs-add-week" class="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-ecs-green hover:underline"><i class="ti ti-plus"></i> Add week</button>
                     </div>
+                </div>
+
+                <div id="ro-coach-fields">
+                    <!-- Division Coaches. OUTSIDE #ro-pub-fields on purpose: it used to live
+                     inside that panel, which the wizard hides for every season type
+                     except "Pub League" -- so the per-program column added for a NEW
+                     program was hidden precisely when that program was selected, and
+                     its coach role stayed ungrantable from any UI. -->
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-whistle text-ecs-gold-500 dark:text-ecs-gold-400"></i> Division Coaches</h4>
+                        <span class="text-xs text-gray-400 dark:text-gray-500">applies immediately · change later on the Coaches panel</span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Pre-filled with your current coaches. Add or remove here — changes apply <strong>now</strong> and carry into the new season (coaches aren't tied to a team).</p>
+                    {% if not premier_role_id or not classic_role_id %}
+                    <div class="rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">The <strong>Premier Coach</strong> / <strong>Classic Coach</strong> roles aren't set up yet — run <code class="font-mono">sql_create_division_coach_roles.sql</code>.</div>
+                    {% endif %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {# Registry-supplied columns when available, else the two
+                       legacy ones. A program missing from this list has no
+                       control anywhere to grant its division coach role. #}
+                    {% for col in (division_coach_columns or [
+                          {'key':'premier','label':'Premier','tone':'text-ecs-gold-500 dark:text-ecs-gold-400','role_id':premier_role_id,'coaches':premier_coaches},
+                          {'key':'classic','label':'Classic','tone':'text-ecs-green','role_id':classic_role_id,'coaches':classic_coaches}
+                        ] ) %}
+                        <div data-rocoach-col="{{ col.key }}" data-role-id="{{ col.role_id or '' }}" data-season-type="{{ col.season_type or 'Pub League' }}">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-semibold uppercase tracking-wide {{ col.tone }}">{{ col.label }} Coaches</span>
+                                <span data-rocoach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
+                            </div>
+                            <div class="relative mb-2">
+                                <input type="text" data-rocoach-search autocomplete="off" placeholder="Search a player to add…" class="block w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green py-2 pl-3">
+                                <div data-rocoach-results class="hidden absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 shadow-lg"></div>
+                            </div>
+                            <ul data-rocoach-list class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-100 dark:border-gray-700">
+                                {% for c in col.coaches %}
+                                <li class="flex items-center justify-between gap-2 px-3 py-2" data-user-id="{{ c.user_id }}">
+                                    <span class="flex items-center gap-2 min-w-0"><i class="ti ti-whistle {{ col.tone }} shrink-0"></i><span class="text-sm text-gray-900 dark:text-white truncate">{{ c.name }}</span></span>
+                                    <button type="button" data-rocoach-remove data-user-id="{{ c.user_id }}" title="Remove coach" class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"><i class="ti ti-x text-sm"></i></button>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            <p data-rocoach-empty class="{% if col.coaches %}hidden {% endif %}text-xs text-gray-500 dark:text-gray-400 text-center py-2">No {{ col.label }} coaches yet.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
                 </div>
 
                 <!-- Advanced schedule settings -->
@@ -1236,12 +1252,39 @@
         var typeSel = document.getElementById('ro-league-type');
         if (typeSel) {
             typeSel.addEventListener('change', function () {
+                // Any season type other than Pub League uses the single-league
+                // layout. Comparing against 'ECS FC' instead would leave BOTH
+                // sections hidden for a newer program -- no team-count input,
+                // no way to proceed.
                 var isPub = this.value === 'Pub League';
                 document.getElementById('ro-pub-fields').classList.toggle('hidden', !isPub);
                 document.getElementById('ro-ecs-fields').classList.toggle('hidden', isPub);
+                syncCoachColumns(this.value);
                 prefetchDiscordCheck(true);  // different league type → re-read
             });
         }
+
+
+        // Show only the coach columns belonging to the selected season type, and
+        // hide the whole card when that season type has no division coach roles
+        // (ECS FC). Without this the card either showed every program's coaches
+        // at once or, when it lived inside #ro-pub-fields, vanished entirely for
+        // the very programs whose columns were added.
+        function syncCoachColumns(seasonType) {
+            var card = document.getElementById('ro-coach-fields');
+            if (!card) return;
+            var cols = card.querySelectorAll('[data-rocoach-col]');
+            var shown = 0;
+            cols.forEach(function (c) {
+                var match = (c.getAttribute('data-season-type') || 'Pub League') === seasonType;
+                c.classList.toggle('hidden', !match);
+                if (match) shown++;
+            });
+            card.classList.toggle('hidden', shown === 0);
+        }
+
+        var _roTypeSel = document.getElementById('ro-league-type');
+        syncCoachColumns(_roTypeSel ? _roTypeSel.value : 'Pub League');
 
         // --- Season calendar: seed, render, and wire controls ---
         var mkPubWeek = function () { return { premier: 'REGULAR', classic: 'REGULAR', classicPractice: false }; };

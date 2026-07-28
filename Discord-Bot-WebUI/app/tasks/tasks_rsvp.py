@@ -202,7 +202,6 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
         raise self.retry(exc=e, countdown=30)
 
 
-@celery_task(name='app.tasks.tasks_rsvp.send_availability_message', max_retries=3, retry_backoff=True, queue='discord')
 def _availability_copy(message_data, metadata, is_special=False):
     """Rendered copy for BOTH team channels, plus the response method.
 
@@ -277,6 +276,7 @@ def _build_availability_copy(message_data, metadata, is_special):
     }
 
 
+@celery_task(name='app.tasks.tasks_rsvp.send_availability_message', max_retries=3, retry_backoff=True, queue='discord')
 def send_availability_message(self, session, scheduled_message_id: int) -> Dict[str, Any]:
     """
     Send an availability message to Discord.

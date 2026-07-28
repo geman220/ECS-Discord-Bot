@@ -72,7 +72,7 @@
                     {% if player.teams %}
                     <div class="mt-2">
                         {% for team in player.teams %}
-                        {% if viewer_can_see_teams or not (team.league and team.league.name in ('Premier', 'Classic')) %}
+                        {% if not (team.league and team.league.name in hidden_team_league_names) %}
                         <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20">
                             {{ team.name }}
                         </span>

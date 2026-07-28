@@ -25,11 +25,15 @@
 {% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state %}
 {% set current_count = seasons | selectattr('is_current') | list | length %}
 {% set archived_count = (seasons | length) - current_count %}
-{% set league_types = ['Pub League', 'ECS FC'] %}
+{# Derived from the seasons actually present, so a program with its own
+   season_league_type still gets a group -- the hardcoded pair meant its
+   season row never rendered at all, and therefore had no Set-Current
+   button, making it impossible to activate through the UI. #}
+{% set league_types = (program_league_types or (seasons | map(attribute='league_type') | reject('none') | unique | list) or ['Pub League', 'ECS FC']) %}
 {% set current_seasons = seasons | selectattr('is_current') | list %}
 <div class="space-y-6">
 
-  {% call page_header('Seasons', subtitle='Season lifecycle · Pub League and ECS FC') %}
+  {% call page_header('Seasons', subtitle='Season lifecycle') %}
     <a href="{{ url_for('auto_schedule.schedule_manager') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors

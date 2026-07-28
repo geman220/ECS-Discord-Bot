@@ -281,3 +281,54 @@ def get_league_standings(league_id: int):
             "league_name": league.name,
             "standings": standings_data
         }), 200
+
+
+@mobile_api_v2.route('/programs', methods=['GET'])
+@jwt_required()
+def get_programs():
+    """
+    Get the program registry: Premier, Classic, ECS FC, and any newer program.
+
+    This is what lets the app stop hardcoding the set of leagues. Every field a
+    client needs to render or route on is here, and the set is DATA -- it grows
+    when a program is added, with no app release.
+
+    Two fields carry the whole contract:
+      * `key`          -- permanent, opaque, NEVER rendered. Switch on this.
+      * `display_name` -- the only human-facing string. CHANGES on rebrand.
+
+    Switching on `display_name` (or deriving a slug from it) is the bug this
+    endpoint exists to prevent: the third program launched as "Summer Sprint
+    League" and is expected to be renamed.
+
+    Response:
+        {"programs": [{...}], "count": N}
+    """
+    try:
+        from app.services import program_registry
+        with managed_session() as session_db:
+            programs = program_registry.all_programs(session_db)
+            data = [{
+                'key': p.key,
+                'display_name': p.display_name,
+                'short_name': p.short_name or p.display_name,
+                'sort_order': p.sort_order,
+                'league_name': p.league_name,
+                'season_league_type': p.season_league_type,
+                # URL slug for /draft/<slug>/... -- do NOT build this from the
+                # display name; it must survive a rename.
+                'draft_slug': p.membership_lane,
+                'membership_lane': p.membership_lane,
+                'color': p.color,
+                'icon': p.icon,
+                'is_pub_league_like': bool(p.is_pub_league_like),
+                'uses_draft': bool(p.uses_draft),
+                'allows_multi_team': bool(p.allows_multi_team),
+                'requires_pass': bool(p.requires_pass),
+                'hide_until_reveal': bool(p.hide_until_reveal),
+                'is_active': bool(p.is_active),
+            } for p in programs]
+        return jsonify({'programs': data, 'count': len(data)}), 200
+    except Exception as e:
+        logger.error(f"Error fetching programs: {e}", exc_info=True)
+        return jsonify({'msg': 'Failed to fetch programs'}), 500

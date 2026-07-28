@@ -30,7 +30,7 @@ def opt_out():
     Accepts either `discord_id` (bot callback) or `user_id`/`player_id`
     (web UI). Idempotent — a second opt-out is a no-op.
     """
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
 
     with managed_session() as session_db:
         user = _resolve_user(session_db, data)
@@ -56,7 +56,7 @@ def opt_out():
 @match_reminder_bp.route('/opt-in', methods=['POST'])
 def opt_in():
     """Turn match reminder notifications back on."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
 
     with managed_session() as session_db:
         user = _resolve_user(session_db, data)

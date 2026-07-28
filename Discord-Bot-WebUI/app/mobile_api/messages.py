@@ -319,7 +319,7 @@ def send_message(user_id):
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     content = data.get('content', '').strip()
 
     if not content:

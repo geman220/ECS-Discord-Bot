@@ -329,6 +329,8 @@
                                 data-home-team="{{ match.home_team_id }}"
                                 data-away-team="{{ match.away_team_id }}"
                                 data-match-id="{{ match.id }}"
+                                data-date="{{ match.date.strftime('%Y-%m-%d') if match.date else '' }}"
+                                data-venue="{{ match.venue or '' }}"
                                 data-week="{{ week_num }}">
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
@@ -342,11 +344,21 @@
                                     <span class="field-display inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
                                         <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
                                     </span>
+                                    {% if match.venue %}
+                                    <span class="venue-display block mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">{{ match.venue }}</span>
+                                    {% endif %}
                                     <select class="field-edit hidden input-ecs h-9 text-sm w-auto">
-                                        <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
-                                        <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
-                                        <option value="East" {% if match.location == 'East' %}selected{% endif %}>East</option>
-                                        <option value="West" {% if match.location == 'West' %}selected{% endif %}>West</option>
+                                        {# The match's OWN location first, always selected. A match at
+                                           any field outside the four literals below matched no option, so
+                                           the browser defaulted select.value to 'North' -- and the modal
+                                           pre-fill reads .field-edit FIRST, so opening Edit on such a match
+                                           silently pre-filled North and saving relocated it. #}
+                                        {% if match.location %}
+                                        <option value="{{ match.location }}" selected>{{ match.location }}</option>
+                                        {% endif %}
+                                        {% for _f in ['North', 'South', 'East', 'West'] %}
+                                        {% if _f != match.location %}<option value="{{ _f }}">{{ _f }}</option>{% endif %}
+                                        {% endfor %}
                                     </select>
                                 </td>
                                 <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs hidden lg:table-cell">
@@ -656,6 +668,8 @@
                                 data-home-team="{{ match.home_team_id }}"
                                 data-away-team="{{ match.away_team_id }}"
                                 data-match-id="{{ match.id }}"
+                                data-date="{{ match.date.strftime('%Y-%m-%d') if match.date else '' }}"
+                                data-venue="{{ match.venue or '' }}"
                                 data-week="{{ week_num }}">
                                 <td class="px-4 py-3 whitespace-nowrap">
                                     <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
@@ -670,10 +684,17 @@
                                         {{ match.location }}
                                     </span>
                                     <select class="field-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                                        <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
-                                        <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
-                                        <option value="East" {% if match.location == 'East' %}selected{% endif %}>East</option>
-                                        <option value="West" {% if match.location == 'West' %}selected{% endif %}>West</option>
+                                        {# The match's OWN location first, always selected. A match at
+                                           any field outside the four literals below matched no option, so
+                                           the browser defaulted select.value to 'North' -- and the modal
+                                           pre-fill reads .field-edit FIRST, so opening Edit on such a match
+                                           silently pre-filled North and saving relocated it. #}
+                                        {% if match.location %}
+                                        <option value="{{ match.location }}" selected>{{ match.location }}</option>
+                                        {% endif %}
+                                        {% for _f in ['North', 'South', 'East', 'West'] %}
+                                        {% if _f != match.location %}<option value="{{ _f }}">{{ _f }}</option>{% endif %}
+                                        {% endfor %}
                                     </select>
                                 </td>
                                 <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
@@ -810,21 +831,42 @@
 <!-- Edit Match Modal -->
 {% call modal_form('editMatchModal', 'Edit Match', form_id='editMatchForm', submit_text='Save Changes', loading_text='Saving...') %}
     <input type="hidden" id="editMatchId">
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label for="editMatchDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+            <input type="date" id="editMatchDate"
+                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Moves this match only, not the whole week.</p>
+        </div>
         <div>
             <label for="editMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
             <input type="time" id="editMatchTime" required
                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label for="editMatchVenue" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue</label>
+            {# Free text with suggestions, NOT a fixed list: a travelling season
+               plays somewhere new most weeks, and a hardcoded <select> is exactly
+               what made Field unusable for anything but North/South. #}
+            <input type="text" id="editMatchVenue" list="venueSuggestions" autocomplete="off"
+                   placeholder="e.g. Eagle Staff (blank = usual site)"
+                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            <datalist id="venueSuggestions">
+                {% for v in known_venues|default([]) %}<option value="{{ v }}"></option>{% endfor %}
+            </datalist>
+        </div>
         <div>
             <label for="editMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
-            <select id="editMatchField" required
-                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                <option value="North">North</option>
-                <option value="South">South</option>
-                <option value="East">East</option>
-                <option value="West">West</option>
-            </select>
+            <input type="text" id="editMatchField" list="fieldSuggestions" required autocomplete="off"
+                   placeholder="North"
+                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            <datalist id="fieldSuggestions">
+                <option value="North"></option><option value="South"></option>
+                <option value="East"></option><option value="West"></option>
+                {% for f in known_fields|default([]) %}<option value="{{ f }}"></option>{% endfor %}
+            </datalist>
         </div>
     </div>
     <div class="grid grid-cols-2 gap-4">
@@ -1363,10 +1405,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Edit Match Modal - use ModalManager
-    function openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId) {
+    function openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId, date, venue) {
         document.getElementById('editMatchId').value = matchId;
         document.getElementById('editMatchTime').value = time;
         document.getElementById('editMatchField').value = field;
+        document.getElementById('editMatchDate').value = date || '';
+        document.getElementById('editMatchVenue').value = venue || '';
 
         // Populate team dropdowns
         const teams = window.leagueTeams[leagueId] || [];
@@ -1396,8 +1440,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const homeTeamId = row.dataset.homeTeam;
             const awayTeamId = row.dataset.awayTeam;
             const leagueId = row.dataset.league;
+            const date = row.dataset.date || '';
+            const venue = row.dataset.venue || '';
 
-            openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId);
+            openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId, date, venue);
         });
     });
 
@@ -1411,6 +1457,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const matchField = document.getElementById('editMatchField').value;
         const homeTeamId = document.getElementById('editMatchHomeTeam').value;
         const awayTeamId = document.getElementById('editMatchAwayTeam').value;
+        const matchDate = document.getElementById('editMatchDate').value;
+        const matchVenue = document.getElementById('editMatchVenue').value;
 
         // Close the modal first to prevent visual conflicts with Swal
         closeEditMatchModal();
@@ -1426,6 +1474,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     match_id: matchId,
                     time: matchTime,
                     field: matchField,
+                    // Always sent: '' clears the venue back to "usual site".
+                    venue: matchVenue,
+                    date: matchDate,
                     home_team_id: homeTeamId,
                     away_team_id: awayTeamId
                 })

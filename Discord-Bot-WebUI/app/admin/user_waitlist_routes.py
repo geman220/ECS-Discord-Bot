@@ -105,7 +105,7 @@ def remove_from_waitlist(user_id: int):
                 return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
 
             # Get removal reason from request
-            reason = request.json.get('reason', 'No reason provided')
+            reason = (request.get_json(silent=True) or {}).get('reason', 'No reason provided')
 
             # Remove the waitlist role
             user.roles.remove(waitlist_role)
@@ -179,8 +179,8 @@ def contact_waitlist_user(user_id: int):
             return jsonify({'success': False, 'message': 'User not found'}), 404
         
         # Get contact message from request
-        message = request.json.get('message', '')
-        contact_method = request.json.get('contact_method', 'email')
+        message = (request.get_json(silent=True) or {}).get('message', '')
+        contact_method = (request.get_json(silent=True) or {}).get('contact_method', 'email')
         
         # Log the action
         logger.info(f"Contact initiated for waitlist user {user.id} ({user.username}) by {current_user.id} ({current_user.username}). Method: {contact_method}")

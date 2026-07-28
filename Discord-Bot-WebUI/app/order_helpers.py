@@ -44,18 +44,41 @@ def extract_season_name(product_name):
     Returns:
         str: The extracted season name (e.g., "2024 Fall") or empty string if not found.
     """
-    # Regex to find patterns like "2024 Fall" or "Fall 2024"
-    match = re.search(r'(\d{4})\s+(Spring|Fall)|\b(Spring|Fall)\s+(\d{4})\b', product_name, re.IGNORECASE)
+    # Terms beyond Spring/Fall. ECS only ran two terms for years, so the
+    # original pattern hardcoded them -- and a product like
+    # "2026 ECS Pub League - Summer Sprint Season" returned "" for its season
+    # name, leaving the order bound to NO season at all (silent: an empty
+    # string, not an exception).
+    _TERMS = r'Spring|Summer|Fall|Autumn|Winter'
+
+    # ONE alternation for both adjacent forms, so the LEFTMOST match wins --
+    # matching the original behaviour. Searching "YEAR TERM" across the whole
+    # string first would flip precedence: "Fall 2024 to 2025 Spring Combo Pass"
+    # returned '2024 Fall' before and would return '2025 Spring'.
+    match = re.search(
+        rf'(\d{{4}})\s+({_TERMS})\b|\b({_TERMS})\s+(\d{{4}})\b',
+        product_name, re.IGNORECASE)
     if match:
-        if match.group(1) and match.group(2):
-            year = match.group(1)
-            season = match.group(2).capitalize()
-        elif match.group(3) and match.group(4):
-            season = match.group(3).capitalize()
-            year = match.group(4)
-        else:
-            return ""
-        return f"{year} {season}"
+        if match.group(1):
+            return f"{match.group(1)} {match.group(2).capitalize()}"
+        return f"{match.group(4)} {match.group(3).capitalize()}"
+
+    # Non-adjacent year + term, e.g. "2026 ECS Pub League - Summer Sprint Season".
+    #
+    # ⚠️ Deliberately gated on the product being a LEAGUE product. Without that
+    # gate this invents seasons for anything with a year and a season-ish word:
+    # "Fall Ball 2025 Registration" -> '2025 Fall', "2026 Summerville Cup" ->
+    # '2026 Summer', "Order #2025 Summer merch bundle" -> '2025 Summer'.
+    # Callers use this to bind a purchase to a Season, so a merch or sub-fee
+    # product would attach an order to an unrelated season.
+    #
+    # The \b after the term is what stops "Summerville" matching "Summer".
+    if re.search(r'\bpub\s+league\b', product_name, re.IGNORECASE):
+        year_m = re.search(r'\b(20\d{2})\b', product_name)
+        term_m = re.search(rf'\b({_TERMS})\b', product_name, re.IGNORECASE)
+        if year_m and term_m:
+            return f"{year_m.group(1)} {term_m.group(1).capitalize()}"
+
     return ""
 
 
@@ -131,6 +154,27 @@ def determine_league(product_name, current_seasons, session=None):
 
     # Handle ECS Pub League products (check for both "ECS PUB LEAGUE" and "PUB LEAGUE" patterns)
     elif "ECS PUB LEAGUE" in product_name or "PUB LEAGUE" in product_name:
+        # Registry FIRST, substrings second.
+        #
+        # WARNING: the order is load-bearing for renames. Only a program given
+        # an explicit woo_name_pattern matches here, so ordinary Premier/Classic
+        # titles fall straight through to the tokens below. But once pl_third is
+        # renamed to something like "Premier Plus" -- the documented rename
+        # example -- `"PREMIER" in product_name` is TRUE for its product, and
+        # checking tokens first filed every Premier Plus buyer into the PREMIER
+        # league. extract_pub_league_items (registry-first) resolved the same
+        # order correctly, so a single order was split across two divisions by
+        # two parsers that disagreed.
+        _prog = _program_for_product_name(product_name)
+        if _prog:
+            _lg = SeasonSyncService.get_current_league_by_name(
+                session, _prog.league_name, _prog.season_league_type)
+            if _lg:
+                logger.debug(f"Product '{product_name}' mapped via registry "
+                             f"to {_prog.league_name} league id={_lg.id}.")
+                return _lg
+            logger.error(f"Current season league '{_prog.league_name}' not found.")
+            return None
         if "PREMIER DIVISION" in product_name or "PREMIER" in product_name:
             # Use dynamic lookup for current season Premier league
             pub_league = SeasonSyncService.get_current_league_by_name(session, 'Premier', 'Pub League')
@@ -150,71 +194,72 @@ def determine_league(product_name, current_seasons, session=None):
                 logger.error(f"Current season Classic league not found in the database.")
                 return None
         else:
+            # No PREMIER/CLASSIC token. Ask the registry, which matches on Woo
+            # product ID first and a per-program name pattern second -- the 2026
+            # Summer product has neither a season nor a division token, so this
+            # branch used to just log "Unknown division" and drop the order.
+            prog = _program_for_product_name(product_name)
+            if prog:
+                lg = SeasonSyncService.get_current_league_by_name(
+                    session, prog.league_name, prog.season_league_type)
+                if lg:
+                    logger.debug(f"Product '{product_name}' mapped via registry "
+                                 f"to {prog.league_name} league id={lg.id}.")
+                    return lg
+                logger.error(f"Current season league '{prog.league_name}' not found.")
+                return None
             logger.error(f"Unknown division in product name: '{product_name}'.")
             return None
+
+    # Last resort before giving up entirely: a registry match on the whole name.
+    prog = _program_for_product_name(product_name)
+    if prog:
+        lg = SeasonSyncService.get_current_league_by_name(
+            session, prog.league_name, prog.season_league_type)
+        if lg:
+            return lg
 
     logger.warning(f"Could not determine league type from product name: '{product_name}'")
     return None
 
 
-def determine_league_cached(product_name, current_seasons, league_cache):
+def _program_for_product_name(product_name, product_id=None):
+    """Registry lookup for a Woo product, or None."""
+    try:
+        from app.services import program_registry
+        return program_registry.by_woo_product(
+            product_id=product_id, product_name=product_name)
+    except Exception as exc:
+        logger.debug(f"registry product lookup failed: {exc}")
+        return None
+
+
+def determine_league_cached(product_name, current_seasons, league_cache, session=None,
+                            _memo=None):
+    """Resolve a Woo product to a League, memoised per product name.
+
+    WARNING: this used to be a SECOND, independent implementation of
+    determine_league, and it had drifted badly:
+
+      * it was never made registry-aware, so it logged "Unknown division" and
+        the caller `continue`d -- the bulk order sync silently skipped every
+        order for any program added after Premier/Classic, permanently; and
+      * `league_cache` holds DICTS (reference_cache.get_leagues returns
+        {'id','name',...}) while this function did `league.season` and
+        `league.name` attribute access -- an AttributeError on the very first
+        iteration, so the "optimised" path was already dead.
+
+    It now delegates to the single parser. `_memo` keeps the per-run cost down:
+    one order sync sees the same handful of product names thousands of times.
     """
-    Optimized version of determine_league that uses cached league objects.
-
-    The league_cache should contain leagues from CURRENT SEASONS only.
-    This function looks up leagues by name from the cache instead of using
-    hardcoded IDs.
-
-    Args:
-        product_name (str): The product name.
-        current_seasons (list): List of current Season objects.
-        league_cache (dict): Dictionary mapping league_id to League objects.
-            Should contain only leagues from current seasons.
-
-    Returns:
-        League: The League object if determined, or None otherwise.
-    """
-    product_name = product_name.upper().strip()
-
-    # Build a name-to-league mapping from the cache for efficient lookup
-    # This ensures we use current season leagues even if the cache has mixed seasons
-    league_by_name = {}
-    for league in league_cache.values():
-        # Only include leagues from current seasons
-        if league.season and league.season.is_current:
-            league_by_name[league.name.upper()] = league
-
-    # Handle ECS FC products
-    if product_name.startswith("ECS FC"):
-        ecs_fc_league = league_by_name.get('ECS FC')
-        if ecs_fc_league:
-            return ecs_fc_league
-        else:
-            logger.error(f"Current season ECS FC League not found in the cache.")
-            return None
-
-    # Handle ECS Pub League products (check for both "ECS PUB LEAGUE" and "PUB LEAGUE" patterns)
-    elif "ECS PUB LEAGUE" in product_name or "PUB LEAGUE" in product_name:
-        if "PREMIER DIVISION" in product_name or "PREMIER" in product_name:
-            pub_league = league_by_name.get('PREMIER')
-            if pub_league:
-                return pub_league
-            else:
-                logger.error(f"Current season Premier league not found in the cache.")
-                return None
-        elif "CLASSIC DIVISION" in product_name or "CLASSIC" in product_name:
-            pub_league = league_by_name.get('CLASSIC')
-            if pub_league:
-                return pub_league
-            else:
-                logger.error(f"Current season Classic league not found in the cache.")
-                return None
-        else:
-            logger.error(f"Unknown division in product name: '{product_name}'.")
-            return None
-
-    logger.warning(f"Could not determine league type from product name: '{product_name}'")
-    return None
+    if _memo is None:
+        _memo = {}
+    key = (product_name or '').upper().strip()
+    if key in _memo:
+        return _memo[key]
+    league = determine_league(product_name, current_seasons, session=session)
+    _memo[key] = league
+    return league
 
 
 def get_league_by_product_name(product_name, current_seasons):

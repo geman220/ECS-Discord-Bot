@@ -365,11 +365,29 @@ def league_management_seasons():
             season.team_count = sum(len(league.teams) for league in season.leagues)
             season.league_count = len(season.leagues)
 
+        # Every registered program's season type, so a program with NO season yet
+        # still gets its group (and therefore its "create season" affordance).
+        try:
+            from app.services import program_registry
+            _ordered, _seen = [], set()
+            for pr in program_registry.all_programs():
+                if pr.season_league_type not in _seen:
+                    _seen.add(pr.season_league_type)
+                    _ordered.append(pr.season_league_type)
+            for s_ in seasons:
+                if s_.league_type and s_.league_type not in _seen:
+                    _seen.add(s_.league_type)
+                    _ordered.append(s_.league_type)
+            program_league_types = _ordered
+        except Exception:
+            program_league_types = None
+
         return render_template(
             'admin_panel/league_management/seasons/index_flowbite.html',
             seasons=seasons,
             current_league_type=league_type,
             show_current_only=show_current_only,
+            program_league_types=program_league_types,
             page_title='Season Management'
         )
 
@@ -463,7 +481,7 @@ def league_management_set_current_season(season_id):
     from app.services.league_management_service import LeagueManagementService
     from app.season_routes import restore_season_memberships
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     perform_rollover = data.get('perform_rollover', False)
 
     season = Season.query.get_or_404(season_id)
@@ -532,7 +550,7 @@ def league_management_update_season(season_id):
 
     season = Season.query.get_or_404(season_id)
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     new_name = (data.get('name') or '').strip()
 
     if not new_name:
@@ -764,12 +782,59 @@ def season_rollover():
     premier_role = db.session.query(Role).filter_by(name='Premier Coach').first()
     classic_role = db.session.query(Role).filter_by(name='Classic Coach').first()
 
+    # Season types beyond the two hardcoded in the template, so a newer program
+    # can be rolled over through the guided wizard rather than not at all.
+    extra_season_types = []
+    try:
+        from app.services import program_registry
+        _by_type = {}
+        for _pr in program_registry.all_programs(db.session):
+            if _pr.season_league_type in ('Pub League', 'ECS FC'):
+                continue
+            _by_type.setdefault(_pr.season_league_type, []).append(_pr)
+        for _st, _prs in _by_type.items():
+            extra_season_types.append({
+                'season_league_type': _st,
+                'label': ' + '.join(pr.display_name for pr in _prs),
+                'lanes': [pr.membership_lane for pr in _prs],
+            })
+    except Exception as _est_err:
+        logger.warning(f"rollover wizard: could not build extra season types: {_est_err}")
+
+    # One coach column per pub-league-like program. Without this there is no
+    # control anywhere to grant a newer program's division coach role -- the
+    # Discord calculator is ready and waiting for a role nothing ever assigns.
+    division_coach_columns = []
+    try:
+        from app.services import program_registry
+        _tones = ['text-ecs-gold-500 dark:text-ecs-gold-400', 'text-ecs-green',
+                  'text-amber-500', 'text-blue-500']
+        for _i, _pr in enumerate(program_registry.all_programs(db.session)):
+            if not _pr.is_pub_league_like or not _pr.flask_coach_role:
+                continue
+            _role = db.session.query(Role).filter_by(name=_pr.flask_coach_role).first()
+            division_coach_columns.append({
+                'key': _pr.membership_lane,
+                'label': _pr.display_name,
+                'tone': _tones[_i % len(_tones)],
+                'role_id': _role.id if _role else None,
+                'coaches': _division_coach_list(_role),
+                # The template shows only the columns belonging to the season
+                # type currently selected in the wizard.
+                'season_type': _pr.season_league_type,
+            })
+    except Exception as _dc_err:
+        logger.warning(f"rollover wizard: could not build coach columns: {_dc_err}")
+        division_coach_columns = []
+
     return render_template(
         'publeague/season_rollover_flowbite.html',
         title='Guided Season Rollover',
+        division_coach_columns=division_coach_columns,
         is_global_admin=is_global_admin,
         pub_current=pub_current,
         ecs_current=ecs_current,
+        extra_season_types=extra_season_types,
         premier_role_id=premier_role.id if premier_role else None,
         classic_role_id=classic_role.id if classic_role else None,
         premier_coaches=_division_coach_list(premier_role),

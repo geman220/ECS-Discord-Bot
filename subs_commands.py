@@ -47,6 +47,10 @@ MAX_MATCHES_PER_REQUEST = 5
 # player_teams.is_coach flag / coach roles (see webui app/discord_utils.py), so
 # a real coach has them. This is a fast first-line gate; the Flask endpoint
 # still re-verifies the coach owns the target team (per program) before writing.
+# Kept for reference; the gate below matches by PATTERN so a new program's
+# division-coach role works without a bot redeploy. The bot has no access to
+# the portal's program registry, so enumerating names here meant every new
+# program silently failed the /subs coach check.
 COACH_ROLE_NAMES = {
     "ECS-FC-PL-PREMIER-COACH",
     "ECS-FC-PL-CLASSIC-COACH",
@@ -54,12 +58,18 @@ COACH_ROLE_NAMES = {
 }
 
 
+def _is_coach_role_name(name: str) -> bool:
+    """True for any ECS-FC-PL-*-COACH role: division-wide OR per-team."""
+    n = (name or "").strip().upper()
+    return n.startswith("ECS-FC-PL-") and n.endswith("-COACH")
+
+
 def _has_coach_role(member) -> bool:
     """True if the member holds any team-coach Discord role (Pub League or ECS FC)."""
     roles = getattr(member, "roles", None)
     if not roles:
         return False
-    return any((r.name or "").strip().upper() in COACH_ROLE_NAMES for r in roles)
+    return any(_is_coach_role_name(r.name) for r in roles)
 
 
 def _internal_url(path: str) -> str:

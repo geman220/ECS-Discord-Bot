@@ -22,12 +22,19 @@ export const HTML_ENTITIES = {
 /**
  * Escape HTML entities in a string
  * Use this for user-generated text content
- * @param {string} str - String to escape
+ *
+ * Non-strings are coerced, NOT dropped. This used to return '' for anything
+ * that wasn't already a string, which silently ate numeric ids: JSON gives
+ * `{"id": 123}`, so `data-player-id="${escapeHtml(p.id)}"` rendered as
+ * data-player-id="" -> parseInt('') -> NaN -> JSON.stringify sends null and
+ * the server answers "Player ID is required". Only null/undefined are empty.
+ *
+ * @param {*} str - Value to escape (numbers/booleans are stringified)
  * @returns {string} Escaped string
  */
 export function escapeHtml(str) {
-    if (typeof str !== 'string') return '';
-    return str.replace(/[&<>"'`=\/]/g, char => HTML_ENTITIES[char]);
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/[&<>"'`=\/]/g, char => HTML_ENTITIES[char]);
 }
 
 /**
@@ -45,8 +52,9 @@ export function escapeHtml(str) {
 export function safeHtml(strings, ...values) {
     return strings.reduce((result, str, i) => {
         const value = values[i - 1];
-        const escaped = typeof value === 'string' ? escapeHtml(value) : (value ?? '');
-        return result + escaped + str;
+        // Escape EVERY interpolated value. Non-strings used to be inserted raw,
+        // which both skipped escaping and diverged from escapeHtml's coercion.
+        return result + escapeHtml(value) + str;
     });
 }
 

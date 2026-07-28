@@ -134,7 +134,8 @@ def approve_user(user_id: int):
             league_type = request.form.get('league_type')
             notes = request.form.get('notes', '')
 
-            valid_league_types = ['classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc']
+            from app.services.integrity_service import approve_league_types
+            valid_league_types = list(approve_league_types())
             if not league_type or league_type not in valid_league_types:
                 return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
@@ -158,7 +159,22 @@ def approve_user(user_id: int):
                 'sub-ecs-fc': 'ECS FC'       # Subs get assigned to the base league
             }
 
-            new_role_names = role_mapping[league_type]
+            new_role_names = role_mapping.get(league_type)
+            if not new_role_names:
+                # Registry fallback: the validator above is registry-driven and
+                # lets newer programs through, so the bare subscript 500'd.
+                try:
+                    from app.services import program_registry
+                    _pr = program_registry.by_form_value(league_type)
+                    if _pr:
+                        _r = (_pr.flask_sub_role if str(league_type).startswith('sub-')
+                              else _pr.flask_league_role)
+                        new_role_names = [_r] if _r else None
+                except Exception:
+                    new_role_names = None
+            if not new_role_names:
+                return jsonify({'success': False,
+                                'message': f'Unknown league type: {league_type}'}), 400
             new_roles = []
 
             # Get all the roles that need to be assigned

@@ -275,15 +275,17 @@ async def update_discord_rsvp(match, player, new_response, old_response, session
         logger.debug(f"No Discord messages to update for match {match.id}")
         return {"status": "success", "message": "RSVP recorded; no message IDs"}
 
-    data = {
-        "match_id": match.id,
-        "discord_id": player.discord_id,
-        "new_response": new_response,
-        "old_response": old_response,
-        "message_ids": message_ids
-    }
-
-    update_discord_rsvp_task.delay(data)
+    # Keyword args, not a single dict: update_discord_rsvp_task's signature is
+    # (self, session, match_id, discord_id, new_response, old_response) with self
+    # and session injected by @celery_task, so .delay(data) bound the whole dict
+    # to match_id. Matches the dispatch in services/rsvp_service.py:701.
+    # message_ids is intentionally not passed — the task re-resolves them itself.
+    update_discord_rsvp_task.delay(
+        match_id=match.id,
+        discord_id=player.discord_id,
+        new_response=new_response,
+        old_response=old_response,
+    )
     return {"status": "success", "message": "RSVP update task queued"}
 
 

@@ -38,7 +38,7 @@ def register_fcm_token():
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     fcm_token = data.get('fcm_token')
     platform = data.get('platform', 'unknown')
 
@@ -124,7 +124,7 @@ def register_device():
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     device_token = data.get('device_token') or data.get('token')  # Support both formats
     platform = data.get('platform', 'unknown')
     device_id = data.get('device_id')
@@ -244,7 +244,7 @@ def notification_preferences():
             return jsonify({"preferences": preferences}), 200
 
         else:  # PUT
-            data = request.json or {}
+            data = request.get_json(silent=True) or {}
 
             # Update user-level preferences
             if 'email_notifications' in data:
@@ -308,7 +308,7 @@ def unregister_device():
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     device_token = data.get('device_token')
     platform = data.get('platform')
 

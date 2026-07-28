@@ -218,6 +218,26 @@ def role_required(roles):
     if isinstance(roles, str):
         roles = [roles]
 
+    # `roles` may be a CALLABLE, resolved per-request instead of at import.
+    # Program-derived role names (a program's coach role, say) cannot be known
+    # at decoration time -- there is no app context or DB yet -- so a static
+    # list permanently locks out every program added after this line was
+    # written. A callable lets the gate follow the registry.
+    _roles_spec = roles
+
+    def _resolve_roles():
+        if callable(_roles_spec):
+            try:
+                resolved = _roles_spec()
+                if resolved:
+                    return list(resolved)
+            except Exception:
+                logger.warning("role_required: callable role spec failed; denying by "
+                               "falling back to an empty set", exc_info=True)
+                return []
+            return []
+        return list(_roles_spec)
+
     def role_required_decorator(f):
         if hasattr(f, 'role_decorated'):
             return f
@@ -260,8 +280,9 @@ def role_required(roles):
                 user_roles = [role.name for role in db_user.roles]
                 logger.debug(f"Role decorator - User roles from fresh query: {user_roles}")
             
-            if not any(role in user_roles for role in roles):
-                show_error(f'Access denied: Required roles: {", ".join(roles)}')
+            _required = _resolve_roles()
+            if not any(role in user_roles for role in _required):
+                show_error(f'Access denied: Required roles: {", ".join(_required)}')
                 return abort(403)
 
             return f(*args, **kwargs)
@@ -270,7 +291,15 @@ def role_required(roles):
         # Exposed for introspection (e.g. admin search index role filtering).
         # @wraps copies __dict__, so this survives outer decorators like
         # @login_required and is readable off current_app.view_functions.
-        decorated_function.required_roles = list(roles)
+        # Introspection (admin search-index role filtering) reads this at import
+        # time, so a callable spec must not be list()'d here -- that would
+        # TypeError on module load. Callables expose their static fallback via
+        # `.static_roles` when they have one, else an empty list.
+        if callable(_roles_spec):
+            decorated_function.required_roles = list(
+                getattr(_roles_spec, 'static_roles', []) or [])
+        else:
+            decorated_function.required_roles = list(_roles_spec)
         return decorated_function
 
     return role_required_decorator
@@ -394,8 +423,26 @@ def jwt_role_required(roles):
         function: Decorated function.
     """
     from app.models import User
-    if isinstance(roles, str):
-        roles = [roles]
+
+    def _resolve_roles():
+        """Resolve the required roles for THIS request.
+
+        Accepts a callable for the same reason role_required does: a role list
+        evaluated at import time cannot include a program registered later, so
+        a newer program's coach passed the WEB gate (callable, registry-driven)
+        and got a 403 from the mobile gate (static list). Fails CLOSED -- an
+        unresolvable list denies rather than admits.
+        """
+        r = roles
+        if callable(r):
+            try:
+                r = r()
+            except Exception as _rr_err:
+                logger.warning(f"jwt_role_required: role resolver failed: {_rr_err}")
+                return []
+        if isinstance(r, str):
+            return [r]
+        return list(r or [])
 
     def wrapper(f):
         @wraps(f)
@@ -412,14 +459,15 @@ def jwt_role_required(roles):
                 return jsonify({"msg": "User not found"}), 404
 
             user_roles = [role.name for role in user.roles]
-            
+            _required = _resolve_roles()
+
             # Global Admin always has access
             if 'Global Admin' in user_roles:
                 return f(*args, **kwargs)
-                
-            if not any(role in user_roles for role in roles):
+
+            if not any(role in user_roles for role in _required):
                 return jsonify({
-                    "msg": f"Access denied: Required roles: {', '.join(roles)}"
+                    "msg": f"Access denied: Required roles: {', '.join(_required)}"
                 }), 403
 
             return f(*args, **kwargs)

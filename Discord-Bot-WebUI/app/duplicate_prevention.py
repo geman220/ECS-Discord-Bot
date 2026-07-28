@@ -175,6 +175,115 @@ def find_user_for_discord_login(session, discord_id, email):
     return None, player_by_discord, None, None
 
 
+def describe_discord_conflict(session, discord_id, email, blocked_reason):
+    """
+    Work out WHO the blocked login was probably trying to reach.
+
+    ``find_user_for_discord_login`` deliberately returns ``user=None`` on a
+    refusal -- it must not hand an authenticated User back to a possible
+    hijacker. But the admin review queue needs exactly that information to be
+    actionable, so this re-runs the identifying half of the match (read-only,
+    no authentication implied) purely to build the queue row.
+
+    Only called on the rare refusal path, so the duplicate query costs nothing
+    in practice.
+
+    Returns a dict with:
+        candidate_user_id / candidate_player_id: the single account we think
+            they are (``email_in_use_by_other_discord``), else None.
+        candidate_player_ids: every plausible player id
+            (``email_history_ambiguous``), else [].
+        existing_discord_id: the Discord ID currently on the candidate --
+            the account they lost.
+    """
+    from app.utils.pii_encryption import create_hash
+
+    out = {
+        'candidate_user_id': None,
+        'candidate_player_id': None,
+        'candidate_player_ids': [],
+        'existing_discord_id': None,
+    }
+    email_lower = (email or '').lower()
+
+    try:
+        if blocked_reason == 'email_in_use_by_other_discord' and email_lower:
+            user_by_email = session.query(User).filter(
+                User.email_hash == create_hash(email_lower)
+            ).first()
+            if user_by_email:
+                out['candidate_user_id'] = user_by_email.id
+                player = session.query(Player).filter_by(user_id=user_by_email.id).first()
+                if player:
+                    out['candidate_player_id'] = player.id
+                    out['existing_discord_id'] = player.discord_id
+
+        elif blocked_reason == 'email_history_ambiguous' and email_lower:
+            matches = _find_players_by_email_history(session, email_lower)
+            out['candidate_player_ids'] = [
+                p.id for p in matches
+                if p.user_id and (not p.discord_id or p.discord_id == discord_id)
+            ]
+    except Exception as e:
+        # Never let queue bookkeeping break the (already failing) login.
+        logger.warning(f"Could not describe Discord conflict for discord_id={discord_id}: {e}")
+
+    return out
+
+
+def record_discord_conflict(session, *, discord_id, discord_username, email,
+                            blocked_reason, source, ip_address=None, user_agent=None):
+    """
+    Turn a refused Discord login into an admin-actionable queue row.
+
+    Best-effort by design: a stranded member seeing "contact an admin" is bad,
+    but a 500 on the login page is worse. Any failure here logs and returns
+    ``(None, False)`` so the caller still renders its conflict message.
+
+    Returns ``(request, is_new)`` -- ``is_new`` False means this was a retry
+    of an already-open request, so admins should not be pinged again.
+    """
+    from app.models import DiscordRelinkRequest
+
+    try:
+        details = describe_discord_conflict(session, discord_id, email, blocked_reason)
+        relink_request, is_new = DiscordRelinkRequest.record(
+            session,
+            discord_id=discord_id,
+            discord_username=discord_username,
+            discord_email=email,
+            blocked_reason=blocked_reason,
+            source=source,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            **details,
+        )
+
+        # Ping admins for genuinely new requests only. A stranded member will
+        # hammer the login button; that must not become a stream of pings.
+        # The countdown lets the caller's transaction commit before the worker
+        # reads the row back.
+        if relink_request is not None and is_new:
+            try:
+                from app.tasks.tasks_onboarding_notifications import notify_discord_relink_request
+                notify_discord_relink_request.apply_async(
+                    args=[relink_request.id], countdown=10
+                )
+            except Exception as notify_err:
+                logger.warning(
+                    f"Could not dispatch relink notification for request "
+                    f"{relink_request.id}: {notify_err}"
+                )
+
+        return relink_request, is_new
+    except Exception as e:
+        logger.error(
+            f"Failed to record Discord relink request for discord_id={discord_id}: {e}",
+            exc_info=True,
+        )
+        return None, False
+
+
 def _find_players_by_email_history(session, email):
     """
     Return Players whose ``last_known_emails`` JSON column contains ``email``.

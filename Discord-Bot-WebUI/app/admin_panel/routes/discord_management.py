@@ -10,18 +10,25 @@ This module contains routes for Discord server management including:
 - Discord server statistics
 """
 
-import re
 import logging
 from datetime import datetime
 from flask import render_template, request, jsonify, g, redirect, url_for
 from flask_login import login_required, current_user
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from .. import admin_panel_bp
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.models import Player, Team, User, Season, League
+from app.models import DiscordRelinkRequest, DiscordRelinkStatus
 from app.models.admin_config import AdminAuditLog, AdminConfig
+from app.services.discord_relink_service import (
+    apply_discord_id,
+    clear_discord_id,
+    sync_roles_after_relink,
+    RelinkError,
+)
 from app.tasks.tasks_discord import (
     update_player_discord_roles,
     fetch_role_status,
@@ -178,7 +185,14 @@ def discord_players():
             'total_players': len(all_players),
             'in_server': sum(1 for p in all_players if p.discord_in_server is True),
             'not_in_server': sum(1 for p in all_players if p.discord_in_server is False),
-            'unknown_status': sum(1 for p in all_players if p.discord_in_server is None)
+            'unknown_status': sum(1 for p in all_players if p.discord_in_server is None),
+            # Counted separately -- these players are excluded from base_query
+            # by definition, but they are the ones an admin needs to FIND in
+            # order to link a Discord account for the first time (or after a
+            # recovery unlink).
+            'unlinked': session.query(func.count(Player.id)).filter(
+                Player.discord_id.is_(None)
+            ).scalar() or 0,
         }
 
         # Apply status filter
@@ -186,6 +200,7 @@ def discord_players():
             'not_in_server': 'Players Not In Discord Server',
             'unknown': 'Players with Unknown Discord Status',
             'in_server': 'Players In Discord Server',
+            'unlinked': 'Players With No Discord Linked',
             'all': 'All Players with Discord'
         }
 
@@ -195,6 +210,16 @@ def discord_players():
             filtered_query = base_query.filter(Player.discord_in_server.is_(None))
         elif status_filter == 'in_server':
             filtered_query = base_query.filter(Player.discord_in_server == True)
+        elif status_filter == 'unlinked':
+            # Deliberately NOT built on base_query, which requires a Discord ID.
+            # Without this branch a player with no Discord is invisible on the
+            # only page that can link one -- so unlinking someone (or anyone who
+            # never linked) became unreachable, which is exactly backwards for
+            # account recovery.
+            filtered_query = session.query(Player).options(
+                joinedload(Player.teams).joinedload(Team.league).joinedload(League.season),
+                joinedload(Player.user)
+            ).filter(Player.discord_id.is_(None))
         else:
             filtered_query = base_query
 
@@ -269,7 +294,8 @@ def discord_players():
     except Exception as e:
         logger.error(f"Error loading Discord players page: {e}")
         return render_template('admin_panel/discord/players_flowbite.html',
-                             stats={'total_players': 0, 'in_server': 0, 'not_in_server': 0, 'unknown_status': 0},
+                             stats={'total_players': 0, 'in_server': 0, 'not_in_server': 0,
+                                    'unknown_status': 0, 'unlinked': 0},
                              players=[],
                              pagination={'has_prev': False, 'prev_num': None, 'page': 1,
                                         'has_next': False, 'next_num': None, 'pages': 1,
@@ -394,111 +420,239 @@ def discord_update_player_roles(player_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def discord_update_player_discord_id(player_id):
-    """Update or unlink a player's Discord ID."""
+    """Update or unlink a player's Discord ID.
+
+    The actual relink lives in ``app.services.discord_relink_service`` so this
+    route and the Account Recovery queue cannot drift apart.
+
+    ``take_from_other`` lets an admin pull the ID off a player that already
+    holds it -- the duplicate-account case that otherwise deadlocks recovery.
+    Off unless explicitly requested, so the default is still a loud 409.
+    """
     session = g.db_session
     player = session.query(Player).get(player_id)
     if not player:
         return jsonify({'success': False, 'error': 'Player not found'}), 404
 
-    data = request.get_json()
+    # A body is REQUIRED here. Defaulting to {} would make `discord_id` absent,
+    # which the unlink branch below reads as "clear this player's Discord ID" —
+    # so a bodyless POST would silently unlink instead of erroring. Unlinking
+    # must be an explicit `{"discord_id": null}`, never an omission.
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({'success': False, 'error': 'A JSON request body is required'}), 400
     new_discord_id = data.get('discord_id')
-    old_discord_id = player.discord_id
 
     # Unlink case
     if new_discord_id is None:
-        player.discord_id = None
-        player.discord_username = None
-        player.discord_in_server = None
-        player.discord_last_checked = None
-        player.discord_roles = None
-        player.discord_last_verified = None
-        player.discord_needs_update = False
-        player.discord_roles_synced = False
-        player.last_sync_attempt = None
-
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='discord_id_unlinked',
-            resource_type='player',
-            resource_id=str(player_id),
-            old_value=old_discord_id,
-            new_value=None,
+        clear_discord_id(
+            session, player,
+            actor_user_id=current_user.id,
             ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
+            user_agent=request.headers.get('User-Agent'),
         )
-
         return jsonify({
             'success': True,
             'message': f'Discord ID unlinked from {player.name}'
         })
 
-    # Validate format: 17-20 digit numeric string
-    new_discord_id = str(new_discord_id).strip()
-    if not re.match(r'^\d{17,20}$', new_discord_id):
-        return jsonify({
-            'success': False,
-            'error': 'Invalid Discord ID format. Must be a 17-20 digit number.'
-        }), 400
+    try:
+        result = apply_discord_id(
+            session, player, new_discord_id,
+            actor_user_id=current_user.id,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+            take_from_other=bool(data.get('take_from_other')),
+        )
+    except RelinkError as e:
+        payload = {'success': False, 'error': e.message}
+        payload.update(e.details)
+        return jsonify(payload), e.code
 
-    # No change
-    if new_discord_id == old_discord_id:
-        return jsonify({
-            'success': False,
-            'error': 'This is already the current Discord ID.'
-        }), 400
-
-    # Check uniqueness
-    existing = session.query(Player).filter(
-        Player.discord_id == new_discord_id,
-        Player.id != player_id
-    ).first()
-    if existing:
-        return jsonify({
-            'success': False,
-            'error': f'Discord ID already linked to another player: {existing.name}'
-        }), 409
-
-    # Update and reset stale fields
-    player.discord_id = new_discord_id
-    player.discord_username = None
-    player.discord_in_server = None
-    player.discord_last_checked = None
-    player.discord_roles = None
-    player.discord_last_verified = None
-    player.discord_needs_update = True
-    player.discord_roles_synced = False
-    player.last_sync_attempt = None
-
-    AdminAuditLog.log_action(
-        user_id=current_user.id,
-        action='discord_id_updated',
-        resource_type='player',
-        resource_id=str(player_id),
-        old_value=old_discord_id,
-        new_value=new_discord_id,
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get('User-Agent')
-    )
-
-    # Commit now so the Celery worker sees the new discord_id
+    # Commit before dispatching so the Celery worker reads the NEW discord_id.
     session.commit()
 
-    # Trigger role sync to the new Discord account
-    role_sync_message = ''
-    try:
-        task_result = update_player_discord_roles.delay(player_id).get(timeout=30)
-        if task_result.get('success'):
-            role_sync_message = 'Roles synced to new Discord account.'
-        else:
-            role_sync_message = f"Role sync issue: {task_result.get('message', 'Unknown error')}"
-    except Exception as e:
-        logger.warning(f"Role sync after Discord ID update failed for player {player_id}: {e}")
-        role_sync_message = 'Role sync was queued but may still be processing.'
+    role_sync_message = sync_roles_after_relink(player.id, wait_seconds=30)
+    displaced = result['displaced_player_name']
+    displaced_note = f' Unlinked from {displaced} first.' if displaced else ''
 
     return jsonify({
         'success': True,
-        'message': f'Discord ID updated for {player.name}. {role_sync_message}'
+        'message': f"Discord ID updated for {result['player_name']}.{displaced_note} {role_sync_message}"
     })
+
+
+# -----------------------------------------------------------
+# Account Recovery queue (blocked Discord relink attempts)
+# -----------------------------------------------------------
+# Discord OAuth is the only way into the portal, so a member who loses their
+# Discord account cannot self-serve back in. The identity matcher refuses
+# their new Discord (correctly -- it is indistinguishable from a hijack), and
+# that refusal now lands here instead of dead-ending at "contact an admin".
+
+@admin_panel_bp.route('/discord/account-recovery')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def discord_account_recovery():
+    """Review queue of Discord logins that were refused as possible relinks."""
+    session = g.db_session
+
+    pending = session.query(DiscordRelinkRequest).filter(
+        DiscordRelinkRequest.status == DiscordRelinkStatus.PENDING
+    ).order_by(DiscordRelinkRequest.last_seen_at.desc()).all()
+
+    resolved = session.query(DiscordRelinkRequest).filter(
+        DiscordRelinkRequest.status != DiscordRelinkStatus.PENDING
+    ).order_by(DiscordRelinkRequest.resolved_at.desc()).limit(25).all()
+
+    # The ambiguous case has no single candidate -- the admin picks from a
+    # list, so resolve those player rows for display in one query.
+    ambiguous_ids = set()
+    for req in pending:
+        ambiguous_ids.update(req.candidate_player_id_list)
+    candidate_players = {}
+    if ambiguous_ids:
+        for player in session.query(Player).options(
+            joinedload(Player.user)
+        ).filter(Player.id.in_(ambiguous_ids)).all():
+            candidate_players[player.id] = player
+
+    return render_template(
+        'admin_panel/discord/account_recovery_flowbite.html',
+        title='Account Recovery',
+        pending_requests=pending,
+        resolved_requests=resolved,
+        candidate_players=candidate_players,
+    )
+
+
+@admin_panel_bp.route('/discord/account-recovery/<int:request_id>/approve', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def discord_account_recovery_approve(request_id):
+    """Move the requested Discord ID onto the member's real player row.
+
+    ``player_id`` in the body overrides the detected candidate -- required for
+    the ambiguous case, where by definition we refused to guess.
+    """
+    session = g.db_session
+    relink_request = session.query(DiscordRelinkRequest).get(request_id)
+    if not relink_request:
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+    if not relink_request.is_pending:
+        return jsonify({
+            'success': False,
+            'error': f'This request was already {relink_request.status}.'
+        }), 409
+
+    data = request.get_json(silent=True) or {}
+    target_player_id = data.get('player_id') or relink_request.candidate_player_id
+    if not target_player_id:
+        return jsonify({
+            'success': False,
+            'error': 'No player selected. Pick which account this Discord belongs to.'
+        }), 400
+
+    player = session.query(Player).get(int(target_player_id))
+    if not player:
+        return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+    # Guard the ambiguous case: only players the matcher itself surfaced are
+    # selectable, so a typo cannot hand someone's account to the wrong person.
+    allowed = set(relink_request.candidate_player_id_list)
+    if relink_request.candidate_player_id:
+        allowed.add(relink_request.candidate_player_id)
+    if allowed and player.id not in allowed:
+        return jsonify({
+            'success': False,
+            'error': 'That player is not one of the candidates for this request.'
+        }), 400
+
+    try:
+        result = apply_discord_id(
+            session, player, relink_request.requested_discord_id,
+            actor_user_id=current_user.id,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+            take_from_other=bool(data.get('take_from_other')),
+            reason=f'account recovery request #{relink_request.id}',
+        )
+    except RelinkError as e:
+        payload = {'success': False, 'error': e.message}
+        payload.update(e.details)
+        return jsonify(payload), e.code
+
+    note = data.get('note') or ''
+    relink_request.resolve(
+        DiscordRelinkStatus.APPROVED,
+        current_user.id,
+        note=(f'Relinked to player {player.id} ({player.name}). {note}').strip(),
+    )
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='discord_relink_approved',
+        resource_type='discord_relink_request',
+        resource_id=str(relink_request.id),
+        old_value=result['old_discord_id'],
+        new_value=result['new_discord_id'],
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent'),
+    )
+
+    # Commit before dispatching so the Celery worker reads the NEW discord_id.
+    session.commit()
+
+    role_sync_message = sync_roles_after_relink(player.id, wait_seconds=30)
+    displaced = result['displaced_player_name']
+    displaced_note = f' Unlinked from {displaced} first.' if displaced else ''
+
+    return jsonify({
+        'success': True,
+        'message': (
+            f"{player.name} is now linked to the new Discord account."
+            f"{displaced_note} {role_sync_message} "
+            f"Tell them to log in with it."
+        )
+    })
+
+
+@admin_panel_bp.route('/discord/account-recovery/<int:request_id>/reject', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def discord_account_recovery_reject(request_id):
+    """Dismiss a request -- either a genuine hijack attempt or already handled."""
+    session = g.db_session
+    relink_request = session.query(DiscordRelinkRequest).get(request_id)
+    if not relink_request:
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+    if not relink_request.is_pending:
+        return jsonify({
+            'success': False,
+            'error': f'This request was already {relink_request.status}.'
+        }), 409
+
+    data = request.get_json(silent=True) or {}
+    relink_request.resolve(
+        DiscordRelinkStatus.REJECTED,
+        current_user.id,
+        note=data.get('note') or 'Dismissed by admin.',
+    )
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='discord_relink_rejected',
+        resource_type='discord_relink_request',
+        resource_id=str(relink_request.id),
+        old_value=relink_request.requested_discord_id,
+        new_value=relink_request.resolution_note,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent'),
+    )
+
+    return jsonify({'success': True, 'message': 'Request dismissed.'})
 
 
 @admin_panel_bp.route('/discord/roles/sync-all', methods=['POST'])
@@ -1018,7 +1172,7 @@ def auto_map_role_mapping():
     )
 
     session = g.db_session
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     apply = bool(data.get('apply', False))
 
     # --- HTTP phase: fetch live Discord roles BEFORE touching the DB. ---

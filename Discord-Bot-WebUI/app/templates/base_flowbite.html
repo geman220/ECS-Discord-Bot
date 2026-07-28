@@ -870,10 +870,13 @@
             var settled = false;
             // If the emulator never comes up (blocked WASM, hung fetch), bail to
             // the raycaster rather than sitting on the loading screen forever.
-            var watchdog = setTimeout(fallback, 20000);
-            function fallback() {
+            var watchdog = setTimeout(function () { fallback('timed out'); }, 20000);
+            function fallback(reason) {
                 if (settled || banished) return; settled = true;
                 clearTimeout(watchdog);
+                // Leave a breadcrumb — otherwise a broken asset just looks like
+                // "the egg launches the wrong game" with nothing to go on.
+                try { console.warn('[doom] real DOOM unavailable, using raycaster:', reason); } catch (e) {}
                 document.removeEventListener('keydown', doomEscToQuit, true);
                 document.addEventListener('keydown', escToQuit, true);
                 exitBtn.innerHTML = 'ESC &mdash; RETURN TO REALITY';
@@ -886,20 +889,23 @@
 
             loadScript(DOOM_BASE + 'js-dos.js', function (ok) {
                 if (banished) return;
-                if (!ok || typeof window.Dos !== 'function') return fallback();
+                if (!ok || typeof window.Dos !== 'function') return fallback('js-dos.js failed to load');
                 try {
                     var dos = window.Dos(cvs, {
                         wdosboxUrl: DOOM_BASE + 'wdosbox.js',
                         cycles: 'max',
                         autolock: false,
                         log: function () {},
-                        onprogress: function (p) {
+                        // js-dos calls this as (stage, total, loaded) — not a pct
+                        onprogress: function (stage, total, loaded) {
                             var el = document.getElementById('doom-load-pct');
-                            if (el) el.textContent = ' ' + (p | 0) + '%';
+                            if (!el || !total) return;
+                            el.textContent = ' ' + Math.min(100, (loaded / total * 100) | 0) + '%';
                         }
                     });
                     // capture the command interface (for banish()) and catch a
-                    // js-dos-level failure — e.g. wdosbox.wasm blocked from loading
+                    // js-dos-level failure — e.g. wdosbox.wasm.js blocked/missing
+                    // (js-dos fetches the binary as wdosboxUrl.replace('.js','.wasm.js'))
                     dos.then(function (ci) { doomCI = ci; }, fallback);
                     dos.ready(function (fs, main) {
                         if (banished || settled) return;
@@ -910,7 +916,7 @@
                             main(['-c', 'DOOM.EXE']);
                         }).catch(fallback);
                     });
-                } catch (e) { fallback(); }
+                } catch (e) { fallback(e); }
             });
         }
 

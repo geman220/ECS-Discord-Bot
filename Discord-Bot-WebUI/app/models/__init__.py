@@ -192,6 +192,15 @@ from .quick_profile import (
     QuickProfile, QuickProfileStatus
 )
 
+from .discord_relink import (
+    DiscordRelinkRequest, DiscordRelinkStatus,
+    SOURCE_WEB_LOGIN, SOURCE_WEB_REGISTER, SOURCE_MOBILE
+)
+
+from .program import (
+    Program
+)
+
 from .email_templates import (
     EmailTemplate
 )
@@ -384,6 +393,13 @@ __all__ = [
 
     # Quick profile models (for tryout players)
     'QuickProfile', 'QuickProfileStatus',
+
+    # Discord account-recovery queue (blocked relink attempts)
+    'DiscordRelinkRequest', 'DiscordRelinkStatus',
+    'SOURCE_WEB_LOGIN', 'SOURCE_WEB_REGISTER', 'SOURCE_MOBILE',
+
+    # Program registry (Premier / Classic / ECS FC / third program)
+    'Program',
 
     # Email template models
     'EmailTemplate',

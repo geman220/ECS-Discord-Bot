@@ -140,8 +140,20 @@ def compute_nad_board(session, *, season_id=None, search='', limit=100, viewer_u
     pub_league_league_ids = list(season_league_name_by_id.keys())
 
     # --- prior Pub League seasons (a NAD has none) ---
+    # "Never played before" must consider EVERY pub-league-like program, not
+    # just 'Pub League'. Someone who played a summer season and then registers
+    # for Fall has prior experience -- counting them as a NAD tells coaches the
+    # opposite of the truth on draft night.
+    _prior_types = ['Pub League']
+    try:
+        from app.services import program_registry
+        _prior_types = [pr.season_league_type
+                        for pr in program_registry.all_programs()
+                        if pr.is_pub_league_like] or ['Pub League']
+    except Exception:
+        pass
     prior_q = session.query(Season.id).filter(
-        Season.league_type == 'Pub League', Season.id != target_season.id
+        Season.league_type.in_(_prior_types), Season.id != target_season.id
     )
     if target_season.start_date is not None:
         prior_q = prior_q.filter(

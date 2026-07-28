@@ -42,6 +42,7 @@ from app.forms import (
 from app.utils.user_helpers import safe_current_user
 from app.utils.roster_helpers import rosters_for_teams
 from app.utils.log_sanitizer import mask_code
+from app.services.team_visibility import reveal_gated_league_names
 
 logger = logging.getLogger(__name__)
 main = Blueprint('main', __name__)
@@ -743,7 +744,7 @@ def index():
             from app.services.team_visibility import user_can_view_teams
             if not user_can_view_teams(safe_current_user, session=g.db_session):
                 visible_teams = [t for t in user_teams
-                                 if not (t.league and t.league.name in ('Premier', 'Classic'))]
+                                 if not (t.league and t.league.name in reveal_gated_league_names())]
                 teams_hidden = len(visible_teams) < len(user_teams)
                 user_teams = visible_teams
 

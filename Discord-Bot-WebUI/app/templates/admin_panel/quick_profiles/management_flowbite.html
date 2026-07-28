@@ -1088,21 +1088,40 @@ document.getElementById('player-name').addEventListener('blur', async function()
     }
 });
 
+// Local escaper: this block runs inline, so it must not depend on the bundle
+// having already published window.escapeHtml.
+const DUP_ESC_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function dupEsc(v) {
+    return v === null || v === undefined ? '' : String(v).replace(/[&<>"']/g, c => DUP_ESC_MAP[c]);
+}
+
+// Only ever emit an image URL we recognise as a plain relative or http(s) path,
+// so a stored value can't smuggle in a javascript:/data: scheme.
+function dupSafeImageUrl(url) {
+    const raw = String(url || '').trim();
+    return /^(https?:\/\/|\/)[^\s"']*$/i.test(raw) ? raw : '';
+}
+
 function showDuplicateWarning(duplicates) {
     const container = document.getElementById('duplicate-warning');
     const list = document.getElementById('duplicate-list');
-    list.innerHTML = duplicates.map(d => `
+    // d.name is a player-supplied name straight from the DB — interpolating it
+    // raw made this modal execute whatever a member typed as their name.
+    list.innerHTML = duplicates.map(d => {
+        const img = dupSafeImageUrl(d.profile_picture_url);
+        return `
         <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded">
-            ${d.profile_picture_url ?
-                `<img src="${d.profile_picture_url}" class="w-8 h-8 rounded-full object-cover">` :
+            ${img ?
+                `<img src="${dupEsc(img)}" alt="" class="w-8 h-8 rounded-full object-cover">` :
                 `<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-user text-gray-400"></i></div>`
             }
             <div class="flex-1 min-w-0">
-                <div class="font-medium text-gray-900 dark:text-white text-sm truncate">${d.name}</div>
+                <div class="font-medium text-gray-900 dark:text-white text-sm truncate">${dupEsc(d.name)}</div>
                 <div class="text-xs text-gray-500">${d.type === 'player' ? 'Existing Player' : 'Quick Profile'} - ${Math.round(d.similarity * 100)}% match</div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
     container.classList.remove('hidden');
 }
 
@@ -1256,19 +1275,40 @@ document.getElementById('player-search').addEventListener('input', function() {
                 if (data.players.length === 0) {
                     resultsDiv.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No players found</p>';
                 } else {
-                    resultsDiv.innerHTML = data.players.map(p => `
-                        <button type="button" onclick="selectQuickProfilePlayer(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.profile_picture_url || ''}', '${(p.teams || []).join(", ")}')"
-                                class="w-full flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-left">
-                            ${p.profile_picture_url ?
-                                `<img src="${p.profile_picture_url}" class="w-8 h-8 rounded-full object-cover">` :
+                    // Player-supplied names go into DATA ATTRIBUTES, never into a
+                    // generated onclick. The old markup built JS source from the
+                    // name and escaped only single quotes, so a name containing a
+                    // double quote closed the onclick attribute and could add its
+                    // own event handler.
+                    resultsDiv.innerHTML = data.players.map(p => {
+                        const img = dupSafeImageUrl(p.profile_picture_url);
+                        const teams = (p.teams || []).join(', ');
+                        return `
+                        <button type="button" class="qp-player-pick w-full flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-left"
+                                data-player-id="${dupEsc(p.id)}" data-player-name="${dupEsc(p.name)}"
+                                data-photo-url="${dupEsc(img)}" data-teams="${dupEsc(teams)}">
+                            ${img ?
+                                `<img src="${dupEsc(img)}" alt="" class="w-8 h-8 rounded-full object-cover">` :
                                 `<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-user text-gray-400"></i></div>`
                             }
                             <div>
-                                <div class="font-medium text-gray-900 dark:text-white text-sm">${p.name}</div>
-                                ${p.teams && p.teams.length > 0 ? `<div class="text-xs text-gray-500">${p.teams.join(', ')}</div>` : ''}
+                                <div class="font-medium text-gray-900 dark:text-white text-sm">${dupEsc(p.name)}</div>
+                                ${teams ? `<div class="text-xs text-gray-500">${dupEsc(teams)}</div>` : ''}
                             </div>
                         </button>
-                    `).join('');
+                    `;
+                    }).join('');
+
+                    resultsDiv.querySelectorAll('.qp-player-pick').forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            selectQuickProfilePlayer(
+                                parseInt(this.dataset.playerId, 10),
+                                this.dataset.playerName || '',
+                                this.dataset.photoUrl || '',
+                                this.dataset.teams || ''
+                            );
+                        });
+                    });
                 }
             }
         } catch (error) {

@@ -360,14 +360,20 @@ def _initials(name):
 
 
 def _pub_pool_status(entry):
-    """Tri-state membership status for a SubstitutePool row.
+    """Membership status for a SubstitutePool row.
 
-    pending -> in the pool but not yet approved (approved_at is None)
-    break   -> approved once, now toggled inactive
-    active  -> approved and active
+    pending  -> applied, not yet approved (approved_at is None, still active)
+    rejected -> applied and turned down (approved_at is None, deactivated)
+    break    -> approved once, now toggled inactive
+    active   -> approved and active
+
+    'rejected' exists because reject_player_from_pool deactivates the applicant's
+    own row and there is no status column to say so. Without distinguishing it,
+    a rejected applicant kept matching `approved_at is None` and stayed in the
+    Pending bucket forever, making Reject look like it did nothing.
     """
     if entry.approved_at is None:
-        return 'pending'
+        return 'pending' if entry.is_active else 'rejected'
     if not entry.is_active:
         return 'break'
     return 'active'
@@ -441,6 +447,10 @@ def get_unified_pool(session, season_id=None, include_inactive=False):
         try:
             player = entry.player
             lt = entry.league_type or 'Pub League'
+            # A rejected applicant is not a pool member — keep them off the
+            # roster entirely rather than rendering them as Pending forever.
+            if _pub_pool_status(entry) == 'rejected':
+                continue
             key = (entry.player_id, lt)
             if key in seen_keys:
                 continue

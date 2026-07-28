@@ -54,7 +54,13 @@ class Match(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
+    # `location` is the FIELD within a venue ('North' / 'South' / 'TBD'), not the
+    # site. Premier and Classic never move, so the site was implicit and never
+    # stored. `venue` records it explicitly for seasons that travel week to week.
+    # Nullable: an unset venue means "the league's usual site", i.e. exactly
+    # today's behaviour for every existing match.
     location = db.Column(db.String(100), nullable=False)
+    venue = db.Column(db.String(120), nullable=True)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     home_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
@@ -117,6 +123,11 @@ class Match(db.Model):
             'date': self.date.isoformat() if self.date else None,
             'time': self.time.isoformat() if self.time else None,
             'location': self.location,
+            'venue': self.venue,
+            # Pre-formatted for clients that just want one string to render.
+            'venue_display': (f"{self.venue} – {self.location}"
+                              if self.venue and self.location else
+                              (self.venue or self.location)),
             'latitude': self.latitude or 0.0,
             'longitude': self.longitude or 0.0,
             'home_team_id': self.home_team_id,
@@ -438,8 +449,29 @@ class WeekConfiguration(db.Model):
     playoff_round = db.Column(db.Integer, nullable=True)  # 1 for first round, 2 for second round, etc.
     has_practice_session = db.Column(db.Boolean, default=False)  # True if week has practice sessions
     practice_game_number = db.Column(db.Integer, nullable=True)  # Which game number is practice (1 or 2)
-    
+
+    # --- Per-week venue / time / fields ------------------------------------
+    # Premier and Classic play every week at the same place, so venue was never
+    # modelled: Match.location is free text and holds the FIELD ('North' /
+    # 'South'), with the venue implicit. A season that moves between sites each
+    # week (Eagle Staff, Eckstein, Lower Woodland) has nowhere to record that,
+    # and no way to vary the kickoff time per week either -- the generator
+    # derives every time from one per-league start time.
+    #
+    # All three are NULLABLE and fall back to the existing behaviour when unset,
+    # so this is additive for Premier/Classic and back-appliable later.
+    venue = db.Column(db.String(120), nullable=True)      # e.g. 'Eagle Staff'
+    start_time = db.Column(db.Time, nullable=True)        # overrides the league default
+    # CSV of field names for this week, overriding AutoScheduleConfig.fields.
+    # Lets a week at a one-pitch site run sequentially instead of in parallel.
+    field_names = db.Column(db.String(255), nullable=True)
+
     league = db.relationship('League', backref=db.backref('week_configurations', lazy='dynamic'))
+
+    def get_field_list(self):
+        """Per-week field override as a list, or [] to use the league default."""
+        raw = (self.field_names or '').strip()
+        return [f.strip() for f in raw.split(',') if f.strip()] if raw else []
     
     def __repr__(self):
         return f'<WeekConfiguration {self.week_type} on {self.week_date}>'

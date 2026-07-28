@@ -195,11 +195,15 @@ async def compare_websocket_vs_rest_data(match_id: int):
         match_events = [e for e in recent_events if e.get('match_id') == match_id]
         
         # Get REST API data for comparison
-        webui_url = os.getenv('WEBUI_API_URL', 'http://webui:5000')
-        
+        # WEBUI_API_URL includes the /api prefix everywhere else in this repo, so
+        # the fallback must too -- otherwise setting the env var (the normal case)
+        # produced /api/api/get_match_rsvps and this comparison silently returned
+        # {"error": "HTTP 404"} instead of the REST data it exists to diff against.
+        webui_url = os.getenv('WEBUI_API_URL', 'http://webui:5000/api')
+
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{webui_url}/api/get_match_rsvps/{match_id}") as response:
+                async with session.get(f"{webui_url}/get_match_rsvps/{match_id}") as response:
                     if response.status == 200:
                         rest_data = await response.json()
                     else:

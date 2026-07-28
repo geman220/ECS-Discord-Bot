@@ -574,7 +574,7 @@ def check_batch_presence():
     try:
         from app.sockets.presence import PresenceManager
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         user_ids = data.get('user_ids', [])
 
         if not user_ids:

@@ -518,7 +518,7 @@ def update_quick_profile_photo(profile_id: int):
         mime_type = file.content_type or f'image/{file_ext}'
         image_data = f"data:{mime_type};base64,{base64.b64encode(file_data).decode('utf-8')}"
     else:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         image_data = data.get('photo_base64') or data.get('cropped_image_data')
         if not image_data:
             return jsonify({
@@ -874,7 +874,7 @@ def send_claim_code_email(profile_id: int):
             }), 400
 
         # Get email from request or profile
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         email = (data.get('email') or '').strip() or profile.email
 
         if not email:
@@ -932,7 +932,7 @@ def send_claim_code_sms(profile_id: int):
             }), 400
 
         # Get phone from request or profile
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         phone = (data.get('phone_number') or '').strip() or (data.get('phone') or '').strip() or profile.phone_number
 
         if not phone:

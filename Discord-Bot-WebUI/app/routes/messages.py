@@ -313,7 +313,7 @@ def send_message(user_id):
         content: Message text (required)
     """
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         content = data.get('content', '').strip()
 
         if not content:

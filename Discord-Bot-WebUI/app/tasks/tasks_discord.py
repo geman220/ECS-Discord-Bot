@@ -1,4 +1,4 @@
-﻿# app/tasks/tasks_discord.py
+# app/tasks/tasks_discord.py
 
 """
 Discord Tasks Module
@@ -193,6 +193,97 @@ def create_error_result(player_info: Dict[str, Any]) -> Dict[str, Any]:
 # these two functions, so a change lands in both paths at once.
 # ---------------------------------------------------------------------------
 
+def _program_snapshot(session=None) -> List[Dict[str, Any]]:
+    """Serializable snapshot of the program registry, for the two-phase boundary.
+
+    Taken during the EXTRACT phase (which has a session) and carried in the task
+    payload, because the EXECUTE phase runs after the session is closed and often
+    without an app context — a registry lookup there would silently fall back to
+    the three legacy programs and quietly grant a newer program's teams no roles
+    at all. Plain dicts so the payload stays picklable.
+    """
+    try:
+        from app.services import program_registry
+        return [
+            {
+                'key': p.key,
+                'league_name': p.league_name,
+                'flask_league_role': p.flask_league_role,
+                'flask_coach_role': p.flask_coach_role,
+                'flask_sub_role': p.flask_sub_role,
+                'division_role_name': p.division_role_name,
+                'coach_role_name': p.coach_role_name,
+                'sub_role_name': p.sub_role_name,
+                'is_pub_league_like': p.is_pub_league_like,
+            }
+            for p in program_registry.all_programs(session)
+        ]
+    except Exception as exc:  # never let role sync die on a registry hiccup
+        logger.warning("program snapshot unavailable (%s); calculators fall back", exc)
+        return []
+
+
+# Last-resort program list. An EMPTY program list would make
+# _compute_expected_roles return no roles at all, and a reconcile reads "expected
+# nothing" as "revoke everything" -- i.e. a guild-wide wipe of exactly the
+# Premier/Classic team, division and coach roles that must never be stripped.
+# So the calculators must never see an empty list: if both the payload snapshot
+# and the live registry come back empty, fall back to the three programs that
+# were hardcoded here before the registry existed.
+_LEGACY_PROGRAMS: List[Dict[str, Any]] = [
+    {'key': 'premier', 'league_name': 'Premier',
+     'flask_league_role': 'pl-premier', 'flask_coach_role': 'Premier Coach',
+     'flask_sub_role': 'Premier Sub',
+     'division_role_name': 'ECS-FC-PL-PREMIER',
+     'coach_role_name': 'ECS-FC-PL-PREMIER-COACH',
+     'sub_role_name': 'ECS-FC-PL-PREMIER-SUB', 'is_pub_league_like': True},
+    {'key': 'classic', 'league_name': 'Classic',
+     'flask_league_role': 'pl-classic', 'flask_coach_role': 'Classic Coach',
+     'flask_sub_role': 'Classic Sub',
+     'division_role_name': 'ECS-FC-PL-CLASSIC',
+     'coach_role_name': 'ECS-FC-PL-CLASSIC-COACH',
+     'sub_role_name': 'ECS-FC-PL-CLASSIC-SUB', 'is_pub_league_like': True},
+    {'key': 'ecs_fc', 'league_name': 'ECS FC',
+     'flask_league_role': 'pl-ecs-fc', 'flask_coach_role': 'ECS FC Coach',
+     'flask_sub_role': 'ECS FC Sub',
+     'division_role_name': 'ECS-FC-PL-ECS-FC',
+     'coach_role_name': 'ECS-FC-PL-ECS-FC-COACH',
+     'sub_role_name': 'ECS-FC-LEAGUE-SUB', 'is_pub_league_like': False},
+]
+
+
+def _programs_for_calc(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Programs for the calculators: payload snapshot, live registry, then legacy.
+
+    NEVER returns an empty list -- see _LEGACY_PROGRAMS for why that would be a
+    role wipe rather than a no-op.
+    """
+    snap = data.get('programs')
+    if snap:
+        return snap
+    snap = _program_snapshot()
+    return snap if snap else _LEGACY_PROGRAMS
+
+
+def _program_by_league_name(programs: List[Dict[str, Any]], league_name) -> Optional[Dict[str, Any]]:
+    """Match a team's league name to a program, tolerating case and drift."""
+    if not league_name:
+        return None
+    raw = str(league_name).strip()
+    low = raw.lower()
+    for p in programs:
+        if (p.get('league_name') or '') == raw:
+            return p
+    for p in programs:
+        if (p.get('league_name') or '').lower() == low:
+            return p
+    for p in programs:
+        pl = (p.get('league_name') or '').lower()
+        if pl and (pl in low or low in pl):
+            return p
+    return None
+
+
 def _compute_expected_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = None,
                             include_global: bool = True) -> List[str]:
     """Build the full set of Discord roles a player should hold.
@@ -223,11 +314,34 @@ def _compute_expected_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = 
     # just left the role matching the reconcile's catch-all and got it stripped.
     # The -Coach role is a REAL guild role carrying LEADERSHIP_PERMISSIONS on the
     # team channel, so it is expected (and managed) alongside the -Player role.
+    # Registry-driven: the gate used to be the literal list
+    # ['Premier', 'Classic', 'ECS FC'], which meant a team in ANY newer program
+    # got no player role, no coach role, and therefore no access to its own
+    # channel — silently, because an unknown league simply fell off the list.
+    programs = _programs_for_calc(data)
+
+    # ⚠️ UNGATED ON PURPOSE. `_app_managed_roles` appends every team's -Player
+    # and -Coach role unconditionally, so if the EXPECTED side is gated and the
+    # MANAGED side is not, any team whose league fails the gate becomes
+    # "managed but not expected" -- and the next force_update reconcile strips
+    # that team's role and its channel access.
+    #
+    # The old gate (`league_name in ['Premier','Classic','ECS FC']`) was a
+    # compile-time constant that always matched every real team, so the
+    # asymmetry never fired. Registry lookups are RUNTIME data: deactivating a
+    # program (is_active=False, the documented way to retire one) or editing its
+    # league_name would make the gate start returning None for live teams and
+    # wipe their roles guild-wide.
+    #
+    # Being rostered on a team is sufficient basis for that team's role, full
+    # stop -- no program lookup required. Keeping expected ⊇ managed here means
+    # a registry problem can only ever leave a role in place, never revoke one.
     for team in teams:
-        if team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
-            _add(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
-            if team.get('is_coach'):
-                _add(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
+        if not team.get('name'):
+            continue
+        _add(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
+        if team.get('is_coach'):
+            _add(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
 
     if include_global:
         user_roles = data.get('user_roles', [])
@@ -235,26 +349,28 @@ def _compute_expected_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = 
 
         # --- Division / league roles ---------------------------------------
         # Priority 1: Flask roles (most authoritative).
-        if 'pl-premier' in user_roles:
-            _add('ECS-FC-PL-PREMIER')
-        if 'pl-classic' in user_roles:
-            _add('ECS-FC-PL-CLASSIC')
-
-        # ECS FC membership is a separate axis from Pub League currency: being
-        # rostered on an ECS FC team is sufficient on its own. Deliberately NOT in
-        # the managed list below, so a reconcile can only ever ADD it.
-        if 'pl-ecs-fc' in user_roles or any(t.get('league_name') == 'ECS FC' for t in all_teams):
-            _add('ECS-FC-PL-ECS-FC')
+        for p in programs:
+            flask_role = p.get('flask_league_role')
+            div_role = p.get('division_role_name')
+            if not div_role:
+                continue
+            if flask_role and flask_role in user_roles:
+                _add(div_role)
+            # Membership in a non-pub-league-like program (ECS FC) is a separate
+            # axis from Pub League currency: being rostered on one of its teams
+            # is sufficient on its own. Such roles are deliberately absent from
+            # the managed list below, so a reconcile can only ever ADD them.
+            elif not p.get('is_pub_league_like') and any(
+                _program_by_league_name(programs, t.get('league_name')) is p
+                for t in all_teams
+            ):
+                _add(div_role)
 
         # Priority 2: DB league associations (league_id / primary_league / other).
         for league_name in league_names:
-            ln = (league_name or '').strip().lower()
-            if ln == 'premier':
-                _add('ECS-FC-PL-PREMIER')
-            elif ln == 'classic':
-                _add('ECS-FC-PL-CLASSIC')
-            elif ln == 'ecs fc':
-                _add('ECS-FC-PL-ECS-FC')
+            p = _program_by_league_name(programs, league_name)
+            if p and p.get('division_role_name'):
+                _add(p['division_role_name'])
 
         # Priority 3: CURRENT-SEASON TEAM MEMBERSHIP. Being rostered on a Premier
         # team makes you a Premier player — full stop. Without this, a player placed
@@ -263,27 +379,23 @@ def _compute_expected_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = 
         # role but never the division role, so they were on the roster with no
         # division channel access.
         for t in all_teams:
-            ln = (t.get('league_name') or '').strip().lower()
-            if ln == 'premier':
-                _add('ECS-FC-PL-PREMIER')
-            elif ln == 'classic':
-                _add('ECS-FC-PL-CLASSIC')
+            p = _program_by_league_name(programs, t.get('league_name'))
+            if p and p.get('division_role_name'):
+                _add(p['division_role_name'])
 
         # --- Substitute roles ----------------------------------------------
-        if 'Premier Sub' in user_roles:
-            _add('ECS-FC-PL-PREMIER-SUB')
-        if 'Classic Sub' in user_roles:
-            _add('ECS-FC-PL-CLASSIC-SUB')
-        if 'ECS FC Sub' in user_roles:
-            _add('ECS-FC-LEAGUE-SUB')
+        for p in programs:
+            sub_flask = p.get('flask_sub_role')
+            if sub_flask and sub_flask in user_roles and p.get('sub_role_name'):
+                _add(p['sub_role_name'])
 
         # --- Coach roles ----------------------------------------------------
         # Team-INDEPENDENT division coach roles (the Coaches panel), so a coach gets
         # their division role UP FRONT, before any team exists or drafting happens.
-        if 'Premier Coach' in user_roles:
-            _add('ECS-FC-PL-PREMIER-COACH')
-        if 'Classic Coach' in user_roles:
-            _add('ECS-FC-PL-CLASSIC-COACH')
+        for p in programs:
+            coach_flask = p.get('flask_coach_role')
+            if coach_flask and coach_flask in user_roles and p.get('coach_role_name'):
+                _add(p['coach_role_name'])
 
         # Per-team coach roles, scoped to the league of each team the player actually
         # coaches (player_teams.is_coach) — NOT the global is_coach flag. A Premier
@@ -291,13 +403,9 @@ def _compute_expected_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = 
         for team in all_teams:
             if not team.get('is_coach'):
                 continue
-            coached_league = (team.get('league_name') or '').strip().lower()
-            if coached_league == 'premier':
-                _add('ECS-FC-PL-PREMIER-COACH')
-            elif coached_league == 'classic':
-                _add('ECS-FC-PL-CLASSIC-COACH')
-            elif coached_league == 'ecs fc':
-                _add('ECS-FC-PL-ECS-FC-COACH')
+            p = _program_by_league_name(programs, team.get('league_name'))
+            if p and p.get('coach_role_name'):
+                _add(p['coach_role_name'])
 
         if data.get('is_ref'):
             _add('Referee')
@@ -337,20 +445,30 @@ def _app_managed_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = None,
     """
     if teams is None:
         teams = data.get('teams') or []
-    managed = [
-        'ECS-FC-PL-PREMIER',
-        'ECS-FC-PL-CLASSIC',
-        'ECS-FC-PL-PREMIER-COACH',
-        'ECS-FC-PL-CLASSIC-COACH',
-        'ECS-FC-PL-PREMIER-SUB',
-        'ECS-FC-PL-CLASSIC-SUB',
-        'ECS-FC-LEAGUE-SUB',
-        'Referee',
-    ] if include_global else []
+
+    managed: List[str] = []
+    if include_global:
+        # Derived from the registry rather than listed, so a new program's roles
+        # are revocable from the moment it exists. The is_pub_league_like split
+        # reproduces the existing rule exactly: Premier/Classic division + coach
+        # roles are revocable, ECS FC's are add-only (see the docstring), and
+        # EVERY program's sub role is revocable so stale sub status is cleaned up.
+        for p in _programs_for_calc(data):
+            if p.get('is_pub_league_like'):
+                if p.get('division_role_name'):
+                    managed.append(p['division_role_name'])
+                if p.get('coach_role_name'):
+                    managed.append(p['coach_role_name'])
+            if p.get('sub_role_name'):
+                managed.append(p['sub_role_name'])
+        managed.append('Referee')
     # Team-specific player + coach roles, so losing a roster spot / coach status
     # still revokes them.
+    # Must stay EXACTLY symmetric with the team loop in _compute_expected_roles
+    # (same skip condition). Any team managed here but not expected there is
+    # revoked by the next reconcile.
     for team in teams:
-        if not team:
+        if not team or not team.get('name'):
             continue
         managed.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
         managed.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
@@ -377,10 +495,30 @@ _REVOCABLE_ROLE_VOCABULARY = {
 }
 
 
+def _revocable_vocabulary() -> set:
+    """`_REVOCABLE_ROLE_VOCABULARY` plus every role the registry can emit.
+
+    The static set below covers the three original programs. Without the
+    registry half, a newer program's division and sub roles would fall outside
+    the vocabulary and `revoke_unexpected_roles_task` would refuse to touch
+    them — so they could be granted but never cleaned up.
+    """
+    vocab = set(_REVOCABLE_ROLE_VOCABULARY)
+    try:
+        for p in _program_snapshot():
+            for name in (p.get('division_role_name'), p.get('coach_role_name'),
+                         p.get('sub_role_name')):
+                if name:
+                    vocab.add(normalize_name(name))
+    except Exception:
+        pass
+    return vocab
+
+
 def _is_revocable_candidate(role_name: str) -> bool:
     """True if `role_name` is a role the calculators can produce (see vocabulary)."""
     up = normalize_name(role_name or '')
-    if up in _REVOCABLE_ROLE_VOCABULARY:
+    if up in _revocable_vocabulary():
         return True
     # Per-team roles are dynamic, so match them structurally.
     return up.startswith('ECS-FC-PL-') and (up.endswith('-PLAYER') or up.endswith('-COACH'))
@@ -453,6 +591,9 @@ def _extract_player_role_data(session, player_id: int):
             'is_coach': player.is_coach,
             'is_ref': player.is_ref,
             'approval_status': approval_status,
+            # Registry snapshot taken HERE, while a session exists -- the
+            # execute phase runs without one. See _program_snapshot.
+            'programs': _program_snapshot(session),
             'current_roles': player.discord_roles or [],
             'teams': teams,
             'user_roles': user_roles,
@@ -812,6 +953,9 @@ def _extract_assign_roles_data(session, player_id: int, team_id: Optional[int] =
         'is_coach': player.is_coach,
         'is_ref': player.is_ref,
         'approval_status': approval_status,
+        # Registry snapshot taken HERE, while a session exists -- the
+        # execute phase runs without one. See _program_snapshot.
+        'programs': _program_snapshot(session),
         'current_roles': player.discord_roles or [],
         'teams': teams,
         'user_roles': user_roles,
@@ -1449,7 +1593,20 @@ async def _execute_remove_roles_async(data):
     # Calculate roles to remove across all target teams
     roles_to_remove = []
     for team in target_teams:
-        if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
+        # UNGATED, mirroring the grant loop in _compute_expected_roles.
+        #
+        # These two drifted: the grant side was later made ungated while this
+        # stayed registry-gated. A team whose league does not resolve to an
+        # ACTIVE program was then granted its roles but could never have them
+        # removed -- the role and the private team-channel access survived
+        # offboarding, denial and draft-removal, silently. That is live for
+        # every team of a program that is seeded but not yet activated, and
+        # permanently for any program retired via is_active=FALSE.
+        #
+        # Removal is explicitly requested by the caller (it names the teams), so
+        # there is nothing to gate on: if you asked to remove this team's roles,
+        # remove them.
+        if team and team.get('name'):
             roles_to_remove.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
             roles_to_remove.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
 
@@ -1790,11 +1947,31 @@ def _extract_create_team_data(session, team_id: int):
     
     logger.info(f"Found team {team_id}: {team.name} in league {team.league.name if team.league else 'No League'}")
 
-    # Read the reveal toggle here (phase 1 has the DB session) so the async
-    # phase can create hidden channels while make_teams_public is off.
-    from app.models.admin_config import AdminConfig
-    cfg = session.query(AdminConfig).filter_by(key='make_teams_public', is_enabled=True).first()
-    teams_public = cfg.parsed_value if cfg else True
+    # Read the reveal state here (phase 1 has the DB session) so the async phase
+    # can create hidden channels while this program is pre-reveal.
+    #
+    # ⚠️ Resolved PER PROGRAM via teams_are_public(key), not from the raw global
+    # row. Two bugs lived in the old two-liner: it ignored the per-program
+    # override entirely (so a pre-reveal program's channels were created VISIBLE
+    # whenever Pub League happened to be revealed), and `cfg.parsed_value`
+    # returns the STRING 'false' for a row whose data_type isn't 'boolean' --
+    # and bool('false') is True. _coerce_bool inside teams_are_public handles
+    # that; this did not.
+    teams_public = True
+    try:
+        from app.services.team_visibility import teams_are_public
+        from app.services import program_registry
+        _prog = program_registry.by_league_name(
+            team.league.name if team.league else None)
+        teams_public = (teams_are_public(_prog.key) if _prog is not None
+                        else teams_are_public())
+    except Exception as _rv_err:
+        # Fail CLOSED: create the channel hidden. A channel wrongly hidden is a
+        # support ticket; a channel wrongly visible is a spoiled draft reveal
+        # that cannot be undone.
+        logger.warning(f"reveal state unreadable for team {team_id}; "
+                       f"creating channel hidden: {_rv_err}")
+        teams_public = False
 
     return {
         'team_id': team_id,
@@ -1868,28 +2045,72 @@ create_team_discord_resources_task._final_db_update = _update_team_after_discord
 create_team_discord_resources_task._two_phase = True
 
 
-def _extract_team_visibility_data(session, make_public: bool):
+def _extract_team_visibility_data(session, make_public: bool = None, program_key: str = None):
     """Collect current Pub League teams with Discord channel + player role IDs."""
     from app.models import League
 
-    season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+    # Every program whose team assignments are hidden until the reveal, not just
+    # Premier/Classic. A program missing from this sweep has its team channels
+    # left visible when make_teams_public is off -- i.e. the draft is spoiled.
+    # Seasons are resolved PER PROGRAM: a program with its own dates has its own
+    # season_league_type and its own is_current row, so one global
+    # `league_type='Pub League'` lookup would silently skip it.
+    #
+    # ⚠️ make_public is resolved PER PROGRAM via teams_are_public(p.key), NOT
+    # taken from the caller's single boolean. Each program reveals on its own
+    # date, so one program's reveal party must not open another's channels --
+    # that spoils a draft over Discord while the web UI correctly still hides
+    # it. `program_key` narrows the sweep to one program when the per-program
+    # override is what changed.
+    from app.services.team_visibility import teams_are_public
+    try:
+        from app.services import program_registry
+        _reveal_programs = [p for p in program_registry.all_programs(session)
+                            if p.hide_until_reveal
+                            and (program_key is None or p.key == program_key)]
+    except Exception as _reg_err:
+        logger.warning(f"program registry unavailable for reveal sync: {_reg_err}")
+        _reveal_programs = []
+
+    _public_by_league = {}
+    for _pr in _reveal_programs:
+        try:
+            _public_by_league[_pr.league_name] = teams_are_public(_pr.key)
+        except Exception:
+            # Fail CLOSED: an unreadable reveal setting must keep hiding.
+            _public_by_league[_pr.league_name] = False
+
+    _season_types = {p.season_league_type for p in _reveal_programs} or {'Pub League'}
+    _league_names = {p.league_name for p in _reveal_programs} or {'Premier', 'Classic'}
+
+    seasons = (session.query(Season)
+               .filter(Season.is_current.is_(True),
+                       Season.league_type.in_(list(_season_types)))
+               .all())
     teams = []
-    if season:
+    for season in seasons:
         leagues = session.query(League).filter_by(season_id=season.id).all()
         for league in leagues:
-            if league.name not in ('Premier', 'Classic'):
+            if league.name not in _league_names:
                 continue
             for team in session.query(Team).filter_by(league_id=league.id).all():
                 if team.discord_channel_id and team.discord_player_role_id:
                     teams.append({
                         'name': team.name,
                         'channel_id': team.discord_channel_id,
-                        'player_role_id': team.discord_player_role_id
+                        'player_role_id': team.discord_player_role_id,
+                        'make_public': bool(_public_by_league.get(
+                            league.name,
+                            False if make_public is None else bool(make_public))),
                     })
-    else:
-        logger.warning("sync_team_channel_visibility: no current Pub League season found")
 
-    return {'make_public': bool(make_public), 'teams': teams}
+    if not seasons:
+        logger.warning(
+            "sync_team_channel_visibility: no current season found for reveal-gated "
+            "season types %s", sorted(_season_types)
+        )
+
+    return {'teams': teams}
 
 
 async def _execute_team_visibility_async(data):
@@ -1897,14 +2118,19 @@ async def _execute_team_visibility_async(data):
     from app.discord_utils import set_team_channel_player_visibility
 
     guild_id = int(Config.SERVER_ID)
-    make_public = data['make_public']
     updated, failed = 0, []
+    revealed = hidden = 0
 
     async with aiohttp.ClientSession() as session_http:
         for team in data['teams']:
+            _public = bool(team.get('make_public'))
             ok = await set_team_channel_player_visibility(
-                guild_id, team['channel_id'], team['player_role_id'], make_public, session_http
+                guild_id, team['channel_id'], team['player_role_id'], _public, session_http
             )
+            if _public:
+                revealed += 1
+            else:
+                hidden += 1
             if ok:
                 updated += 1
             else:
@@ -1914,7 +2140,8 @@ async def _execute_team_visibility_async(data):
 
     result = {
         'success': len(failed) == 0,
-        'message': f"{'Revealed' if make_public else 'Hid'} {updated}/{len(data['teams'])} team channels",
+        'message': (f"Synced {updated}/{len(data['teams'])} team channels "
+                    f"({revealed} revealed, {hidden} hidden)"),
         'updated': updated,
         'failed': failed
     }
@@ -1926,10 +2153,15 @@ async def _execute_team_visibility_async(data):
 
 
 @celery_task(name='app.tasks.tasks_discord.sync_team_channel_visibility_task', queue='discord')
-async def sync_team_channel_visibility_task(self, session, make_public: bool):
+async def sync_team_channel_visibility_task(self, session, make_public: bool = None,
+                                            program_key: str = None):
     """
-    Sync every current Pub League team channel's player-role view permission
-    with the make_teams_public toggle. Dispatched when the toggle changes.
+    Sync every reveal-gated team channel's player-role view permission with that
+    program's resolved reveal state. Dispatched when the global toggle or any
+    per-program override changes.
+
+    `make_public` is retained only for the legacy call signature; the authority
+    is teams_are_public(program.key), resolved per program in the extract phase.
     """
     pass
 

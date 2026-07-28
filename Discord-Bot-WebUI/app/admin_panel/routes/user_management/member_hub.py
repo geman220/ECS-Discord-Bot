@@ -54,6 +54,144 @@ def _sub_summary(session, sub_pids):
     return summary
 
 
+def _sub_player_ids(session):
+    """Player ids sitting in ANY live sub pool, minus DENIED people.
+
+    Denied players are dropped at the SOURCE so the tab badge, the KPI chips, the
+    rendered list and the export all agree — denied people are hidden from every
+    live queue. Shared by the worklist page and the subs export.
+    """
+    from app.models import User, Player
+    from app.models.substitutes import SubstitutePool, EcsFcSubPool
+
+    pids = set()
+    for (pid,) in session.query(SubstitutePool.player_id).filter(
+            SubstitutePool.approved_at.isnot(None)).all():
+        if pid:
+            pids.add(pid)
+    for (pid,) in session.query(EcsFcSubPool.player_id).all():
+        if pid:
+            pids.add(pid)
+    if pids:
+        denied = {pid for (pid,) in session.query(Player.id)
+                  .join(User, User.id == Player.user_id)
+                  .filter(Player.id.in_(pids), User.approval_status == 'denied').all()}
+        pids -= denied
+    return pids
+
+
+def _subs_list(session, sub_pids, search='', lane='', status=''):
+    """(users, sub_summary) for the Subs tab — shared by the page and the export.
+
+    The lane/status narrowing is a Python-side pass because a sub's lanes come from
+    two different pool tables merged in `_sub_summary`, not from one filterable column.
+    """
+    from sqlalchemy import or_
+    from sqlalchemy.orm import joinedload
+    from app.models import User, Player
+    from app.services.league_membership_sync import _norm_league_type
+
+    if not sub_pids:
+        return [], {}
+
+    not_denied = or_(User.approval_status != 'denied', User.approval_status.is_(None))
+    q = (session.query(User).options(joinedload(User.player), joinedload(User.roles))
+         .join(Player, Player.user_id == User.id)
+         .filter(Player.id.in_(sub_pids), not_denied))
+    if search:
+        like = f'%{search}%'
+        q = q.filter(or_(Player.name.ilike(like), User.username.ilike(like)))
+    users = q.order_by(Player.name).all()
+    summary = _sub_summary(session, sub_pids)
+
+    if lane or status:
+        def _keep(u):
+            for r in (summary.get(u.player.id, []) if u.player else []):
+                lane_ok = (not lane) or (_norm_league_type(r['lane']) == lane)
+                stat_ok = (not status) or (r['status'] == status)
+                if lane_ok and stat_ok:
+                    return True
+            return False
+        users = [u for u in users if _keep(u)]
+    return users, summary
+
+
+def _all_tab_filters(args):
+    """Read the All-tab filter set off a request args mapping.
+
+    One reader for the page AND the export, so a spreadsheet can never contain a
+    different set of people than the screen it was launched from.
+    """
+    return {
+        'search': (args.get('search') or '').strip(),
+        'role': (args.get('role') or '').strip(),
+        'league': (args.get('league') or '').strip(),
+        'team': (args.get('team') or '').strip(),
+        'approval': (args.get('approval') or '').strip(),
+        'active': (args.get('active') or '').strip(),
+        'season': (args.get('season') or '').strip(),
+    }
+
+
+def _all_tab_query(session, f):
+    """Build the All-tab User query from `_all_tab_filters` output (ordered, unpaginated).
+
+    Team and league narrow via EXISTS (`.has()`/`.any()`) rather than a join so they
+    compose with the search outerjoin and the role join without duplicating rows.
+    """
+    from sqlalchemy import or_
+    from sqlalchemy.orm import joinedload
+    from app.models import User, Role, Player, Team
+
+    q = session.query(User).options(joinedload(User.roles), joinedload(User.player))
+
+    if f['search']:
+        like = f'%{f["search"]}%'
+        from app.utils.pii_encryption import create_hash
+        email_hash = create_hash(f['search'].lower()) if '@' in f['search'] else None
+        if email_hash:
+            q = q.filter(or_(User.username.ilike(like), User.email_hash == email_hash))
+        else:
+            q = q.outerjoin(Player, Player.user_id == User.id).filter(
+                or_(Player.name.ilike(like), User.username.ilike(like)))
+    if f['role']:
+        q = q.join(User.roles).filter(Role.name == f['role'])
+    # Approval: DENIED are hidden by default (empty filter); opt in to see them.
+    if f['approval'] == 'approved':
+        q = q.filter(User.is_approved == True)
+    elif f['approval'] == 'pending':
+        q = q.filter(User.approval_status == 'pending')
+    elif f['approval'] == 'denied':
+        q = q.filter(User.approval_status == 'denied')
+    elif f['approval'] != 'all':
+        q = q.filter(or_(User.approval_status != 'denied', User.approval_status.is_(None)))
+    if f['active'] == 'true':
+        q = q.filter(User.is_active == True)
+    elif f['active'] == 'false':
+        q = q.filter(or_(User.is_active == False, User.is_active == None))
+    # Active THIS SEASON = the player is a current player.
+    if f['season'] == 'active':
+        q = q.filter(User.player.has(Player.is_current_player == True))
+    elif f['season'] == 'inactive':
+        q = q.filter(or_(~User.player.has(), User.player.has(Player.is_current_player == False)))
+    if f['league']:
+        try:
+            lid = int(f['league'])
+            q = q.filter(User.player.has(or_(Player.league_id == lid, Player.primary_league_id == lid)))
+        except (ValueError, TypeError):
+            pass
+    # Team: matches the CURRENT roster (player_teams), whether or not it's their primary
+    # team — a player on two teams shows up under both.
+    if f['team']:
+        try:
+            tid = int(f['team'])
+            q = q.filter(User.player.has(or_(Player.primary_team_id == tid,
+                                             Player.teams.any(Team.id == tid))))
+        except (ValueError, TypeError):
+            pass
+    return q.order_by(User.username)
+
+
 @admin_panel_bp.route('/members')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -74,13 +212,13 @@ def members_worklist():
     from app.core import db
     from app.models import User, Role, QuickProfile, Player, League, Season
     from app.models.quick_profile import QuickProfileStatus
-    from app.models.substitutes import SubstitutePool, EcsFcSubPool
     from app.services.league_membership_sync import _norm_league_type
 
     tab = (request.args.get('tab') or 'all').strip()
     search = (request.args.get('search') or '').strip()
     role_filter = (request.args.get('role') or '').strip()
     league_filter = (request.args.get('league') or '').strip()
+    team_filter = (request.args.get('team') or '').strip()            # current-roster team
     approval_filter = (request.args.get('approval') or '').strip()      # '' hides DENIED by default
     active_filter = (request.args.get('active') or '').strip()          # account active/disabled
     season_filter = (request.args.get('season') or '').strip()          # active this season y/n
@@ -112,20 +250,7 @@ def members_worklist():
         QuickProfile.status == QuickProfileStatus.PENDING.value,
         or_(QuickProfile.expires_at.is_(None), QuickProfile.expires_at > now),
     )
-    sub_pids = set()
-    for (pid,) in db.session.query(SubstitutePool.player_id).filter(SubstitutePool.approved_at.isnot(None)).all():
-        if pid:
-            sub_pids.add(pid)
-    for (pid,) in db.session.query(EcsFcSubPool.player_id).all():
-        if pid:
-            sub_pids.add(pid)
-    # Exclude DENIED players from the sub set at the SOURCE so the count, KPI chips and the
-    # rendered list all agree (denied people are hidden from live queues everywhere).
-    if sub_pids:
-        denied_pids = {pid for (pid,) in db.session.query(Player.id)
-                       .join(User, User.id == Player.user_id)
-                       .filter(Player.id.in_(sub_pids), User.approval_status == 'denied').all()}
-        sub_pids -= denied_pids
+    sub_pids = _sub_player_ids(db.session)
 
     thirty_days_ago = now - timedelta(days=30)
     stats = {
@@ -192,24 +317,7 @@ def members_worklist():
         profiles = pq.order_by(QuickProfile.created_at.desc()).limit(500).all()
 
     elif tab == 'subs':
-        if sub_pids:
-            sq = (db.session.query(User).options(joinedload(User.player), joinedload(User.roles))
-                  .join(Player, Player.user_id == User.id)
-                  .filter(Player.id.in_(sub_pids), not_denied))
-            if search:
-                like = f'%{search}%'
-                sq = sq.filter(or_(Player.name.ilike(like), User.username.ilike(like)))
-            users = sq.order_by(Player.name).all()
-            sub_summary = _sub_summary(db.session, sub_pids)
-            if lane_filter or sub_status_filter:
-                def _keep(u):
-                    for r in (sub_summary.get(u.player.id, []) if u.player else []):
-                        lane_ok = (not lane_filter) or (_norm_league_type(r['lane']) == lane_filter)
-                        stat_ok = (not sub_status_filter) or (r['status'] == sub_status_filter)
-                        if lane_ok and stat_ok:
-                            return True
-                    return False
-                users = [u for u in users if _keep(u)]
+        users, sub_summary = _subs_list(db.session, sub_pids, search, lane_filter, sub_status_filter)
 
     elif tab == 'pending':
         pq = pending_q.options(joinedload(User.player), joinedload(User.roles))
@@ -226,44 +334,8 @@ def members_worklist():
 
     else:
         tab = 'all'
-        q = db.session.query(User).options(joinedload(User.roles), joinedload(User.player))
-        if search:
-            like = f'%{search}%'
-            from app.utils.pii_encryption import create_hash
-            email_hash = create_hash(search.lower()) if '@' in search else None
-            if email_hash:
-                q = q.filter(or_(User.username.ilike(like), User.email_hash == email_hash))
-            else:
-                q = q.outerjoin(Player, Player.user_id == User.id).filter(
-                    or_(Player.name.ilike(like), User.username.ilike(like)))
-        if role_filter:
-            q = q.join(User.roles).filter(Role.name == role_filter)
-        # Approval: DENIED are hidden by default (empty filter); opt in to see them.
-        if approval_filter == 'approved':
-            q = q.filter(User.is_approved == True)
-        elif approval_filter == 'pending':
-            q = q.filter(User.approval_status == 'pending')
-        elif approval_filter == 'denied':
-            q = q.filter(User.approval_status == 'denied')
-        elif approval_filter != 'all':
-            q = q.filter(or_(User.approval_status != 'denied', User.approval_status.is_(None)))
-        if active_filter == 'true':
-            q = q.filter(User.is_active == True)
-        elif active_filter == 'false':
-            q = q.filter(or_(User.is_active == False, User.is_active == None))
-        # Active THIS SEASON = the player is a current player.
-        if season_filter == 'active':
-            q = q.filter(User.player.has(Player.is_current_player == True))
-        elif season_filter == 'inactive':
-            q = q.filter(or_(~User.player.has(), User.player.has(Player.is_current_player == False)))
-        if league_filter:
-            try:
-                lid = int(league_filter)
-                q = q.filter(User.player.has(or_(Player.league_id == lid, Player.primary_league_id == lid)))
-            except (ValueError, TypeError):
-                pass
-        q = q.order_by(User.username)
-        pagination = q.paginate(page=page, per_page=50, error_out=False)
+        pagination = _all_tab_query(db.session, _all_tab_filters(request.args)).paginate(
+            page=page, per_page=50, error_out=False)
         users = pagination.items
 
     # Waitlist open now? Gates the waitlist approve/pre-approve options (closed in break/offseason).
@@ -273,8 +345,8 @@ def members_worklist():
     except Exception:
         waitlist_open = True
 
-    any_filter = any([search, role_filter, league_filter, approval_filter, active_filter,
-                      season_filter, lane_filter, sub_status_filter,
+    any_filter = any([search, role_filter, league_filter, team_filter, approval_filter,
+                      active_filter, season_filter, lane_filter, sub_status_filter,
                       (qp_status and qp_status != 'pending')])
 
     # Active-filter chips: each links to the SAME view minus that one filter, so an admin
@@ -282,9 +354,12 @@ def members_worklist():
     _APPROVAL_LBL = {'approved': 'Approved', 'pending': 'Pending', 'denied': 'Denied', 'all': 'Incl. denied'}
     _ACTIVE_LBL = {'true': 'Enabled', 'false': 'Disabled'}
     _SEASON_LBL = {'active': 'Playing this season', 'inactive': 'Not active'}
-    _LANE_LBL2 = {'classic': 'Classic', 'premier': 'Premier', 'ecs_fc': 'ECS FC', 'undecided': 'Undecided'}
+    from app.services.member_hub_service import _lane_label as _lane_lbl
+    _LANE_LBL2 = {'undecided': 'Undecided'}
     _SUBST_LBL = {'active': 'Active subs', 'resting': 'Resting subs'}
     _league_name = next((lg.name for lg in all_leagues if str(lg.id) == str(league_filter)), None)
+    _team_name = next((t.name for lg in all_leagues for t in lg.teams
+                       if str(t.id) == str(team_filter)), None) if team_filter else None
     _params = [
         ('search', search, ('“%s”' % search) if search else None),
         ('role', role_filter, ('Role: %s' % role_filter) if role_filter else None),
@@ -292,7 +367,8 @@ def members_worklist():
         ('season', season_filter, _SEASON_LBL.get(season_filter)),
         ('active', active_filter, _ACTIVE_LBL.get(active_filter)),
         ('league', league_filter, ('League: %s' % (_league_name or ('#' + str(league_filter)))) if league_filter else None),
-        ('lane', lane_filter, _LANE_LBL2.get(lane_filter)),
+        ('team', team_filter, ('Team: %s' % (_team_name or ('#' + str(team_filter)))) if team_filter else None),
+        ('lane', lane_filter, _LANE_LBL2.get(lane_filter) or _lane_lbl(lane_filter)),
         ('sub_status', sub_status_filter, _SUBST_LBL.get(sub_status_filter)),
         ('qp_status', (qp_status if qp_status != 'pending' else ''),
          (qp_status.title() if (qp_status and qp_status != 'pending') else None)),
@@ -406,11 +482,166 @@ def members_worklist():
                            users=users, profiles=profiles, pagination=pagination,
                            sub_summary=sub_summary, roles=all_roles, leagues=all_leagues,
                            role_filter=role_filter, league_filter=league_filter,
+                           team_filter=team_filter,
                            approval_filter=approval_filter, active_filter=active_filter,
                            season_filter=season_filter, lane_filter=lane_filter,
                            sub_status_filter=sub_status_filter, qp_status=qp_status,
                            any_filter=any_filter, tab_kpis=tab_kpis, waitlist_open=waitlist_open,
                            active_chips=active_chips, result_total=result_total, result_shown=result_shown)
+
+
+def _member_export_row(user):
+    """One spreadsheet row: the full player profile behind a member.
+
+    Shared by the All-tab and Subs exports so the two files have identical columns
+    and identical formatting rules. Tolerates a User with no Player attached.
+    """
+    p = user.player
+    teams = [t.name for t in (p.teams or [])] if p else []
+    primary_team = (p.primary_team.name if (p and p.primary_team) else
+                    (teams[0] if teams else ''))
+    other_teams = [t for t in teams if t != primary_team]
+    return {
+        'Name': (p.name if p else '') or '',
+        'Username': user.username,
+        'Email': user.email,
+        'Phone': (p.phone if p else '') or '',
+        'Phone Verified': ('Yes' if p.is_phone_verified else 'No') if p else '',
+        'SMS Consent': ('Yes' if p.sms_consent_given else 'No') if p else '',
+        'Jersey Size': (p.jersey_size if p else '') or '',
+        'Jersey Number': (p.jersey_number if p and p.jersey_number is not None else ''),
+        'Team': primary_team,
+        'Other Teams': ', '.join(other_teams),
+        'Primary League': (p.primary_league.name if (p and p.primary_league) else ''),
+        'Secondary Leagues': ', '.join(lg.name for lg in (p.other_leagues or [])) if p else '',
+        'Playing This Season': ('Yes' if p.is_current_player else 'No') if p else 'No',
+        'Approved': 'Yes' if user.is_approved else 'No',
+        'Account Enabled': 'Yes' if user.is_active else 'No',
+        'Roles': ', '.join(r.name for r in (user.roles or [])),
+        'Is Coach': ('Yes' if p.is_coach else 'No') if p else '',
+        'Is Referee': ('Yes' if p.is_ref else 'No') if p else '',
+        'Available for Ref': ('Yes' if p.is_available_for_ref else 'No') if p else '',
+        'Is Sub': ('Yes' if p.is_sub else 'No') if p else '',
+        'Discord ID': (p.discord_id if p else '') or '',
+        'Pronouns': (p.pronouns if p else '') or '',
+        'Expected Weeks Available': (p.expected_weeks_available if p else '') or '',
+        'Unavailable Dates': (p.unavailable_dates if p else '') or '',
+        'Willing to Referee': (p.willing_to_referee if p else '') or '',
+        'Favorite Position': (p.favorite_position if p else '') or '',
+        'Other Positions': (p.other_positions if p else '') or '',
+        'Positions NOT to Play': (p.positions_not_to_play if p else '') or '',
+        'Frequency Play Goal': (p.frequency_play_goal if p else '') or '',
+        'Additional Info': (p.additional_info if p else '') or '',
+        'Player Notes': (p.player_notes if p else '') or '',
+        'Team Swap': (p.team_swap if p else '') or '',
+        'Profile Last Updated': (p.profile_last_updated.strftime('%Y-%m-%d %H:%M')
+                                 if (p and p.profile_last_updated) else 'Never'),
+    }
+
+@admin_panel_bp.route('/members/export')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def members_export():
+    """Export the current member list to .xlsx — the full player profile (jersey size,
+    phone, positions, availability, notes), honoring EXACTLY the filters on screen.
+
+    Serves two tabs, chosen by the `tab` param the filter form already submits:
+      * all   -> everyone matching the All-tab filters (incl. team / this-season)
+      * subs  -> the substitute pools, plus each sub's lanes and active/resting state
+    Both reuse the page's own query helpers, so "what I see" and "what I download"
+    cannot drift. Unpaginated on purpose: the screen shows 50, the file is the lot.
+    """
+    from sqlalchemy.orm import joinedload
+    from app.core import db
+    from app.models import User, League, Player, Team
+    from app.admin_panel.routes.reports import _pandas_guard, _build_xlsx_response
+
+    guard = _pandas_guard()
+    if guard:
+        return guard
+
+    tab = (request.args.get('tab') or 'all').strip()
+
+    if tab == 'subs':
+        sub_pids = _sub_player_ids(db.session)
+        users, summary = _subs_list(
+            db.session, sub_pids,
+            (request.args.get('search') or '').strip(),
+            (request.args.get('lane') or '').strip(),
+            (request.args.get('sub_status') or '').strip(),
+        )
+        rows = []
+        for u in users:
+            row = _member_export_row(u)
+            lanes = summary.get(u.player.id, []) if u.player else []
+            # Lane + status FIRST-class columns: "which pool, and are they resting?" is
+            # the whole reason to pull a subs list.
+            row['Sub Lanes'] = ', '.join(sorted(r['lane'] for r in lanes))
+            row['Sub Status'] = ('active' if any(r['status'] == 'active' for r in lanes)
+                                 else ('resting' if lanes else ''))
+            rows.append(row)
+        applied = [
+            {'Filter': 'Tab', 'Value': 'Substitutes'},
+            {'Filter': 'Search', 'Value': (request.args.get('search') or '').strip() or '(none)'},
+            {'Filter': 'League lane', 'Value': (request.args.get('lane') or '').strip() or 'All lanes'},
+            {'Filter': 'Sub status', 'Value': (request.args.get('sub_status') or '').strip() or 'All'},
+            {'Filter': 'Subs exported', 'Value': len(rows)},
+        ]
+        prefix, sheet = 'substitutes', 'Substitutes'
+        logger.info("subs export: %s rows (lane=%s status=%s)", len(rows),
+                    request.args.get('lane') or 'all', request.args.get('sub_status') or 'all')
+    else:
+        # Loader shape matters here — this query is unpaginated:
+        #   * selectinload for the COLLECTIONS (teams, other_leagues); stacking joinedloads
+        #     on them multiplies out into a cartesian product of every row.
+        #   * noload(League.teams) because League.teams is lazy='joined', so pulling a
+        #     player's league would otherwise drag in every team in that league, per member.
+        #   * the User.player head stays joinedload to match _all_tab_query — mixing
+        #     strategies on one path raises "Loader strategies ... conflict".
+        f = _all_tab_filters(request.args)
+        q = _all_tab_query(db.session, f).options(
+            joinedload(User.player).joinedload(Player.primary_league).noload(League.teams),
+            joinedload(User.player).joinedload(Player.primary_team),
+            joinedload(User.player).selectinload(Player.other_leagues).noload(League.teams),
+            joinedload(User.player).selectinload(Player.teams),
+        )
+        rows = [_member_export_row(u) for u in q.all()]
+
+        # A filters sheet so a file that's been emailed around still says what it contains —
+        # "247 active players" is meaningless without knowing which filters produced it.
+        _league = db.session.get(League, int(f['league'])) if f['league'].isdigit() else None
+        _team = db.session.get(Team, int(f['team'])) if f['team'].isdigit() else None
+        _SEASON_LBL = {'active': 'Playing this season', 'inactive': 'Not active this season'}
+        _APPROVAL_LBL = {'approved': 'Approved', 'pending': 'Pending', 'denied': 'Denied only',
+                         'all': 'All (incl. denied)', '': 'Not denied'}
+        applied = [
+            {'Filter': 'Tab', 'Value': 'All members'},
+            {'Filter': 'Search', 'Value': f['search'] or '(none)'},
+            {'Filter': 'Role', 'Value': f['role'] or 'All roles'},
+            {'Filter': 'Approval', 'Value': _APPROVAL_LBL.get(f['approval'], f['approval'])},
+            {'Filter': 'This season', 'Value': _SEASON_LBL.get(f['season'], 'Any')},
+            {'Filter': 'Account', 'Value': {'true': 'Enabled', 'false': 'Disabled'}.get(f['active'], 'All')},
+            {'Filter': 'League', 'Value': (_league.name if _league else 'All leagues')},
+            {'Filter': 'Team', 'Value': (_team.name if _team else 'All teams')},
+            {'Filter': 'Members exported', 'Value': len(rows)},
+        ]
+        prefix, sheet = 'members', 'Members'
+        # Log the scope but NOT the raw search term — it's routinely an email address.
+        logger.info("members export: %s rows (season=%s league=%s team=%s role=%s approval=%s)",
+                    len(rows), f['season'] or 'any', f['league'] or 'all', f['team'] or 'all',
+                    f['role'] or 'all', f['approval'] or 'not-denied')
+
+    # Release the DB transaction BEFORE building the workbook. Every row is already
+    # materialized into plain dicts above, so nothing below touches the session — and
+    # pandas/openpyxl on a few thousand rows is pure CPU that would otherwise sit on a
+    # PgBouncer slot for its whole duration. Same commit-before-render rule the rest of
+    # the app follows; a failure here must not fail the export, hence the guard.
+    try:
+        db.session.commit()
+    except Exception:
+        logger.exception("members export: session release failed (continuing)")
+
+    return _build_xlsx_response([(sheet, rows), ('Filters Applied', applied)], prefix)
 
 
 @admin_panel_bp.route('/members/<int:user_id>')
@@ -440,9 +671,29 @@ def member_hub(user_id):
             _seen[tid] = {'team_id': tid, 'team_name': c.get('team_name'), 'lane_label': c.get('lane_label')}
     hub_teams = list(_seen.values())
     extras = _member_admin_extras(db.session, user)
+
+    # Is this person locked out? A pending relink request means they tried to
+    # log in with a Discord we refused -- they have NO access at all until it's
+    # resolved. That outranks anything else on the page, so it surfaces as a
+    # banner here rather than only in the Account Recovery queue.
+    relink_request = None
+    try:
+        from app.models import DiscordRelinkRequest, DiscordRelinkStatus
+        from sqlalchemy import or_
+        conditions = [DiscordRelinkRequest.candidate_user_id == user_id]
+        if user and user.player:
+            conditions.append(DiscordRelinkRequest.candidate_player_id == user.player.id)
+        relink_request = db.session.query(DiscordRelinkRequest).filter(
+            DiscordRelinkRequest.status == DiscordRelinkStatus.PENDING,
+            or_(*conditions),
+        ).order_by(DiscordRelinkRequest.last_seen_at.desc()).first()
+    except Exception:
+        logger.exception("member hub: relink request lookup failed")
+
     return render_template('admin_panel/members/member_hub_flowbite.html', m=data,
                            all_roles=all_roles, user_role_ids=user_role_ids, leagues=leagues,
-                           primary_team_id=primary_team_id, hub_teams=hub_teams, extras=extras)
+                           primary_team_id=primary_team_id, hub_teams=hub_teams, extras=extras,
+                           relink_request=relink_request)
 
 
 _AUDIT_LABELS = {
@@ -628,12 +879,15 @@ def _member_metrics(session, player, team_history):
     # Sub responsiveness (Pub League pool + ECS FC pool combined).
     try:
         from app.models.substitutes import SubstitutePool, EcsFcSubPool
-        sp = session.query(SubstitutePool).filter_by(player_id=player.id).first()
+        # Sum across ALL pool rows. A player may be a sub in several programs
+        # at once, so .first() reported one program's responsiveness as if it
+        # were their whole record.
+        sps = session.query(SubstitutePool).filter_by(player_id=player.id).all()
         ep = session.query(EcsFcSubPool).filter_by(player_id=player.id).first()
-        if sp or ep:
-            recv = (sp.requests_received if sp else 0) + (ep.requests_received if ep else 0)
-            acc = (sp.requests_accepted if sp else 0) + (ep.requests_accepted if ep else 0)
-            played = (sp.matches_played if sp else 0) + (ep.matches_played if ep else 0)
+        if sps or ep:
+            recv = sum(x.requests_received or 0 for x in sps) + (ep.requests_received if ep else 0)
+            acc = sum(x.requests_accepted or 0 for x in sps) + (ep.requests_accepted if ep else 0)
+            played = sum(x.matches_played or 0 for x in sps) + (ep.matches_played if ep else 0)
             m['sub'] = {'received': recv, 'accepted': acc, 'played': played,
                         'accept_rate': round((acc / recv * 100), 1) if recv else 0.0}
     except Exception:
@@ -1042,21 +1296,58 @@ _LANE_TO_SUBROLE = {'classic': 'Classic Sub', 'premier': 'Premier Sub', 'ecs_fc'
 _LABEL_TO_CANON = {'Classic': 'classic', 'Premier': 'premier', 'ECS FC': 'ecs_fc'}
 
 
+def lane_to_subrole():
+    """Membership lane -> sub role name, every program.
+
+    _reconcile_sub_roles both ADDS and REMOVES roles from this mapping. A
+    program missing from it is never granted its sub role AND never has it
+    revoked -- so member-hub writes silently leave the role state stale.
+    """
+    out = dict(_LANE_TO_SUBROLE)
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs():
+            if pr.membership_lane and pr.flask_sub_role:
+                out[pr.membership_lane] = pr.flask_sub_role
+    except Exception:
+        pass
+    return out
+
+
+def label_to_canon():
+    """League.name -> membership lane, every program."""
+    out = dict(_LABEL_TO_CANON)
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs():
+            if pr.league_name and pr.membership_lane:
+                out[pr.league_name] = pr.membership_lane
+    except Exception:
+        pass
+    return out
+
+
 def _player_sub_lanes(session, player_id):
     """The normalized lanes this player is actually a sub in, read from BOTH pool tables.
 
     This app stores ECS FC subs in TWO places: the approval path writes an EcsFcSubPool row
     AND a SubstitutePool row with league_type='ECS FC' (the spine reads the SubstitutePool
-    twin FIRST). SubstitutePool.player_id is UNIQUE, so there is at most one SubstitutePool
-    row. Returns a set like {'classic'} or {'premier','ecs_fc'}."""
+    twin FIRST).
+
+    WARNING: SubstitutePool is keyed on (player_id, league_type) -- a player can
+    hold SEVERAL rows. This used to take .first() and assert uniqueness in a
+    comment; _reconcile_sub_roles then REMOVED the sub role for every lane it
+    had not seen, so a player in two pools silently lost one of their two sub
+    roles on the next member-hub write. Returns a set like {'premier','ecs_fc'}."""
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
     from app.services.league_membership_sync import _norm_league_type
     lanes = set()
-    sp = session.query(SubstitutePool).filter_by(player_id=player_id).first()
     # A PENDING (unapproved) SubstitutePool signup grants no sub role — only an approved row
     # counts, matching the spine's pending-vs-active distinction. EcsFcSubPool has no
     # approval concept (is_active only), so its presence always counts.
-    if sp and sp.approved_at is not None:
+    for sp in session.query(SubstitutePool).filter_by(player_id=player_id).all():
+        if sp.approved_at is None:
+            continue
         n = _norm_league_type(sp.league_type)
         if n:
             lanes.add(n)
@@ -1065,13 +1356,42 @@ def _player_sub_lanes(session, player_id):
     return lanes
 
 
+def _pool_row_for_lane(session, player_id, lane):
+    """The player's SubstitutePool row for one membership lane, or None.
+
+    SubstitutePool is keyed on (player_id, league_type). Every caller that wants
+    "this player's row for THIS program" must filter on both -- filtering on
+    player_id alone returns an arbitrary row once a player subs for more than
+    one program, and writing through it corrupts a different program's pool.
+    """
+    from app.models.substitutes import SubstitutePool
+    from app.services.league_membership_sync import _norm_league_type
+    for row in session.query(SubstitutePool).filter_by(player_id=player_id).all():
+        if _norm_league_type(row.league_type) == lane:
+            return row
+    return None
+
+
+def _canonical_league_type(lane):
+    """Membership lane -> the League.name stored in SubstitutePool.league_type."""
+    try:
+        from app.services import program_registry
+        pr = program_registry.by_membership_lane(lane)
+        if pr is not None and pr.league_name:
+            return pr.league_name
+    except Exception:
+        pass
+    return {'classic': 'Classic', 'premier': 'Premier', 'ecs_fc': 'ECS FC'}.get(
+        lane, str(lane).title())
+
+
 def _reconcile_sub_roles(session, user, player):
     """Add/remove the three sub Flask roles to MATCH the player's actual pool memberships,
     and refresh player.is_sub. Idempotent; robust to non-canonical stored league_type
     because it goes through _norm_league_type. Replaces fragile manual add/strip logic."""
     from app.models import Role
     lanes = _player_sub_lanes(session, player.id)
-    for lane, rname in _LANE_TO_SUBROLE.items():
+    for lane, rname in lane_to_subrole().items():
         role = session.query(Role).filter_by(name=rname).first()
         if not role:
             continue
@@ -1104,7 +1424,7 @@ def member_sub_assign(user_id):
     data = request.get_json(silent=True) or {}
     league_type = (data.get('league_type') or '').strip()
     make_active = bool(data.get('active', True))
-    target = _LABEL_TO_CANON.get(league_type)
+    target = label_to_canon().get(league_type)
     if target is None:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
 
@@ -1123,19 +1443,20 @@ def member_sub_assign(user_id):
             db.session.add(EcsFcSubPool(player_id=player.id, is_active=make_active))
         # Keep the approval-created SubstitutePool('ECS FC') twin in sync — the spine reads
         # it FIRST, so approving/activating must update it too (never create/clobber a Pub row).
-        sp = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
-        if sp and _norm_league_type(sp.league_type) == 'ecs_fc':
+        sp = _pool_row_for_lane(db.session, player.id, 'ecs_fc')
+        if sp:
             sp.is_active = make_active
             sp.approved_at = sp.approved_at or now
             sp.approved_by = sp.approved_by or aid
     else:
-        canonical = 'Classic' if target == 'classic' else 'Premier'
-        sp = db.session.query(SubstitutePool).filter_by(player_id=player.id).first()
+        canonical = _canonical_league_type(target)
+        # Look up THIS lane's row. The old code took .first() and rewrote its
+        # league_type, which repointed whichever pool row happened to come back
+        # -- silently removing the player from that program's broadcast list --
+        # and could collide with uq_substitute_pool_player_league_type for a
+        # player who already held two rows, 500ing the request.
+        sp = _pool_row_for_lane(db.session, player.id, target)
         if sp:
-            # SubstitutePool.player_id is UNIQUE (one Pub row per player), so this claims the
-            # row for the chosen lane. ECS FC membership (if any) survives via EcsFcSubPool;
-            # role reconciliation below fixes up every sub role from actual membership.
-            sp.league_type = canonical
             sp.is_active = make_active
             sp.approved_at = sp.approved_at or now
             sp.approved_by = sp.approved_by or aid
@@ -1184,7 +1505,7 @@ def member_sub_set_active(user_id):
     data = request.get_json(silent=True) or {}
     league_type = (data.get('league_type') or '').strip()
     make_active = bool(data.get('active', True))
-    target = _LABEL_TO_CANON.get(league_type)
+    target = label_to_canon().get(league_type)
     if target is None:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
     user = db.session.get(User, user_id)
@@ -1193,8 +1514,8 @@ def member_sub_set_active(user_id):
     pid = user.player.id
 
     touched = False
-    sp = db.session.query(SubstitutePool).filter_by(player_id=pid).first()
-    if sp and _norm_league_type(sp.league_type) == target:
+    sp = _pool_row_for_lane(db.session, pid, target)
+    if sp:
         sp.is_active = make_active
         touched = True
     if target == 'ecs_fc':
@@ -1229,7 +1550,7 @@ def member_sub_remove(user_id):
 
     data = request.get_json(silent=True) or {}
     league_type = (data.get('league_type') or '').strip()
-    target = _LABEL_TO_CANON.get(league_type)
+    target = label_to_canon().get(league_type)
     if target is None:
         return jsonify({'success': False, 'message': 'Invalid league'}), 400
     user = db.session.get(User, user_id)
@@ -1237,8 +1558,8 @@ def member_sub_remove(user_id):
         return jsonify({'success': False, 'message': 'No player record'}), 400
     pid = user.player.id
 
-    sp = db.session.query(SubstitutePool).filter_by(player_id=pid).first()
-    if sp and _norm_league_type(sp.league_type) == target:
+    sp = _pool_row_for_lane(db.session, pid, target)
+    if sp:
         db.session.delete(sp)
     if target == 'ecs_fc':
         ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
@@ -1443,7 +1764,9 @@ def member_place(user_id):
                     from app.services.sub_status_service import remove_conflicting_sub_status
                     sub_cleanup = remove_conflicting_sub_status(
                         db.session, player.id,
-                        performed_by_user_id=getattr(current_user, 'id', None))
+                        performed_by_user_id=getattr(current_user, 'id', None),
+                        # Same division family only (see the draft paths).
+                        league_name=(team.league.name if team and team.league else None))
                 except Exception as _sub_err:
                     logger.warning(f"sub-status cleanup skipped for player {player.id}: {_sub_err}")
                 # A rostered player is IN — auto-clear any stale waitlist so we never leave

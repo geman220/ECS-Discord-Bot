@@ -41,7 +41,48 @@ ECS_FC = 'ECS FC'
 # `league` query-param values that are not a literal League.name.
 LEAGUE_ALL = 'all'
 LEAGUE_PUB = 'pub'          # Premier + Classic
-PUB_LEAGUE_NAMES = ('Premier', 'Classic')
+PUB_LEAGUE_NAMES = ('Premier', 'Classic')      # fallback
+
+
+def pub_league_names():
+    """League.name values covered by the 'pub' scope pill.
+
+    The literal pair conflicted with the registry-driven Sankey on the same
+    page -- two definitions of "pub league" in one report.
+    """
+    try:
+        from app.services import program_registry
+        names = tuple(p.league_name for p in program_registry.all_programs()
+                      if p.is_pub_league_like and p.league_name)
+        if names:
+            return names
+    except Exception:
+        pass
+    return PUB_LEAGUE_NAMES
+
+
+def season_type_for_league_param(param, default=PUB_LEAGUE):
+    """Which Season.league_type a `?league=` value should resolve seasons against.
+
+    Each program with its own season_league_type keeps its own timeline, so the
+    season axis must follow the selected league. Hardcoding only ECS FC here
+    meant a newer program's pill resolved seasons against Pub League, filtered
+    leagues to `name=<that program> AND season_id IN (Pub League seasons)`, and
+    produced ZERO league ids -- every report rendered empty with no error.
+    """
+    value = (param or '').strip()
+    if not value or value in (LEAGUE_ALL, LEAGUE_PUB):
+        return default
+    if value == ECS_FC:
+        return ECS_FC
+    try:
+        from app.services import program_registry
+        prog = program_registry.by_league_name(value)
+        if prog:
+            return prog.season_league_type
+    except Exception:
+        pass
+    return default
 
 # `season` query-param values that are not an id.
 SEASON_CURRENT = 'current'
@@ -131,7 +172,7 @@ def _resolve_leagues(session, league_param, season_ids, league_type=PUB_LEAGUE):
         return None, 'All leagues'
 
     if param == LEAGUE_PUB:
-        names = list(PUB_LEAGUE_NAMES)
+        names = list(pub_league_names())
         label = 'Pub League'
     else:
         names = [param]
@@ -170,8 +211,7 @@ def resolve_scope(session, args=None, league_type=PUB_LEAGUE):
     # ECS FC keeps its own season timeline (its own is_current season), so when the
     # league filter is ECS FC the season axis must resolve against ECS FC seasons —
     # otherwise the pills would show Pub League seasons that ECS FC data never uses.
-    if (args.get('league') or '').strip() == ECS_FC:
-        league_type = ECS_FC
+    league_type = season_type_for_league_param(args.get('league'), default=league_type)
 
     seasons = _load_seasons(session, league_type)
     baseline_ids = [s['id'] for s in seasons if s['is_baseline']]

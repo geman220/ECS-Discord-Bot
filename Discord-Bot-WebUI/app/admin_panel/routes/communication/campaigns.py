@@ -370,7 +370,7 @@ def campaigns_cancel(campaign_id):
 def campaigns_duplicate(campaign_id):
     """Duplicate a campaign."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         new_name = data.get('name')
 
         new_campaign = push_campaign_service.duplicate_campaign(

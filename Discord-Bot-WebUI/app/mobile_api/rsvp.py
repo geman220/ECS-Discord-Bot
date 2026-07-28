@@ -42,7 +42,7 @@ def update_availability():
     from flask import g
     current_user_id = g.current_user_id
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     match_id = data.get('match_id')
     availability_response = data.get('availability')
     target_player_id = data.get('player_id')
@@ -136,7 +136,7 @@ def update_availability_web():
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     match_id = data.get('match_id')
     availability_response = data.get('response')
 
@@ -184,7 +184,7 @@ def bulk_availability_update():
     """
     current_user_id = int(get_jwt_identity())
 
-    data = request.json or {}
+    data = request.get_json(silent=True) or {}
     updates = data.get('updates', [])
 
     if not updates:

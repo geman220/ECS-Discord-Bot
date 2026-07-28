@@ -858,20 +858,33 @@ def _movement_flow(session, from_id, to_id):
     # player in some other pub league (shouldn't happen, but be safe) is skipped
     # rather than silently miscounted as Classic; leaving the divisions entirely
     # reads as Lapsed.
+    # Divisions come from the registry. The literal ('Premier','Classic') meant
+    # a member of any other program was excluded from the source side AND read
+    # as 'Lapsed' on the destination side -- so a player who simply moved to
+    # another program showed up as churn.
+    _divs = ['Premier', 'Classic']
+    try:
+        from app.services import program_registry
+        _divs = [pr.league_name for pr in program_registry.all_programs()
+                 if pr.is_pub_league_like] or ['Premier', 'Classic']
+    except Exception:
+        pass
+    _divset = set(_divs)
+
     flow = defaultdict(int)
     for pid, la in a.items():
-        if la not in ('Premier', 'Classic'):
+        if la not in _divset:
             continue
         dst = b.get(pid)
-        dst = dst if dst in ('Premier', 'Classic') else 'Lapsed'
+        dst = dst if dst in _divset else 'Lapsed'
         flow[(la, dst)] += 1
     for pid, lb in b.items():
-        if pid in a or lb not in ('Premier', 'Classic'):
+        if pid in a or lb not in _divset:
             continue
         flow[('New', lb)] += 1
 
-    left_nodes = ['Premier', 'Classic', 'New']
-    right_nodes = ['Premier', 'Classic', 'Lapsed']
+    left_nodes = list(_divs) + ['New']
+    right_nodes = list(_divs) + ['Lapsed']
     left_tot = {n: sum(c for (s, d), c in flow.items() if s == n) for n in left_nodes}
     right_tot = {n: sum(c for (s, d), c in flow.items() if d == n) for n in right_nodes}
 
@@ -894,7 +907,15 @@ def _movement_flow(session, from_id, to_id):
     rcur = {n: rpos[n][0] for n in rpos}
 
     bands = []
-    for (src, dst) in MOVEMENT_FLOW_ORDER:
+    # Draw EVERY accumulated pair, not just the eight hardcoded ones. Node
+    # rectangles are sized from `flow` (left_tot/right_tot above), so any pair
+    # missing from the draw order produced a node rendered at full height with
+    # zero ribbons leaving it -- and Premier/Classic rects that no longer summed
+    # to their own bands. Known pairs keep their explicit order (so the ribbon
+    # meanings stay stable); anything new is appended deterministically.
+    _ordered = [pair for pair in MOVEMENT_FLOW_ORDER if pair in flow]
+    _ordered += sorted(pair for pair in flow if pair not in MOVEMENT_FLOW_ORDER)
+    for (src, dst) in _ordered:
         c = flow.get((src, dst), 0)
         if not c or src not in lpos or dst not in rpos:
             continue
@@ -1228,6 +1249,13 @@ def _build_roster_history(session, season_id):
             'Season': a.season.name if a.season else '',
             'League': team.league.name if team and team.league else '',
             'Team': team.name if team else '',
+            # ⚠️ CURRENT size/number, not the size they wore that season. jersey_size is a
+            # single mutable column on Player — there is no per-season history anywhere in
+            # the schema (player_team_season stores only player/team/season/is_coach). Kept
+            # here because "who was on this team, and what size are they now" is the useful
+            # question; the column headers say "Current" so nobody reads it as historical.
+            'Current Jersey Size': (player.jersey_size if player else '') or '',
+            'Current Jersey Number': (player.jersey_number if player and player.jersey_number is not None else ''),
             '_season_sort': season_order.get(a.season_id, 0),
             '_player_id': a.player_id,
             '_team_id': team.id if team else None,

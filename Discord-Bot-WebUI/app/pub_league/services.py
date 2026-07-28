@@ -195,15 +195,34 @@ class PubLeagueOrderService:
             product_name = item.get('name', '')
             quantity = item.get('quantity', 1)
 
-            # Check if this is a Pub League product
-            match = pub_league_pattern.search(product_name)
-            if not match:
-                match = alt_pattern.search(product_name)
+            division = None
 
-            if match:
-                # Extract division
-                division = match.group(3).capitalize()
+            # Registry first: matches on Woo PRODUCT ID, falling back to a
+            # per-program name pattern. The two regexes below both require a
+            # (Spring|Fall) token AND a (Classic|Premier) token, so a product
+            # like "2026 ECS Pub League – Summer Sprint Season" matches neither
+            # and silently produces ZERO line items -- the order is created but
+            # nobody is ever activated.
+            try:
+                from app.services import program_registry
+                program = program_registry.by_woo_product(
+                    product_id=item.get('product_id'), product_name=product_name)
+                if program:
+                    # `division` is stored on the line item and later resolved to
+                    # a League row by name, so it must be the League.name.
+                    division = program.league_name
+            except Exception as _reg_err:
+                logger.warning(f"program registry lookup failed for '{product_name}': {_reg_err}")
 
+            # Legacy name regexes, still authoritative for Classic/Premier.
+            if not division:
+                match = pub_league_pattern.search(product_name)
+                if not match:
+                    match = alt_pattern.search(product_name)
+                if match:
+                    division = match.group(3).capitalize()
+
+            if division:
                 # Extract jersey size from product name (last token after " - ")
                 jersey_size = extract_jersey_size_from_product_name(product_name)
                 if jersey_size == 'N/A':
@@ -263,9 +282,33 @@ class PubLeagueOrderService:
         season = None
         if season_name:
             session = getattr(g, 'db_session', db.session)
+            # Scoped to 'Pub League' first: Pub League and ECS FC can both have a
+            # current season with the SAME name, and binding a paid Pub League
+            # order to the ECS FC one made it vanish from the admin list.
             season = session.query(Season).filter_by(
                 name=season_name, league_type='Pub League'
             ).first()
+            if not season:
+                # Then the program implied by THIS order's products. Resolving
+                # from the order (not from a widened .in_() + .first()) keeps
+                # the same-name collision closed: Pub League and ECS FC can both
+                # have a season called "2026 Fall".
+                try:
+                    from app.services import program_registry
+                    _prog = None
+                    for _it in (order_data.get('line_items') or []):
+                        _prog = program_registry.by_woo_product(
+                            product_id=_it.get('product_id'),
+                            product_name=_it.get('name'))
+                        if _prog:
+                            break
+                    if _prog and _prog.season_league_type != 'Pub League':
+                        season = session.query(Season).filter_by(
+                            name=season_name,
+                            league_type=_prog.season_league_type
+                        ).first()
+                except Exception as _cs_err:
+                    logger.warning(f"order season lookup by program failed: {_cs_err}")
 
         # Create order
         order = PubLeagueOrder(
@@ -424,6 +467,33 @@ class PubLeagueOrderService:
             season = session.query(Season).filter_by(
                 name=order.season_name, league_type='Pub League'
             ).first()
+            if not season:
+                # A program with its own season_league_type has a season this
+                # literal can never match. Resolve it from THIS ORDER'S OWN
+                # program (via the line item's division), NOT by widening the
+                # query -- Pub League and ECS FC can both have a current season
+                # with the SAME name, so an `.in_([...])` or unscoped `.first()`
+                # would bind a paid Pub League order's pass to the ECS FC
+                # season. That is the exact bug the original 'Pub League' scope
+                # was added to close; widening reintroduces it.
+                _division = None
+                try:
+                    _li = next((li for li in (order.line_items or [])
+                                if getattr(li, 'division', None)), None)
+                    _division = getattr(_li, 'division', None)
+                except Exception:
+                    _division = None
+                if _division:
+                    try:
+                        from app.services import program_registry
+                        _pr = program_registry.by_league_name(_division)
+                        if _pr:
+                            season = session.query(Season).filter_by(
+                                name=order.season_name,
+                                league_type=_pr.season_league_type
+                            ).first()
+                    except Exception as _sl_err:
+                        logger.warning(f"season lookup by program failed: {_sl_err}")
 
         if not season:
             raise ValueError("Could not determine season for pass creation")
@@ -454,6 +524,134 @@ class PlayerActivationService:
     Handles setting is_current_player, updating league assignment,
     and coordinating role sync.
     """
+
+    @staticmethod
+    def _assign_league_additively(session, player: Player, new_league) -> None:
+        """Point the player at `new_league` WITHOUT evicting a league they still hold.
+
+        This used to be an unconditional two-line overwrite:
+
+            player.league_id = current_league.id
+            player.primary_league_id = current_league.id
+
+        which was correct while a person could only ever be in one Pub League
+        division at a time. It stopped being correct the moment a second
+        concurrent program existed: a Premier player buying a pass for another
+        program had their primary_league_id REPOINTED away from Premier, and
+        since the draft pool predicate is
+
+            primary_league_id == league OR row in player_league
+
+        (draft_enhanced.py:1278) they silently vanished from the Premier draft
+        board -- with no error and nothing to attribute it to.
+
+        Rules, in order:
+          * Already the primary -> nothing to do (idempotent re-link).
+          * No primary yet -> the new league becomes primary.
+          * Primary is STALE (its season is no longer current) -> repoint. This
+            is the ordinary renewal path; rollover creates fresh League rows
+            each season, so last season's primary is always stale.
+          * Primary is LIVE and belongs to the SAME program -> repoint. A
+            same-program move within a live season is a genuine reassignment.
+          * Primary is LIVE and belongs to a DIFFERENT program -> ADDITIVE.
+            Keep the existing primary and record the new league in
+            other_leagues, so both draft pools still see them.
+
+        `league_id` is the legacy pointer and is kept equal to
+        `primary_league_id`; integrity check G13 exists specifically to flag
+        drift between the two (integrity_service.py:786).
+        """
+        from app.models import Season
+
+        if player.primary_league_id == new_league.id:
+            # Also heal a drifted legacy pointer while we are here.
+            if player.league_id != new_league.id:
+                player.league_id = new_league.id
+            return
+
+        def _league_is_live(league):
+            if league is None or league.season_id is None:
+                return False
+            season = session.query(Season).get(league.season_id)
+            return bool(season and season.is_current)
+
+        def _program(league):
+            if league is None:
+                return None
+            try:
+                from app.services import program_registry
+                return program_registry.by_league_name(league.name, session)
+            except Exception:
+                return None
+
+        def _same_division_family(a, b):
+            """True when two leagues are mutually-exclusive divisions.
+
+            Programs sharing a `season_league_type` are DIVISIONS of one season
+            -- Premier and Classic both live under 'Pub League', and you can
+            only be in one of them. Moving between them (including by buying
+            the other division's pass) is a genuine REASSIGNMENT and must
+            repoint the primary league.
+
+            Programs with DIFFERENT season_league_types run independently, on
+            their own dates and their own rollover cadence, so holding both at
+            once is legitimate and must be additive.
+
+            Comparing program KEYS instead would treat Premier->Classic as
+            "different program" and go additive, leaving primary_league_id on
+            Premier while RoleSyncService strips pl-premier and grants
+            pl-classic -- the player would then sit in BOTH draft pools and
+            BOTH division channels.
+            """
+            pa, pb = _program(a), _program(b)
+            if pa is not None and pb is not None:
+                return pa.season_league_type == pb.season_league_type
+            # Registry unavailable: fall back to same-season, which is the same
+            # question for the leagues that exist today.
+            return (a is not None and b is not None
+                    and a.season_id is not None and a.season_id == b.season_id)
+
+        existing = player.primary_league
+        take_primary = (
+            existing is None
+            or not _league_is_live(existing)
+            or existing.id == new_league.id
+            or _same_division_family(existing, new_league)
+        )
+
+        if take_primary:
+            displaced = existing if (existing and _league_is_live(existing)
+                                     and existing.id != new_league.id) else None
+            player.primary_league_id = new_league.id
+            # Assign the RELATIONSHIP too, not just the FK. SQLAlchemy does not
+            # refresh `player.primary_league` from a bare primary_league_id
+            # write until a flush+expire, so a second activation in the same
+            # session (two passes linked back to back) would re-read the OLD
+            # league here and mis-classify an additive purchase as a repoint.
+            player.primary_league = new_league
+            player.league_id = new_league.id
+            # Do not silently drop a live league we are displacing.
+            if displaced is not None:
+                others = list(player.other_leagues or [])
+                if displaced.id not in {l.id for l in others}:
+                    player.other_leagues.append(displaced)
+            # The new primary should not ALSO sit in other_leagues.
+            for l in list(player.other_leagues or []):
+                if l.id == new_league.id:
+                    player.other_leagues.remove(l)
+            logger.info(
+                "Player %s primary league -> %s (%s)",
+                player.id, new_league.id, new_league.name
+            )
+        else:
+            others = list(player.other_leagues or [])
+            if new_league.id not in {l.id for l in others}:
+                player.other_leagues.append(new_league)
+            logger.info(
+                "Player %s already primary in %s (%s); added %s (%s) as an "
+                "additional league rather than repointing",
+                player.id, existing.id, existing.name, new_league.id, new_league.name
+            )
 
     @staticmethod
     def activate_player_for_league(
@@ -491,12 +689,25 @@ class PlayerActivationService:
         # 3. Update league assignment using DYNAMIC current season lookup
         # This replaces the old hardcoded DIVISION_LEAGUE_IDS mapping
         current_league = SeasonSyncService.get_current_league_by_name(session, division)
+        if not current_league:
+            # ⚠️ There is a real window where a program's season EXISTS but is not
+            # yet current: it is seeded ahead of time and only made current when
+            # the schedule is ready. A pass bought inside that window used to set
+            # is_current_player=True and then assign no league at all -- buyer
+            # paid, flagged active, on no roster, in no draft pool, discoverable
+            # only from a single WARNING line. Fall back to the newest season of
+            # THIS program so the money always lands somewhere reachable.
+            current_league = SeasonSyncService.get_latest_league_by_name(session, division)
+            if current_league:
+                logger.error(
+                    f"No CURRENT season league for '{division}'; assigned the most "
+                    f"recent one instead (league_id={current_league.id}, "
+                    f"season_id={current_league.season_id}). Make that season current.")
         if current_league:
-            player.league_id = current_league.id
-            player.primary_league_id = current_league.id
-            logger.info(f"Assigned player {player.id} to current season league {current_league.id} ({division})")
+            PlayerActivationService._assign_league_additively(session, player, current_league)
         else:
-            logger.warning(f"Could not find current season league for division '{division}'")
+            logger.error(f"Could not find ANY season league for division '{division}' -- "
+                         f"player {player.id} is flagged active with NO league assignment.")
 
         # Phase-0 dual-write: mirror pass activation into the league_membership spine.
         try:
@@ -771,16 +982,63 @@ class RoleSyncService:
             player: Player associated with user (for Discord sync)
             new_division: 'Classic' or 'Premier'
         """
+        # Registry first. DIVISION_ROLES only knows Classic/Premier, so for any
+        # other program this returned early -- granting NO Flask role and never
+        # setting discord_needs_update (that call is on the line after the
+        # return), so activating a pass for a newer program did nothing at all
+        # on the Discord side.
         new_role_name = DIVISION_ROLES.get(new_division)
+        siblings = []
+        try:
+            from app.services import program_registry
+            prog = program_registry.by_league_name(new_division)
+            if prog:
+                new_role_name = prog.flask_league_role or new_role_name
+                # Strip only roles for OTHER divisions of the SAME season type.
+                # The old code assumed exactly two divisions and hardcoded "the
+                # opposite" -- with three or more, removing a single hardcoded
+                # sibling leaves the others behind, and removing a role from a
+                # DIFFERENT season type would revoke a program the player still
+                # legitimately belongs to.
+                siblings = [
+                    other.flask_league_role
+                    for other in program_registry.all_programs()
+                    if other.key != prog.key
+                    and other.season_league_type == prog.season_league_type
+                    and other.flask_league_role
+                ]
+        except Exception as _reg_err:
+            logger.warning(f"registry unavailable in sync_league_role: {_reg_err}")
+
         if not new_role_name:
             logger.warning(f"Unknown division: {new_division}")
             return
 
-        opposite_division = 'Premier' if new_division == 'Classic' else 'Classic'
-        opposite_role_name = DIVISION_ROLES.get(opposite_division)
+        # ⚠️ NO LEGACY FALLBACK HERE. The old block read:
+        #     opposite = 'Premier' if new_division == 'Classic' else 'Classic'
+        # which resolves to 'Classic' for ANY division that is not literally
+        # 'Classic' -- including a program that is the ONLY member of its season
+        # type and therefore has no siblings at all. `siblings` being empty is
+        # the CORRECT answer for such a program, and the fallback turned it into
+        # "strip pl-classic". Linking a Summer pass then revoked a paid Classic
+        # player's division role and, via the Discord sync, their Classic
+        # channel access, mid-season, with no error anywhere.
+        #
+        # An empty `siblings` means "this program shares its season with nobody,
+        # so there is nothing mutually exclusive to remove". Leave it empty.
+        opposite_role_name = siblings[0] if siblings else None
 
         # 1. Flask role sync (database)
         RoleSyncService._sync_flask_role(user, new_role_name, opposite_role_name)
+        # Remove any REMAINING same-family sibling roles. _sync_flask_role only
+        # handles one "opposite", which was sufficient with exactly two
+        # divisions and silently leaves stale roles behind with three or more.
+        for _extra in siblings[1:]:
+            if _extra and _extra != new_role_name:
+                try:
+                    RoleSyncService._sync_flask_role(user, new_role_name, _extra)
+                except Exception as _sib_err:
+                    logger.warning(f"could not strip sibling role {_extra}: {_sib_err}")
 
         # 2. Mark player for Discord role sync
         # The sync system reads Flask roles and maps them to Discord roles

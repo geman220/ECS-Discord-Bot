@@ -346,7 +346,7 @@ def update_team_draft_pitch(team_id):
         if not team:
             return jsonify({'msg': 'Team not found'}), 404
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         positions = data.get('positions', [])
 
         # Update player_teams position column for each player
@@ -387,7 +387,7 @@ def update_team_draft_position(team_id):
         if not check_coach_permission(current_user_id, team_id, session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         player_id = data.get('player_id')
         position = data.get('position', 'bench')
 
@@ -491,7 +491,7 @@ def update_match_lineup(match_id, team_id):
         if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         positions = data.get('positions', [])
         notes = data.get('notes')
         client_version = data.get('version', 0)
@@ -560,7 +560,7 @@ def update_match_lineup_position(match_id, team_id):
         if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         player_id = data.get('player_id')
         position = data.get('position')
         order = data.get('order')
@@ -700,7 +700,7 @@ def update_match_lineup_notes(match_id, team_id):
         if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         notes = data.get('notes', '')
 
         lineup = session_db.query(MatchLineup).filter_by(
@@ -893,7 +893,7 @@ def update_ecs_fc_match_lineup(match_id, team_id=None):
         if not check_coach_permission(current_user_id, team_id, session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         positions = data.get('positions', [])
         notes = data.get('notes')
         version = data.get('version')
@@ -967,7 +967,7 @@ def update_ecs_fc_lineup_position(match_id, team_id=None):
         if not check_coach_permission(current_user_id, team_id, session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         player_id = data.get('player_id')
         position = data.get('position')
         order = data.get('order')
@@ -1086,7 +1086,7 @@ def update_ecs_fc_match_lineup_notes(match_id, team_id=None):
         if not check_coach_permission(current_user_id, team_id, session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
-        data = request.json or {}
+        data = request.get_json(silent=True) or {}
         notes = data.get('notes', '')
 
         lineup = session_db.query(MatchLineup).filter_by(

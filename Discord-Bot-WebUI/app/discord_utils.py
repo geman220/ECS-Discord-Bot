@@ -1,4 +1,4 @@
-﻿# app/discord_utils.py
+# app/discord_utils.py
 
 """
 Discord Utilities Module
@@ -539,7 +539,26 @@ async def create_discord_channel_async_only(team_name: str, league_name: str, te
         # "ECS-FC-LEAGUE-" prefix produced roles that the channel granted permissions
         # to but that no player or coach was ever assigned -- so ECS FC League
         # members could not see their own channel.
-        if league_name and 'ECS FC' in league_name and 'Pub League' not in league_name:
+        # Resolved from the program registry first, so a new program lands in the
+        # category an admin configured for it. The old else-branch built
+        # f"ECS FC PL {league_name.capitalize()}", which for a multi-word league
+        # name produced e.g. "ECS FC PL Summer sprint league" -- close enough to
+        # look right in code review, different enough that get_or_create_category
+        # would create a SECOND category next to the intended one.
+        _program = None
+        try:
+            from app.services import program_registry
+            _program = program_registry.by_league_name(league_name)
+        except Exception as _reg_err:
+            logger.warning(f"program registry unavailable for category resolution: {_reg_err}")
+
+        if _program is not None and _program.discord_category_name:
+            is_ecs_fc_league = not _program.is_pub_league_like
+            category_name = _program.discord_category_name
+            # Only the ECS FC league prefixes its channels; every pub-league-like
+            # program uses the bare team name.
+            channel_name = f"ecs-fc-{team_name}" if is_ecs_fc_league else team_name
+        elif league_name and 'ECS FC' in league_name and 'Pub League' not in league_name:
             # ECS FC league teams go under "ECS FC LEAGUE TEAMS"
             is_ecs_fc_league = True
             category_name = "ECS FC LEAGUE TEAMS"
@@ -1267,6 +1286,60 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
         return {'success': False, 'error': str(e)}
 
 
+def _program_role_names(session=None):
+    """Every program's Discord division / coach / sub role name.
+
+    THE SECOND CALCULATOR. get_expected_roles + get_app_managed_roles are the
+    single-player path (update_player_roles -> process_role_updates, profile
+    edits); tasks_discord.py holds the batch path. They must agree, and they had
+    silently diverged: this file was still hardcoded to premier/classic/ecs-fc
+    while the batch calculator went registry-driven, so whether a newer
+    program's member kept their division role depended entirely on which sync
+    ran last.
+
+    Returns (division, coach, sub) name lists plus a lane->names mapping.
+    """
+    divisions, coaches, subs = [], [], []
+    by_flask_role = {}
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs(session):
+            d = pr.division_role_name
+            c = pr.coach_role_name
+            sb = pr.sub_role_name
+            if d:
+                divisions.append(d)
+            if c:
+                coaches.append(c)
+            if sb:
+                subs.append(sb)
+            if pr.flask_league_role and d:
+                by_flask_role[pr.flask_league_role] = d
+            if pr.flask_coach_role and c:
+                by_flask_role[pr.flask_coach_role] = c
+            if pr.flask_sub_role and sb:
+                by_flask_role[pr.flask_sub_role] = sb
+    except Exception as _reg_err:
+        logger.warning(f"program registry unavailable in discord_utils: {_reg_err}")
+
+    if not divisions:
+        # Legacy floor. NEVER return empty: an empty expected set combined with a
+        # populated managed set is what strips every role off every player.
+        divisions = ["ECS-FC-PL-PREMIER", "ECS-FC-PL-CLASSIC", "ECS-FC-LEAGUE"]
+        coaches = ["ECS-FC-PL-PREMIER-COACH", "ECS-FC-PL-CLASSIC-COACH"]
+        subs = ["ECS-FC-PL-PREMIER-SUB", "ECS-FC-PL-CLASSIC-SUB", "ECS-FC-LEAGUE-SUB"]
+        by_flask_role = {
+            'pl-premier': "ECS-FC-PL-PREMIER", 'pl-classic': "ECS-FC-PL-CLASSIC",
+            'pl-ecs-fc': "ECS-FC-LEAGUE",
+            'Premier Coach': "ECS-FC-PL-PREMIER-COACH",
+            'Classic Coach': "ECS-FC-PL-CLASSIC-COACH",
+            'Premier Sub': "ECS-FC-PL-PREMIER-SUB",
+            'Classic Sub': "ECS-FC-PL-CLASSIC-SUB",
+            'ECS FC Sub': "ECS-FC-LEAGUE-SUB",
+        }
+    return divisions, coaches, subs, by_flask_role
+
+
 async def get_app_managed_roles(session: Session) -> List[str]:
     """
     Get a list of roles that are managed by the application.
@@ -1275,29 +1348,26 @@ async def get_app_managed_roles(session: Session) -> List[str]:
     Returns:
         List[str]: Combined list of static and current season team-specific roles.
     """
-    static_roles = [
-        "ECS-FC-PL-PREMIER",
-        "ECS-FC-PL-CLASSIC",
-        "ECS-FC-PL-PREMIER-COACH",
-        "ECS-FC-PL-CLASSIC-COACH",
-        "ECS-FC-PL-UNVERIFIED",  # New unverified role
-        "ECS-FC-LEAGUE",  # ECS FC league role
-        "ECS-FC-PL-PREMIER-SUB",  # Premier substitute role
-        "ECS-FC-PL-CLASSIC-SUB",  # Classic substitute role
-        "ECS-FC-LEAGUE-SUB",  # ECS FC substitute role
-        "Referee"
-    ]
-    
-    # Only include current season teams to avoid managing old team roles
+    _divisions, _coaches, _subs, _ = _program_role_names(session)
+    static_roles = (list(_divisions) + list(_coaches) + list(_subs)
+                    + ["ECS-FC-PL-UNVERIFIED", "Referee"])
+
+    # Teams from EVERY current season, not `.first()`.
+    #
+    # WARNING: `filter_by(is_current=True).first()` was an unqualified pick across
+    # ALL league types. With three programs there are three is_current rows, so
+    # which season's teams landed in the managed list was arbitrary -- and a team
+    # role that is granted but NOT managed can never be revoked, while the
+    # reverse strips roles that should stay.
     from app.models import Season, PlayerTeamSeason
-    
-    current_season = session.query(Season).filter_by(is_current=True).first()
-    if current_season:
-        # Get teams that are active in the current season
+    current_season_ids = [
+        r[0] for r in session.query(Season.id).filter_by(is_current=True).all()
+    ]
+    if current_season_ids:
         current_teams = session.query(Team).join(
             PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
         ).filter(
-            PlayerTeamSeason.season_id == current_season.id
+            PlayerTeamSeason.season_id.in_(current_season_ids)
         ).distinct().all()
         team_roles = []
         for team in current_teams:
@@ -1364,34 +1434,25 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     if approval_status == 'approved':
         # Direct mapping of Flask roles to Discord roles (can have multiple)
         # Base league roles
-        if 'pl-classic' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-CLASSIC based on Flask role 'pl-classic'")
-        
-        if 'pl-premier' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-PREMIER"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER based on Flask role 'pl-premier'")
-        
-        if 'pl-ecs-fc' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-ECS-FC"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-ECS-FC based on Flask role 'pl-ecs-fc'")
-        
-        # Substitute roles
-        if 'Classic Sub' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-CLASSIC-SUB"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-CLASSIC-SUB based on Flask role 'Classic Sub'")
-        
-        if 'Premier Sub' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-PREMIER-SUB"))
-            logger.info(f"Player {player.id} assigned ECS-FC-PL-PREMIER-SUB based on Flask role 'Premier Sub'")
-        
-        if 'ECS FC Sub' in user_roles:
-            # Canonical name is ECS-FC-LEAGUE-SUB — the name used by both task
-            # calculators AND every managed/remove list. Emitting ECS-FC-PL-ECS-FC-SUB
-            # here created a SECOND, differently-named sub role that no managed list
-            # covers, so it was never stripped when the sub left the pool.
-            roles.append(normalize_name("ECS-FC-LEAGUE-SUB"))
-            logger.info(f"Player {player.id} assigned ECS-FC-LEAGUE-SUB based on Flask role 'ECS FC Sub'")
+        # Registry-driven Flask-role -> Discord-role mapping, covering every
+        # program's division and substitute roles in one pass. The old block was
+        # six hardcoded `if` statements, so a newer program's member was never
+        # granted their division role on this path while the BATCH calculator
+        # granted it -- the role appeared and disappeared depending on which
+        # sync ran last.
+        #
+        # Note ECS FC's canonical sub role is ECS-FC-LEAGUE-SUB (not
+        # ECS-FC-PL-ECS-FC-SUB); that name comes from the registry now, and it
+        # is the name every managed/remove list uses.
+        _d, _c, _s, _by_flask = _program_role_names(session)
+        for _flask_role, _discord_role in _by_flask.items():
+            # Coach roles are handled separately below (they are per-team scoped).
+            if _discord_role in _c:
+                continue
+            if _flask_role in user_roles:
+                roles.append(normalize_name(_discord_role))
+                logger.info(f"Player {player.id} assigned {_discord_role} "
+                            f"based on Flask role '{_flask_role}'")
 
     should_have_coach_status = player.is_coach
 
@@ -1403,11 +1464,27 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
     # reconcile, causing coach roles to flap. Falls back to the legacy global
     # derivation only when no DB session is available to read player_teams.
     if approval_status == 'approved':
-        # Team-independent division-coach Flask roles.
-        if 'Premier Coach' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-        if 'Classic Coach' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+        # Team-independent division-coach Flask roles, every program.
+        _coach_by_flask = {}
+        _coach_by_league = {}
+        try:
+            from app.services import program_registry
+            for _pr in program_registry.all_programs(session):
+                if _pr.coach_role_name:
+                    if _pr.flask_coach_role:
+                        _coach_by_flask[_pr.flask_coach_role] = _pr.coach_role_name
+                    if _pr.league_name:
+                        _coach_by_league[_pr.league_name.strip().lower()] = _pr.coach_role_name
+        except Exception:
+            pass
+        if not _coach_by_flask:
+            _coach_by_flask = {'Premier Coach': "ECS-FC-PL-PREMIER-COACH",
+                               'Classic Coach': "ECS-FC-PL-CLASSIC-COACH"}
+            _coach_by_league = {'premier': "ECS-FC-PL-PREMIER-COACH",
+                                'classic': "ECS-FC-PL-CLASSIC-COACH"}
+        for _fr, _dr in _coach_by_flask.items():
+            if _fr in user_roles:
+                roles.append(normalize_name(_dr))
 
         # Per-team is_coach scoped to each coached team's league.
         coach_leagues = None
@@ -1429,15 +1506,21 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if coach_leagues is None:
             # Fallback: legacy global derivation (no session / lookup failed).
             if should_have_coach_status:
-                if 'pl-premier' in user_roles:
-                    roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-                if 'pl-classic' in user_roles:
-                    roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+                try:
+                    from app.services import program_registry
+                    for _pr in program_registry.all_programs(session):
+                        if (_pr.flask_league_role in user_roles
+                                and _pr.coach_role_name and _pr.is_pub_league_like):
+                            roles.append(normalize_name(_pr.coach_role_name))
+                except Exception:
+                    if 'pl-premier' in user_roles:
+                        roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
+                    if 'pl-classic' in user_roles:
+                        roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
         else:
-            if 'premier' in coach_leagues:
-                roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-            if 'classic' in coach_leagues:
-                roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
+            for _lname, _dr in _coach_by_league.items():
+                if _lname in coach_leagues:
+                    roles.append(normalize_name(_dr))
 
         # ECS FC coach role is NOT in the task reconcile's managed list, so it never
         # flaps — keep the existing global-derived grant (leaves ECS FC as-is).

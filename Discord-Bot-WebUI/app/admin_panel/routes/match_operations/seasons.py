@@ -87,9 +87,30 @@ def create_season():
     parsed_start = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else None
     parsed_end = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else None
 
-    # If setting as current, unset other current seasons
+    # `is_current` is PER PROGRAM. This used to be an unscoped UPDATE, so
+    # creating any season with "set as current" flipped is_current=False on
+    # EVERY other program's season in one statement -- Pub League and ECS FC
+    # simultaneously. Every filter_by(is_current=True, league_type=...) in the
+    # app then returns None: standings, draft, wallet and RSVP fan-out all go
+    # blank at once, with no error anywhere.
+    _league_type = request.form.get('league_type') or 'Pub League'
+    # Validate BEFORE any mutation. An unrecognised value used to create an
+    # orphan Season with is_current=True that no program resolves -- and which
+    # then also escaped the reveal gate, because `any(pr.hide_until_reveal for
+    # pr in [])` is False.
+    try:
+        from app.services import program_registry
+        if not program_registry.by_season_league_type(_league_type,
+                                                      include_inactive=True):
+            flash(f"No program is registered for season type '{_league_type}'. "
+                  f"Register it first.", 'error')
+            return redirect(url_for('admin_panel.league_management_seasons'))
+    except Exception as _vt_err:
+        logger.warning(f"season-type validation skipped: {_vt_err}")
     if is_current:
-        db.session.query(Season).update({'is_current': False})
+        db.session.query(Season).filter(
+            Season.league_type == _league_type
+        ).update({'is_current': False})
 
     # Create new season
     season = Season(
@@ -97,16 +118,25 @@ def create_season():
         start_date=parsed_start,
         end_date=parsed_end,
         is_current=is_current,
-        league_type=request.form.get('league_type', 'CLASSIC')
+        # Was defaulting to 'CLASSIC' -- a value that belongs to no vocabulary
+        # in the codebase (Season.league_type holds 'Pub League'/'ECS FC'/...).
+        league_type=_league_type
     )
     db.session.add(season)
     db.session.flush()
 
     # A Pub League season becoming current re-hides team assignments
     # until an admin re-runs the reveal (make_teams_public).
-    if is_current and season.league_type == 'Pub League':
+    _hides_create = season.league_type == 'Pub League'
+    try:
+        from app.services import program_registry
+        _hides_create = any(pr.hide_until_reveal for pr in
+                            program_registry.by_season_league_type(season.league_type, include_inactive=True))
+    except Exception:
+        pass
+    if is_current and _hides_create:
         from app.services.team_visibility import reset_teams_reveal
-        reset_teams_reveal(db.session)
+        reset_teams_reveal(db.session, season_league_type=season.league_type)
 
     # Log the action
     AdminAuditLog.log_action(
@@ -148,12 +178,23 @@ def update_season(season_id):
 
     # If setting as current, unset other current seasons
     if is_current and not season.is_current:
-        db.session.query(Season).filter(Season.id != season_id).update({'is_current': False})
-        # A Pub League season becoming current re-hides team assignments
-        # until an admin re-runs the reveal (make_teams_public).
-        if season.league_type == 'Pub League':
+        # Scoped to this season's own program -- see the create path above.
+        db.session.query(Season).filter(
+            Season.id != season_id,
+            Season.league_type == season.league_type
+        ).update({'is_current': False})
+        # A season whose program hides teams until the reveal must re-hide them
+        # when it becomes current. Registry-driven so a newer program is covered.
+        _hides = season.league_type == 'Pub League'
+        try:
+            from app.services import program_registry
+            _hides = any(pr.hide_until_reveal
+                         for pr in program_registry.by_season_league_type(season.league_type, include_inactive=True))
+        except Exception:
+            pass
+        if _hides:
             from app.services.team_visibility import reset_teams_reveal
-            reset_teams_reveal(db.session)
+            reset_teams_reveal(db.session, season_league_type=season.league_type)
 
     # Update season
     season.name = name

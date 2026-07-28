@@ -343,6 +343,28 @@
                                             <i class="ti ti-circle-check text-xl text-blue-500" aria-hidden="true"></i>
                                         </div>
                                     </label>
+                                    {# One card per additional registered season type. The two
+                                       hardcoded cards above meant a newer program could not be
+                                       selected at all, so its season was uncreatable through the
+                                       wizard. Cards for 'Pub League' / 'ECS FC' are skipped —
+                                       they are already rendered above. #}
+                                    {% for st in (extra_season_types or []) %}
+                                    <label class="league-type-option relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4 hover:border-amber-500 transition-colors" data-value="{{ st.season_league_type }}" data-action="sb-select-league-type">
+                                        <input type="radio" name="leagueType" value="{{ st.season_league_type }}" class="sr-only">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center">
+                                                <i class="ti ti-sun text-xl text-amber-500" aria-hidden="true"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-semibold text-gray-900 dark:text-white">{{ st.label }}</p>
+                                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ st.subtitle }}</p>
+                                            </div>
+                                        </div>
+                                        <div class="check-icon absolute top-3 right-3 hidden">
+                                            <i class="ti ti-circle-check text-xl text-amber-500" aria-hidden="true"></i>
+                                        </div>
+                                    </label>
+                                    {% endfor %}
                                 </div>
                             </div>
 

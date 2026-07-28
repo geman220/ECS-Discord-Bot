@@ -37,7 +37,24 @@ class LeagueMembership(db.Model):
     )
 
     # --- vocab (enforced in the app layer, not the DB, to stay flexible) ---
+    # Declared vocabulary. NOT exhaustive once the program registry has more
+    # rows -- the authoritative list is
+    # `program_registry.membership_lanes()`, and there is no DB CHECK on this
+    # column, so a newer lane stores fine. Kept for documentation and for the
+    # legacy no-registry path.
     LEAGUE_TYPES = ('classic', 'premier', 'ecs_fc')
+
+    @staticmethod
+    def valid_league_types():
+        """Every lane the registry knows about; falls back to LEAGUE_TYPES."""
+        try:
+            from app.services import program_registry
+            lanes = program_registry.membership_lanes()
+            if lanes:
+                return tuple(lanes)
+        except Exception:
+            pass
+        return LeagueMembership.LEAGUE_TYPES
     ROLES = ('waitlist', 'sub', 'player', 'coach')
     SOURCES = ('self_signup', 'quick_profile', 'paid_registration', 'admin', 'draft', 'backfill')
     STATUSES = {

@@ -125,7 +125,7 @@ def update_photo(player_id: int):
         mime = file.content_type or f'image/{ext}'
         image_data = f"data:{mime};base64,{base64.b64encode(data).decode('utf-8')}"
     else:
-        body = request.get_json() or {}
+        body = request.get_json(silent=True) or {}
         image_data = body.get('cropped_image_data') or body.get('photo_base64')
         if not image_data:
             return jsonify({'success': False, 'message': 'Missing image data'}), 400
@@ -165,7 +165,7 @@ def get_notes(player_id: int):
 def create_note(player_id: int):
     """Add a shared scouting note to a NAD."""
     from app.services.mobile.player_admin_service import PlayerAdminService
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'success': False, 'message': 'Note content is required'}), 400
@@ -185,7 +185,7 @@ def create_note(player_id: int):
 def update_note(player_id: int, note_id: int):
     """Edit a scouting note (own note, or any note for Global Admins)."""
     from app.services.mobile.player_admin_service import PlayerAdminService
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     content = (data.get('content') or '').strip()
     if not content:
         return jsonify({'success': False, 'message': 'Note content is required'}), 400

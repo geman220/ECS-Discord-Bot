@@ -714,7 +714,8 @@ def get_user_profile():
                 )
                 if not can_see_teams:
                     # Strip current-season Pub League entries pre-reveal
-                    hidden_leagues = ('Premier', 'Classic')
+                    from app.services.team_visibility import reveal_gated_league_names
+                    hidden_leagues = reveal_gated_league_names(session_db)
                     team_history['season_history'] = [
                         e for e in team_history.get('season_history', [])
                         if not (e.get('is_current_season')

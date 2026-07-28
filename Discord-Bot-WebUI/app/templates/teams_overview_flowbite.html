@@ -60,6 +60,18 @@
 {% set classic_teams = teams | selectattr("league.name", "equalto", "Classic") | list %}
 {% set premier_teams = teams | selectattr("league.name", "equalto", "Premier") | list %}
 {% set ecs_fc_teams = teams | selectattr("league.name", "equalto", "ECS FC") | list %}
+{# Catch-all. The three exact-match buckets above SILENTLY DROP any team whose
+   league is not one of those literals -- the team is in `teams`, matches no
+   selectattr, and simply never renders. No error, no empty state, just missing.
+   Grouping the remainder by league name means a new program appears without
+   this template needing to know its name. #}
+{% set _known_league_names = ['Classic', 'Premier', 'ECS FC'] %}
+{# selectattr("league") first: rejectattr(..., "in", ...) KEEPS rows whose
+   league is None (Undefined `in` list is False, so they are not rejected), and
+   reject('none') does not drop Undefined either -- a league-less team produced
+   an empty heading with a "0 teams" count. #}
+{% set other_teams = teams | selectattr("league") | rejectattr("league.name", "in", _known_league_names) | list %}
+{% set other_league_names = other_teams | map(attribute='league.name') | reject('none') | unique | list %}
 
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     <!-- Title row -->
@@ -131,6 +143,18 @@
                 ECS FC
                 <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ ecs_fc_teams | length }}</span>
             </button>
+            {# One tab per program beyond the three named above. These used to be
+               rendered INSIDE the ECS FC pane with no tab of their own, so a new
+               program's teams were only reachable by clicking "ECS FC". #}
+            {% for _lname in other_league_names %}
+            <button type="button"
+                    class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    data-tab="other-{{ loop.index0 }}">
+                <i class="ti ti-shield-half" aria-hidden="true"></i>
+                {{ _lname }}
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ other_teams | selectattr("league.name", "equalto", _lname) | list | length }}</span>
+            </button>
+            {% endfor %}
         </div>
     </div>
 
@@ -186,7 +210,29 @@
         {% else %}
         {{ empty_state("ti-shield", "No ECS FC teams", "No ECS FC Division teams are available right now.") }}
         {% endif %}
+
     </div>
+
+    {# One pane per extra program, matching its own tab above. #}
+    {% for _lname in other_league_names %}
+    {% set _lteams = other_teams | selectattr("league.name", "equalto", _lname) | list %}
+    <div class="division-content hidden" id="other-{{ loop.index0 }}-content">
+        {% if _lteams %}
+        <div class="px-1 pb-3 flex items-center gap-2">
+            <span class="font-mono text-[11px] font-semibold text-ecs-gold-600 dark:text-ecs-gold-400 uppercase tracking-wide">{{ _lname }}</span>
+            <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></span>
+            <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wide"><span class="font-mono">{{ _lteams | length }}</span> teams</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {% for team in _lteams %}
+            {{ team_card(team, 'gold') }}
+            {% endfor %}
+        </div>
+        {% else %}
+        {{ empty_state("ti-shield-half", "No " ~ _lname ~ " teams", "No " ~ _lname ~ " teams are available right now.") }}
+        {% endif %}
+    </div>
+    {% endfor %}
 </div>
 {% else %}
 <div class="container mx-auto px-4 py-8">
@@ -390,6 +436,34 @@
     </div>
 </div>
 {% endif %}
+{% if shell != 'console' %}
+
+{# Legacy (break-glass) shell: compact catch-all so a program outside the three
+   hardcoded tabs is still visible here, without duplicating the card markup. #}
+{% if other_teams %}
+<div class="container mx-auto px-4 pb-8">
+  {% for _lname in other_league_names %}
+  {% set _lteams = other_teams | selectattr("league.name", "equalto", _lname) | list %}
+  <div class="mt-6">
+    <h3 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">
+      {{ _lname }} <span class="font-mono text-xs text-gray-500">({{ _lteams | length }})</span>
+    </h3>
+    <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      {% for team in _lteams %}
+      <li>
+        <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
+           class="block px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700
+                  text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+          {{ team.name }}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}
@@ -413,7 +487,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Show/hide content
             contents.forEach(c => c.classList.add('hidden'));
-            document.getElementById(targetId).classList.remove('hidden');
+            const pane = document.getElementById(targetId);
+            if (pane) pane.classList.remove('hidden');
         });
     });
 });

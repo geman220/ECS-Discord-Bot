@@ -116,7 +116,9 @@ def get_teams():
         # shared across users with different visibility.
         from app.services.team_visibility import mobile_user_can_view_teams
         if not mobile_user_can_view_teams(session_db, get_jwt_identity()):
-            teams_data = [t for t in teams_data if t.get('league_name') not in ('Premier', 'Classic')]
+            from app.services.team_visibility import reveal_gated_league_names
+            _gated = reveal_gated_league_names(session_db)
+            teams_data = [t for t in teams_data if t.get('league_name') not in _gated]
 
         return make_etag_response(teams_data, 'team_list', CACHE_DURATIONS['team_list'])
 

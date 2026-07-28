@@ -76,6 +76,9 @@ _PENDING_ALLOWED_PATHS = (
     '/api/v1/positions',
     '/api/v1/leagues',
     '/api/v1/seasons',
+    # Public reference data, and the app needs it to render ANY league label --
+    # including on the pending-approval hold screen.
+    '/api/v1/programs',
     # --- push registration, so the "you've been approved" notification lands ---
     '/api/v1/notifications',
     # --- let a stuck user shout for help ---

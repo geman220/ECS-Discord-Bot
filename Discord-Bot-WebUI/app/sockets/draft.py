@@ -15,6 +15,7 @@ from app.core import socketio
 from app.core.session_manager import managed_session
 from app.models.ecs_fc import is_ecs_fc_league
 from app.sockets.utils import get_draft_lock, cleanup_draft_lock
+from app.services import program_registry
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +90,8 @@ def handle_join_draft_room(data):
         try:
             from app import draft_clock
             from app.models import League, Season
-            db_league_name = {
-                'classic': 'Classic',
-                'premier': 'Premier',
-                'ecs_fc': 'ECS FC'
-            }.get(str(league_name).lower(), league_name)
+            db_league_name = (program_registry.league_name_for_draft_slug(str(league_name).lower())
+                              or league_name)
             with managed_session() as session:
                 league = session.query(League).join(Season).filter(
                     League.name == db_league_name,
@@ -168,11 +166,8 @@ def handle_draft_player_enhanced(data):
         from sqlalchemy.orm import joinedload
 
         # Normalize league name
-        db_league_name = {
-            'classic': 'Classic',
-            'premier': 'Premier',
-            'ecs_fc': 'ECS FC'
-        }.get(league_name.lower(), league_name)
+        db_league_name = (program_registry.league_name_for_draft_slug(league_name.lower())
+                              or league_name)
 
         # Store validated IDs for subsequent transactions
         league_id = None
@@ -468,7 +463,10 @@ def handle_draft_player_enhanced(data):
                 try:
                     from app.services.sub_status_service import remove_conflicting_sub_status
                     sub_cleanup = remove_conflicting_sub_status(
-                        session, player_id, performed_by_user_id=current_user.id
+                        session, player_id, performed_by_user_id=current_user.id,
+                        # Scope to the drafted team's own division family --
+                        # unscoped, this wiped sub status in unrelated programs.
+                        league_name=(team.league.name if team and team.league else None),
                     )
                 except Exception as _sub_err:
                     logger.warning(f"Sub-status cleanup skipped for player {player_id}: {_sub_err}")
@@ -671,11 +669,8 @@ def handle_draft_player_enhanced(data):
             try:
                 from app.draft_cache_service import DraftCacheService
                 # Normalize league name for cache key
-                db_league_name = {
-                    'classic': 'Classic',
-                    'premier': 'Premier',
-                    'ecs_fc': 'ECS FC'
-                }.get(league_name.lower(), league_name)
+                db_league_name = (program_registry.league_name_for_draft_slug(league_name.lower())
+                                      or league_name)
                 deleted = DraftCacheService.invalidate_player_cache_ultra_safe(player_id, db_league_name)
                 print(f"🗑️ Invalidated {deleted} cache keys for player {player_id} in {db_league_name}")
                 logger.info(f"🗑️ Invalidated {deleted} cache keys after draft")
@@ -847,11 +842,8 @@ def handle_remove_player_enhanced(data):
         try:
             with managed_session() as session:
                 # Normalize league name
-                db_league_name = {
-                    'classic': 'Classic',
-                    'premier': 'Premier',
-                    'ecs_fc': 'ECS FC'
-                }.get(league_name.lower(), league_name)
+                db_league_name = (program_registry.league_name_for_draft_slug(league_name.lower())
+                                      or league_name)
 
                 # Get league (check if its season is current)
                 league = session.query(League).join(Season).filter(

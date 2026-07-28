@@ -31,7 +31,10 @@
     <div class="flex items-center gap-2">
         <span class="text-xs font-mono uppercase tracking-wide text-gray-400 dark:text-gray-500">League</span>
         <div class="inline-flex" role="group">
-            {% for val, lbl in [('all','All'), ('pub','Pub'), ('Premier','Premier'), ('Classic','Classic'), ('ECS FC','ECS FC')] %}
+            {# Scope pills come from the registry (`report_scope_pills`), falling back to
+               the original five. A hardcoded list means a newer program cannot be
+               filtered to at all -- its data is in the report but unreachable. #}
+            {% for val, lbl in (report_scope_pills or [('all','All'), ('pub','Pub'), ('Premier','Premier'), ('Classic','Classic'), ('ECS FC','ECS FC')]) %}
             {% set l_active = (scope.league_param == val) or (val == 'all' and scope.league_param in ['all', '']) %}
             {# Switching to/from ECS FC changes the season timeline, so reset the season pill to 'current'. #}
             <a href="{{ url_for(endpoint, **scope.as_query_args(league=val, season='current')) }}"
@@ -84,7 +87,13 @@
    season selector is page-specific, so the caller supplies the header/controls;
    this renders the visual so /reports/movement and /reports/center match exactly. #}
 {% macro movement_sankey(flow, flow_from, flow_to) %}
+{# Node/band colours are keyed by division NAME. A program outside the map
+   renders with no fill (invisible band on a white card), so both lookups fall
+   back to a neutral grey rather than an empty string. #}
 {% set node_fill = {'Premier':'#16a34a','Classic':'#3b82f6','New':'#a8851a','Lapsed':'#c73b3b'} %}
+{% set NODE_DEFAULT = '#6b7280' %}
+{% set BAND_DEFAULT = '#6b7280' %}
+{% set BAND_OP_DEFAULT = '.35' %}
 {% set band_fill = {
     'Premier|Premier':'#16a34a','Classic|Classic':'#3b82f6',
     'Classic|Premier':'#16a34a','Premier|Classic':'#b3690f',
@@ -109,18 +118,18 @@
         {% set key = b.src ~ '|' ~ b.dst %}
             <path d="M 108 {{ b.y0_top }} C 269 {{ b.y0_top }}, 269 {{ b.y1_top }}, 430 {{ b.y1_top }}
                      L 430 {{ b.y1_bot }} C 269 {{ b.y1_bot }}, 269 {{ b.y0_bot }}, 108 {{ b.y0_bot }} Z"
-                  fill="{{ band_fill[key] }}" opacity="{{ band_op[key] }}">
+                  fill="{{ band_fill.get(key, BAND_DEFAULT) }}" opacity="{{ band_op.get(key, BAND_OP_DEFAULT) }}">
                 <title>{{ b.src }} → {{ b.dst }}: {{ b.count }}</title>
             </path>
         {% endfor %}
         </g>
         {% for n in flow.left %}
-        <rect x="90" y="{{ n.y }}" width="18" height="{{ n.h }}" rx="3" fill="{{ node_fill[n.name] }}"></rect>
+        <rect x="90" y="{{ n.y }}" width="18" height="{{ n.h }}" rx="3" fill="{{ node_fill.get(n.name, NODE_DEFAULT) }}"></rect>
         <text x="84" y="{{ (n.y + n.h/2 + 4)|round(1) }}" text-anchor="end" font-size="12" font-weight="700" fill="currentColor" class="text-gray-800 dark:text-gray-100">{{ n.name }}</text>
         <text x="84" y="{{ (n.y + n.h/2 + 17)|round(1) }}" text-anchor="end" font-size="10" font-family="monospace" fill="currentColor" class="text-gray-400">{{ n.total }}</text>
         {% endfor %}
         {% for n in flow.right %}
-        <rect x="430" y="{{ n.y }}" width="18" height="{{ n.h }}" rx="3" fill="{{ node_fill[n.name] }}"></rect>
+        <rect x="430" y="{{ n.y }}" width="18" height="{{ n.h }}" rx="3" fill="{{ node_fill.get(n.name, NODE_DEFAULT) }}"></rect>
         <text x="454" y="{{ (n.y + n.h/2 + 4)|round(1) }}" font-size="12" font-weight="700" fill="currentColor" class="text-gray-800 dark:text-gray-100">{{ n.name }}</text>
         <text x="454" y="{{ (n.y + n.h/2 + 17)|round(1) }}" font-size="10" font-family="monospace" fill="currentColor" class="text-gray-400">{{ n.total }}</text>
         {% endfor %}

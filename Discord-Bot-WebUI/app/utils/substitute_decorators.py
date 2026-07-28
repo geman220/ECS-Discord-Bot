@@ -43,7 +43,6 @@ def substitute_pool_access_required(f):
 
             # Basic authentication is handled by @jwt_required()
             # This decorator just validates the league type
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in substitute_pool_access_required: {e}")
@@ -51,6 +50,8 @@ def substitute_pool_access_required(f):
                 'error': 'Access validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -85,7 +86,6 @@ def substitute_request_access_required(f):
             # Add permissions to request context for use in endpoint
             request.user_permissions = permissions
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in substitute_request_access_required: {e}")
@@ -93,6 +93,8 @@ def substitute_request_access_required(f):
                 'error': 'Access validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -124,7 +126,6 @@ def substitute_assignment_access_required(f):
             # Add permissions to request context
             request.user_permissions = permissions
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in substitute_assignment_access_required: {e}")
@@ -132,6 +133,8 @@ def substitute_assignment_access_required(f):
                 'error': 'Access validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -177,7 +180,6 @@ def substitute_role_required(league_types: List[str]):
                             'message': 'Contact an administrator to get substitute access'
                         }), 403
 
-                return f(*args, **kwargs)
 
             except Exception as e:
                 logger.exception(f"Error in substitute_role_required: {e}")
@@ -185,6 +187,8 @@ def substitute_role_required(league_types: List[str]):
                     'error': 'Permission validation failed',
                     'message': str(e)
                 }), 500
+
+            return f(*args, **kwargs)
 
         return decorated_function
     return decorator
@@ -208,7 +212,7 @@ def team_management_required(f):
             # Try to get team_id from URL kwargs or request data
             team_id = kwargs.get('team_id')
             if not team_id:
-                data = request.get_json() or {}
+                data = request.get_json(silent=True) or {}
                 team_id = data.get('team_id')
 
             if not team_id:
@@ -232,7 +236,6 @@ def team_management_required(f):
                         'message': 'You can only manage substitute requests for teams you coach'
                     }), 403
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in team_management_required: {e}")
@@ -240,6 +243,8 @@ def team_management_required(f):
                 'error': 'Permission validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -258,7 +263,7 @@ def substitute_response_permission_required(f):
             current_user_id = int(get_jwt_identity())
 
             # Get league_type from request data
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             league_type = data.get('league_type')
 
             if not league_type:
@@ -281,7 +286,6 @@ def substitute_response_permission_required(f):
                         'required_role': required_role
                     }), 403
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in substitute_response_permission_required: {e}")
@@ -289,6 +293,8 @@ def substitute_response_permission_required(f):
                 'error': 'Permission validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -321,7 +327,6 @@ def pool_management_required(f):
                         'required_roles': ['Global Admin', 'Pub League Admin']
                     }), 403
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in pool_management_required: {e}")
@@ -329,6 +334,8 @@ def pool_management_required(f):
                 'error': 'Permission validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -361,7 +368,6 @@ def assignment_management_required(f):
                         'required_roles': ['Global Admin', 'Pub League Admin']
                     }), 403
 
-            return f(*args, **kwargs)
 
         except Exception as e:
             logger.exception(f"Error in assignment_management_required: {e}")
@@ -369,5 +375,7 @@ def assignment_management_required(f):
                 'error': 'Permission validation failed',
                 'message': str(e)
             }), 500
+
+        return f(*args, **kwargs)
 
     return decorated_function

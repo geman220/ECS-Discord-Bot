@@ -116,7 +116,7 @@ def survey_contact_respondents(survey_id):
             return jsonify({'success': False,
                             'error': 'This survey is anonymous — respondents cannot be contacted.'}), 400
 
-        data = request.get_json(force=True) or {}
+        data = request.get_json(force=True, silent=True) or {}
         subject = (data.get('subject') or '').strip()
         body_html = (data.get('body_html') or '').strip()
         if not subject or not body_html:

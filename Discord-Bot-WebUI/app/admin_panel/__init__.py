@@ -84,6 +84,23 @@ def inject_ecs_fc_teams():
 
 
 @admin_panel_bp.context_processor
+def inject_report_scope_pills():
+    """Scope filter pills for the reports pages, one per program.
+
+    The template's hardcoded five meant a newer program could not be filtered
+    to at all -- its data was in the report but unreachable.
+    """
+    pills = [('all', 'All'), ('pub', 'Pub')]
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs():
+            pills.append((pr.league_name, pr.display_name))
+    except Exception:
+        pills += [('Premier', 'Premier'), ('Classic', 'Classic'), ('ECS FC', 'ECS FC')]
+    return {'report_scope_pills': pills}
+
+
+@admin_panel_bp.context_processor
 def inject_admin_search_index():
     """Build a searchable index of all admin panel pages for universal search."""
     try:
@@ -379,6 +396,13 @@ def _build_admin_search_index():
         {'name': 'Users', 'category': 'Users', 'description': 'Browse, search, and manage all user accounts (Members hub)',
          'keywords': ['accounts', 'profiles', 'members', 'players', 'all users', 'user list', 'manage', 'search', 'find user', 'lookup'],
          'url': _safe_url('admin_panel.members_worklist', tab='all'), 'icon': 'ti-users'},
+        # Points at the SCREEN (pre-filtered to this season's roster), not the raw file —
+        # Ctrl+K firing off a download is jarring, and the filters are the whole point.
+        {'name': 'Member Export', 'category': 'Users',
+         'description': 'Export members to Excel — jersey size, phone, positions, availability; filter by team or season',
+         'keywords': ['export', 'excel', 'xlsx', 'spreadsheet', 'download', 'jersey', 'jersey size',
+                      'shirt', 'kit', 'sizes', 'roster', 'phone', 'contact', 'player profiles', 'team'],
+         'url': _safe_url('admin_panel.members_worklist', tab='all', season='active'), 'icon': 'ti-file-spreadsheet'},
         {'name': 'Approvals', 'category': 'Users', 'description': 'Review and approve pending user registrations',
          'keywords': ['pending', 'approve', 'registration', 'new users', 'verify'],
          'url': _safe_url('admin_panel.members_worklist', tab='pending'), 'icon': 'ti-user-check'},

@@ -560,7 +560,7 @@ def api_search_players():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_manual_link():
     """Manually link a pass to a player."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     line_item_id = data.get('line_item_id')
     player_id = data.get('player_id')
 
@@ -684,7 +684,7 @@ def api_manual_link():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_resend_claim():
     """Resend claim email to recipient."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     claim_id = data.get('claim_id')
 
     if not claim_id:
@@ -737,7 +737,7 @@ def api_resend_claim():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_cancel_claim():
     """Cancel a pending claim."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     claim_id = data.get('claim_id')
 
     if not claim_id:
@@ -777,7 +777,7 @@ def api_cancel_claim():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_refresh_order():
     """Refresh order data from WooCommerce."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
 
     if not order_id:
@@ -831,7 +831,7 @@ def api_refresh_order():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_delete_order():
     """Delete an entire Pub League order and all its line items and claims."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     order_id = data.get('order_id')
 
     if not order_id:
@@ -873,7 +873,7 @@ def api_delete_order():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_unassign_pass():
     """Unassign a pass from a player (make it available again)."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     line_item_id = data.get('line_item_id')
 
     if not line_item_id:
@@ -946,7 +946,7 @@ def api_unassign_pass():
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_update_line_item():
     """Update a line item's division or jersey size."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     line_item_id = data.get('line_item_id')
     division = data.get('division')
     jersey_size = data.get('jersey_size')

@@ -292,7 +292,7 @@ def ispy_admin_disallow(shot_id):
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
 
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         reason = data.get('reason', 'No reason provided')
         penalty = data.get('penalty', 5)
 

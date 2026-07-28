@@ -68,6 +68,22 @@ def manage_seasons():
     return render_template('manage_seasons_flowbite.html', pub_league_seasons=pub_league_seasons, ecs_fc_seasons=ecs_fc_seasons, title='Manage Seasons')
 
 
+def _rollover_lanes(season_league_type, fallback):
+    """Membership lanes belonging to one season type, for sub carry-forward."""
+    try:
+        from app.services import program_registry
+        lanes = tuple(p.membership_lane for p in
+                      program_registry.by_season_league_type(
+                          season_league_type, include_inactive=True)
+                      if p.membership_lane)
+        if lanes:
+            return lanes
+    except Exception as _rl_err:
+        logger.warning(f"could not resolve rollover lanes for "
+                       f"'{season_league_type}': {_rl_err}")
+    return fallback
+
+
 def rollover_league(session, old_season: Season, new_season: Season) -> bool:
     """
     Perform league rollover from an old season to a new season.
@@ -176,15 +192,29 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
             if new_league_id:
                 logger.info(f"Migrating ALL players from {old_league.name} (ID: {old_league.id}) to new league (ID: {new_league_id})")
 
-                # Update both league_id and primary_league_id for ALL players (not just active)
-                # Use OR condition to catch players with either field matching
+                # Roll the pointers forward -- but only the ones that actually
+                # point at THIS old league.
+                #
+                # ⚠️ These are two separate UPDATEs on purpose. The old single
+                # statement matched on `league_id == old OR primary_league_id ==
+                # old` and then wrote BOTH columns, so a player matched only by
+                # their legacy `league_id` had their `primary_league_id`
+                # overwritten too -- even when it pointed at a concurrent
+                # program's league. A dual-enrolled player therefore lost their
+                # Summer primary league to a Pub League rollover: out of that
+                # program's draft pool, out of division alignment, out of
+                # season-stats creation. create_pub_league_season grew an
+                # elaborate guard so exactly this player is not deactivated;
+                # this UPDATE then moved their league pointer anyway.
                 league_updates = session.query(Player).filter(
-                    (Player.league_id == old_league.id) | (Player.primary_league_id == old_league.id)
-                ).update({
-                    'league_id': new_league_id,
-                    'primary_league_id': new_league_id,
-                }, synchronize_session=False)
+                    Player.league_id == old_league.id
+                ).update({'league_id': new_league_id}, synchronize_session=False)
 
+                primary_updates = session.query(Player).filter(
+                    Player.primary_league_id == old_league.id
+                ).update({'primary_league_id': new_league_id}, synchronize_session=False)
+
+                league_updates = max(league_updates, primary_updates)
                 updated_players += league_updates
                 logger.info(f"Updated {league_updates} players from {old_league.name} to new season")
 
@@ -203,12 +233,17 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
 
             for old_league in all_old_same_name_leagues:
                 if old_league.id not in old_league_ids:  # Skip if already handled above
+                    # Same split as Step 2 -- never write primary_league_id for
+                    # a player matched only on the legacy league_id.
                     orphan_updates = session.query(Player).filter(
-                        (Player.league_id == old_league.id) | (Player.primary_league_id == old_league.id)
-                    ).update({
-                        'league_id': new_league.id,
-                        'primary_league_id': new_league.id,
-                    }, synchronize_session=False)
+                        Player.league_id == old_league.id
+                    ).update({'league_id': new_league.id}, synchronize_session=False)
+
+                    orphan_primary = session.query(Player).filter(
+                        Player.primary_league_id == old_league.id
+                    ).update({'primary_league_id': new_league.id},
+                             synchronize_session=False)
+                    orphan_updates = max(orphan_updates, orphan_primary)
 
                     if orphan_updates > 0:
                         logger.info(f"SAFETY: Migrated {orphan_updates} orphaned players from old {old_league.name} (ID: {old_league.id}, Season: {old_league.season_id}) to new league (ID: {new_league.id})")
@@ -612,7 +647,7 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
     # New Pub League season starts with team assignments hidden until the
     # reveal party (make_teams_public toggled back on by an admin).
     from app.services.team_visibility import reset_teams_reveal
-    reset_teams_reveal(session)
+    reset_teams_reveal(session, season_league_type='Pub League')
 
     # Create default leagues for the new season.
     premier_league = League(name="Premier", season_id=new_season.id)
@@ -635,11 +670,77 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
             l.id for l in session.query(League).filter_by(season_id=old_season.id).all()
         ]
         if old_pl_league_ids:
-            deactivated = session.query(Player).filter(
+            # ⚠️ is_current_player is ONE boolean per player, not per program.
+            # Once a second pass-requiring program exists, a player who is in
+            # BOTH (e.g. Premier + a summer program) matches this filter on
+            # their Premier association and gets deactivated -- silently ending
+            # their eligibility in the OTHER program, which may still be
+            # mid-season. They would drop out of its draft pool and its
+            # roster-eligibility checks with nothing to explain it.
+            #
+            # So: never deactivate someone who is still active in a DIFFERENT
+            # program that (a) requires a pass and (b) has a live current season.
+            # With only Premier/Classic/ECS FC this set is empty -- ECS FC is
+            # requires_pass=False -- so today's behaviour is unchanged.
+            protected_league_ids = []
+            try:
+                from app.services import program_registry
+                other_types = {p.season_league_type
+                               for p in program_registry.all_programs()
+                               if p.requires_pass
+                               and p.season_league_type != old_season.league_type}
+                if other_types:
+                    protected_league_ids = [
+                        lid for (lid,) in session.query(League.id)
+                        .join(Season, League.season_id == Season.id)
+                        .filter(Season.is_current.is_(True),
+                                Season.league_type.in_(list(other_types)))
+                        .all()
+                    ]
+            except Exception as _prot_err:
+                logger.warning(f"could not compute cross-program protection: {_prot_err}")
+
+            q = session.query(Player).filter(
                 (Player.league_id.in_(old_pl_league_ids)) |
                 (Player.primary_league_id.in_(old_pl_league_ids)),
                 Player.is_current_player == True
-            ).update({Player.is_current_player: False}, synchronize_session=False)
+            )
+            if protected_league_ids:
+                # ⚠️ Resolve the protected players to a concrete ID LIST first,
+                # then exclude with a single NOT IN.
+                #
+                # The obvious form -- ~(primary_league_id.in_(...) |
+                # league_id.in_(...) | id.in_(subquery)) -- is WRONG under SQL
+                # three-valued logic. Both FK columns are nullable, and
+                # `NULL IN (...)` is NULL, so for a player with
+                # primary_league_id IS NULL the whole OR collapses to NULL and
+                # `NOT NULL` is NULL, which is not TRUE -- the row silently
+                # drops out of the UPDATE and is never deactivated. That leaves
+                # is_current_player=True for a season they did not pay for, and
+                # is_current_player is a paywall.
+                protected_player_ids = {
+                    pid for (pid,) in session.query(Player.id).filter(
+                        Player.primary_league_id.in_(protected_league_ids)
+                    ).all()
+                }
+                protected_player_ids |= {
+                    pid for (pid,) in session.query(Player.id).filter(
+                        Player.league_id.in_(protected_league_ids)
+                    ).all()
+                }
+                protected_player_ids |= {
+                    pid for (pid,) in session.query(player_league.c.player_id)
+                    .filter(player_league.c.league_id.in_(protected_league_ids)).all()
+                }
+                if protected_player_ids:
+                    q = q.filter(~Player.id.in_(protected_player_ids))
+                logger.info(
+                    f"Season rollover: protecting {len(protected_player_ids)} player(s) "
+                    f"still active across {len(protected_league_ids)} other-program "
+                    f"league(s) from deactivation"
+                )
+            deactivated = q.update({Player.is_current_player: False},
+                                   synchronize_session=False)
             session.flush()
             logger.info(
                 f"Season rollover: deactivated {deactivated} Pub League players "
@@ -655,7 +756,13 @@ def create_pub_league_season(session, season_name: str) -> Optional[Season]:
         # anyone. Pub League lanes only, so ECS FC rows are untouched.
         try:
             from app.services.league_membership_sync import seed_subs_for_season
-            seed_subs_for_season(session, new_season.id, lanes=('classic', 'premier'))
+            # Registry-driven: every lane filed under THIS season type. The
+            # hardcoded ('classic', 'premier') tuple meant a newer program's
+            # subs were never carried into its own new season -- its pool
+            # silently emptied at every rollover.
+            seed_subs_for_season(session, new_season.id,
+                                 lanes=_rollover_lanes(new_season.league_type,
+                                                       ('classic', 'premier')))
         except Exception as _cf_err:
             logger.warning(f"seed_subs_for_season skipped during rollover: {_cf_err}")
 
@@ -803,7 +910,9 @@ def create_ecs_fc_season(session, season_name: str) -> Optional[Season]:
         # rollover above. ecs_fc lane only, so Pub League sub rows are untouched.
         try:
             from app.services.league_membership_sync import seed_subs_for_season
-            seed_subs_for_season(session, new_season.id, lanes=('ecs_fc',))
+            seed_subs_for_season(session, new_season.id,
+                                 lanes=_rollover_lanes(new_season.league_type,
+                                                       ('ecs_fc',)))
         except Exception as _cf_err:
             logger.warning(f"seed_subs_for_season skipped during rollover: {_cf_err}")
     else:
@@ -905,7 +1014,7 @@ def set_current_season(season_id):
         # assignments until an admin re-runs the reveal.
         if season.league_type == 'Pub League':
             from app.services.team_visibility import reset_teams_reveal
-            reset_teams_reveal(session)
+            reset_teams_reveal(session, season_league_type=season.league_type)
 
         show_success(f'Season "{season.name}" is now the current season for {season.league_type}.')
     except Exception as e:
@@ -961,6 +1070,9 @@ def delete_season(season_id):
 
     season_name = season.name
     was_current = season.is_current
+    # Captured before the delete: the restore below must be scoped to this
+    # program's own season type.
+    season_league_type = season.league_type
     discord_cleanup_queued = False
 
     # Safety guard: a season holding reported match data carries real history
@@ -1086,9 +1198,17 @@ def delete_season(season_id):
         # If this was the current season, restore the previous season as current
         previous_season = None
         if was_current:
-            # Find the most recent season before this one
+            # Find the most recent season OF THE SAME LEAGUE TYPE before this one.
+            #
+            # ⚠️ The league_type filter is the whole point. Unscoped, this set
+            # is_current = TRUE on the highest-id season of ANY program -- so
+            # deleting a current Summer season could make a stale Pub League
+            # season current, or produce two current Pub League rows. Every
+            # `filter_by(is_current=True, league_type=...)` in the app then
+            # resolves the wrong season, silently, across the whole site.
             previous_season = session.query(Season).filter(
-                Season.id != season_id
+                Season.id != season_id,
+                Season.league_type == season_league_type,
             ).order_by(Season.id.desc()).first()
             
             if previous_season:
@@ -1153,9 +1273,19 @@ def rollover_preview():
 
     session = g.db_session
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         league_type = data.get('league_type')
-        if league_type not in ('Pub League', 'ECS FC'):
+        # Any season_league_type the registry knows about. The literal tuple
+        # made a newer program's season impossible to create through the UI --
+        # the row could exist only if someone inserted it by hand.
+        try:
+            from app.services import program_registry
+            _valid_types = {p.season_league_type
+                            for p in program_registry.all_programs()}
+        except Exception:
+            _valid_types = set()
+        _valid_types |= {'Pub League', 'ECS FC'}
+        if league_type not in _valid_types:
             return jsonify({'success': False, 'error': 'Invalid league type.'}), 400
 
         preview = build_rollover_preview(
@@ -1212,7 +1342,7 @@ def rollover_backup_delete():
     to lose the wrong one, but this is just removing a file, not the DB)."""
     from app.season_rollover_service import delete_database_backup
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     filename = data.get('filename')
     if not filename:
         return jsonify({'success': False, 'error': 'No backup filename provided.'}), 400
@@ -1235,7 +1365,7 @@ def rollover_discord_check():
     import os
     import requests
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     league_type = data.get('league_type') or 'Pub League'
     session = g.db_session
 
@@ -1311,7 +1441,7 @@ def rollover_execute():
     from app.auto_schedule_routes import _execute_season_creation
 
     session = g.db_session
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
 
     backup_filename = data.get('backup_filename')
     skip_backup = bool(data.get('skip_backup'))
@@ -1362,7 +1492,7 @@ def rollover_restore():
     """
     from app.season_rollover_service import restore_database_backup
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     filename = data.get('filename')
     confirm = data.get('confirm')
 

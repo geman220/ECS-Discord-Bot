@@ -256,7 +256,7 @@ def match_check_in_generate_bulk():
 
     Idempotent — get_or_create_for_match skips matches that already have one.
     """
-    days = request.json.get('days', 14) if request.is_json else 14
+    days = (request.get_json(silent=True) or {}).get('days', 14) if request.is_json else 14
     days = max(1, min(60, int(days)))
 
     created = 0
@@ -373,7 +373,7 @@ def match_check_in_generate_token(league_type: str, match_id: int):
         if not match:
             return jsonify({'success': False, 'message': 'Match not found'}), 404
 
-        rotate = (request.json or {}).get('rotate', False) if request.is_json else False
+        rotate = (request.get_json(silent=True) or {}).get('rotate', False) if request.is_json else False
         existing = MatchCheckInToken.find_active_for_match(league_type, match.id)
         if existing and rotate:
             existing.revoked_at = datetime.utcnow()

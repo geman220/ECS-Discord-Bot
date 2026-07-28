@@ -1387,7 +1387,7 @@ def send_ecs_fc_rsvp_reminder(team_id: int, match_id: int):
     from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 
     current_user_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
 
     custom_message = data.get('message')
     include_responded = data.get('include_responded', False)
@@ -1604,6 +1604,22 @@ def create_ecs_fc_substitute_request():
     match_id = data.get('match_id')
     if not match_id:
         return jsonify({"msg": "match_id is required"}), 400
+
+    # Reject a narrowed recipient_type that carries no filter, BEFORE creating the
+    # request row. The mapping below turns an empty filter into None, and
+    # notify_ecs_fc_pool treats None as "no filter" -- so recipient_type='specific'
+    # with an empty player_ids contacted the ENTIRE ECS FC sub pool. Same guard as
+    # the web paths in ecs_fc_routes.py and match_operations/substitute_contact.py.
+    _required_filter = {
+        'gender': ('gender_filter', data.get('gender_filter')),
+        'position': ('position_filters', data.get('position_filters')),
+        'specific': ('player_ids', data.get('player_ids')),
+    }.get(data.get('recipient_type', 'all'))
+    if _required_filter and not _required_filter[1]:
+        return jsonify({
+            "msg": f"recipient_type '{data.get('recipient_type')}' requires a non-empty "
+                   f"'{_required_filter[0]}' — refusing to contact the whole pool"
+        }), 400
 
     with managed_session() as session:
         match = session.query(EcsFcMatch).get(match_id)
@@ -2308,7 +2324,7 @@ def join_ecs_fc_substitute_pool():
     from app.models.substitutes import EcsFcSubPool
 
     current_user_id = int(get_jwt_identity())
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
 
     with managed_session() as session:
         player = session.query(Player).filter_by(user_id=current_user_id).first()

@@ -48,6 +48,11 @@ _DEFAULT_PL_CATEGORIES = [
     "ECS PL General Chats",
     "ECS FC PL Premier",
     "ECS FC PL Classic",
+    # Third program (launched as the Summer Sprint season). Category names are
+    # created by the portal from program.discord_category_name; a program
+    # missing here is simply not tracked for engagement stats. Override the
+    # whole list with PL_TRACKED_CATEGORIES rather than editing this.
+    "ECS FC PL Summer Sprint",
 ]
 
 

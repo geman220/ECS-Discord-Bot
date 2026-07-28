@@ -591,7 +591,7 @@ def register_apple_wallet_routes(app):
                 return make_response('', 401)
 
             # Get push token from request body
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             push_token = data.get('pushToken')
 
             if not push_token:

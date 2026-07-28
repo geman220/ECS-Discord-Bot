@@ -34,12 +34,22 @@ def _load_calculators():
     source = TASKS_DISCORD.read_text(encoding='utf-8-sig')
     tree = ast.parse(source)
     wanted = {'_compute_expected_roles', '_app_managed_roles',
-              '_is_revocable_candidate', '_roles_in_sync'}
+              '_is_revocable_candidate', '_roles_in_sync',
+              # Registry plumbing the two calculators now call. _program_snapshot
+              # is deliberately included as-is: with no app context it returns []
+              # and _programs_for_calc falls through to _LEGACY_PROGRAMS, so this
+              # suite exercises the no-registry path -- which is precisely the
+              # path that must keep producing the pre-registry role set.
+              '_program_snapshot', '_programs_for_calc',
+              '_program_by_league_name', '_revocable_vocabulary'}
+    constants = {'_REVOCABLE_ROLE_VOCABULARY', '_LEGACY_PROGRAMS'}
     body = [n for n in tree.body
             if (isinstance(n, ast.FunctionDef) and n.name in wanted)
             or (isinstance(n, ast.Assign)
-                and any(isinstance(t, ast.Name) and t.id == '_REVOCABLE_ROLE_VOCABULARY'
-                        for t in n.targets))]
+                and any(isinstance(t, ast.Name) and t.id in constants
+                        for t in n.targets))
+            or (isinstance(n, ast.AnnAssign)
+                and isinstance(n.target, ast.Name) and n.target.id in constants)]
     missing = wanted - {n.name for n in body if isinstance(n, ast.FunctionDef)}
     assert not missing, f"tasks_discord.py no longer defines {missing}"
 
@@ -50,11 +60,12 @@ def _load_calculators():
     }
     exec(compile(ast.Module(body=body, type_ignores=[]), str(TASKS_DISCORD), 'exec'), ns)
     return (ns['_compute_expected_roles'], ns['_app_managed_roles'],
-            ns['_is_revocable_candidate'], ns['_roles_in_sync'])
+            ns['_is_revocable_candidate'], ns['_roles_in_sync'],
+            ns['_LEGACY_PROGRAMS'])
 
 
 (compute_expected_roles, app_managed_roles,
- is_revocable_candidate, roles_in_sync) = _load_calculators()
+ is_revocable_candidate, roles_in_sync, LEGACY_PROGRAMS) = _load_calculators()
 
 
 # --------------------------------------------------------------------------
@@ -496,3 +507,157 @@ def test_revoke_drops_a_role_with_no_remaining_basis():
     expected = {normalize_name(r) for r in compute_expected_roles(data)}
     assert normalize_name('ECS-FC-PL-PREMIER') not in expected
     assert normalize_name('ECS-FC-PL-ECS-FC') in expected
+
+
+# --------------------------------------------------------------------------
+# Third-program support (the program registry).
+#
+# Before the registry, the team-role gate was the literal list
+# ['Premier', 'Classic', 'ECS FC'] and every division/coach/sub role was an
+# if/elif chain over those three names. A team in any newer program therefore
+# got NO player role, NO coach role and no channel access -- silently, because
+# an unknown league simply fell off the end of the chain.
+#
+# These fixtures inject a fourth program through the `programs` payload key,
+# which is how the extract phase hands the registry to the execute phase.
+# --------------------------------------------------------------------------
+
+THIRD_PROGRAM = {
+    'key': 'pl_third', 'league_name': 'Summer Sprint League',
+    'flask_league_role': 'pl-third', 'flask_coach_role': 'Summer Coach',
+    'flask_sub_role': 'Summer Sub',
+    'division_role_name': 'ECS-FC-PL-SUMMER',
+    'coach_role_name': 'ECS-FC-PL-SUMMER-COACH',
+    'sub_role_name': 'ECS-FC-PL-SUMMER-SUB',
+    'is_pub_league_like': True,
+}
+SUMMER_TEAM = {'id': 9, 'name': 'Sprint FC', 'league_name': 'Summer Sprint League',
+               'is_coach': False}
+SUMMER_TEAM_COACH = dict(SUMMER_TEAM, is_coach=True)
+
+
+def _with_third(**overrides):
+    """A player payload carrying the three legacy programs plus a fourth."""
+    data = player(**overrides)
+    data['programs'] = [dict(p) for p in LEGACY_PROGRAMS] + [dict(THIRD_PROGRAM)]
+    return data
+
+
+def test_third_program_team_gets_player_role():
+    data = _with_third(teams=[SUMMER_TEAM])
+    roles = compute_expected_roles(data)
+    assert 'ECS-FC-PL-SPRINT-FC-Player' in roles
+    # Team membership alone must also grant the division role, exactly as it
+    # does for Premier -- otherwise the player is rostered with no channel.
+    assert 'ECS-FC-PL-SUMMER' in roles
+
+
+def test_third_program_coach_gets_both_coach_roles():
+    data = _with_third(teams=[SUMMER_TEAM_COACH], user_roles=['Summer Coach'])
+    roles = compute_expected_roles(data)
+    assert 'ECS-FC-PL-SPRINT-FC-Coach' in roles      # per-team, carries pin perms
+    assert 'ECS-FC-PL-SUMMER-COACH' in roles          # division-level
+
+
+def test_third_program_sub_role_from_flask_role():
+    data = _with_third(user_roles=['Summer Sub'])
+    assert 'ECS-FC-PL-SUMMER-SUB' in compute_expected_roles(data)
+
+
+def test_third_program_roles_are_managed_so_they_can_be_revoked():
+    data = _with_third(teams=[SUMMER_TEAM])
+    managed = app_managed_roles(data)
+    # pub-league-like => division + coach revocable, like Premier/Classic
+    assert 'ECS-FC-PL-SUMMER' in managed
+    assert 'ECS-FC-PL-SUMMER-COACH' in managed
+    assert 'ECS-FC-PL-SUMMER-SUB' in managed
+
+
+def test_third_program_does_not_disturb_existing_programs():
+    """Adding a program must not change what a Premier player expects."""
+    plain = player(teams=[PREMIER_TEAM], user_roles=['pl-premier'])
+    withthird = _with_third(teams=[PREMIER_TEAM], user_roles=['pl-premier'])
+    assert compute_expected_roles(plain) == compute_expected_roles(withthird)
+
+
+def test_player_in_premier_and_third_program_keeps_both():
+    """The multi-program case: two teams, two divisions, nothing lost."""
+    data = _with_third(teams=[PREMIER_TEAM, SUMMER_TEAM], user_roles=['pl-premier'])
+    roles = compute_expected_roles(data)
+    for expected in ('ECS-FC-PL-PREMIER', 'ECS-FC-PL-SUMMER',
+                     'ECS-FC-PL-TEAM-G-Player', 'ECS-FC-PL-SPRINT-FC-Player'):
+        assert expected in roles, f"{expected} missing from {roles}"
+
+
+def test_empty_program_list_never_wipes_roles():
+    """An empty registry must fall back, not expect nothing.
+
+    `expected == []` is how a reconcile is told to revoke everything, so a
+    registry outage returning [] would strip Premier/Classic team, division and
+    coach roles guild-wide.
+    """
+    data = player(teams=[PREMIER_TEAM], user_roles=['pl-premier'])
+    data['programs'] = []          # simulate a totally empty registry
+    roles = compute_expected_roles(data)
+    assert 'ECS-FC-PL-PREMIER' in roles
+    assert 'ECS-FC-PL-TEAM-G-Player' in roles
+
+
+def test_third_program_roles_are_revocable_candidates():
+    """Otherwise they could be granted but never cleaned up."""
+    assert is_revocable_candidate('ECS-FC-PL-SPRINT-FC-Player')
+    assert is_revocable_candidate('ECS-FC-PL-SPRINT-FC-Coach')
+
+
+def test_expected_and_managed_team_loops_are_symmetric():
+    """Any team role in MANAGED must also be in EXPECTED, or it gets revoked.
+
+    `_app_managed_roles` appends every team's -Player/-Coach unconditionally.
+    When the expected side was gated on a registry lookup, a team whose league
+    failed that lookup became managed-but-not-expected, and the next
+    force_update reconcile stripped the role and the channel access with it.
+    The old gate was a compile-time constant that always matched, so the
+    asymmetry was invisible until the gate became runtime data.
+    """
+    weird = {'id': 42, 'name': 'Ghost FC', 'league_name': 'Not In Any Registry',
+             'is_coach': True}
+    data = player(teams=[weird])
+    expected = set(compute_expected_roles(data))
+    managed = set(app_managed_roles(data))
+    team_roles = {r for r in managed if r.startswith('ECS-FC-PL-GHOST-FC-')}
+    assert team_roles, 'managed should still carry the team roles'
+    # is_coach=True here, so BOTH roles must be expected.
+    assert team_roles <= expected, (
+        f"managed-but-not-expected => reconcile would revoke: {team_roles - expected}")
+
+
+def test_team_with_no_league_name_still_keeps_its_role():
+    """_extract_assign_roles_data yields league_name=None when team.league is None.
+
+    A scoped grant for such a team must not compute expected=[] while managed
+    still lists the team roles — that turns a grant into a revoke.
+    """
+    orphan = {'id': 7, 'name': 'Orphan United', 'league_name': None, 'is_coach': False}
+    data = player(teams=[orphan])
+    expected = set(compute_expected_roles(data, teams=[orphan], include_global=False))
+    managed = set(app_managed_roles(data, teams=[orphan], include_global=False))
+    assert 'ECS-FC-PL-ORPHAN-UNITED-Player' in expected
+    # -Coach is deliberately managed-but-not-expected when is_coach is False:
+    # that is the mechanism by which coach demotion revokes it. Only the
+    # -Player role must never be managed without being expected.
+    assert 'ECS-FC-PL-ORPHAN-UNITED-Player' in managed
+    assert {r for r in managed if r.endswith('-Player')} <= expected
+
+
+def test_deactivating_a_program_cannot_strip_its_team_roles():
+    """is_active=False is the documented way to retire a program.
+
+    It must not cause a reconcile to wipe that program's team roles.
+    """
+    data = player(teams=[PREMIER_TEAM, CLASSIC_TEAM], user_roles=['pl-premier'])
+    data['programs'] = [p for p in LEGACY_PROGRAMS if p['key'] != 'classic']
+    expected = set(compute_expected_roles(data))
+    managed = set(app_managed_roles(data))
+    assert 'ECS-FC-PL-TEAM-Q-Player' in expected, 'Classic team role must survive'
+    assert ({r for r in managed if 'TEAM-Q' in r and r.endswith('-Player')}
+            <= expected)

@@ -648,7 +648,7 @@ def get_quick_profile_details(profile_id):
                 # commit on db.session the correction was silently discarded.
 def send_quick_profile_email(profile_id):
     """Send claim code to player via email."""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     profile = QuickProfile.query.get(profile_id)
 
     if not profile:
@@ -686,7 +686,7 @@ def send_quick_profile_sms(profile_id):
     """Send claim code to player via SMS."""
     import re
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     profile = QuickProfile.query.get(profile_id)
 
     if not profile:

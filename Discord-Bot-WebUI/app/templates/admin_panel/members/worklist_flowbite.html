@@ -186,6 +186,14 @@
         <select name="league" class="{{ selcls }}"><option value="">All leagues</option>
           {% for lg in leagues %}<option value="{{ lg.id }}" {% if league_filter == lg.id|string %}selected{% endif %}>{{ lg.name }}</option>{% endfor %}
         </select></div>
+      <div class="w-full sm:w-auto"><label class="{{ lblcls }}">Team</label>
+        <select name="team" class="{{ selcls }}"><option value="">All teams</option>
+          {% for lg in leagues %}{% if lg.teams %}
+          <optgroup label="{{ lg.name }}">
+            {% for t in lg.teams|sort(attribute='name') %}<option value="{{ t.id }}" {% if team_filter == t.id|string %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+          </optgroup>
+          {% endif %}{% endfor %}
+        </select></div>
 
       {% elif tab in ('pending', 'waitlist') %}
       <div class="w-full sm:w-auto"><label class="{{ lblcls }}">League</label>
@@ -229,6 +237,16 @@
       {% endif %}
 
       <button type="submit" class="h-10 inline-flex items-center justify-center gap-1.5 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold"><i class="ti ti-filter"></i>Apply</button>
+      {% if tab in ('all', 'subs') %}
+      {# formaction submits the SAME form to the export, so the spreadsheet always matches
+         whatever is currently selected in these dropdowns — no stale-URL drift. The hidden
+         `tab` input rides along, which is how the export knows which list to build. #}
+      <button type="submit" formaction="{{ url_for('admin_panel.members_export') }}"
+              class="h-10 inline-flex items-center justify-center gap-1.5 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"
+              title="Download {{ 'these subs' if tab == 'subs' else 'these members' }} as Excel — jersey size, phone, positions, availability and notes">
+        <i class="ti ti-file-spreadsheet"></i>Export
+      </button>
+      {% endif %}
       {% if any_filter %}
       <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}" class="h-10 inline-flex items-center gap-1 px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-medium"><i class="ti ti-x"></i>Clear</a>
       {% endif %}

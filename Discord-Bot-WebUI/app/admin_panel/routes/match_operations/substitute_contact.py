@@ -69,6 +69,24 @@ def notify_substitute_pool():
                 'error': 'Missing required fields: request_id and league_type'
             }), 400
 
+        # A narrowed recipient_type with an EMPTY filter must never fall through
+        # to "everyone". notify_pool applies each filter behind `if <filter>:`,
+        # so a missing gender / empty positions / empty player_ids silently
+        # widened the send to the entire active pool -- and the client omits
+        # those keys entirely when nothing is selected (JSON.stringify drops
+        # undefined). Fail loudly instead of mass-contacting the pool.
+        _required_filter = {
+            'gender': ('gender_filter', gender_filter),
+            'position': ('position_filters', position_filters),
+            'specific': ('player_ids', player_ids),
+        }.get(recipient_type)
+        if _required_filter and not _required_filter[1]:
+            return jsonify({
+                'success': False,
+                'error': f"recipient_type '{recipient_type}' requires a non-empty "
+                         f"'{_required_filter[0]}' — refusing to contact the whole pool"
+            }), 400
+
         # Get notification service
         notification_service = get_notification_service()
 

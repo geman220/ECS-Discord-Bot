@@ -233,36 +233,104 @@ def user_approvals():
 # Approval "outcome" vocabulary. The six league/sub types below place a person
 # INTO a league (as member or sub). The three waitlist-* types park them on a
 # per-league holding lane instead. approve_user validates against the union.
-SUB_LEAGUE_DISPLAY = {
+# ⚠️ FALLBACK ONLY. Resolve through sub_league_display() -- never index this
+# dict directly. approve_user validates `league_type` against the
+# registry-driven approve_league_types(), so a newer program's 'sub-<lane>' is
+# ACCEPTED by the gate and then missing from this literal. The miss is not an
+# error: `league_type in SUB_LEAGUE_DISPLAY` is simply False, the request falls
+# into the full-MEMBER branch, and that branch deactivates every SubstitutePool
+# and EcsFcSubPool row the person has. Approving someone as a new program's sub
+# therefore wiped their existing Classic/ECS FC sub memberships and enrolled
+# them in nothing, while flagging them a paid active player.
+_SUB_LEAGUE_DISPLAY_FALLBACK = {
     'sub-classic': 'Classic',
     'sub-premier': 'Premier',
     'sub-ecs-fc': 'ECS FC',
 }
-WAITLIST_LEAGUE_MAP = {
+
+
+def sub_league_display(league_type):
+    """League display name for a 'sub-<lane>' approval outcome, or None."""
+    if not league_type or not str(league_type).startswith('sub-'):
+        return None
+    lane = str(league_type)[len('sub-'):]
+    try:
+        from app.services import program_registry
+        for _pr in program_registry.all_programs():
+            if (_pr.membership_lane or '').replace('_', '-') == lane.replace('_', '-'):
+                return _pr.league_name
+            if (_pr.form_value or '') == lane:
+                return _pr.league_name
+    except Exception as _sd_err:
+        logger.warning(f"program registry unavailable resolving '{league_type}': {_sd_err}")
+    return _SUB_LEAGUE_DISPLAY_FALLBACK.get(league_type)
+
+
+def sub_league_displays():
+    """Every league display name that has a substitute lane."""
+    names = set(_SUB_LEAGUE_DISPLAY_FALLBACK.values())
+    try:
+        from app.services import program_registry
+        names.update(p.league_name for p in program_registry.all_programs()
+                     if p.league_name)
+    except Exception:
+        pass
+    return names
+# FALLBACK ONLY -- resolve through waitlist_league_map(). A program missing from
+# the literal simply could not be waitlisted for: the outcome value was rejected
+# with a 400 and there was no other route in.
+_WAITLIST_LEAGUE_MAP_FALLBACK = {
     'waitlist-classic': 'classic',
     'waitlist-premier': 'premier',
     'waitlist-ecs-fc': 'ecs-fc',
 }
 
 
+def waitlist_league_map():
+    """'waitlist-<lane>' outcome -> the waitlist lane stored on the player."""
+    out = dict(_WAITLIST_LEAGUE_MAP_FALLBACK)
+    try:
+        from app.services import program_registry
+        for _pr in program_registry.all_programs():
+            _lane = (_pr.form_value or _pr.membership_lane or '').replace('_', '-')
+            if _lane:
+                out[f'waitlist-{_lane}'] = _lane
+    except Exception:
+        pass
+    return out
+
+
+# Back-compat alias for any reader expecting the old name.
+WAITLIST_LEAGUE_MAP = _WAITLIST_LEAGUE_MAP_FALLBACK
+
+
 def _enroll_in_substitute_pool(session, player, league_display: str, approver_id: int):
     """Enroll a player in the substitute pool for a league (current season).
 
-    SubstitutePool is authoritative and has ONE row per player (player_id unique),
-    so we upsert by player_id and set the league_type — never blind-insert (that
-    would hit the unique constraint for a player who already has a pool row in a
-    different division). ECS FC additionally mirrors into the legacy EcsFcSubPool
-    table, which the integrity checker requires to stay in sync. The Discord 'X Sub'
-    role is granted by apply_approval's role_mapping; the deferred sync there
-    propagates it — we don't touch roles here. Season is implicit (is_active=True),
-    the pool has no season_id.
+    ⚠️ SubstitutePool is keyed on (player_id, league_type) -- NOT on player_id
+    alone. A player may legitimately be a sub in several programs at once.
+    Upsert on BOTH columns.
+
+    This used to do `filter_by(player_id=...).first()` and overwrite that row's
+    league_type. Once a player could hold two rows that had two failure modes:
+    approving an existing Classic sub as a Summer sub REPOINTED their Classic
+    row (silently removing them from the Classic broadcast list while they kept
+    the Classic Sub role), and for a player who already held two rows the UPDATE
+    could collide with uq_substitute_pool_player_league_type and 500 the
+    approval.
+
+    ECS FC additionally mirrors into the legacy EcsFcSubPool table, which the
+    integrity checker requires to stay in sync. The Discord 'X Sub' role is
+    granted by apply_approval's role_mapping; the deferred sync there propagates
+    it — we don't touch roles here. Season is implicit (is_active=True), the
+    pool has no season_id.
     """
     from app.models.substitutes import SubstitutePool, EcsFcSubPool
     now = datetime.utcnow()
 
-    existing = session.query(SubstitutePool).filter_by(player_id=player.id).first()
+    existing = session.query(SubstitutePool).filter_by(
+        player_id=player.id, league_type=league_display).first()
     if existing:
-        existing.league_type = league_display
         existing.is_active = True
         existing.approved_by = approver_id
         existing.approved_at = now
@@ -300,8 +368,11 @@ def _apply_waitlist(user, league: str, approver_id: int, notes=None):
     waitlisted person is never simultaneously an active sub/member.
     """
     # Strip league + sub + unverified roles; add pl-waitlist.
-    strip_roles = ['pl-unverified', 'pl-classic', 'pl-premier', 'pl-ecs-fc',
-                   'Classic Sub', 'Premier Sub', 'ECS FC Sub']
+    # Registry-driven: a program missing from a hardcoded list keeps its stale
+    # sub/league role through being waitlisted.
+    from app.services import program_registry
+    strip_roles = (['pl-unverified'] + list(program_registry.league_role_names())
+                   + list(program_registry.sub_role_names()))
     for rname in strip_roles:
         r = db.session.query(Role).filter_by(name=rname).first()
         if r and r in user.roles:
@@ -360,8 +431,9 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
     Raises ValueError if the mapped Role row does not exist.
     """
     # Waitlist routing is a separate lane, not an approval — handle and return.
-    if league_type in WAITLIST_LEAGUE_MAP:
-        _apply_waitlist(user, WAITLIST_LEAGUE_MAP[league_type], approver_id, notes)
+    _wl_map = waitlist_league_map()
+    if league_type in _wl_map:
+        _apply_waitlist(user, _wl_map[league_type], approver_id, notes)
         return
 
     role_mapping = {
@@ -373,7 +445,24 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
         'sub-ecs-fc': 'ECS FC Sub'
     }
 
-    new_role_name = role_mapping[league_type]
+    # Registry fallback BEFORE subscripting. approve_league_types() is now
+    # registry-derived and the three validators let a newer program's value
+    # through, so a bare role_mapping[league_type] turned a clean
+    # "400 Invalid league type" into an uncaught KeyError -> 500.
+    new_role_name = role_mapping.get(league_type)
+    if not new_role_name:
+        try:
+            from app.services import program_registry
+            _prog = program_registry.by_form_value(league_type)
+            if _prog:
+                new_role_name = (_prog.flask_sub_role
+                                 if str(league_type).startswith('sub-')
+                                 else _prog.flask_league_role)
+        except Exception as _reg_err:
+            logger.warning(f"registry lookup failed for league_type "
+                           f"'{league_type}': {_reg_err}")
+    if not new_role_name:
+        raise ValueError(f'Unknown league type: {league_type}')
     new_role = db.session.query(Role).filter_by(name=new_role_name).first()
     if not new_role:
         raise ValueError(f'Role {new_role_name} not found')
@@ -393,8 +482,9 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
     # 'X Sub' role name (not the pool's league_type), so a stale 'Premier Sub' left
     # on a player being approved as 'Classic Sub' would still surface them as an
     # active Premier sub. Strip every league/sub role except the one we're granting.
-    for role_name in ['pl-premier', 'pl-classic', 'pl-ecs-fc',
-                      'Classic Sub', 'Premier Sub', 'ECS FC Sub']:
+    from app.services import program_registry as _pr_reg
+    for role_name in (list(_pr_reg.league_role_names())
+                      + list(_pr_reg.sub_role_names())):
         if role_name != new_role_name:  # Don't remove the one we're about to add
             existing_role = db.session.query(Role).filter_by(name=role_name).first()
             if existing_role and existing_role in user.roles:
@@ -433,14 +523,34 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
         }
 
         mapping = league_type_mapping.get(league_type)
+        if not mapping:
+            # Registry lookup for any program not in the legacy dict. Strips the
+            # 'sub-' prefix the same way the dict's sub-* entries do -- a sub is
+            # approved into the SAME league as a full member, the difference is
+            # carried by the Flask sub role, not by the league.
+            try:
+                from app.services import program_registry
+                program = program_registry.by_form_value(league_type)
+                if program:
+                    mapping = (program.league_name, program.season_league_type)
+            except Exception as _reg_err:
+                logger.warning(f"program registry lookup failed for approval "
+                               f"league_type '{league_type}': {_reg_err}")
         if mapping:
             league_name, season_league_type = mapping
             current_league = SeasonSyncService.get_current_league_by_name(
                 db.session, league_name, season_league_type
             )
             if current_league:
-                user.player.primary_league_id = current_league.id
-                user.player.league_id = current_league.id
+                # Route through the shared additive helper instead of the
+                # unconditional two-line overwrite. Approving a Premier player
+                # into another program used to evict their Premier
+                # primary_league_id, dropping them out of the Premier draft
+                # pool (predicate: primary_league_id == league OR player_league
+                # row) with no error anywhere.
+                from app.pub_league.services import PlayerActivationService
+                PlayerActivationService._assign_league_additively(
+                    db.session, user.player, current_league)
                 # Two-axis model: approval grants MEMBERSHIP (is_approved).
                 # For pay-per-season Pub League divisions (Classic/Premier),
                 # "active this season" (is_current_player) is granted by
@@ -448,7 +558,35 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
                 # flip it here (that would let an approved-but-unpaid user in
                 # for free). ECS FC and subs have no season pass, so approval
                 # activates them directly.
-                if league_type not in ('classic', 'premier'):
+                # Registry-driven: a program with requires_pass=True must NOT be
+                # activated by approval. The literal ('classic', 'premier') meant
+                # any newer PAID program fell through to the else-branch and got
+                # is_current_player=True for free -- approval alone would hand
+                # out a season pass. Subs never pay, so the sub-* variants stay
+                # activated by approval regardless of the program's pass rule.
+                _is_sub_lane = str(league_type).startswith('sub-')
+                # ⚠️ DEFAULT TRUE. is_current_player means "paid this season", so
+                # an UNKNOWN program must be treated as pay-to-play: failing open
+                # here hands out a free season pass. The previous default of
+                # False did exactly that whenever by_form_value returned None
+                # (partially seeded registry, or classic/premier set inactive) --
+                # and the except branch was stricter than the success branch,
+                # which is backwards.
+                _needs_pass = True
+                try:
+                    from app.services import program_registry
+                    _prog = program_registry.by_form_value(league_type)
+                    if _prog is not None:
+                        _needs_pass = bool(_prog.requires_pass)
+                    else:
+                        logger.warning(
+                            f"approval: no program for league_type '{league_type}'; "
+                            f"treating as pay-to-play (not activating)")
+                except Exception as _pp_err:
+                    logger.warning(f"approval: requires_pass lookup failed for "
+                                   f"'{league_type}': {_pp_err}; treating as pay-to-play")
+                # Subs never pay, so they are activated by approval regardless.
+                if _is_sub_lane or not _needs_pass:
                     user.player.is_current_player = True
                 logger.info(f"Assigned player {user.player.id} to current season league {current_league.id} ({league_name})")
 
@@ -460,7 +598,8 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
                 logger.warning(f"Could not find current season league for type '{league_type}'")
 
     if user.player:
-        if league_type in SUB_LEAGUE_DISPLAY:
+        _sub_display = sub_league_display(league_type)
+        if _sub_display:
             # Substitute approvals must actually enroll the player in the pool —
             # granting the 'X Sub' role alone left them a sub in name only, never
             # surfacing in sub-request matching. Subs have no season pass, so they
@@ -468,16 +607,45 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
             # current-league branch above) so enrollment isn't a silent no-op when no
             # current-season league row is found — the matcher filters is_current_player.
             user.player.is_current_player = True
-            _enroll_in_substitute_pool(db.session, user.player, SUB_LEAGUE_DISPLAY[league_type], approver_id)
+            _enroll_in_substitute_pool(db.session, user.player, _sub_display, approver_id)
         else:
-            # Full-league member: they are not a sub. Deactivate any lingering pool
-            # rows so an approved member never also surfaces as an active substitute.
+            # Full-league member: they are not a sub OF THIS DIVISION FAMILY.
+            #
+            # ⚠️ Scoped, not global. Being rostered in one program says nothing
+            # about sub status in a concurrent, independent program -- someone
+            # can legitimately play Premier and sub for Summer. Deactivating
+            # every row silently removed people from unrelated pools; is_sub is
+            # only cleared when nothing active is left anywhere.
             from app.models.substitutes import SubstitutePool, EcsFcSubPool
-            for row in db.session.query(SubstitutePool).filter_by(player_id=user.player.id, is_active=True).all():
+            _family_names = None
+            try:
+                from app.services import program_registry
+                _self = program_registry.by_league_name(league_name) if league_name else None
+                if _self is not None:
+                    _family_names = [p.league_name for p in program_registry.all_programs()
+                                     if p.season_league_type == _self.season_league_type
+                                     and p.league_name]
+            except Exception as _fam_err:
+                logger.warning(f"could not scope sub cleanup for '{league_name}': {_fam_err}")
+
+            _q = db.session.query(SubstitutePool).filter_by(
+                player_id=user.player.id, is_active=True)
+            if _family_names:
+                _q = _q.filter(SubstitutePool.league_type.in_(_family_names))
+            for row in _q.all():
                 row.is_active = False
-            for row in db.session.query(EcsFcSubPool).filter_by(player_id=user.player.id, is_active=True).all():
-                row.is_active = False
-            user.player.is_sub = False
+            # EcsFcSubPool only conflicts with an ECS FC membership.
+            if not _family_names or 'ECS FC' in _family_names:
+                for row in db.session.query(EcsFcSubPool).filter_by(
+                        player_id=user.player.id, is_active=True).all():
+                    row.is_active = False
+
+            _still_sub = (
+                db.session.query(SubstitutePool).filter_by(
+                    player_id=user.player.id, is_active=True).first() is not None
+                or db.session.query(EcsFcSubPool).filter_by(
+                    player_id=user.player.id, is_active=True).first() is not None)
+            user.player.is_sub = bool(_still_sub)
 
     db.session.add(user)
     db.session.flush()
@@ -521,13 +689,13 @@ def approve_user(user_id: int):
             league_type = request.form.get('league_type')
             notes = request.form.get('notes', '')
 
-            valid_league_types = (['classic', 'premier', 'ecs-fc',
-                                   'sub-classic', 'sub-premier', 'sub-ecs-fc']
-                                  + list(WAITLIST_LEAGUE_MAP.keys()))
+            from app.services.integrity_service import approve_league_types
+            valid_league_types = (list(approve_league_types())
+                                  + list(waitlist_league_map().keys()))
             if not league_type or league_type not in valid_league_types:
                 return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
-            is_waitlist = league_type in WAITLIST_LEAGUE_MAP
+            is_waitlist = league_type in waitlist_league_map()
 
             # Capture the real prior state for the audit trail (a waitlist→waitlist
             # move starts from 'waitlist:<lane>', not a bare 'pending').
@@ -546,14 +714,14 @@ def approve_user(user_id: int):
                 resource_type='user_approval',
                 resource_id=str(user_id),
                 old_value=prior_status,
-                new_value=(f'waitlist:{WAITLIST_LEAGUE_MAP[league_type]}'
+                new_value=(f'waitlist:{waitlist_league_map()[league_type]}'
                            if is_waitlist else f'approved:{league_type}'),
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
 
             if is_waitlist:
-                league_label = WAITLIST_LEAGUE_MAP[league_type].replace('-', ' ').title()
+                league_label = waitlist_league_map()[league_type].replace('-', ' ').title()
                 message = f'User {user.username} placed on the {league_label} waitlist'
                 logger.info(f"User {user.id} waitlisted for {league_type} by {current_user_safe.id}")
             else:

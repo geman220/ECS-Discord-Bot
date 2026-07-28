@@ -1,0 +1,247 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, empty_state %}
+
+{#
+  Account Recovery — the queue of Discord logins we refused.
+
+  Discord OAuth is the only door into the portal, so a member who loses their
+  Discord account is fully locked out until someone here acts. Each card is
+  one stranded person; approving moves their new Discord ID onto their real
+  player row and syncs roles.
+#}
+
+{% block admin_title %}Account Recovery{% endblock %}
+{% block panel_description %}Members locked out of their Discord account{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.discord_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Discord Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Account Recovery</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{{ page_header('Account Recovery', subtitle='Discord Management  ·  Locked-out members', icon='ti-lifebuoy') }}
+
+<div class="space-y-5 sm:space-y-6">
+
+  {# ============ What this page is for ============ #}
+  <div class="rounded-xl border border-blue-200 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-900/20 p-4 sm:p-5">
+    <div class="flex gap-3">
+      <i class="ti ti-info-circle text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+      <div class="text-sm text-blue-900 dark:text-blue-200 space-y-1.5">
+        <p class="font-semibold">Someone tried to log in with a Discord account we didn't recognise as theirs.</p>
+        <p>
+          Almost always this is a member who lost access to their old Discord and made a new one.
+          We refuse the login on purpose — it looks identical to someone trying to take over an
+          account — so a human confirms it. <strong>Approving</strong> moves the new Discord ID onto
+          their existing player, keeps all their history, and syncs their roles. They then log in
+          normally with the new Discord.
+        </p>
+        <p class="text-blue-800 dark:text-blue-300">
+          Before approving, confirm out-of-band that it's really them — a Discord DM or a message in
+          a channel you know they control.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {# ============ Pending queue ============ #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div class="px-4 sm:px-5 h-12 flex items-center justify-between gap-2 border-b border-gray-200 dark:border-gray-700">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 flex items-center gap-2">
+        <i class="ti ti-inbox text-ecs-green" aria-hidden="true"></i>Waiting for review
+      </h2>
+      {% if pending_requests %}
+      <span class="inline-flex items-center justify-center px-2 h-6 text-xs font-bold text-white bg-red-500 rounded-full">{{ pending_requests|length }}</span>
+      {% endif %}
+    </div>
+
+    {% if not pending_requests %}
+      {{ empty_state('ti-circle-check', 'Nobody is locked out',
+                     'When a member loses their Discord account and tries to log in with a new one, they show up here.') }}
+    {% else %}
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for req in pending_requests %}
+      {% set candidate = req.candidate_player %}
+      <article class="p-4 sm:p-5">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+
+          {# ---- Who / what ---- #}
+          <div class="min-w-0 flex-1 space-y-3">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">
+                {% if candidate %}{{ candidate.name }}
+                {% elif req.candidate_player_ids %}{{ req.candidate_player_id_list|length }} possible accounts
+                {% else %}Unknown member{% endif %}
+              </h3>
+              {% if req.blocked_reason == 'email_history_ambiguous' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                <i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>Ambiguous — pick one
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-500/15 dark:text-indigo-300">
+                <i class="ti ti-mail text-[12px]" aria-hidden="true"></i>Email matches
+              </span>
+              {% endif %}
+              {% if req.attempts > 1 %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                <i class="ti ti-repeat text-[12px]" aria-hidden="true"></i>{{ req.attempts }} attempts
+              </span>
+              {% endif %}
+            </div>
+
+            {# Old vs new, side by side — the whole decision in one glance #}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Account on file</p>
+                {% if candidate %}
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ candidate.name }}</p>
+                {% if candidate.user and candidate.user.email %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ candidate.user.email }}</p>
+                {% endif %}
+                <p class="text-xs font-mono text-gray-400 mt-1 truncate">
+                  {% if req.existing_discord_id %}Discord {{ req.existing_discord_id }}{% else %}No Discord linked{% endif %}
+                </p>
+                <a href="{{ url_for('admin_panel.member_hub', user_id=candidate.user_id) }}"
+                   class="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-ecs-green hover:underline">
+                  <i class="ti ti-external-link text-[13px]" aria-hidden="true"></i>Open member hub
+                </a>
+                {% elif req.candidate_player_ids %}
+                <p class="text-sm text-gray-600 dark:text-gray-300">More than one account matched this email history:</p>
+                <ul class="mt-1.5 space-y-1">
+                  {% for pid in req.candidate_player_id_list %}
+                  {% set cp = candidate_players.get(pid) %}
+                  <li class="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    {% if cp %}
+                      <span class="font-medium text-gray-800 dark:text-gray-200">{{ cp.name }}</span>
+                      {% if cp.user and cp.user.email %} · {{ cp.user.email }}{% endif %}
+                    {% else %}Player #{{ pid }} (missing){% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">We couldn't identify the account. Look them up manually before approving.</p>
+                {% endif %}
+              </div>
+
+              <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">New Discord account</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <i class="ti ti-brand-discord text-indigo-500" aria-hidden="true"></i>
+                  {{ req.requested_discord_username or 'unknown handle' }}
+                </p>
+                {% if req.requested_discord_email %}
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ req.requested_discord_email }}</p>
+                {% endif %}
+                <p class="text-xs font-mono text-gray-400 mt-1 truncate">Discord {{ req.requested_discord_id }}</p>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-gray-400">
+              First seen {{ req.first_seen_at.strftime('%b %d, %Y at %H:%M') }} UTC
+              {% if req.attempts > 1 %} · last tried {{ req.last_seen_at.strftime('%b %d at %H:%M') }} UTC{% endif %}
+              {% if req.source == 'mobile' %} · from the mobile app{% elif req.source == 'web_register' %} · from the sign-up page{% else %} · from the login page{% endif %}
+              {% if req.ip_address %} · IP {{ req.ip_address }}{% endif %}
+            </p>
+          </div>
+
+          {# ---- Actions ---- #}
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-2 lg:w-52 shrink-0">
+            {% if req.candidate_player_ids and not req.candidate_player_id %}
+            {# Ambiguous: no safe default, so the admin picks which player #}
+            <select class="w-full min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green"
+                    id="relink-player-{{ req.id }}" aria-label="Choose which account to relink">
+              <option value="">Choose account…</option>
+              {% for pid in req.candidate_player_id_list %}
+              {% set cp = candidate_players.get(pid) %}
+              <option value="{{ pid }}">{{ cp.name if cp else 'Player #' ~ pid }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+
+            <button type="button"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="relink-request-approve"
+                    data-request-id="{{ req.id }}"
+                    data-player-id="{{ req.candidate_player_id or '' }}"
+                    data-player-name="{{ candidate.name if candidate else '' }}"
+                    data-discord-id="{{ req.requested_discord_id }}"
+                    data-discord-username="{{ req.requested_discord_username or '' }}">
+              <i class="ti ti-link" aria-hidden="true"></i>Approve &amp; relink
+            </button>
+            <button type="button"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="relink-request-reject"
+                    data-request-id="{{ req.id }}"
+                    data-discord-username="{{ req.requested_discord_username or 'this request' }}">
+              <i class="ti ti-x" aria-hidden="true"></i>Dismiss
+            </button>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </section>
+
+  {# ============ History ============ #}
+  {% if resolved_requests %}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div class="px-4 sm:px-5 h-12 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700">
+      <i class="ti ti-history text-gray-400" aria-hidden="true"></i>
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Recently resolved</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+          <tr>
+            <th scope="col" class="px-4 py-3 text-left font-semibold">Member</th>
+            <th scope="col" class="px-4 py-3 text-left font-semibold hidden sm:table-cell">Discord</th>
+            <th scope="col" class="px-4 py-3 text-left font-semibold">Outcome</th>
+            <th scope="col" class="px-4 py-3 text-left font-semibold hidden md:table-cell">Resolved by</th>
+            <th scope="col" class="px-4 py-3 text-left font-semibold hidden lg:table-cell">When</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for req in resolved_requests %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+            <td class="px-4 py-3 text-gray-900 dark:text-white">
+              {{ req.candidate_player.name if req.candidate_player else (req.requested_discord_username or '—') }}
+            </td>
+            <td class="px-4 py-3 hidden sm:table-cell text-gray-500 dark:text-gray-400 font-mono text-xs">{{ req.requested_discord_id }}</td>
+            <td class="px-4 py-3">
+              {% if req.status == 'approved' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300">
+                <i class="ti ti-check text-[12px]" aria-hidden="true"></i>Relinked
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                <i class="ti ti-x text-[12px]" aria-hidden="true"></i>Dismissed
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400">
+              {{ req.resolved_by.username if req.resolved_by else '—' }}
+            </td>
+            <td class="px-4 py-3 hidden lg:table-cell text-gray-500 dark:text-gray-400 whitespace-nowrap">
+              {{ req.resolved_at.strftime('%b %d, %Y') if req.resolved_at else '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}

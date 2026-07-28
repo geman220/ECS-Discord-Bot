@@ -1153,7 +1153,8 @@ class AutoScheduleGenerator:
                         # and regular matches at second time slot only
                         
                         # Generate time slots to get proper times
-                        time_slots = self._generate_time_slots()
+                        time_slots = self._generate_time_slots(
+                            getattr(week_config, 'start_time', None))
                         
                         # First, generate practice sessions for both fields at first time slot
                         practice_time = time_slots[0] if time_slots else self.start_time
@@ -1216,7 +1217,10 @@ class AutoScheduleGenerator:
                             templates.append(template)
                     else:
                         # Regular week scheduling (no practice)
-                        time_slots = self._generate_time_slots()
+                        # Per-week kickoff override (WeekConfiguration.start_time),
+                        # NULL for every existing Premier/Classic week.
+                        time_slots = self._generate_time_slots(
+                            getattr(week_config, 'start_time', None))
                         field_assignments = self._assign_matches_to_fields(week_matches, time_slots)
                         
                         for match_info in field_assignments:
@@ -1265,7 +1269,10 @@ class AutoScheduleGenerator:
                         regular_week_index += 1
                         
                         # Regular week scheduling (no practice for mixed weeks)
-                        time_slots = self._generate_time_slots()
+                        # Per-week kickoff override (WeekConfiguration.start_time),
+                        # NULL for every existing Premier/Classic week.
+                        time_slots = self._generate_time_slots(
+                            getattr(week_config, 'start_time', None))
                         field_assignments = self._assign_matches_to_fields(week_matches, time_slots)
                         
                         for match_info in field_assignments:
@@ -1506,13 +1513,21 @@ class AutoScheduleGenerator:
         
         return templates
     
-    def _generate_time_slots(self) -> List[time]:
+    def _generate_time_slots(self, start_override: Optional[time] = None) -> List[time]:
         """
         Generate time slots for back-to-back matches based on league specification.
-        
+
         Premier League: 08:20, 09:30, 10:40, 11:50 (spec times)
         Classic League: 13:10, 14:10 (or configured)
-        
+
+        Args:
+            start_override: kickoff for this week's FIRST slot, from
+                WeekConfiguration.start_time. Takes precedence over both the
+                per-league spec times and the configured start time, because a
+                season that moves between sites can have a different kickoff each
+                week (Eagle Staff from 11:30, Eckstein from 11:00). When None the
+                behaviour is exactly as before.
+
         Returns:
             List of time objects for each match slot
         """
@@ -1530,7 +1545,20 @@ class AutoScheduleGenerator:
             'classic': ([time(13, 10), time(14, 20)], time(13, 10)),
         }
         league_key = self.league.name.lower()
-        if league_key in spec_times:
+        if start_override is not None:
+            # Per-week kickoff wins outright. Deliberately bypasses spec_times:
+            # if a week says 11:00, honouring Premier's fixed 08:20 grid instead
+            # would silently schedule the whole week at the wrong time.
+            step = (self.match_duration_minutes or 70) + (getattr(self, 'break_duration_minutes', 0) or 0)
+            cursor = datetime.combine(pacific_today(), start_override)
+            for _ in range(needed):
+                time_slots.append(cursor.time())
+                cursor += timedelta(minutes=step)
+            logger.info(
+                f"Using per-week start {start_override} ({needed} slots): "
+                f"{[str(t) for t in time_slots]}"
+            )
+        elif league_key in spec_times:
             fixed, base = spec_times[league_key]
             time_slots = list(fixed[:needed])
             # Extend beyond the specified slots using match duration + configured break.
@@ -1682,13 +1710,29 @@ class AutoScheduleGenerator:
         
         from app.schedule_routes import ScheduleManager
         schedule_manager = ScheduleManager(self.session)
-        
+
+        # Venue is per-WEEK, not per-template, so resolve it by date rather than
+        # adding a column to ScheduleTemplate. Keyed on date because a template's
+        # week_number counts REGULAR weeks only (specials are skipped), while
+        # WeekConfiguration.week_order counts calendar weeks -- the two diverge as
+        # soon as a season has a BYE or FUN week, so matching on the number would
+        # attach the wrong venue.
+        venue_by_date = {}
+        try:
+            for wc in self.session.query(WeekConfiguration).filter_by(
+                    league_id=self.league_id).all():
+                if getattr(wc, 'venue', None) and wc.week_date:
+                    venue_by_date[wc.week_date] = wc.venue
+        except Exception as _venue_err:
+            logger.warning(f"Could not load per-week venues: {_venue_err}")
+
         for template in templates:
             # Create match using the existing schedule manager
             match_data = {
                 'date': template.scheduled_date.strftime('%Y-%m-%d'),
                 'time': template.scheduled_time.strftime('%H:%M'),
                 'location': template.field_name,
+                'venue': venue_by_date.get(template.scheduled_date),
                 'team_a': template.home_team_id,
                 'team_b': template.away_team_id,
                 'week': str(template.week_number),
@@ -1818,7 +1862,31 @@ class AutoScheduleGenerator:
                 practice_game_number=1
             )
         else:
-            raise ValueError(f"Unknown league type: {league_type}")
+            # Generic defaults instead of raising.
+            #
+            # This raise paired badly with auto_schedule_routes' derivation,
+            # which DEFAULTED any unrecognised league to 'ECS_FC': the pair
+            # meant a new program either silently inherited ECS FC's week
+            # structure, or -- the moment that derivation was corrected to emit
+            # the program's real type -- 500'd the season-config page instead.
+            # Neither is acceptable, so an unknown type now gets a conservative
+            # baseline the admin can edit.
+            logger.info(
+                f"No built-in season defaults for league type '{league_type}'; "
+                f"using a generic 8-week / 1-playoff baseline."
+            )
+            return SeasonConfiguration(
+                league_id=league_id,
+                league_type=league_type,
+                regular_season_weeks=8,
+                playoff_weeks=1,
+                has_fun_week=False,
+                has_tst_week=False,
+                has_bonus_week=False,
+                has_practice_sessions=False,
+                practice_weeks=None,
+                practice_game_number=1
+            )
     
     @staticmethod
     def generate_week_configurations_from_season_config(season_config: SeasonConfiguration, 

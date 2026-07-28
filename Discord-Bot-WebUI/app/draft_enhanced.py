@@ -36,6 +36,7 @@ from app.draft_cache_service import DraftCacheService
 from app.models.ecs_fc import is_ecs_fc_league
 from app.sockets.session import socket_session
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
+from app.services import program_registry
 
 logger = logging.getLogger(__name__)
 draft_enhanced = Blueprint('draft_enhanced', __name__, url_prefix='/draft')
@@ -1170,9 +1171,128 @@ class DraftService:
         return analytics
 
 
+# Draft access roles, resolved PER REQUEST from the program registry.
+#
+# These were static lists naming only Premier and Classic coaches, so a coach of
+# any newer program got a 403 on their own draft board. role_required() accepts
+# a callable precisely so a program added after this line still opens the gate.
+# EXACTLY the five roles the replaced static lists carried. 'ECS FC Coach' is
+# deliberately NOT here: adding it would silently grant ECS FC coaches access to
+# the Premier and Classic boards (including /api/draft-player), which is a
+# privilege widening unrelated to supporting a new program.
+_DRAFT_STATIC_ROLES = ['Pub League Admin', 'Global Admin', 'Pub League Coach',
+                       'Premier Coach', 'Classic Coach']
+
+
+def draft_access_roles():
+    """Coarse gate: may this user open ANY draft board?
+
+    ⚠️ This function's own comment above says 'ECS FC Coach' is deliberately
+    excluded, and the loop then added it anyway -- `flask_coach_role` for the
+    ecs_fc program IS 'ECS FC Coach', in both the seed and the legacy fallback.
+    So the code did the exact thing the comment warned against: ECS FC coaches
+    could open /draft/premier and /draft/classic and read the full pre-reveal
+    player pool, ratings and rosters of divisions they have no part in.
+
+    Two changes fix it properly:
+      1. only DRAFT-USING, pub-league-like programs contribute a coach role here
+         (ECS FC does not draft in this sense); and
+      2. coach_can_access_board() below scopes each board to the coach's own
+         program, so this coarse gate no longer has to carry the whole burden.
+    """
+    roles = set(_DRAFT_STATIC_ROLES)
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs():
+            if pr.flask_coach_role and pr.uses_draft and pr.is_pub_league_like:
+                roles.add(pr.flask_coach_role)
+    except Exception:
+        pass
+    return sorted(roles)
+
+
+draft_access_roles.static_roles = _DRAFT_STATIC_ROLES
+
+
+def coach_can_access_board(user, league_name) -> bool:
+    """Per-board authorization: a coach may only open THEIR program's board.
+
+    Admins and the team-independent 'Pub League Coach' role are unrestricted
+    (that is what those roles mean). Anyone else must hold the coach role of the
+    program that owns this board -- otherwise a Classic coach reads Premier's
+    pre-reveal pool, which is the leak the coarse role gate cannot prevent.
+    """
+    # Resolve roles the SAME way role_required does: impersonation first, then a
+    # fresh query with the roles eagerly loaded.
+    #
+    # ⚠️ Reading `current_user.roles` directly is NOT equivalent. The proxy's
+    # collection can be empty or detached inside a request (which is exactly why
+    # role_required re-queries), so a genuine 'Classic Coach' was denied their
+    # own board -- and it would have ignored an active impersonation entirely.
+    role_names = set()
+    try:
+        from app.role_impersonation import is_impersonation_active, get_effective_roles
+        if is_impersonation_active():
+            role_names = set(get_effective_roles() or [])
+        else:
+            from app.models import User
+            from sqlalchemy.orm import selectinload
+            from app.core import db as _db
+            _sess = getattr(g, 'db_session', None) or _db.session
+            _uid = getattr(user, 'id', None)
+            if _uid is None:
+                return False
+            _db_user = _sess.query(User).options(selectinload(User.roles)).get(_uid)
+            if _db_user is None:
+                return False
+            role_names = {r.name for r in _db_user.roles}
+    except Exception:
+        logger.warning("coach_can_access_board could not resolve roles; deferring "
+                       "to the coarse role gate", exc_info=True)
+        return True
+    if role_names & {'Global Admin', 'Pub League Admin', 'Pub League Coach'}:
+        return True
+    try:
+        from app.services import program_registry
+        pr = (program_registry.by_league_name(league_name)
+              or program_registry.by_key(league_name)
+              or program_registry.by_form_value(league_name))
+        if pr is None:
+            # Unknown board: fail CLOSED for non-admins.
+            return False
+        if pr.flask_coach_role and pr.flask_coach_role in role_names:
+            return True
+
+        # Draft-night reality: coach-ness often lives ONLY on player_teams,
+        # never as a Flask role. Checking roles alone would lock a real coach
+        # out of their own board on the night it matters -- the same allowance
+        # the mobile gate and the balanced-draft board already make.
+        _pid = getattr(getattr(user, 'player', None), 'id', None)
+        if _pid:
+            from app.models import Team, League, player_teams
+            from app.core import db as _db
+            _sess = getattr(g, 'db_session', None) or _db.session
+            row = (_sess.query(player_teams.c.team_id)
+                   .join(Team, Team.id == player_teams.c.team_id)
+                   .join(League, League.id == Team.league_id)
+                   .filter(player_teams.c.player_id == _pid,
+                           player_teams.c.is_coach.is_(True),
+                           League.name == pr.league_name)
+                   .first())
+            if row is not None:
+                return True
+        return False
+    except Exception:
+        # Registry/DB unavailable -> fall back to the coarse gate rather than
+        # locking every coach out of a live draft.
+        logger.warning("coach_can_access_board check failed; deferring to the "
+                       "coarse role gate", exc_info=True)
+        return True
+
+
 @draft_enhanced.route('/<league_name>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
+@role_required(draft_access_roles)
 def draft_league(league_name: str):
     """Enhanced draft page for any league."""
     print(f"🔴 DRAFT_ENHANCED ROUTE HIT: {league_name}")
@@ -1181,10 +1301,22 @@ def draft_league(league_name: str):
     # Validate league name. Accept both the slug ('ecs_fc') and the display name
     # ('ECS FC') — URLs built from a League's display name were failing with
     # "Invalid league name: ECS FC" because of the space.
-    valid_leagues = ['classic', 'premier', 'ecs_fc']
+    # Registry-driven; falls back to the three original slugs. A slug missing
+    # from here 404s the whole draft board for that program.
+    valid_leagues = program_registry.draft_slugs()
     norm_league = league_name.lower().replace(' ', '_')
     if norm_league not in valid_leagues:
         show_error(f'Invalid league name: {league_name}')
+        return redirect(url_for('main.index'))
+
+    # Per-board authorization. The @role_required gate only asks "may this user
+    # open A draft board"; it cannot know WHICH board. Without this a Classic
+    # coach could open /draft/premier and read Premier's entire pre-reveal
+    # player pool, ratings and rosters.
+    if not coach_can_access_board(current_user, norm_league):
+        logger.warning(f"Draft board access denied: user "
+                       f"{getattr(current_user, 'id', '?')} -> {norm_league}")
+        show_error("You can only open your own division's draft board.")
         return redirect(url_for('main.index'))
 
     # Classic gets the balanced-draft board when the toggle is on (instant
@@ -1254,11 +1386,7 @@ def draft_league(league_name: str):
             )
 
     # Normalize league name for database lookup
-    db_league_name = {
-        'classic': 'Classic',
-        'premier': 'Premier',
-        'ecs_fc': 'ECS FC'
-    }.get(norm_league)
+    db_league_name = program_registry.league_name_for_draft_slug(norm_league)
     
     current_league, all_leagues = DraftService.get_league_data(db_league_name)
     
@@ -1494,7 +1622,7 @@ def draft_league(league_name: str):
 
 @draft_enhanced.route('/<league_name>/pitch')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
+@role_required(draft_access_roles)
 def draft_league_pitch_view(league_name: str):
     """Soccer pitch view for visual team drafting."""
     logger.info(f"🏟️ Pitch view route accessed: {league_name}")
@@ -1502,18 +1630,26 @@ def draft_league_pitch_view(league_name: str):
     # Validate league name. Accept both the slug ('ecs_fc') and the display name
     # ('ECS FC') — URLs built from a League's display name were failing with
     # "Invalid league name: ECS FC" because of the space.
-    valid_leagues = ['classic', 'premier', 'ecs_fc']
+    # Registry-driven; falls back to the three original slugs. A slug missing
+    # from here 404s the whole draft board for that program.
+    valid_leagues = program_registry.draft_slugs()
     norm_league = league_name.lower().replace(' ', '_')
     if norm_league not in valid_leagues:
         show_error(f'Invalid league name: {league_name}')
         return redirect(url_for('main.index'))
 
+    # Per-board authorization. The @role_required gate only asks "may this user
+    # open A draft board"; it cannot know WHICH board. Without this a Classic
+    # coach could open /draft/premier and read Premier's entire pre-reveal
+    # player pool, ratings and rosters.
+    if not coach_can_access_board(current_user, norm_league):
+        logger.warning(f"Draft board access denied: user "
+                       f"{getattr(current_user, 'id', '?')} -> {norm_league}")
+        show_error("You can only open your own division's draft board.")
+        return redirect(url_for('main.index'))
+
     # Normalize league name for database lookup
-    db_league_name = {
-        'classic': 'Classic',
-        'premier': 'Premier',
-        'ecs_fc': 'ECS FC'
-    }.get(norm_league)
+    db_league_name = program_registry.league_name_for_draft_slug(norm_league)
     
     current_league, all_leagues = DraftService.get_league_data(db_league_name)
     
@@ -1709,15 +1845,15 @@ def draft_status():
 
 @draft_enhanced.route('/api/<league_name>/players')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
+@role_required(draft_access_roles)
 def get_players_api(league_name: str):
     """API endpoint for getting player data with filtering and sorting."""
+    if not coach_can_access_board(current_user, league_name.lower()):
+        return jsonify({'error': "You can only access your own division's "
+                                 "draft board."}), 403
+
     # Validate league name
-    db_league_name = {
-        'classic': 'Classic',
-        'premier': 'Premier',
-        'ecs_fc': 'ECS FC'
-    }.get(league_name.lower())
+    db_league_name = program_registry.league_name_for_draft_slug(league_name.lower())
     
     if not db_league_name:
         return jsonify({'error': 'Invalid league name'}), 400
@@ -1807,7 +1943,7 @@ def get_players_api(league_name: str):
 
 @draft_enhanced.route('/api/draft-player', methods=['POST'])
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
+@role_required(draft_access_roles)
 def api_draft_player():
     """HTTP API endpoint for drafting players (fallback when sockets fail)."""
     try:
@@ -1818,6 +1954,13 @@ def api_draft_player():
         
         if not all([player_id, team_id, league_name]):
             return jsonify({'error': 'Missing required data'}), 400
+
+        # Per-board authorization on the WRITE path too. There is a separate
+        # team-ownership guard below, but this stops a coach of a different
+        # program touching this board at all.
+        if not coach_can_access_board(current_user, str(league_name).lower()):
+            return jsonify({'error': "You can only draft on your own division's "
+                                     "board."}), 403
 
         try:
             player_id = int(player_id)
@@ -2019,7 +2162,7 @@ def api_draft_player():
 
 @draft_enhanced.route('/api/<league_name>/position-analysis/<int:team_id>')
 @login_required
-@role_required(['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach'])
+@role_required(draft_access_roles)
 def api_position_analysis(league_name: str, team_id: int):
     """
     Get real-time position analysis for a specific team.
@@ -2028,14 +2171,15 @@ def api_position_analysis(league_name: str, team_id: int):
     try:
         from app.draft_position_analyzer import PositionAnalyzer
 
+        if not coach_can_access_board(current_user, league_name.lower()):
+            return jsonify({'error': "You can only access your own division's "
+                                     "draft board."}), 403
+
         session = g.db_session
 
         # Normalize league name
-        db_league_name = {
-            'classic': 'Classic',
-            'premier': 'Premier',
-            'ecs_fc': 'ECS FC'
-        }.get(league_name.lower(), league_name)
+        db_league_name = (program_registry.league_name_for_draft_slug(league_name.lower())
+                              or league_name)
 
         # Get current league
         league = session.query(League).join(Season).filter(
@@ -2104,14 +2248,13 @@ def api_position_analysis(league_name: str, team_id: int):
 # the panel just re-renders whatever comes back.
 #
 
-DRAFT_VIEW_ROLES = ['Pub League Admin', 'Global Admin', 'Pub League Coach', 'Premier Coach', 'Classic Coach']
+DRAFT_VIEW_ROLES = draft_access_roles  # callable; resolved per request
 
 
 def _queue_league_or_none(league_name):
     """Current-season League row for a /draft URL slug or display name."""
-    db_league_name = {
-        'classic': 'Classic', 'premier': 'Premier', 'ecs_fc': 'ECS FC'
-    }.get(league_name.lower().replace(' ', '_'))
+    db_league_name = program_registry.league_name_for_draft_slug(
+        league_name.lower().replace(' ', '_'))
     if not db_league_name:
         return None
     return g.db_session.query(League).join(Season).filter(
