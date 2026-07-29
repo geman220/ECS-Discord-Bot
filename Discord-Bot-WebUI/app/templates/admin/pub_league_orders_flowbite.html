@@ -333,8 +333,11 @@
                         {% if order.divisions %}
                             {# Mixed ONLY when one order spans several divisions. The old chain
                                tested Premier/Classic by name, so an order for any newer program
-                               fell through every branch and rendered an EMPTY cell. #}
-                            {% set _divs = order.divisions | reject('none') | unique | list %}
+                               fell through every branch and rendered an EMPTY cell.
+                               ⚠️ order.divisions is the comma-joined STRING from string_agg, so it
+                               MUST be split first — iterating the string itself yields characters
+                               ("Premier" -> P,r,e,m,i), which made every single order read "Mixed". #}
+                            {% set _divs = order.divisions.split(',') | map('trim') | reject('equalto', '') | unique | list %}
                             {% if _divs | length > 1 %}
                             <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Mixed</span>
                             {% elif 'Premier' in _divs %}
@@ -694,8 +697,11 @@
                             {% if order.divisions %}
                                 {# Mixed ONLY when one order spans several divisions. The old chain
                                    tested Premier/Classic by name, so an order for any newer program
-                                   fell through every branch and rendered an EMPTY cell. #}
-                                {% set _divs = order.divisions | reject('none') | unique | list %}
+                                   fell through every branch and rendered an EMPTY cell.
+                                   ⚠️ order.divisions is the comma-joined STRING from string_agg, so it
+                                   MUST be split first — iterating the string itself yields characters
+                                   ("Premier" -> P,r,e,m,i), which made every single order read "Mixed". #}
+                                {% set _divs = order.divisions.split(',') | map('trim') | reject('equalto', '') | unique | list %}
                                 {% if _divs | length > 1 %}
                                 <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Mixed</span>
                                 {% elif 'Premier' in _divs %}

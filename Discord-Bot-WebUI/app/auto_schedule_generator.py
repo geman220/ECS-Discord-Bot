@@ -1559,18 +1559,23 @@ class AutoScheduleGenerator:
                 f"{[str(t) for t in time_slots]}"
             )
         elif league_key in spec_times:
-            fixed, base = spec_times[league_key]
-            time_slots = list(fixed[:needed])
-            # Extend beyond the specified slots using match duration + configured break.
-            # (The fixed spec times already bake in their own cadence, so this only
-            # affects extra slots for larger-than-standard leagues.)
-            if len(time_slots) < needed:
-                step = (self.match_duration_minutes or 70) + (getattr(self, 'break_duration_minutes', 0) or 0)
-                cursor = datetime.combine(pacific_today(), time_slots[-1] if time_slots else base)
-                while len(time_slots) < needed:
-                    cursor += timedelta(minutes=step)
-                    time_slots.append(cursor.time())
-            logger.info(f"Using {league_key.title()} times ({needed} slots): {[str(t) for t in time_slots]}")
+            # The spec times are returned VERBATIM -- not sliced to `needed`, not
+            # extended past the list.
+            #
+            # ⚠️ An earlier revision did `fixed[:needed]` plus an extension loop,
+            # where `needed = num_teams // num_fields`. For an 8-team Classic
+            # league that yields 4 slots instead of the specified 2, i.e. it
+            # CHANGED LIVE PREMIER/CLASSIC SCHEDULING to support a program that
+            # does not even use this branch. Premier and Classic have fixed,
+            # published kickoff grids; the team count does not move them.
+            #
+            # A program with its own kickoff times uses the start_override branch
+            # above, and anything else falls through to the general case below.
+            # Neither needs this branch to flex.
+            fixed, _base = spec_times[league_key]
+            time_slots = list(fixed)
+            logger.info(f"Using {league_key.title()} spec times "
+                        f"({len(time_slots)} slots): {[str(t) for t in time_slots]}")
         else:
             # General case - use configured start time, match duration + break between slots.
             start_time = self.start_time or time(8, 0)
@@ -1862,22 +1867,49 @@ class AutoScheduleGenerator:
                 practice_game_number=1
             )
         else:
-            # Generic defaults instead of raising.
+            # Registry-driven for any REGISTERED program; a genuinely unknown
+            # type still RAISES.
             #
-            # This raise paired badly with auto_schedule_routes' derivation,
-            # which DEFAULTED any unrecognised league to 'ECS_FC': the pair
-            # meant a new program either silently inherited ECS FC's week
-            # structure, or -- the moment that derivation was corrected to emit
-            # the program's real type -- 500'd the season-config page instead.
-            # Neither is acceptable, so an unknown type now gets a conservative
-            # baseline the admin can edit.
+            # ⚠️ An earlier revision replaced the raise with a blanket 8-week
+            # baseline so a new program would not 500. That traded a loud error
+            # for a SILENT WRONG DEFAULT -- and it is wrong in a way that
+            # matters: Summer Sprint is a seeded 4+1 season, so the generic 8+1
+            # silently contradicts its real schedule, and pressing "generate"
+            # would then produce fixtures that disagree with the seeded ones.
+            #
+            # A registered program gets a baseline derived from its own season,
+            # and anything unregistered fails loudly, which is the behaviour the
+            # rest of this change set standardised on.
+            _weeks = None
+            try:
+                from app.services import program_registry
+                _lt = (league_type or '').strip().lower().replace('_', ' ')
+                for _pr in program_registry.all_programs(active_only=False):
+                    _cands = {
+                        (_pr.key or '').lower(),
+                        (_pr.membership_lane or '').lower().replace('_', ' '),
+                        (_pr.league_name or '').lower(),
+                        (_pr.season_config_type or '').lower().replace('_', ' '),
+                    }
+                    if _lt in {c for c in _cands if c}:
+                        _weeks = _pr
+                        break
+            except Exception as _reg_err:
+                logger.warning(f"season-config registry lookup failed for "
+                               f"'{league_type}': {_reg_err}")
+
+            if _weeks is None:
+                raise ValueError(f"Unknown league type: {league_type}")
+
             logger.info(
-                f"No built-in season defaults for league type '{league_type}'; "
-                f"using a generic 8-week / 1-playoff baseline."
+                f"Building a default season configuration for registered program "
+                f"'{_weeks.key}' from league_type '{league_type}'. Review the week "
+                f"counts before generating -- a seeded season (e.g. an explicitly "
+                f"listed fixture set) will not match this baseline."
             )
             return SeasonConfiguration(
                 league_id=league_id,
-                league_type=league_type,
+                league_type=league_type.upper(),
                 regular_season_weeks=8,
                 playoff_weeks=1,
                 has_fun_week=False,
@@ -1887,7 +1919,6 @@ class AutoScheduleGenerator:
                 practice_weeks=None,
                 practice_game_number=1
             )
-    
     @staticmethod
     def generate_week_configurations_from_season_config(season_config: SeasonConfiguration, 
                                                        start_date: date) -> List[Dict]:

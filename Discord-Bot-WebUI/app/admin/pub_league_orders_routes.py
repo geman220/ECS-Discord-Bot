@@ -414,23 +414,14 @@ def orders_list():
         )
 
 
-@pub_league_orders_admin_bp.route('/pub-league-orders/export-emails')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def export_order_emails():
+def _apply_order_export_filters(query, filters):
+    """Apply the shared status/search/season/division scope to an export query.
+
+    Shared by the order rows and the per-order jersey-size aggregate so the two
+    can never disagree about which orders are in scope. The division/season
+    conditions are correlated on PubLeagueOrder, so any query that selects from
+    (or joins to) PubLeagueOrder can use this.
     """
-    Export customer emails for the currently filtered order list as CSV.
-
-    Honors the same status/search/season query params as the list view, so
-    e.g. ?status=not_started exports exactly the orders shown on that tab.
-    Cancelled orders are excluded unless explicitly filtered to cancelled.
-    Emails are deduped (one row per address).
-    """
-    import csv
-
-    filters = _parse_order_filters()
-
-    query = db.session.query(PubLeagueOrder)
     if filters['status_filter'] != 'all':
         query = query.filter(PubLeagueOrder.status == filters['status_filter'])
     else:
@@ -448,6 +439,65 @@ def export_order_emails():
         query = query.filter(filters['season_condition'])
     if filters['division_condition'] is not None:
         query = query.filter(filters['division_condition'])
+    return query
+
+
+# Smallest-to-largest so the jersey column reads like a size run rather than
+# alphabetically ("AL, AM, AS"). Mirrors the size vocabulary the registration
+# form offers (W* women's, A* adult); bare S/M/L cover legacy rows. Sizes
+# outside this list (a new Woo variation) sort to the end alphabetically
+# instead of being dropped.
+_JERSEY_SIZE_ORDER = [
+    'WXS', 'WS', 'WM', 'WL', 'WXL', 'WXXL',
+    'AXS', 'AS', 'AM', 'AL', 'AXL', 'AXXL', 'A3XL', 'A4XL',
+    'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', 'XXXL', '3XL',
+]
+
+
+def _format_jersey_sizes(size_counts):
+    """Render [(size, count), ...] as "S, M x2, XL".
+
+    Count is only shown when an order has more than one pass in that size.
+    Passes whose Woo product name carried no parseable size land as NULL and
+    render as "Unknown" rather than vanishing, so the listed sizes always
+    account for every pass on the order.
+    """
+    def _key(item):
+        size = (item[0] or '').upper()
+        try:
+            return (_JERSEY_SIZE_ORDER.index(size), '')
+        except ValueError:
+            return (len(_JERSEY_SIZE_ORDER), size)
+
+    parts = []
+    for size, count in sorted(size_counts, key=_key):
+        label = size or 'Unknown'
+        parts.append(f'{label} x{count}' if count > 1 else label)
+    return ', '.join(parts)
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/export-emails')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_order_emails():
+    """
+    Export customer emails for the currently filtered order list as CSV.
+
+    Honors the same status/search/season query params as the list view, so
+    e.g. ?status=not_started exports exactly the orders shown on that tab.
+    Cancelled orders are excluded unless explicitly filtered to cancelled.
+    Emails are deduped (one row per address).
+
+    The jersey_sizes column comes from the ORDER's own line items (the size
+    extracted from the WooCommerce variation the customer bought), NOT from
+    Player.jersey_size — profile sizes drift, and an unlinked pass has no
+    player attached at all.
+    """
+    import csv
+
+    filters = _parse_order_filters()
+
+    query = _apply_order_export_filters(db.session.query(PubLeagueOrder), filters)
 
     # Always dedup by NEWEST order per email (created_at desc), independent of
     # the list's display sort. The CSV is for mail-merge, so row order doesn't
@@ -455,9 +505,30 @@ def export_order_emails():
     # counts must be deterministic, not a side effect of the active sort.
     orders = query.order_by(desc(PubLeagueOrder.created_at), desc(PubLeagueOrder.id)).all()
 
+    # One grouped pass over the in-scope line items instead of touching the
+    # lazy='dynamic' line_items relationship per order (that would be a query
+    # per row). Filtered by the same scope so it stays a bounded aggregate.
+    size_rows = _apply_order_export_filters(
+        db.session.query(
+            PubLeagueOrderLineItem.order_id,
+            PubLeagueOrderLineItem.jersey_size,
+            func.count(PubLeagueOrderLineItem.id),
+        ).join(PubLeagueOrder, PubLeagueOrderLineItem.order_id == PubLeagueOrder.id),
+        filters,
+    ).group_by(
+        PubLeagueOrderLineItem.order_id, PubLeagueOrderLineItem.jersey_size
+    ).all()
+
+    sizes_by_order = {}
+    for order_id, jersey_size, count in size_rows:
+        sizes_by_order.setdefault(order_id, []).append((jersey_size, count))
+
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(['name', 'email', 'woo_order_id', 'status', 'season', 'linked_passes', 'total_passes'])
+    writer.writerow([
+        'name', 'email', 'woo_order_id', 'status', 'season',
+        'linked_passes', 'total_passes', 'jersey_sizes',
+    ])
     seen = set()
     for o in orders:
         email = (o.customer_email or '').strip()
@@ -467,6 +538,7 @@ def export_order_emails():
         writer.writerow([
             o.customer_name or '', email, o.woo_order_id, o.status,
             o.season_name or '', o.linked_passes, o.total_passes,
+            _format_jersey_sizes(sizes_by_order.get(o.id, [])),
         ])
 
     status_slug = filters['status_filter']
