@@ -45,19 +45,21 @@ class MobileTeamService(BaseService):
         Returns:
             ServiceResult with list of teams
         """
-        # Get current seasons
-        current_pub_season = self.session.query(Season).filter_by(
-            is_current=True, league_type='Pub League'
-        ).first()
+        # Every current season, across every program — not just Pub League's.
+        # Hardcoding 'Pub League' here meant a program with its own season type
+        # (Summer Sprint = 'PL Third') had NO teams in the mobile app at all:
+        # its League.season_id matched neither condition, so the roster screen
+        # was simply empty for those players.
+        from app.utils.season_context import current_program_season_ids
+        season_ids = list(current_program_season_ids(self.session))
+
         current_ecs_season = self.session.query(Season).filter_by(
             is_current=True, league_type='ECS FC'
         ).first()
-
-        conditions = []
-        if current_pub_season:
-            conditions.append(League.season_id == current_pub_season.id)
         if current_ecs_season:
-            conditions.append(League.season_id == current_ecs_season.id)
+            season_ids.append(current_ecs_season.id)
+
+        conditions = [League.season_id.in_(season_ids)] if season_ids else []
 
         query = self.session.query(Team).join(
             League, Team.league_id == League.id

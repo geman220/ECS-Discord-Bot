@@ -212,7 +212,9 @@ def manage_league_pool(league_type: str):
         ]
         
         # Get recent activity
-        from app.models import League
+          # NOTE: 'League' intentionally NOT re-imported here -- it is already imported at
+          # module scope, and a function-local import would make it local to the
+          # WHOLE function, raising UnboundLocalError at its earlier use above.
         recent_activity = session.query(SubstitutePoolHistory).options(
             joinedload(SubstitutePoolHistory.player),
             joinedload(SubstitutePoolHistory.performer)
@@ -1177,7 +1179,9 @@ def get_substitute_responses_for_assignment(match_type: str, match_id: str):
         ).filter_by(request_id=request.id).all()
         
         # Also get pool members who haven't responded
-        from app.models_substitute_pools import get_active_substitutes
+          # NOTE: 'get_active_substitutes' intentionally NOT re-imported here -- it is already imported at
+          # module scope, and a function-local import would make it local to the
+          # WHOLE function, raising UnboundLocalError at its earlier use above.
         all_pool_subs = get_active_substitutes(league_type, session)
         
         # Create a mapping of responses

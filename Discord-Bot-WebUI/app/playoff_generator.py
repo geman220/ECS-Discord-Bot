@@ -416,7 +416,7 @@ class PlayoffGenerator:
         Returns:
             List of Match objects that are playoff matches
         """
-        from app.models import Match, Schedule, Team
+        from app.models import Schedule, Team
 
         # Find ALL playoff matches for rounds 1 and 2 (not just placeholders)
         # This prevents creating duplicates when regenerating
@@ -449,7 +449,7 @@ class PlayoffGenerator:
         Returns:
             Tuple of (updated_matches, created_matches)
         """
-        from app.models import Schedule, Match
+        from app.models import Schedule
         from app.schedule_routes import ScheduleManager
 
         updated = []

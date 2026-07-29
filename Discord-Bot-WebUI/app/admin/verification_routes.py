@@ -16,7 +16,7 @@ from sqlalchemy.orm import joinedload, aliased
 
 from app.decorators import role_required
 from app.alert_helpers import show_error, show_success, show_warning
-from app.models import Match, Team, Season, League, Schedule
+from app.models import Match, Team, League, Schedule
 from app.utils.user_helpers import safe_current_user
 
 logger = logging.getLogger(__name__)
@@ -45,18 +45,27 @@ def match_verification_dashboard():
     logger.info("Starting match verification dashboard load")
     
     try:
-        # Get the current PUB LEAGUE season
-        current_season = session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
-        if not current_season:
-            logger.warning("No current Pub League season found")
-            show_warning("No current Pub League season found. Contact an administrator.")
+        # EVERY current season, not just Pub League's.
+        #
+        # Scoped to 'Pub League' alone, this dashboard silently excluded every
+        # match belonging to a program with its own season type (Summer Sprint =
+        # 'PL Third'): its leagues were not in `league_ids`, so its teams were
+        # not in `team_ids`, so its matches were filtered out of the query.
+        # There was no way to verify a Summer result from this page at all.
+        from app.utils.season_context import current_program_seasons
+        current_seasons = current_program_seasons(session)
+        if not current_seasons:
+            logger.warning("No current season found for any program")
+            show_warning("No current season found. Contact an administrator.")
             return render_template('admin/match_verification_flowbite.html',
                                   title='Match Verification Dashboard',
                                   matches=[],
                                   is_coach=False)
-        
-        logger.info(f"Current season: {current_season.name} (ID: {current_season.id})")
-                                  
+
+        current_season_ids = [s.id for s in current_seasons]
+        logger.info("Current seasons: %s",
+                    ', '.join(f"{s.name} (ID: {s.id})" for s in current_seasons))
+
         # Start with a base query of all matches with eager loading for related entities
         query = session.query(Match).options(
             joinedload(Match.home_team),
@@ -66,9 +75,10 @@ def match_verification_dashboard():
             joinedload(Match.schedule)
         )
         
-        # Get all team IDs that belong to leagues in the current season
-        league_ids = [league.id for league in session.query(League).filter_by(season_id=current_season.id).all()]
-        logger.info(f"Found {len(league_ids)} leagues in current season: {league_ids}")
+        # Get all team IDs that belong to leagues in the current seasons
+        league_ids = [league.id for league in
+                      session.query(League).filter(League.season_id.in_(current_season_ids)).all()]
+        logger.info(f"Found {len(league_ids)} leagues in current seasons: {league_ids}")
         
         team_ids = []
         if league_ids:
@@ -216,19 +226,17 @@ def match_verification_dashboard():
         # Using a direct query approach to get weeks from schedules related to matches
         weeks = []
         try:
-            if current_season:
-                # First, log some debug info about schedules
-                schedule_count = session.query(Schedule).filter_by(season_id=current_season.id).count()
-                logger.info(f"Found {schedule_count} schedules for season {current_season.id}")
-                
-                # If there are schedules, check a sample to see what weeks they have
-                if schedule_count > 0:
-                    sample_schedules = session.query(Schedule).filter_by(season_id=current_season.id).limit(5).all()
-                    logger.info(f"Sample schedule weeks: {[s.week for s in sample_schedules]}")
-                
-                # Now try to get all distinct non-empty weeks
+            if current_season_ids:
+                schedule_count = session.query(Schedule).filter(
+                    Schedule.season_id.in_(current_season_ids)).count()
+                logger.info(f"Found {schedule_count} schedules across current seasons")
+
+                # Distinct non-empty weeks across every current season. A week
+                # number repeats across programs (both have a "week 3"), so the
+                # distinct + sort below collapses them into one filter entry,
+                # which is what the dropdown wants.
                 week_results = session.query(Schedule.week).filter(
-                    Schedule.season_id == current_season.id,
+                    Schedule.season_id.in_(current_season_ids),
                     Schedule.week != None,
                     Schedule.week != ''
                 ).distinct().all()
@@ -257,8 +265,10 @@ def match_verification_dashboard():
         # Get leagues for the current season
         leagues = []
         try:
-            if current_season:
-                leagues = session.query(League).filter_by(season_id=current_season.id).all()
+            if current_season_ids:
+                leagues = (session.query(League)
+                           .filter(League.season_id.in_(current_season_ids))
+                           .order_by(League.name).all())
                 logger.info(f"Available leagues: {[league.name for league in leagues]}")
         except Exception as league_error:
             logger.error(f"Error getting leagues: {str(league_error)}")
@@ -280,7 +290,8 @@ def match_verification_dashboard():
             current_week=current_week,
             current_league_id=int(current_league_id) if current_league_id else None,
             current_verification_status=current_verification_status,
-            current_season=current_season,
+            # Template shows one season label; give it the primary (newest id).
+            current_season=current_seasons[0] if current_seasons else None,
             verifiable_teams=verifiable_teams,
             is_coach=is_coach,
             sort_by=sort_by,

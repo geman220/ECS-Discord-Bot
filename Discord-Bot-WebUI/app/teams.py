@@ -58,6 +58,27 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _all_division_names():
+    """Every `League.name` that can have its own standings/leaderboard tab.
+
+    The three legacy names lead so the templates' hardcoded Premier/Classic/ECS FC
+    tabs keep their order; anything else the registry knows about is appended and
+    rendered through the generic "extra" panes.
+
+    Falls back to exactly the legacy three if the registry is unreachable, which
+    is the behaviour these pages had before it existed.
+    """
+    names = ['Premier', 'Classic', 'ECS FC']
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs():
+            if pr.league_name and pr.league_name not in names:
+                names.append(pr.league_name)
+    except Exception:
+        pass
+    return names
+
+
 def _get_special_week_display_name(match):
     """
     Get the display name for special weeks where home_team_id == away_team_id.
@@ -1076,12 +1097,41 @@ def view_standings():
     and populates team statistics for display.
     """
     session = g.db_session
-    season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
-    if not season:
+
+    # ⚠️ Season is resolved PER PROGRAM, not once for the page.
+    #
+    # This used a single current 'Pub League' season for every tab. Each program
+    # owns its own `Season.league_type` and therefore its own season row, so
+    # filtering Summer Sprint's (or ECS FC's) standings by Pub League's season id
+    # matched nothing: the tab machinery below was already program-aware, but
+    # `if _rows:` then hid every extra tab because the query could not return a
+    # row. ECS FC's tab was empty for the same reason.
+    #
+    # A shared "current season" is the wrong shape for this page entirely — each
+    # division is a separate table, so each resolves its own season and NOTHING
+    # is merged.
+    from app.utils.season_context import (
+        current_season_for_program, current_pub_league_season, current_program_seasons)
+
+    _season_ids = {}
+
+    def _season_id_for(league_name):
+        """Current season id of the program that owns this league, or None."""
+        if league_name not in _season_ids:
+            _s = current_season_for_program(league_name, session)
+            _season_ids[league_name] = _s.id if _s else None
+        return _season_ids[league_name]
+
+    # Primary season: the page header and any Pub-League-specific copy.
+    season = current_pub_league_season()
+    if not season and not current_program_seasons(session):
         show_warning('No current season found.')
         return redirect(url_for('main.index'))
 
     def get_standings(league_name):
+        _sid = _season_id_for(league_name)
+        if _sid is None:
+            return []
         return (
             session.query(Standings)
             .join(Team)
@@ -1092,7 +1142,7 @@ def view_standings():
             # transaction was released — so each one took a fresh connection.
             .options(joinedload(Standings.team))
             .filter(
-                Standings.season_id == season.id,
+                Standings.season_id == _sid,
                 Team.id == Standings.team_id,
                 League.id == Team.league_id,
                 League.name == league_name
@@ -1145,13 +1195,21 @@ def view_standings():
     # The award_data / _top_stat leaderboards below ARE rendered — do not touch those.
     # teams_helpers.populate_team_stats() is still called from teams.py:1414 — keep it.
 
-    # Season awards / leaderboards per league
-    leagues = session.query(League).filter(League.season_id == season.id).all()
+    # Season awards / leaderboards per league.
+    #
+    # Scoped to one season id, `league_map` only ever contained Pub League's
+    # leagues, so `_top_stat` returned [] for every other program before it even
+    # reached the stats query. Built across each program's own current season.
+    _award_season_ids = {sid for sid in
+                         (_season_id_for(n) for n in _all_division_names()) if sid}
+    leagues = (session.query(League).filter(League.season_id.in_(_award_season_ids)).all()
+               if _award_season_ids else [])
     league_map = {league.name: league for league in leagues}
 
     def _top_stat(league_name, stat_attr, limit=10):
         league = league_map.get(league_name)
-        if not league:
+        _sid = _season_id_for(league_name)
+        if not league or _sid is None:
             return []
         return (
             session.query(
@@ -1162,7 +1220,7 @@ def view_standings():
             .join(player_teams, Player.id == player_teams.c.player_id)
             .join(Team, player_teams.c.team_id == Team.id)
             .filter(
-                PlayerSeasonStats.season_id == season.id,
+                PlayerSeasonStats.season_id == _sid,
                 PlayerSeasonStats.league_id == league.id,
                 getattr(PlayerSeasonStats, stat_attr) > 0,
                 Team.league_id == league.id,
@@ -1174,15 +1232,7 @@ def view_standings():
         )
 
     award_data = {}
-    _award_divisions = ['Premier', 'Classic', 'ECS FC']
-    try:
-        from app.services import program_registry
-        for _pr in program_registry.all_programs():
-            if _pr.league_name not in _award_divisions:
-                _award_divisions.append(_pr.league_name)
-    except Exception:
-        pass
-    for div in _award_divisions:
+    for div in _all_division_names():
         prefix = div.lower().replace(' ', '_')
         award_data[f'{prefix}_top_scorers'] = _top_stat(div, 'goals')
         award_data[f'{prefix}_top_assisters'] = _top_stat(div, 'assists')
@@ -1231,27 +1281,40 @@ def season_overview():
     - All goal scorers across the league
     """
     session = g.db_session
-    
-    # Get the current Pub League season
-    season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
-    if not season:
+
+    # Season resolved PER PROGRAM — see view_standings for the full reasoning.
+    # A single 'Pub League' season id here filtered every other program's stats
+    # to nothing, so their leaderboards were permanently empty rather than wrong.
+    # Each division is its own table and its own leaderboard, so nothing merges.
+    from app.utils.season_context import (
+        current_season_for_program, current_pub_league_season, current_program_seasons)
+
+    _season_ids = {}
+
+    def _season_id_for(league_name):
+        """Current season id of the program that owns this league, or None."""
+        if league_name not in _season_ids:
+            _s = current_season_for_program(league_name, session)
+            _season_ids[league_name] = _s.id if _s else None
+        return _season_ids[league_name]
+
+    season = current_pub_league_season()
+    if not season and not current_program_seasons(session):
         show_warning('No current season found.')
         return redirect(url_for('main.index'))
-    
-    # Define a function to get all leagues for a season
-    def get_leagues(season_id):
-        return (
-            session.query(League)
-            .filter(League.season_id == season_id)
-            .all()
-        )
-    
-    # Get all leagues for the current season
-    leagues = get_leagues(season.id)
+
+    # Leagues across every program's own current season.
+    _stat_season_ids = {sid for sid in
+                        (_season_id_for(n) for n in _all_division_names()) if sid}
+    leagues = (session.query(League).filter(League.season_id.in_(_stat_season_ids)).all()
+               if _stat_season_ids else [])
     league_map = {league.name: league for league in leagues}
-    
+
     # Get standings for each division
     def get_standings(league_name):
+        _sid = _season_id_for(league_name)
+        if _sid is None:
+            return []
         return (
             session.query(Standings)
             .join(Team)
@@ -1262,7 +1325,7 @@ def season_overview():
             # transaction was released — so each one took a fresh connection.
             .options(joinedload(Standings.team))
             .filter(
-                Standings.season_id == season.id,
+                Standings.season_id == _sid,
                 Team.id == Standings.team_id,
                 League.id == Team.league_id,
                 League.name == league_name
@@ -1281,7 +1344,8 @@ def season_overview():
     # Get top scorers for each division (Golden Boot)
     def get_top_scorers(league_name, limit=10):
         league = league_map.get(league_name)
-        if not league:
+        _sid = _season_id_for(league_name)
+        if not league or _sid is None:
             return []
         
         return (
@@ -1293,7 +1357,7 @@ def season_overview():
             .join(player_teams, Player.id == player_teams.c.player_id)
             .join(Team, player_teams.c.team_id == Team.id)
             .filter(
-                PlayerSeasonStats.season_id == season.id,
+                PlayerSeasonStats.season_id == _sid,
                 Team.league_id == league.id,
                 PlayerSeasonStats.goals > 0
             )
@@ -1306,7 +1370,8 @@ def season_overview():
     # Get top assisters for each division (Silver Boot)
     def get_top_assisters(league_name, limit=10):
         league = league_map.get(league_name)
-        if not league:
+        _sid = _season_id_for(league_name)
+        if not league or _sid is None:
             return []
         
         return (
@@ -1318,7 +1383,7 @@ def season_overview():
             .join(player_teams, Player.id == player_teams.c.player_id)
             .join(Team, player_teams.c.team_id == Team.id)
             .filter(
-                PlayerSeasonStats.season_id == season.id,
+                PlayerSeasonStats.season_id == _sid,
                 Team.league_id == league.id,
                 PlayerSeasonStats.assists > 0
             )
@@ -1331,7 +1396,8 @@ def season_overview():
     # Get yellow cards for each division
     def get_yellow_cards(league_name, limit=10):
         league = league_map.get(league_name)
-        if not league:
+        _sid = _season_id_for(league_name)
+        if not league or _sid is None:
             return []
         
         return (
@@ -1343,7 +1409,7 @@ def season_overview():
             .join(player_teams, Player.id == player_teams.c.player_id)
             .join(Team, player_teams.c.team_id == Team.id)
             .filter(
-                PlayerSeasonStats.season_id == season.id,
+                PlayerSeasonStats.season_id == _sid,
                 Team.league_id == league.id,
                 PlayerSeasonStats.yellow_cards > 0
             )
@@ -1356,7 +1422,8 @@ def season_overview():
     # Get red cards for each division
     def get_red_cards(league_name, limit=10):
         league = league_map.get(league_name)
-        if not league:
+        _sid = _season_id_for(league_name)
+        if not league or _sid is None:
             return []
         
         return (
@@ -1368,7 +1435,7 @@ def season_overview():
             .join(player_teams, Player.id == player_teams.c.player_id)
             .join(Team, player_teams.c.team_id == Team.id)
             .filter(
-                PlayerSeasonStats.season_id == season.id,
+                PlayerSeasonStats.season_id == _sid,
                 Team.league_id == league.id,
                 PlayerSeasonStats.red_cards > 0
             )
@@ -1474,6 +1541,43 @@ def season_overview():
     classic_yellow_cards = get_yellow_cards('Classic')
     classic_red_cards = get_red_cards('Classic')
     
+    # Every OTHER program gets its own tab, built from the same macros. The two
+    # hardcoded panes above stay as-is (the template reads them by name); anything
+    # the registry knows about beyond Premier/Classic arrives as `extra_divisions`.
+    #
+    # Included even when empty: this is the admin overview, and "Summer Sprint,
+    # no results yet" is information. Standings rows are created lazily on the
+    # first reported score, so a brand-new program legitimately has none.
+    extra_divisions = []
+    try:
+        from app.services import program_registry
+        for _pr in program_registry.all_programs():
+            if _pr.league_name in ('Premier', 'Classic') or not _pr.league_name:
+                continue
+            if _season_id_for(_pr.league_name) is None:
+                continue  # program has no current season — nothing to show
+            _ln = _pr.league_name
+            # The kit macros render `class="ti {{ icon }}"`, so they want the
+            # BARE name ('ti-trophy'). The registry stores the full class string
+            # ('ti ti-trophy'), so strip the redundant base class here rather
+            # than emitting `class="ti ti ti-trophy"` in three places.
+            _icon = (_pr.icon or 'ti ti-trophy').strip()
+            if _icon.startswith('ti '):
+                _icon = _icon[3:].strip()
+            extra_divisions.append({
+                'key': _pr.key,
+                'name': _pr.display_name or _ln,
+                'league_name': _ln,
+                'icon': _icon or 'ti-trophy',
+                'standings': get_standings(_ln),
+                'top_scorers': get_top_scorers(_ln),
+                'top_assisters': get_top_assisters(_ln),
+                'yellow_cards': get_yellow_cards(_ln),
+                'red_cards': get_red_cards(_ln),
+            })
+    except Exception as _ed_err:
+        logger.warning(f"Could not build extra season-overview divisions: {_ed_err}")
+
     # Get all league stats
     all_goal_scorers = get_all_goal_scorers(season.id)
     all_assist_providers = get_all_assist_providers(season.id)
@@ -1533,6 +1637,7 @@ def season_overview():
         premier_all_assist_providers=premier_all_assist_providers,
         classic_all_goal_scorers=classic_all_goal_scorers,
         classic_all_assist_providers=classic_all_assist_providers,
+        extra_divisions=extra_divisions,
         total_own_goals=total_own_goals,
         premier_own_goals=premier_own_goals,
         classic_own_goals=classic_own_goals

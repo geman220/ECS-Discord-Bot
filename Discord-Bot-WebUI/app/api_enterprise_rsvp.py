@@ -34,7 +34,7 @@ csrf.exempt(enterprise_rsvp_bp)
 
 
 @enterprise_rsvp_bp.route('/rsvp/update', methods=['POST'])
-def update_rsvp_enterprise_from_discord():
+def update_rsvp_enterprise_from_discord(payload=None):
     """
     Enterprise RSVP update endpoint with production-grade reliability.
     
@@ -70,7 +70,16 @@ def update_rsvp_enterprise_from_discord():
     with managed_session() as session_db:
         try:
             # Validate request data
-            data = request.json
+            # `payload` lets an internal caller invoke this handler directly
+            # instead of monkeypatching request.json -- which is a READ-ONLY
+            # property on Flask's Request, so the old
+            # `request.json = enterprise_request_data` in availability_api raised
+            # AttributeError on EVERY call. A broad except swallowed it, so the
+            # enterprise path never actually ran: every Discord RSVP silently took
+            # the legacy fallback while the logs claimed a successful redirect.
+            # Flask never passes arguments to a view function, so the default
+            # keeps the HTTP route behaviour byte-identical.
+            data = payload if payload is not None else request.json
             if not data:
                 return jsonify({"error": "Request body required"}), 400
             

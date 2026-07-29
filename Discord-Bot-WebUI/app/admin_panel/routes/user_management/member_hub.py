@@ -487,7 +487,8 @@ def members_worklist():
                            season_filter=season_filter, lane_filter=lane_filter,
                            sub_status_filter=sub_status_filter, qp_status=qp_status,
                            any_filter=any_filter, tab_kpis=tab_kpis, waitlist_open=waitlist_open,
-                           active_chips=active_chips, result_total=result_total, result_shown=result_shown)
+                           active_chips=active_chips, result_total=result_total, result_shown=result_shown,
+                           approve_programs=_approve_program_options())
 
 
 def _member_export_row(user):
@@ -644,6 +645,52 @@ def members_export():
     return _build_xlsx_response([(sheet, rows), ('Filters Applied', applied)], prefix)
 
 
+def _approve_program_options():
+    """[{value, label, waitlist_value}] for the Hub's approve-into dropdown.
+
+    Mirrors the two vocabularies the backend actually validates against, rather
+    than inventing a third:
+
+      * league / sub  -> `integrity_service.approve_league_types()`, which is
+        `form_value or membership_lane` (and its `sub-` twin);
+      * waitlist      -> `approvals.waitlist_league_map()`, whose keys are
+        `waitlist-<lane with underscores swapped for hyphens>`.
+
+    Those two disagree for a lane like `pl_third` (approve wants `pl_third`,
+    waitlist wants `waitlist-pl-third`), so the values are derived separately
+    and the waitlist entry is emitted ONLY when the map really has that key.
+    Offering an option the validator rejects is a 400 the admin cannot explain.
+
+    Falls back to the legacy three if the registry is unreachable, so a missing
+    `program` table degrades to today's behaviour instead of an empty select.
+    """
+    legacy = [
+        {'value': 'classic', 'label': 'Classic', 'waitlist_value': 'waitlist-classic'},
+        {'value': 'premier', 'label': 'Premier', 'waitlist_value': 'waitlist-premier'},
+        {'value': 'ecs-fc', 'label': 'ECS FC', 'waitlist_value': 'waitlist-ecs-fc'},
+    ]
+    try:
+        from app.services import program_registry
+        from app.admin_panel.routes.user_management.approvals import waitlist_league_map
+
+        wl_map = waitlist_league_map()
+        out = []
+        for p in program_registry.all_programs():
+            value = p.form_value or p.membership_lane
+            if not value:
+                continue
+            wl_key = f"waitlist-{(p.form_value or p.membership_lane).replace('_', '-')}"
+            out.append({
+                'value': value,
+                'label': p.display_name or p.league_name or value,
+                'waitlist_value': wl_key if wl_key in wl_map else None,
+            })
+        return out or legacy
+    except Exception:
+        logger.exception("member hub: approval program options fell back to legacy list")
+        return legacy
+
+
 @admin_panel_bp.route('/members/<int:user_id>')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -693,7 +740,8 @@ def member_hub(user_id):
     return render_template('admin_panel/members/member_hub_flowbite.html', m=data,
                            all_roles=all_roles, user_role_ids=user_role_ids, leagues=leagues,
                            primary_team_id=primary_team_id, hub_teams=hub_teams, extras=extras,
-                           relink_request=relink_request)
+                           relink_request=relink_request,
+                           approve_programs=_approve_program_options())
 
 
 _AUDIT_LABELS = {
@@ -1372,6 +1420,19 @@ def _pool_row_for_lane(session, player_id, lane):
     return None
 
 
+def _delete_pool_row(session, row):
+    """Delete a SubstitutePool row, clearing its history rows first.
+
+    substitute_pool_history.pool_id is NOT NULL and the FK has no ON DELETE
+    rule, so a bare delete of a pool row that the legacy log_pool_action ever
+    wrote history for raises IntegrityError instead of removing the member.
+    """
+    from app.models.substitutes import SubstitutePoolHistory
+    session.query(SubstitutePoolHistory).filter_by(
+        pool_id=row.id).delete(synchronize_session=False)
+    session.delete(row)
+
+
 def _canonical_league_type(lane):
     """Membership lane -> the League.name stored in SubstitutePool.league_type."""
     try:
@@ -1560,7 +1621,7 @@ def member_sub_remove(user_id):
 
     sp = _pool_row_for_lane(db.session, pid, target)
     if sp:
-        db.session.delete(sp)
+        _delete_pool_row(db.session, sp)
     if target == 'ecs_fc':
         ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
         if ep:
@@ -1614,7 +1675,7 @@ def member_sub_reject(user_id):
         return jsonify({'success': False, 'message': 'No pending sub signup to reject'}), 404
 
     for r in rows:
-        db.session.delete(r)
+        _delete_pool_row(db.session, r)
     rname = role_map.get(league_type)
     if rname:
         role = db.session.query(Role).filter_by(name=rname).first()

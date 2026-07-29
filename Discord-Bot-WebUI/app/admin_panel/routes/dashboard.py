@@ -80,19 +80,24 @@ def build_attention_queue(user):
     # sitting on the dashboard forever — work nobody is going to do, on a board whose
     # whole job is "what needs action now". It also drifted from the match-verification
     # page these rows link to, which has always been season-scoped.
-    from app.utils.season_context import current_pub_league_season
+    # Scoped to every CURRENT season, across programs. Pub-League-only scoping
+    # meant a Summer Sprint result that nobody had reported never appeared in
+    # the "needs action now" queue — the one board whose entire job is to say
+    # so. Widening keeps the original intent (exclude finished seasons' dead
+    # backlog) while covering every season actually being played.
+    from app.utils.season_context import current_program_season_ids
     try:
-        _season = current_pub_league_season()
+        _season_ids = current_program_season_ids()
     except Exception as e:
         logger.warning(f"attention/season: {e}")
-        _season = None
+        _season_ids = []
 
     def _season_matches(Match, Schedule):
-        """Match query limited to the current Pub League season (empty if unknown)."""
+        """Match query limited to the current seasons (empty if none known)."""
         q = Match.query
-        if _season:
+        if _season_ids:
             return q.join(Schedule, Match.schedule_id == Schedule.id).filter(
-                Schedule.season_id == _season.id)
+                Schedule.season_id.in_(_season_ids))
         return q.filter(sa_false())
 
     # 2) Unreported matches (played, no score, not a special week)
@@ -187,16 +192,22 @@ def build_attention_queue(user):
         from app.models import Season, League, Team
         from app.models.players import PlayerTeamSeason
         from app.models.matches import Match, Schedule
-        cur = Season.query.filter_by(is_current=True, league_type='Pub League').first()
-        if cur:
-            kpis['leagues'] = League.query.filter_by(season_id=cur.id).count()
-            kpis['teams'] = Team.query.join(League).filter(League.season_id == cur.id).count()
+        # Count across EVERY current season. Scoped to 'Pub League' these KPIs
+        # silently under-reported once a second program was running: Summer
+        # Sprint's leagues, teams, players and fixtures were simply not counted,
+        # and the numbers looked plausible enough that nobody would question them.
+        from app.utils.season_context import current_program_seasons
+        _cur_seasons = current_program_seasons()
+        _cur_ids = [s.id for s in _cur_seasons]
+        if _cur_ids:
+            kpis['leagues'] = League.query.filter(League.season_id.in_(_cur_ids)).count()
+            kpis['teams'] = Team.query.join(League).filter(League.season_id.in_(_cur_ids)).count()
             kpis['active_players'] = (PlayerTeamSeason.query.join(Team, PlayerTeamSeason.team_id == Team.id)
                                       .join(League, Team.league_id == League.id)
-                                      .filter(League.season_id == cur.id).count())
+                                      .filter(League.season_id.in_(_cur_ids)).count())
             kpis['matches_this_week'] = (db.session.query(Match).join(Schedule).filter(
-                Schedule.season_id == cur.id, Match.date >= today, Match.date <= week_ahead).count())
-            kpis['season'] = cur.name
+                Schedule.season_id.in_(_cur_ids), Match.date >= today, Match.date <= week_ahead).count())
+            kpis['season'] = ', '.join(s.name for s in _cur_seasons if s.name)
     except Exception as e:
         logger.warning(f"attention/kpis: {e}")
 
@@ -235,20 +246,29 @@ def dashboard():
         from app.models import Season, League, Team, Player
         from app.models.players import PlayerTeamSeason
 
-        # Current seasons (Pub League and ECS FC)
+        # Current seasons. `pl_season_ids` spans EVERY pub-league-like program,
+        # so the counts below stop silently omitting a second running program
+        # (Summer Sprint carries its own Season.league_type, 'PL Third').
+        # `current_pub_league` is kept for the template's season label.
         try:
-            current_pub_league = Season.query.filter_by(is_current=True, league_type='Pub League').first()
+            from app.utils.season_context import current_program_seasons
+            _pl_seasons = current_program_seasons()
+            pl_season_ids = [s.id for s in _pl_seasons]
+            current_pub_league = next(
+                (s for s in _pl_seasons if s.league_type == 'Pub League'),
+                _pl_seasons[0] if _pl_seasons else None)
             current_ecs_fc = Season.query.filter_by(is_current=True, league_type='ECS FC').first()
         except Exception as e:
             logger.warning(f"Error getting current seasons: {e}")
             current_pub_league = None
             current_ecs_fc = None
+            pl_season_ids = []
 
         # Team and league counts for current Pub League season
         try:
-            if current_pub_league:
-                league_count = League.query.filter_by(season_id=current_pub_league.id).count()
-                team_count = Team.query.join(League).filter(League.season_id == current_pub_league.id).count()
+            if pl_season_ids:
+                league_count = League.query.filter(League.season_id.in_(pl_season_ids)).count()
+                team_count = Team.query.join(League).filter(League.season_id.in_(pl_season_ids)).count()
             else:
                 league_count = 0
                 team_count = 0
@@ -261,12 +281,12 @@ def dashboard():
         upcoming_matches = []
         try:
             from app.models.matches import Match, Schedule
-            if current_pub_league:
+            if pl_season_ids:
                 upcoming_matches = (
                     db.session.query(Match)
                     .join(Schedule)
                     .filter(
-                        Schedule.season_id == current_pub_league.id,
+                        Schedule.season_id.in_(pl_season_ids),
                         Match.date >= datetime.utcnow().date(),
                         Match.date <= (datetime.utcnow() + timedelta(days=7)).date()
                     )
@@ -279,13 +299,13 @@ def dashboard():
 
         # Active players for current season
         try:
-            if current_pub_league:
+            if pl_season_ids:
                 active_players = PlayerTeamSeason.query.join(
                     Team, PlayerTeamSeason.team_id == Team.id
                 ).join(
                     League, Team.league_id == League.id
                 ).filter(
-                    League.season_id == current_pub_league.id
+                    League.season_id.in_(pl_season_ids)
                 ).count()
             else:
                 active_players = 0

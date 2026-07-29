@@ -1901,11 +1901,20 @@ def _build_availability_buckets(session, target_date):
     exact join (no time-string tolerance matching needed).
     """
     from collections import defaultdict
-    from app.models.core import Season
+    from app.utils.season_context import (
+        current_program_seasons, pub_league_like_season_types,
+    )
 
-    season = session.query(Season).filter_by(
-        league_type='Pub League', is_current=True
-    ).first()
+    # ⚠️ Every pub-league-like program, not just 'Pub League'.
+    #
+    # Both the season lookup and the per-match gate below used to hardcode
+    # `league_type == 'Pub League'`, so a program with its own season type
+    # (Summer Sprint = 'PL Third') contributed NO buckets: its matches were
+    # filtered out one by one, the poll went up covering only Premier/Classic,
+    # and nobody could mark themselves available for a Summer fixture. Silent —
+    # the poll posts perfectly, just missing a whole league.
+    _current_seasons = current_program_seasons(session)
+    _allowed_types = set(pub_league_like_season_types())
 
     matches = session.query(Match).filter(
         Match.date == target_date,
@@ -1913,16 +1922,32 @@ def _build_availability_buckets(session, target_date):
         Match.home_team_id != Match.away_team_id,  # exclude BYE/special self-match rows
     ).all()
     by_league = defaultdict(list)
+    _seasons_seen = set()
     for m in matches:
         home = m.home_team
         league = home.league if home else None
         if not league or not league.season:
             continue
-        if league.season.league_type != 'Pub League' or not league.season.is_current:
+        if league.season.league_type not in _allowed_types or not league.season.is_current:
             continue
         if m.time is None:
             continue
         by_league[league.name].append(m)
+        _seasons_seen.add(league.season_id)
+
+    # The poll carries ONE season_id, so derive it from the matches actually
+    # bucketed rather than assuming Pub League. A single-program poll (the
+    # normal case, including a Summer-only Sunday) is then stamped correctly;
+    # only a genuinely cross-program date falls back to Pub League, which is
+    # what it did before for every date.
+    season = None
+    if len(_seasons_seen) == 1:
+        _only = next(iter(_seasons_seen))
+        season = next((s for s in _current_seasons if s.id == _only), None)
+    if season is None:
+        season = next((s for s in _current_seasons if s.league_type == 'Pub League'), None)
+    if season is None and _current_seasons:
+        season = _current_seasons[0]
 
     buckets = []
     for league_name in sorted(by_league.keys()):
@@ -2913,9 +2938,26 @@ def _pub_league_type_names():
 
 
 
-def _current_pub_league_season_id(session):
-    """Current Pub League season id (for stamping reach-out/availability rows)."""
+def _current_pub_league_season_id(session, league_name=None):
+    """Season id for stamping reach-out / availability rows.
+
+    Resolved PER PROGRAM when the caller knows which league the reach-out is
+    for. Hardcoding 'Pub League' stamped every Summer Sprint reach-out with
+    Premier/Classic's season id — the row is then filtered out of that
+    program's availability queries and counted against the wrong season, which
+    is worse than a missing row because it looks like real data.
+
+    Falls back to the Pub League season (the previous behaviour) when the league
+    is unknown or has no current season of its own.
+    """
     from app.models.core import Season
+    from app.utils.season_context import current_season_for_program
+
+    if league_name:
+        s = current_season_for_program(league_name, session)
+        if s:
+            return s.id
+
     row = session.query(Season.id).filter_by(
         league_type='Pub League', is_current=True
     ).order_by(Season.id.desc()).first()
@@ -3054,7 +3096,9 @@ def create_substitute_reachout():
             kind=kind,
             league_type=league_type,
             match_date=match_date,
-            season_id=_current_pub_league_season_id(session),
+            # `league_type` here is the League.name ('Premier', 'Summer Sprint'),
+            # which is what resolves the reach-out to its own program's season.
+            season_id=_current_pub_league_season_id(session, league_type),
             time_slots=time_slots,
             match_ids=match_ids,
             request_id=request_id,

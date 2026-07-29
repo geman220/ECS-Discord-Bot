@@ -44,6 +44,15 @@
                 data-tab="classic">
             <i class="ti ti-ball-football mr-1.5" aria-hidden="true"></i>Classic
         </button>
+        {# Every other program the registry knows about. Sits before Leaderboards so
+           the division tabs stay grouped together. #}
+        {% for d in extra_divisions or [] %}
+        <button type="button"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                data-tab="division-{{ d.key }}">
+            <i class="ti {{ d.icon }} mr-1.5" aria-hidden="true"></i>{{ d.name }}
+        </button>
+        {% endfor %}
         <button type="button"
                 class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-tab="all-stats">
@@ -83,6 +92,24 @@
                 {{ leaderboard("Red Cards", "ti-cards", "danger", "Classic Division", classic_red_cards, "Cards", "red cards") }}
             </div>
         </div>
+
+        {# ============ EVERY OTHER PROGRAM ============ #}
+        {% for d in extra_divisions or [] %}
+        <div class="division-pane hidden space-y-6" id="division-{{ d.key }}">
+            {{ podium(d.name, d.icon, d.standings, d.top_scorers) }}
+            {{ standings_table(d.name ~ " Standings", d.icon, d.standings) }}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ leaderboard("Golden Boot", "ti-award", "gold", d.name, d.top_scorers, "Goals", "goals") }}
+                {{ leaderboard("Silver Boot", "ti-award", "neutral", d.name, d.top_assisters, "Assists", "assists") }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ leaderboard("Yellow Cards", "ti-cards", "warning", d.name, d.yellow_cards, "Cards", "yellow cards") }}
+                {{ leaderboard("Red Cards", "ti-cards", "danger", d.name, d.red_cards, "Cards", "red cards") }}
+            </div>
+        </div>
+        {% endfor %}
 
         {# ============ ALL LEAGUE STATS ============ #}
         <div class="division-pane hidden space-y-6" id="all-stats">

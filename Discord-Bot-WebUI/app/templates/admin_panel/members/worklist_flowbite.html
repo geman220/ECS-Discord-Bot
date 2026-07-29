@@ -429,14 +429,16 @@
                     <div id="apprMenu{{ u.id }}" class="hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
                       <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
                         <li class="px-3 py-1 text-[10px] uppercase tracking-wide text-gray-400">Approve into</li>
-                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="classic" data-name="{{ u.username }}">Classic</a></li>
-                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="premier" data-name="{{ u.username }}">Premier</a></li>
-                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="ecs-fc" data-name="{{ u.username }}">ECS FC</a></li>
+                        {# Registry-driven — a hardcoded classic/premier/ecs-fc list here meant a
+                           newer program (Summer Sprint) was unreachable from the worklist. #}
+                        {% for p in approve_programs %}
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="{{ p.value }}" data-name="{{ u.username }}">{{ p.label }}</a></li>
+                        {% endfor %}
                         {% if waitlist_open %}
                         <li class="px-3 py-1 text-[10px] uppercase tracking-wide text-gray-400 border-t border-gray-200 dark:border-gray-600">Waitlist</li>
-                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="waitlist-classic" data-name="{{ u.username }}">Classic</a></li>
-                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="waitlist-premier" data-name="{{ u.username }}">Premier</a></li>
-                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="waitlist-ecs-fc" data-name="{{ u.username }}">ECS FC</a></li>
+                        {% for p in approve_programs %}{% if p.waitlist_value %}
+                        <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="member-approve" data-url="{{ url_for('admin_panel.approve_user', user_id=u.id) }}" data-league="{{ p.waitlist_value }}" data-name="{{ u.username }}">{{ p.label }}</a></li>
+                        {% endif %}{% endfor %}
                         {% endif %}
                         <li class="border-t border-gray-200 dark:border-gray-600"><a href="{{ url_for('admin_panel.member_hub', user_id=u.id) }}#member-approval" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green">More options…</a></li>
                       </ul>
@@ -611,6 +613,10 @@
     }
     function esc(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : s); return d.innerHTML; }
 
+    // Approve-into vocabulary, straight from the program registry (see
+    // _approve_program_options). `tojson` escapes for a <script> context.
+    var APPROVE_PROGRAMS = {{ (approve_programs or [])|tojson }};
+
     function postForm(url, obj) {
       return fetch(url, { method: 'POST', headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(obj) })
         .then(function (r) { return r.json().catch(function () { return { success: false, error: 'Unexpected response' }; }); });
@@ -713,9 +719,23 @@
           html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
           html += '<button data-action="qp-preapprove" data-url="' + esc(preUrl) + '" data-league="" class="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button></div>';
         } else {
-          var preOpts = '<option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option><option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option>';
+          // Built from APPROVE_PROGRAMS (registry-driven, injected below) rather than a
+          // literal list, so a program added later can be pre-approved into as well.
+          var preOpts = '';
+          APPROVE_PROGRAMS.forEach(function (p) {
+            preOpts += '<option value="' + esc(p.value) + '">' + esc(p.label) + '</option>';
+          });
+          APPROVE_PROGRAMS.forEach(function (p) {
+            preOpts += '<option value="sub-' + esc(p.value) + '">' + esc(p.label) + ' Sub</option>';
+          });
           if (qpState.waitlistOpen) {
-            preOpts += '<optgroup label="Waitlist"><option value="waitlist-classic">Waitlist · Classic</option><option value="waitlist-premier">Waitlist · Premier</option><option value="waitlist-ecs-fc">Waitlist · ECS FC</option></optgroup>';
+            var wl = '';
+            APPROVE_PROGRAMS.forEach(function (p) {
+              if (p.waitlist_value) {
+                wl += '<option value="' + esc(p.waitlist_value) + '">Waitlist · ' + esc(p.label) + '</option>';
+              }
+            });
+            if (wl) preOpts += '<optgroup label="Waitlist">' + wl + '</optgroup>';
           }
           html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">' + preOpts + '</select>';
           html += '<button data-action="qp-preapprove-set" data-url="' + esc(preUrl) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-user-check"></i>Pre-approve</button></div>';

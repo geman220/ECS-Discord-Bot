@@ -171,7 +171,9 @@ def update_rsvp(self, session, match_id: int, player_id: int, new_response: str,
         # and the except below swallowed the NameError every time.)
         try:
             from app.tasks.tasks_maintenance import update_player_attendance
-            from app.models import Match
+              # NOTE: 'Match' intentionally NOT re-imported here -- it is already imported at
+              # module scope, and a function-local import would make it local to the
+              # WHOLE function, raising UnboundLocalError at its earlier use above.
 
             match = session.query(Match).get(match_id)
             season_id = None

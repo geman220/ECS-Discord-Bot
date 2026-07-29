@@ -286,15 +286,20 @@
       {% if approval == 'pending' %}
       <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700">
         <div class="flex items-center gap-2 flex-wrap">
+          {# Registry-driven. This was a hardcoded classic/premier/ecs-fc list, so a
+             program added later (Summer Sprint) simply could not be approved into from
+             the Hub — the only surface that offers approval — even though the backend
+             validator, approve_league_types(), already accepted it. The result read as
+             "we can't approve him into Summer": no error, just a missing option. #}
           <select data-approve-league class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">
             <optgroup label="League member">
-              <option value="classic">Classic</option><option value="premier">Premier</option><option value="ecs-fc">ECS FC</option>
+              {% for p in approve_programs %}<option value="{{ p.value }}">{{ p.label }}</option>{% endfor %}
             </optgroup>
             <optgroup label="Substitute">
-              <option value="sub-classic">Classic Sub</option><option value="sub-premier">Premier Sub</option><option value="sub-ecs-fc">ECS FC Sub</option>
+              {% for p in approve_programs %}<option value="sub-{{ p.value }}">{{ p.label }} Sub</option>{% endfor %}
             </optgroup>
             <optgroup label="Waitlist">
-              <option value="waitlist-classic">Waitlist · Classic</option><option value="waitlist-premier">Waitlist · Premier</option><option value="waitlist-ecs-fc">Waitlist · ECS FC</option>
+              {% for p in approve_programs %}{% if p.waitlist_value %}<option value="{{ p.waitlist_value }}">Waitlist · {{ p.label }}</option>{% endif %}{% endfor %}
             </optgroup>
           </select>
           <button data-action-approve data-url="{{ url_for('admin_panel.approve_user', user_id=m.user.id) }}"

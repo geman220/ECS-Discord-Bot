@@ -90,7 +90,9 @@ def schedule_matches():
             ).limit(50).all()
 
         else:
-            from sqlalchemy import or_
+              # NOTE: 'or_' intentionally NOT re-imported here -- it is already imported at
+              # module scope, and a function-local import would make it local to the
+              # WHOLE function, raising UnboundLocalError at its earlier use above.
             unscheduled_matches = db.session.query(Match).filter(
                 or_(
                     Match.time.is_(None),

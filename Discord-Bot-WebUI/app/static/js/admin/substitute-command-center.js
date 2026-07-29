@@ -366,7 +366,7 @@ async function poolRemove(el) {
     const ctx = poolCardCtx(el); if (!ctx) return;
     const ok = await confirmAction({
         title: 'Remove from pool?',
-        text: `Remove ${ctx.d.name} from the ${ctx.leagueType} substitute pool? Their sub role is revoked if they are in no other pool.`,
+        text: `Remove ${ctx.d.name} from the ${ctx.leagueType} substitute pool for good? Their membership is deleted and their ${ctx.leagueType} sub role revoked. Use "Set on break" instead to pause them without losing the record.`,
         confirmText: 'Remove', danger: true,
     });
     if (!ok) return;

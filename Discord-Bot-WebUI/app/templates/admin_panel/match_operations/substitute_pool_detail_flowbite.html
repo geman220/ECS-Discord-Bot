@@ -1041,7 +1041,7 @@ async function removeFromPool(playerId, playerName) {
     const isDark = document.documentElement.classList.contains('dark');
     const result = await Swal.fire({
         title: 'Remove from Pool?',
-        text: `Are you sure you want to remove ${playerName} from the ${leagueType} substitute pool?`,
+        text: `Remove ${playerName} from the ${leagueType} substitute pool for good? Their membership is deleted and their ${leagueType} sub role revoked. Set them on break instead to pause them without losing the record.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc2626',

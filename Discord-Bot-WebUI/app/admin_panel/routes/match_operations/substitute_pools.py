@@ -11,6 +11,7 @@ Routes for substitute pool management:
 """
 
 import logging
+from contextlib import nullcontext
 from datetime import datetime
 
 from flask import render_template, request, jsonify, flash, redirect, url_for, g
@@ -427,20 +428,42 @@ def add_player_to_pool(league_type):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
 def remove_player_from_pool(league_type):
-    """Remove a player from the substitute pool.
+    """Remove a player from the substitute pool — a real removal, not a rest.
+
+    Remove DELETES the membership row (both tables for ECS FC). It used to only
+    set is_active=False, which is exactly what "Set on break" does: the card
+    came straight back on the next render as "On break", so Remove looked like
+    it did nothing and nobody could ever be cleaned out of a pool. The soft
+    path still exists as /set-active; this endpoint is the hard one.
 
     Uses pessimistic locking to prevent concurrent role modifications.
     Discord sync is deferred until after transaction commits.
     """
-    if league_type not in league_types_config():
-        return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+    from app.models import Player
+    from app.models.substitutes import SubstitutePool, SubstitutePoolHistory, EcsFcSubPool
+    from app.admin_panel.routes.user_management.member_hub import (
+        label_to_canon, _reconcile_sub_roles, _player_sub_lanes,
+    )
 
-    from app.models import Player, Role
-    from app.models_substitute_pools import SubstitutePool
-
-    player_id = request.json.get('player_id')
+    # silent=True: Flask 3 raises 400/415 from request.json before any `or {}`
+    # can help, and a string player_id would go to Postgres untyped.
+    try:
+        player_id = int((request.get_json(silent=True) or {}).get('player_id') or 0)
+    except (TypeError, ValueError):
+        player_id = 0
     if not player_id:
         return jsonify({'success': False, 'message': 'Player ID is required'}), 400
+
+    # NOTE: league_type is deliberately NOT validated against league_types_config()
+    # up front. That config is program_registry.all_programs(), which is
+    # active_only=True -- so a pool row belonging to a deactivated or renamed
+    # program answered 400 "Invalid league type" and its members could never be
+    # removed at all. Cleanup has to work precisely for those rows. Validation
+    # instead falls through to "does a row with this exact league_type exist?",
+    # which is the only thing this endpoint actually needs to be true.
+    lane = label_to_canon().get(league_type)
+    if lane is None and league_type == 'ECS FC':
+        lane = 'ecs_fc'
 
     # Find the pool entry — NOT filtered on is_active.
     #
@@ -456,36 +479,57 @@ def remove_player_from_pool(league_type):
         league_type=league_type
     ).first()
 
-    if not pool_entry:
+    # An ECS-FC-only member has just the legacy EcsFcSubPool row and no
+    # SubstitutePool twin; the unified roster still renders them, so Remove has
+    # to find them or it 404s on a card that is plainly on screen.
+    ecs_entry = None
+    if lane == 'ecs_fc':
+        ecs_entry = db.session.query(EcsFcSubPool).filter_by(player_id=player_id).first()
+
+    if not pool_entry and not ecs_entry:
+        if league_type not in league_types_config():
+            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
         return jsonify({'success': False, 'message': 'Player not found in this pool'}), 404
 
-    player = pool_entry.player
-    if not player or not player.user:
-        return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
+    player = pool_entry.player if pool_entry else db.session.get(Player, player_id)
+    if not player:
+        return jsonify({'success': False, 'message': 'Player record not found'}), 400
+
+    # Read before the delete/commit so the response never depends on a
+    # post-commit attribute refresh.
+    player_name = player.name
+
+    # A player with no linked User (placeholder/imported records) used to get a
+    # flat 400 here, so once such a row was in a pool nothing could ever take it
+    # out. There are no Flask roles to reconcile without a user and nothing to
+    # lock, so do the delete under a null context instead of refusing.
+    lock_ctx = (lock_user_for_role_update(player.user.id, session=db.session)
+                if player.user else nullcontext(None))
 
     # Queue for deferred Discord operations
     discord_queue = DeferredDiscordQueue()
 
     try:
         # Acquire lock on user for role modification
-        with lock_user_for_role_update(player.user.id, session=db.session) as user:
-            # Deactivate the pool entry
-            pool_entry.is_active = False
+        with lock_ctx as user:
+            # Delete the membership row(s). substitute_pool_history.pool_id is
+            # NOT NULL with no ON DELETE rule, so its rows have to go first or
+            # the delete raises IntegrityError.
+            if pool_entry:
+                db.session.query(SubstitutePoolHistory).filter_by(
+                    pool_id=pool_entry.id).delete(synchronize_session=False)
+                db.session.delete(pool_entry)
+            if ecs_entry:
+                db.session.delete(ecs_entry)
+            db.session.flush()
 
-            # Check if player is in any other active pools
-            other_active_pools = SubstitutePool.query.filter(
-                SubstitutePool.player_id == player_id,
-                SubstitutePool.is_active == True,
-                SubstitutePool.id != pool_entry.id
-            ).count()
-
-            if other_active_pools == 0:
-                # Remove all substitute roles
-                from app.services import program_registry
-                for role_name in program_registry.sub_role_names():
-                    role = Role.query.filter_by(name=role_name).first()
-                    if role and role in user.roles:
-                        user.roles.remove(role)
+            # Reconcile the sub roles against what memberships actually remain,
+            # rather than stripping every sub role whenever no ACTIVE pool is
+            # left — that revoked a resting sub's role in another league.
+            if user is not None:
+                _reconcile_sub_roles(db.session, user, player)
+            else:
+                player.is_sub = bool(_player_sub_lanes(db.session, player.id))
 
             # Log the action
             AdminAuditLog.log_action(
@@ -493,7 +537,7 @@ def remove_player_from_pool(league_type):
                 action='remove_from_substitute_pool',
                 resource_type='substitute_pools',
                 resource_id=str(player_id),
-                new_value=f'Removed player {player.name} from {league_type} pool',
+                new_value=f'Removed player {player_name} from {league_type} pool',
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
@@ -512,8 +556,6 @@ def remove_player_from_pool(league_type):
             # Commit the transaction
             db.session.commit()
 
-            player_name = player.name
-
     except LockAcquisitionError:
         db.session.rollback()
         return jsonify({
@@ -523,7 +565,10 @@ def remove_player_from_pool(league_type):
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f"Error removing player from pool: {e}")
+        # exc_info: the generic 500 message below is all the UI shows, so
+        # without the traceback a failed removal is undiagnosable.
+        logger.error(f"Error removing player {player_id} from {league_type} pool: {e}",
+                     exc_info=True)
         return jsonify({'success': False, 'message': 'Failed to remove player from pool'}), 500
 
     # Execute deferred Discord operations after successful commit
