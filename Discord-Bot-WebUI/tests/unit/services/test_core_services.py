@@ -544,11 +544,16 @@ class TestMobileTeamServiceGetTeamStats:
         #
         # Pin the team's league to this season so the service and the fixture
         # agree on which season is being asked about, then drop every Standings
-        # row for this team that is not the one under test.
+        # row for this team EXCEPT the one this test seeded.
+        #
+        # Filtering by season was not enough: there are multiple Standings rows
+        # for the SAME (team_id, season_id) -- an older one with wins=1 plus the
+        # fixture's wins=5 -- and the service does .first(), which returned the
+        # lower id. Excluding by primary key is the only precise filter.
         team.league.season_id = season.id
         db.session.query(Standings).filter(
             Standings.team_id == team.id,
-            Standings.season_id != season.id).delete(synchronize_session=False)
+            Standings.id != standings.id).delete(synchronize_session=False)
         db.session.commit()
 
         service = MobileTeamService(db.session)

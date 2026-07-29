@@ -179,6 +179,22 @@ def build_attention_queue(user):
         except Exception as e:
             logger.warning(f"attention/paid_unapproved: {e}")
 
+        # A program with no is_current season is the single most destructive
+        # silent state in the app: EVERY "which season is current" lookup for it
+        # resolves to nothing, so its memberships are never created, its teams
+        # and standings are empty, and sub/RSVP targeting skips it — all without
+        # one error. It is already detected (G16), but only someone who opens
+        # the integrity dashboard would ever see it, and the symptom people
+        # actually notice ("why isn't this person in the league?") gives no hint
+        # to look there. Front page.
+        try:
+            from app.services.integrity_service import detect_g16_program_no_current_season
+            n = len(detect_g16_program_no_current_season(db.session) or [])
+            add('no_current_season', 'Program has no current season', n,
+                'danger', safe_url('admin_panel.integrity_dashboard'))
+        except Exception as e:
+            logger.warning(f"attention/no_current_season: {e}")
+
     # 6) Live matches in progress.
     #
     # Two independent sources, both with a staleness guard — an abandoned row is

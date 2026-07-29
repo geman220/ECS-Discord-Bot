@@ -155,15 +155,51 @@ def bind_program_discord_ids(session, program_key, apply_renames=False, dry_run=
         report['errors'].append('bot API unreachable; nothing attempted')
         return report
 
-    # (registry id column, desired name, kind)
+    # (registry id column, desired name, kind, matching Flask Role name)
+    #
+    # The 4th element closes the REVERSE sync. Granting a Discord role is
+    # name-based and needs nothing from the DB, so this used to bind only the
+    # `program` columns — but `POST /discord/role-sync` (the bot telling us
+    # someone's Discord roles changed) translates Discord -> Flask through
+    # `roles.discord_role_id`, and NOTHING in the codebase ever populated that
+    # for a program's roles. Premier's were mapped by hand years ago; a new
+    # program's were simply NULL, so hand-granting ECS-FC-PL-SUMMER in Discord
+    # never granted `pl-third` in the app. One direction worked, the other
+    # silently did not.
     targets = [
-        ('discord_category_id',      program.discord_category_name, 'category'),
-        ('discord_division_role_id', program.division_role_name,    'role'),
-        ('discord_coach_role_id',    program.coach_role_name,       'role'),
-        ('discord_sub_role_id',      program.sub_role_name,         'role'),
+        ('discord_category_id',      program.discord_category_name, 'category', None),
+        ('discord_division_role_id', program.division_role_name,    'role', program.flask_league_role),
+        ('discord_coach_role_id',    program.coach_role_name,       'role', program.flask_coach_role),
+        ('discord_sub_role_id',      program.sub_role_name,         'role', program.flask_sub_role),
     ]
 
-    for col, desired_name, kind in targets:
+    def _mirror_to_flask_role(flask_role_name, discord_id, discord_name):
+        """Point the Flask Role row at the same snowflake. Best-effort.
+
+        Never overwrites an EXISTING mapping: if an admin has deliberately
+        pointed a Flask role somewhere else, this command is not the place to
+        silently retarget it. Only fills a NULL.
+        """
+        if not flask_role_name or dry_run:
+            return
+        try:
+            from app.models import Role
+            role = session.query(Role).filter_by(name=flask_role_name).first()
+            if role is None:
+                report['unmatched'].append({
+                    'kind': 'flask-role', 'name': flask_role_name,
+                    'note': 'no Role row — run the program seeder first'})
+                return
+            if role.discord_role_id:
+                return
+            role.discord_role_id = str(discord_id)
+            role.discord_role_name = discord_name
+            report['bound'].append({'kind': 'flask-role', 'name': flask_role_name,
+                                    'id': str(discord_id)})
+        except Exception as exc:
+            report['errors'].append(f"could not map Flask role {flask_role_name}: {exc}")
+
+    for col, desired_name, kind, flask_role_name in targets:
         if not desired_name:
             continue
         pool = cats if kind == 'category' else roles
@@ -184,6 +220,7 @@ def bind_program_discord_ids(session, program_key, apply_renames=False, dry_run=
                 setattr(program, col, str(found['id']))
             report['bound'].append({'kind': kind, 'name': desired_name,
                                     'id': str(found['id'])})
+            _mirror_to_flask_role(flask_role_name, found['id'], desired_name)
             continue
 
         # Already bound. Does the live name still match the registry?
@@ -199,6 +236,10 @@ def bind_program_discord_ids(session, program_key, apply_renames=False, dry_run=
 
         live_name = (live.get('name') or '').strip()
         if live_name == desired_name.strip():
+            # Already bound and correctly named — but the Flask Role mirror may
+            # still be NULL (that is exactly the state a pre-existing program is
+            # in), so backfill it here too rather than only on first bind.
+            _mirror_to_flask_role(flask_role_name, stored_id, live_name)
             continue
 
         if not apply_renames:

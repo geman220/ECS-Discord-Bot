@@ -631,7 +631,18 @@ def backfill_league_membership(batch_size, dry_run):
     )
 
     current = _current_season_ids(db.session)
-    click.echo(f"Current seasons: Pub League={current['pub_league']}, ECS FC={current['ecs_fc']}")
+    # Report EVERY current season by type, not just the two legacy lanes. The
+    # backfill itself has always been program-aware (_season_for_lane resolves
+    # per program), but this line named only Pub League and ECS FC — so running
+    # it while chasing a missing Summer Sprint row printed a header that looked
+    # like Summer was out of scope, when its rows were being written all along.
+    _by_type = current.get('_by_season_type') or {}
+    if _by_type:
+        click.echo("Current seasons: " + ', '.join(
+            f"{ltype}={sid}" for ltype, sid in sorted(_by_type.items())))
+    else:
+        click.echo(f"Current seasons: Pub League={current['pub_league']}, "
+                   f"ECS FC={current['ecs_fc']}")
     # Ignore the '_by_season_type' bookkeeping key. `any(current.values())` was
     # true whenever that nested dict was non-empty -- which it almost always is
     # -- so the "nothing to do" guard was dead and both WARNING branches printed
