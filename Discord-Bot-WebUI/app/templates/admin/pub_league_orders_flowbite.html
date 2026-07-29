@@ -250,10 +250,12 @@
             <div class="w-full md:w-44">
                 <select id="divisionFilter" aria-label="Filter by division"
                         class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
-                    <option value="all" {{ 'selected' if division_filter == 'all' else '' }}>All Divisions</option>
-                    <option value="premier" {{ 'selected' if division_filter == 'premier' else '' }}>Premier</option>
-                    <option value="classic" {{ 'selected' if division_filter == 'classic' else '' }}>Classic</option>
-                    <option value="mixed" {{ 'selected' if division_filter == 'mixed' else '' }}>Mixed</option>
+                    {# One entry per registered program (plus All / Mixed).
+                       Hardcoding these meant a newer program's orders showed
+                       under "All" but could never be filtered TO. #}
+                    {% for _val, _label in (division_options or [('all','All Divisions'),('premier','Premier'),('classic','Classic'),('mixed','Mixed')]) %}
+                    <option value="{{ _val }}" {{ 'selected' if division_filter == _val else '' }}>{{ _label }}</option>
+                    {% endfor %}
                 </select>
             </div>
             <div class="w-full md:w-52">
@@ -329,12 +331,18 @@
                     </td>
                     <td class="px-3 py-3 hidden md:table-cell">
                         {% if order.divisions %}
-                            {% if 'Premier' in order.divisions and 'Classic' in order.divisions %}
+                            {# Mixed ONLY when one order spans several divisions. The old chain
+                               tested Premier/Classic by name, so an order for any newer program
+                               fell through every branch and rendered an EMPTY cell. #}
+                            {% set _divs = order.divisions | reject('none') | unique | list %}
+                            {% if _divs | length > 1 %}
                             <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Mixed</span>
-                            {% elif 'Premier' in order.divisions %}
+                            {% elif 'Premier' in _divs %}
                             <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400">Premier</span>
-                            {% elif 'Classic' in order.divisions %}
+                            {% elif 'Classic' in _divs %}
                             <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">Classic</span>
+                            {% elif _divs %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400">{{ _divs[0] }}</span>
                             {% endif %}
                         {% else %}
                         <span class="text-gray-400 dark:text-gray-500">-</span>
@@ -684,12 +692,18 @@
                         </td>
                         <td class="px-4 py-3">
                             {% if order.divisions %}
-                                {% if 'Premier' in order.divisions and 'Classic' in order.divisions %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Mixed</span>
-                                {% elif 'Premier' in order.divisions %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Premier</span>
-                                {% elif 'Classic' in order.divisions %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Classic</span>
+                                {# Mixed ONLY when one order spans several divisions. The old chain
+                                   tested Premier/Classic by name, so an order for any newer program
+                                   fell through every branch and rendered an EMPTY cell. #}
+                                {% set _divs = order.divisions | reject('none') | unique | list %}
+                                {% if _divs | length > 1 %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Mixed</span>
+                                {% elif 'Premier' in _divs %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400">Premier</span>
+                                {% elif 'Classic' in _divs %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">Classic</span>
+                                {% elif _divs %}
+                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-400">{{ _divs[0] }}</span>
                                 {% endif %}
                             {% else %}
                             <span class="text-gray-400 dark:text-gray-500">-</span>

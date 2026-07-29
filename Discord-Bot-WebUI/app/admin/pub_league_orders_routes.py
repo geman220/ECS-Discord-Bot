@@ -18,7 +18,7 @@ from flask import (
     Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect, g,
 )
 from flask_login import login_required, current_user
-from sqlalchemy import desc, asc, or_, and_, func, distinct, exists, nullslast
+from sqlalchemy import desc, asc, or_, and_, func, distinct, exists, nullslast, select
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -49,24 +49,86 @@ ORDER_SORTS = {
 DEFAULT_SORT = 'created_desc'
 
 
+def division_filter_options():
+    """[(value, label)] for the Division filter -- one entry per program.
+
+    Registry-driven. This was a hardcoded ('premier', 'classic', 'mixed') tuple,
+    so a newer program's orders had no filter entry at all: they still appeared
+    under "All divisions" (the default), but there was no way to filter TO them.
+
+    `value` is the program's own league_name lowercased, which is what
+    PubLeagueOrderLineItem.division stores (see extract_pub_league_items --
+    it writes `program.league_name`).
+    """
+    opts = [('all', 'All divisions')]
+    try:
+        from app.services import program_registry
+        for pr in program_registry.all_programs():
+            if pr.is_pub_league_like and pr.league_name:
+                opts.append((pr.league_name.lower(), pr.league_name))
+    except Exception as exc:
+        logger.warning(f"division filter options fell back to literals: {exc}")
+        opts.extend([('premier', 'Premier'), ('classic', 'Classic')])
+    opts.append(('mixed', 'Mixed (one order, several divisions)'))
+    return opts
+
+
+def _division_names():
+    """Every division value that can appear on a line item."""
+    try:
+        from app.services import program_registry
+        names = [pr.league_name for pr in program_registry.all_programs()
+                 if pr.is_pub_league_like and pr.league_name]
+        if names:
+            return names
+    except Exception:
+        pass
+    return ['Premier', 'Classic']
+
+
 def _division_condition(division_filter):
     """
-    Build a WHERE condition matching the Division badge shown in the list:
-    'premier' = has Premier passes and no Classic; 'classic' = the reverse;
-    'mixed' = has both. Uses correlated EXISTS so it composes with the plain
-    PubLeagueOrder query (no join needed) and reuses across list/stats/export.
-    Returns None for 'all' (no filtering).
+    WHERE condition matching the Division badge shown in the list.
+
+      '<division>' = this order contains ONLY that division
+      'mixed'      = this ORDER contains more than one distinct division
+
+    ⚠️ "Mixed" is deliberately PER ORDER, not per person. Buying a Premier pass
+    in one order and a Summer Sprint pass in another creates two separate
+    orders, and each shows its own division -- that person is not "mixed", they
+    simply belong to two independent programs. Mixed means one order that
+    covers several divisions (buying for yourself and a friend in different
+    divisions), which is the only case where the badge is genuinely ambiguous.
+
+    The old version hardcoded mixed as "has Premier AND has Classic", so an
+    order spanning any newer program was invisible to that filter.
+
+    Uses correlated EXISTS so it composes with the plain PubLeagueOrder query
+    (no join needed) and reuses across list/stats/export. None for 'all'.
     """
-    if division_filter not in ('premier', 'classic', 'mixed'):
+    if not division_filter or division_filter == 'all':
         return None
+
     li = PubLeagueOrderLineItem
-    has_premier = exists().where(and_(li.order_id == PubLeagueOrder.id, li.division == 'Premier'))
-    has_classic = exists().where(and_(li.order_id == PubLeagueOrder.id, li.division == 'Classic'))
-    if division_filter == 'premier':
-        return and_(has_premier, ~has_classic)
-    if division_filter == 'classic':
-        return and_(has_classic, ~has_premier)
-    return and_(has_premier, has_classic)  # mixed
+    names = _division_names()
+
+    def _has(name):
+        return exists().where(and_(li.order_id == PubLeagueOrder.id,
+                                   func.lower(li.division) == name.lower()))
+
+    if division_filter == 'mixed':
+        # More than one distinct division on the same order.
+        return (select(func.count(func.distinct(li.division)))
+                .where(li.order_id == PubLeagueOrder.id)
+                .scalar_subquery()) > 1
+
+    match = next((n for n in names if n.lower() == division_filter.lower()), None)
+    if match is None:
+        return None
+
+    # ONLY this division: has it, and has nothing else.
+    others = [~_has(n) for n in names if n.lower() != match.lower()]
+    return and_(_has(match), *others) if others else _has(match)
 
 
 def _parse_order_filters():
@@ -90,7 +152,8 @@ def _parse_order_filters():
         sort = DEFAULT_SORT
 
     division_filter = request.args.get('division', 'all')
-    if division_filter not in ('all', 'premier', 'classic', 'mixed'):
+    _valid_divisions = {v for v, _label in division_filter_options()}
+    if division_filter not in _valid_divisions:
         division_filter = 'all'
     division_condition = _division_condition(division_filter)
 
@@ -324,6 +387,7 @@ def orders_list():
             current_season=current_season,
             sort=sort,
             division_filter=division_filter,
+            division_options=division_filter_options(),
             user_roles=user_roles,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
             premier_product_slug=premier_product_slug,

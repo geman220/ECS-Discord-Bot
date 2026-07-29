@@ -49,20 +49,33 @@ def get_teams():
         JSON list of teams with league information
     """
     with managed_session() as session_db:
-        # Retrieve current seasons for Pub League and ECS FC
-        current_pub_season = session_db.query(Season).filter_by(
-            is_current=True, league_type='Pub League'
-        ).first()
-        current_ecs_season = session_db.query(Season).filter_by(
-            is_current=True, league_type='ECS FC'
-        ).first()
+        # EVERY current season, not just Pub League + ECS FC.
+        #
+        # Two bugs lived in the two hardcoded lookups this replaces, and they
+        # are the same pair already fixed in the web teams_overview:
+        #   1. A newer program's season was never queried, so its teams were
+        #      absent from the mobile team list entirely -- silently.
+        #   2. The `if len == 1 / elif len == 2` below was exhaustive only while
+        #      exactly two seasons were possible. A third pushes len to 3, both
+        #      branches are skipped, and the query runs UNFILTERED -- every Team
+        #      row in the database, every season, including reveal-gated ones.
+        _season_types = ['Pub League', 'ECS FC']
+        try:
+            from app.services import program_registry
+            _registry_types = sorted({p.season_league_type
+                                      for p in program_registry.all_programs(session_db)
+                                      if p.season_league_type})
+            if _registry_types:
+                _season_types = _registry_types
+        except Exception:
+            pass
 
-        # Build conditions based on which current seasons exist
-        conditions = []
-        if current_pub_season:
-            conditions.append(League.season_id == current_pub_season.id)
-        if current_ecs_season:
-            conditions.append(League.season_id == current_ecs_season.id)
+        current_seasons = session_db.query(Season).filter(
+            Season.is_current.is_(True),
+            Season.league_type.in_(_season_types)
+        ).all()
+
+        conditions = [League.season_id == _s.id for _s in current_seasons]
 
         search = request.args.get('search', '').strip()
 
@@ -71,9 +84,8 @@ def get_teams():
             League, Team.league_id == League.id
         ).options(joinedload(Team.league))
 
-        if len(conditions) == 1:
-            teams_query = teams_query.filter(conditions[0])
-        elif len(conditions) == 2:
+        # or_() over ANY number of conditions -- see the note above.
+        if conditions:
             teams_query = teams_query.filter(or_(*conditions))
 
         if search:

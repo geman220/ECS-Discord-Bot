@@ -374,10 +374,19 @@ def league_management_seasons():
                 if pr.season_league_type not in _seen:
                     _seen.add(pr.season_league_type)
                     _ordered.append(pr.season_league_type)
+            # Orphan season types (no registered program) still get a group so
+            # stray data stays visible -- EXCEPT known placeholders, which are
+            # scaffolding rather than real seasons and otherwise render a group
+            # that says "No current Global season" forever.
+            _PLACEHOLDER_TYPES = {'global'}
             for s_ in seasons:
-                if s_.league_type and s_.league_type not in _seen:
-                    _seen.add(s_.league_type)
-                    _ordered.append(s_.league_type)
+                if not s_.league_type or s_.league_type in _seen:
+                    continue
+                if (s_.league_type.strip().lower() in _PLACEHOLDER_TYPES
+                        and 'placeholder' in (s_.name or '').lower()):
+                    continue
+                _seen.add(s_.league_type)
+                _ordered.append(s_.league_type)
             program_league_types = _ordered
         except Exception:
             program_league_types = None

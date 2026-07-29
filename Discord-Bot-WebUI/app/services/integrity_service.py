@@ -226,6 +226,12 @@ _LEAGUE_NAME_TO_TYPE = _LEGACY_LEAGUE_NAME_TO_TYPE
 
 # Metadata for every check (drives the dashboard cards + ordering).
 CHECK_META = {
+    'G16': (SEV_HIGH, 'season',   'Program has no current season',
+            'An ACTIVE program has no season flagged is_current (or has more than one). '
+            'Everything that resolves "the current season" silently returns nothing: '
+            'standings, team lists, RSVP targeting, sub dispatch and draft pools all go '
+            'empty with no error anywhere. Nothing is deleted -- the data is intact and '
+            'reappears the moment a season is set current.'),
     'G1':  (SEV_HIGH, 'approval', 'Pending user is rostered',
             'Awaiting approval but already on a team — gets no team/league Discord role.'),
     'G2':  (SEV_HIGH, 'approval', 'Approved vs Discord drift',
@@ -1058,7 +1064,80 @@ def detect_g15_waitlisted_active(session, player_ids=None):
 
 
 # Registry — order = dashboard order (high severity first).
+def detect_g16_program_no_current_season(session, player_ids=None):
+    """Every active program must have EXACTLY ONE current season.
+
+    This is a SEASON-level check, not a player-level one, so it returns [] when
+    scoped to a page of players (the per-player view filters on player_id
+    anyway).
+
+    Why it exists: `Season.is_current` is a single boolean pointer, and nothing
+    in the app validates that it is set. A rollover, a deleted season or a hand
+    edit can leave a program with NO current season, and every "current season"
+    lookup then quietly resolves to nothing -- no exception, no log line, just
+    empty standings, an empty team list, no RSVP targets and no sub dispatch.
+    That state survived undetected in production until the seasons page started
+    rendering a per-program banner.
+
+    Two failure modes are reported:
+      * zero current seasons  -> everything for that program resolves empty
+      * two or more           -> which one wins is arbitrary (`.first()` without
+                                 an ORDER BY), so behaviour differs per query
+    """
+    if player_ids is not None:
+        return []
+
+    from app.models import Season
+
+    findings = []
+    try:
+        from app.services import program_registry
+        programs = list(program_registry.all_programs(session))
+    except Exception as _reg_err:
+        logger.warning(f"G16: program registry unavailable: {_reg_err}")
+        return []
+
+    # One row per season_league_type -- programs sharing a type share a season.
+    by_type = {}
+    for pr in programs:
+        if pr.season_league_type:
+            by_type.setdefault(pr.season_league_type, []).append(pr)
+
+    for season_type, prs in sorted(by_type.items()):
+        current = (session.query(Season.id, Season.name)
+                   .filter(Season.league_type == season_type,
+                           Season.is_current.is_(True))
+                   .all())
+        label = ' / '.join(pr.display_name for pr in prs)
+
+        if len(current) == 0:
+            findings.append(IntegrityFinding(
+                code='G16', severity=SEV_HIGH, category='season',
+                title='Program has no current season',
+                name=label,
+                detail=(f"{label} ({season_type}) has NO season flagged is_current. "
+                        f"Standings, team lists, RSVP targeting, sub dispatch and "
+                        f"draft pools all resolve to nothing for this program -- "
+                        f"silently. No data has been lost; set a season current on "
+                        f"the Seasons page and everything returns."),
+            ))
+        elif len(current) > 1:
+            names = ', '.join(f"{n} (id={i})" for i, n in current)
+            findings.append(IntegrityFinding(
+                code='G16', severity=SEV_HIGH, category='season',
+                title='Program has more than one current season',
+                name=label,
+                detail=(f"{label} ({season_type}) has {len(current)} seasons flagged "
+                        f"is_current: {names}. Lookups use .first() with no ORDER BY, "
+                        f"so which one wins is arbitrary and can differ between "
+                        f"queries. Clear all but one."),
+            ))
+
+    return findings
+
+
 DETECTORS = [
+    ('G16', detect_g16_program_no_current_season),
     ('G1', detect_g1_pending_rostered),
     ('G2', detect_g2_approval_drift),
     ('G3', detect_g3_approved_no_league_role),
