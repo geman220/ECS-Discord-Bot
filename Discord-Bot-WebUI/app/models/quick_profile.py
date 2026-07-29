@@ -25,6 +25,53 @@ from app.core import db
 logger = logging.getLogger(__name__)
 
 
+# Legacy trio — the ONLY meaning of "every program" when there is no `program`
+# table to read. Kept identical to the values the registry seeds for these three
+# so turning the registry on changes nothing for them.
+_PRE_APPROVAL_FALLBACK = (
+    # (form_value, membership_lane, league_role, sub_role)
+    ('classic', 'classic', 'pl-classic', 'Classic Sub'),
+    ('premier', 'premier', 'pl-premier', 'Premier Sub'),
+    ('ecs-fc', 'ecs_fc', 'pl-ecs-fc', 'ECS FC Sub'),
+)
+
+
+def _pre_approval_maps():
+    """(waitlist_key -> lane, waitlist_key -> league value, approval value -> Flask role).
+
+    Registry-driven so a program added after this code was written can be pre-approved
+    into. The waitlist key convention MUST match `approvals.waitlist_league_map()` and
+    the member-hub dropdown: `waitlist-<form_value with underscores hyphenated>`.
+    Falls back to the legacy three if the registry is unreachable, so a missing
+    `program` table degrades to the old behaviour instead of approving nobody.
+    """
+    rows = list(_PRE_APPROVAL_FALLBACK)
+    try:
+        from app.services import program_registry
+        registry_rows = [
+            ((p.form_value or p.membership_lane), p.membership_lane,
+             p.flask_league_role, p.flask_sub_role)
+            for p in program_registry.all_programs()
+            if (p.form_value or p.membership_lane)
+        ]
+        if registry_rows:
+            rows = registry_rows
+    except Exception:
+        logger.warning("Quick profile pre-approval maps fell back to the legacy three "
+                       "(program registry unreachable)", exc_info=True)
+
+    wl_to_lane, wl_to_league, role_map = {}, {}, {}
+    for value, lane, league_role, sub_role in rows:
+        wl_key = f"waitlist-{value.replace('_', '-')}"
+        wl_to_lane[wl_key] = lane
+        wl_to_league[wl_key] = value
+        if league_role:
+            role_map[value] = league_role
+        if sub_role:
+            role_map[f'sub-{value}'] = sub_role
+    return wl_to_lane, wl_to_league, role_map
+
+
 class QuickProfileStatus(Enum):
     """Status of a quick profile"""
     PENDING = 'pending'      # Created, waiting to be claimed
@@ -292,8 +339,14 @@ class QuickProfile(db.Model):
             # Waitlist pre-approval is PHASE-AWARE: honor it only if the waitlist is OPEN now
             # (preseason/in_season + toggle). In break/offseason there is no waitlist, so we
             # approve straight to the league instead (per admin intent).
-            WL_TO_LANE = {'waitlist-classic': 'classic', 'waitlist-premier': 'premier', 'waitlist-ecs-fc': 'ecs_fc'}
-            WL_TO_LEAGUE = {'waitlist-classic': 'classic', 'waitlist-premier': 'premier', 'waitlist-ecs-fc': 'ecs-fc'}
+            # ⚠️ These three maps are REGISTRY-DERIVED, with the legacy trio as the
+            # no-`program`-table fallback. When they were literals, a program added
+            # later (Summer Sprint / `pl_third`) could be pre-approved by an admin and
+            # then hit the `if not rname: return` below on claim -- the person stayed
+            # unapproved, no error anywhere, and the admin had every reason to believe
+            # it had worked. A pre-approval that silently does nothing is worse than
+            # one that is rejected up front.
+            WL_TO_LANE, WL_TO_LEAGUE, role_map = _pre_approval_maps()
             if league in WL_TO_LANE:
                 wl_open = False
                 try:
@@ -313,11 +366,13 @@ class QuickProfile(db.Model):
                     return
                 league = WL_TO_LEAGUE[league]  # waitlist closed -> approve to the plain league
 
-            role_map = {'classic': 'pl-classic', 'premier': 'pl-premier', 'ecs-fc': 'pl-ecs-fc',
-                        'sub-classic': 'Classic Sub', 'sub-premier': 'Premier Sub', 'sub-ecs-fc': 'ECS FC Sub'}
             rname = role_map.get(league)
             if not rname:
-                return  # unknown: not auto-approved here
+                # Loudly: the admin was told this person would be auto-approved.
+                logger.error(f"Quick profile {self.id}: pre_approved_league={league!r} maps to no "
+                             f"role (known: {sorted(role_map)}) — user {user.id} claimed WITHOUT "
+                             "being approved. Approve them manually.")
+                return
             role = session.query(Role).filter_by(name=rname).first()
             if role and role not in user.roles:
                 user.roles.append(role)

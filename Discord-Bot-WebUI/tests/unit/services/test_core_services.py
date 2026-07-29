@@ -535,6 +535,20 @@ class TestMobileTeamServiceGetTeamStats:
 
         # Set season as current
         season.is_current = True
+
+        # The `db` fixture does NOT isolate rows between tests, and Standings is
+        # written by several earlier tests for the same low team ids. The service
+        # looks up ONE row by (team_id, season_id), so a leftover row wins and the
+        # assertion below reads someone else's numbers -- which is exactly what
+        # was happening (wins==1 from a stale row, not the 5 seeded here).
+        #
+        # Pin the team's league to this season so the service and the fixture
+        # agree on which season is being asked about, then drop every Standings
+        # row for this team that is not the one under test.
+        team.league.season_id = season.id
+        db.session.query(Standings).filter(
+            Standings.team_id == team.id,
+            Standings.season_id != season.id).delete(synchronize_session=False)
         db.session.commit()
 
         service = MobileTeamService(db.session)
@@ -558,8 +572,15 @@ class TestMobileTeamServiceGetTeamStats:
         db.session.commit()
 
         # Create new team without standings
+        team.league.season_id = season.id
         new_team = Team(name='New Team', league_id=team.league_id)
         db.session.add(new_team)
+        db.session.commit()
+
+        # Same shared-state hazard as above: guarantee this team really has no
+        # Standings, so "without standings" is a fact rather than an assumption.
+        db.session.query(Standings).filter(
+            Standings.team_id == new_team.id).delete(synchronize_session=False)
         db.session.commit()
 
         service = MobileTeamService(db.session)

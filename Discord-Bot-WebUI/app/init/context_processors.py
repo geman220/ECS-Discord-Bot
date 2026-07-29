@@ -852,7 +852,7 @@ def _register_nav_counts_processor(app):
             return g._nav_counts
 
         try:
-            from sqlalchemy import func
+            from sqlalchemy import func, or_
             from app.models.core import User, Role
             session_db = getattr(g, 'db_session', None)
             if session_db is None:
@@ -863,9 +863,17 @@ def _register_nav_counts_processor(app):
             # the shared helper excludes them. Keeps this badge equal to the count on
             # the approvals page it links to.
             pending = User.count_pending_approvals(session_db)
+            # DENIED waitlisters are excluded, matching members_worklist's `waitlist_q`
+            # EXACTLY. This badge counted every pl-waitlist role holder while the page
+            # it links to hid the denied ones, so the nav read 17 and the tab read 7 —
+            # a badge that disagrees with its own destination teaches you to distrust
+            # every badge. If this ever drifts again, change BOTH or neither.
             waitlist = session_db.query(func.count(func.distinct(User.id))).select_from(
                 User
-            ).join(User.roles).filter(Role.name == 'pl-waitlist').scalar() or 0
+            ).join(User.roles).filter(
+                Role.name == 'pl-waitlist',
+                or_(User.approval_status != 'denied', User.approval_status.is_(None)),
+            ).scalar() or 0
 
             # Members locked out of the portal (lost Discord account). Rare,
             # but time-critical — Discord is the only way in, so until an admin

@@ -562,7 +562,30 @@ def update_availability_from_discord():
         data = request.json
         
         # Validate required fields
+        # Validate the response VALUE, not merely its presence.
+        #
+        # These paths only checked that the key existed, so Discord could send
+        # response='garbage' and it was written straight into Availability and
+        # answered 200 OK. Nothing downstream re-checks it, so a bad value then
+        # flowed into RSVP counts, reminder targeting and sub dispatch.
+        #
+        # It went unnoticed because the endpoint used to die earlier -- on an
+        # AttributeError in the (dead) enterprise redirect -- so the test that
+        # covers this never reached the legacy code at all.
+        VALID_RESPONSES = {'yes', 'no', 'maybe', 'no_response'}
+
         required_fields = ['match_id', 'discord_id', 'response']
+        if all(f in data for f in required_fields) and \
+                data['response'] not in VALID_RESPONSES:
+            logger.warning(
+                f"⚠️ [AVAILABILITY_API] Rejected invalid response value "
+                f"{data['response']!r} for match {data.get('match_id')}")
+            return jsonify({
+                'success': False,
+                'error': (f"Invalid response {data['response']!r}. Expected one "
+                          f"of: {', '.join(sorted(VALID_RESPONSES))}")
+            }), 400
+
         if not all(field in data for field in required_fields):
             logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: {data}")
             return jsonify({
@@ -614,7 +637,30 @@ def update_availability_from_discord():
         data = request.json
         logger.debug(f"🔵 [AVAILABILITY_API] Received data from Discord: {data}")
 
+        # Validate the response VALUE, not merely its presence.
+        #
+        # These paths only checked that the key existed, so Discord could send
+        # response='garbage' and it was written straight into Availability and
+        # answered 200 OK. Nothing downstream re-checks it, so a bad value then
+        # flowed into RSVP counts, reminder targeting and sub dispatch.
+        #
+        # It went unnoticed because the endpoint used to die earlier -- on an
+        # AttributeError in the (dead) enterprise redirect -- so the test that
+        # covers this never reached the legacy code at all.
+        VALID_RESPONSES = {'yes', 'no', 'maybe', 'no_response'}
+
         required_fields = ['match_id', 'discord_id', 'response']
+        if all(f in data for f in required_fields) and \
+                data['response'] not in VALID_RESPONSES:
+            logger.warning(
+                f"⚠️ [AVAILABILITY_API] Rejected invalid response value "
+                f"{data['response']!r} for match {data.get('match_id')}")
+            return jsonify({
+                'success': False,
+                'error': (f"Invalid response {data['response']!r}. Expected one "
+                          f"of: {', '.join(sorted(VALID_RESPONSES))}")
+            }), 400
+
         if not all(field in data for field in required_fields):
             logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: {data}")
             return jsonify({

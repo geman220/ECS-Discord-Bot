@@ -295,6 +295,20 @@
     {% endif %}
   </div>
 
+  {#- Denied members are hidden by default. Say so out loud: without this, a search for
+      a denied person returns "No members found", which reads as "no such person". -#}
+  {% if hidden_denied %}
+  <div class="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-500/10">
+    <i class="ti ti-eye-off text-amber-600 dark:text-amber-400 mt-0.5"></i>
+    <p class="text-sm text-amber-800 dark:text-amber-200">
+      <span class="font-semibold">{{ hidden_denied }}</span> denied
+      member{{ '' if hidden_denied == 1 else 's' }} {{ 'is' if hidden_denied == 1 else 'are' }}
+      hidden from this view{% if search %} but match{{ 'es' if hidden_denied == 1 else '' }} “{{ search }}”{% endif %}.
+      <a href="{{ hidden_denied_url }}" class="font-semibold underline hover:no-underline">Include denied members</a>
+    </p>
+  </div>
+  {% endif %}
+
   <!-- ===== list ===== -->
   <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
 
@@ -504,6 +518,7 @@
       {% else %}
         {% if tab == 'pending' %}{{ empty_state('ti-circle-check', 'Inbox zero', 'No one is awaiting a decision. New sign-ups and quick-profile conversions land here.') }}
         {% elif tab == 'waitlist' %}{{ empty_state('ti-clock', 'Waitlist is empty', 'When a season sells out, people who still want in show here. The waitlist clears at each season boundary.') }}
+        {% elif hidden_denied %}{{ empty_state('ti-eye-off', 'Only denied members match', 'Everyone matching this search is marked denied, and denied members are hidden by default. Use “Include denied members” above to see them.') }}
         {% else %}{{ empty_state('ti-users-off', 'No members found', 'No members match the current search or filters. Try clearing them.') }}{% endif %}
       {% endif %}
     {% endif %}

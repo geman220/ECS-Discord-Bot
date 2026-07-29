@@ -281,6 +281,7 @@ def members_worklist():
                                analytics_data=get_user_analytics())
 
     users, profiles, pagination, sub_summary = [], [], None, {}
+    hidden_denied, hidden_denied_url = 0, None
 
     if tab == 'waitlist':
         # The tab-bar badge (counts.waitlist) stays the DEFAULT non-denied count — the
@@ -334,9 +335,23 @@ def members_worklist():
 
     else:
         tab = 'all'
-        pagination = _all_tab_query(db.session, _all_tab_filters(request.args)).paginate(
+        _all_f = _all_tab_filters(request.args)
+        pagination = _all_tab_query(db.session, _all_f).paginate(
             page=page, per_page=50, error_out=False)
         users = pagination.items
+        # Denied people are hidden by DEFAULT here (see _all_tab_query). That is the
+        # right default -- but silently, it made denied members UNFINDABLE: searching a
+        # name returned "No members found", which reads as "this person does not exist"
+        # rather than "this person is denied". Someone flagged on the integrity dashboard
+        # as paid-but-denied could not be located from this page at all. So: count what
+        # the default is hiding and say so, with a one-click way to include them.
+        if _all_f['approval'] not in ('all', 'denied'):
+            _denied_f = dict(_all_f, approval='denied')
+            hidden_denied = _all_tab_query(db.session, _denied_f).count()
+            if hidden_denied:
+                hidden_denied_url = url_for(
+                    'admin_panel.members_worklist',
+                    **dict({k: v for k, v in _all_f.items() if v}, tab='all', approval='all'))
 
     # Waitlist open now? Gates the waitlist approve/pre-approve options (closed in break/offseason).
     try:
@@ -489,6 +504,7 @@ def members_worklist():
                            any_filter=any_filter, tab_kpis=tab_kpis, waitlist_open=waitlist_open,
                            active_chips=active_chips, result_total=result_total, result_shown=result_shown,
                            approve_programs=_approve_program_options(),
+                           hidden_denied=hidden_denied, hidden_denied_url=hidden_denied_url,
                            paid_unapproved_count=_paid_unapproved_count())
 
 
@@ -712,6 +728,27 @@ def _approve_program_options():
     except Exception:
         logger.exception("member hub: approval program options fell back to legacy list")
         return legacy
+
+
+def _preapproval_values():
+    """Every pre-approval value the quick-profile dropdown can emit.
+
+    Derived from the SAME source as the dropdown (`_approve_program_options`) so the
+    two can't disagree. They used to: the select was registry-driven while the POST
+    validator held a literal set of the legacy three, so pre-approving a walk-in into
+    Summer Sprint (`pl_third`) returned "Invalid league" for an option the page had
+    just offered — an error the admin has no way to act on.
+    """
+    out = set()
+    for p in _approve_program_options():
+        v = p.get('value')
+        if not v:
+            continue
+        out.add(v)
+        out.add(f'sub-{v}')
+        if p.get('waitlist_value'):
+            out.add(p['waitlist_value'])
+    return out
 
 
 @admin_panel_bp.route('/members/<int:user_id>')
@@ -1345,10 +1382,13 @@ def member_qp_preapprove(profile_id):
         return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
     data = request.get_json(silent=True) or {}
     league = (data.get('league_type') or '').strip()
-    valid = {'classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc',
-             'waitlist-classic', 'waitlist-premier', 'waitlist-ecs-fc'}
+    valid = _preapproval_values()
     if league and league not in valid:
-        return jsonify({'success': False, 'message': 'Invalid league'}), 400
+        # Name the value AND what was allowed: "Invalid league" alone is unactionable,
+        # and this rejecting a program the dropdown offered is the bug worth seeing.
+        logger.warning("QP pre-approval rejected league_type=%r (valid: %s)", league, sorted(valid))
+        return jsonify({'success': False,
+                        'message': f'Invalid league "{league}" — not a known program.'}), 400
     if league:
         profile.pre_approved_league = league
         profile.pre_approved_by_user_id = getattr(current_user, 'id', None)

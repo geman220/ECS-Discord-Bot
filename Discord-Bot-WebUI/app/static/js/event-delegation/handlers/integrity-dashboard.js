@@ -36,7 +36,7 @@ const BTN_STYLES = {
     neutral: 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
 };
 
-function buildModalHtml(finding, profileUrl, manageUrl) {
+function buildModalHtml(finding, profileUrl, manageUrl, hubUrl) {
     const actions = finding.fix_actions || [];
     let html = `<p class="text-sm text-left text-gray-600 dark:text-gray-300 mb-4">${escapeHtml(finding.detail)}</p>`;
 
@@ -66,12 +66,18 @@ function buildModalHtml(finding, profileUrl, manageUrl) {
         html += '<p class="text-sm text-left text-gray-500 dark:text-gray-400">No one-click fix is available for this conflict — use the links below to resolve it manually.</p>';
     }
 
-    html += '<div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-center justify-center gap-4">';
+    // Member Hub leads: it is the admin view of this person (approve / deny / roles /
+    // league placement). The public player profile is a secondary "who is this?" link,
+    // and the list link is only worth showing when it isn't just the hub again.
+    html += '<div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-center justify-center gap-4 flex-wrap">';
+    if (hubUrl) {
+        html += `<a href="${escapeHtml(hubUrl)}" class="text-xs text-ecs-green hover:underline"><i class="ti ti-id-badge-2"></i> Member Hub</a>`;
+    }
     if (profileUrl) {
         html += `<a href="${escapeHtml(profileUrl)}" class="text-xs text-ecs-green hover:underline"><i class="ti ti-user"></i> Player profile</a>`;
     }
-    if (manageUrl) {
-        html += `<a href="${escapeHtml(manageUrl)}" class="text-xs text-ecs-green hover:underline"><i class="ti ti-edit"></i> Full user editor</a>`;
+    if (manageUrl && manageUrl !== hubUrl) {
+        html += `<a href="${escapeHtml(manageUrl)}" class="text-xs text-ecs-green hover:underline"><i class="ti ti-list-search"></i> Find in members list</a>`;
     }
     html += '</div>';
     return html;
@@ -117,14 +123,16 @@ window.EventDelegation.register('integrity-manage', (element, event) => {
     event.preventDefault();
     const finding = getFinding(element.dataset.code, parseInt(element.dataset.index, 10));
     if (!finding || typeof window.Swal === 'undefined') {
-        // No payload (stale page) — fall back to the full user editor.
-        if (element.dataset.manageUrl) location.href = element.dataset.manageUrl;
+        // No payload (stale page) — fall back to this person's Member Hub.
+        const fallback = element.dataset.hubUrl || element.dataset.manageUrl;
+        if (fallback) location.href = fallback;
         return;
     }
 
     window.Swal.fire({
         title: escapeHtml(finding.name || finding.title),
-        html: buildModalHtml(finding, element.dataset.profileUrl, element.dataset.manageUrl),
+        html: buildModalHtml(finding, element.dataset.profileUrl, element.dataset.manageUrl,
+                             element.dataset.hubUrl),
         showConfirmButton: false,
         showCloseButton: true,
         width: '32rem',
