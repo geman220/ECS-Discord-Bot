@@ -245,17 +245,26 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    # No `cache: 'npm'` and no `npm ci`, both for the same reason:
+    # package-lock.json is GITIGNORED (.gitignore:49), so a CI checkout never
+    # receives it. `npm ci` requires a lockfile and fails outright, and the npm
+    # cache has no lockfile to key on ("Some specified paths were not resolved").
+    #
+    # ⚠️ Worth knowing rather than working around silently: with no committed
+    # lockfile, every CI run and every fresh clone re-resolves dependency
+    # versions. Builds are not reproducible and a compromised transitive release
+    # would be picked up automatically. Committing package-lock.json would fix
+    # that and let `npm ci` + caching work -- a deliberate decision, not
+    # something to change as a side effect of adding a test job.
     - name: Set up Node
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: Discord-Bot-WebUI/package-lock.json
+        node-version: '22'
 
     - name: Install dependencies
       run: |
         cd Discord-Bot-WebUI
-        npm ci
+        npm install --no-audit --no-fund
 
     - name: Run vitest
       run: |
