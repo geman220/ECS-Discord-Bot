@@ -27,54 +27,27 @@ from app.services import program_registry
 
 @pytest.fixture
 def programs(db):
-    """Seed the four real programs, mirroring sql_create_program_registry.sql."""
-    rows = [
-        dict(key='premier', display_name='Premier', sort_order=10,
-             season_league_type='Pub League', league_name='Premier',
-             membership_lane='premier', form_value='premier',
-             flask_league_role='pl-premier', flask_coach_role='Premier Coach',
-             flask_sub_role='Premier Sub', discord_role_slug='PREMIER',
-             discord_category_name='ECS FC PL Premier',
-             is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
-             rolls_over=True, is_active=True),
-        dict(key='classic', display_name='Classic', sort_order=20,
-             season_league_type='Pub League', league_name='Classic',
-             membership_lane='classic', form_value='classic',
-             flask_league_role='pl-classic', flask_coach_role='Classic Coach',
-             flask_sub_role='Classic Sub', discord_role_slug='CLASSIC',
-             discord_category_name='ECS FC PL Classic',
-             is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
-             rolls_over=True, is_active=True),
-        dict(key='ecs_fc', display_name='ECS FC', sort_order=30,
-             season_league_type='ECS FC', league_name='ECS FC',
-             membership_lane='ecs_fc', form_value='ecs-fc',
-             flask_league_role='pl-ecs-fc', flask_coach_role='ECS FC Coach',
-             flask_sub_role='ECS FC Sub', discord_role_slug='ECS-FC',
-             discord_category_name='ECS FC League',
-             is_pub_league_like=False, hide_until_reveal=False, requires_pass=True,
-             rolls_over=False, is_active=True),
-        dict(key='pl_third', display_name='Summer Sprint', sort_order=40,
-             season_league_type='PL Third', league_name='Summer Sprint',
-             membership_lane='pl_third', form_value='pl_third',
-             flask_league_role='pl-third', flask_coach_role='Summer Coach',
-             flask_sub_role='Summer Sub', discord_role_slug='SUMMER',
-             discord_category_name='ECS FC PL Summer Sprint',
-             woo_name_pattern=r'ECS\s+Pub\s+League.*Summer\s+Sprint',
-             is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
-             rolls_over=True, is_active=True),
-    ]
-    # Idempotent: the shared `db` fixture does not isolate these rows between
-    # tests, so a second seeding would hit UNIQUE(program.key).
-    db.session.query(Program).delete()
-    db.session.flush()
-    for r in rows:
-        db.session.add(Program(**r))
-    db.session.flush()
-    program_registry.invalidate()
-    yield rows
-    db.session.query(Program).delete()
-    db.session.flush()
-    program_registry.invalidate()
+    """Restore the four seeded programs before AND after each test here.
+
+    conftest.py now seeds the registry once at session scope, so this fixture is
+    no longer what makes the rows exist -- it is what makes MUTATION SAFE. Tests
+    in this file deliberately flip `is_active` and add reveal overrides, and the
+    shared `db` fixture does not isolate the `program` table (it is not in
+    tables_to_clean, by design, so the session seed survives).
+
+    Without the teardown reseed, `test_inactive_program_is_invisible` would leave
+    pl_third inactive for the REST OF THE RUN -- every later test would silently
+    go back to a three-program world, which is the exact blindness the session
+    seed was added to remove.
+    """
+    from tests.conftest import seed_program_registry, PROGRAM_SEED_ROWS
+
+    seed_program_registry(db.session)
+    db.session.commit()
+    yield PROGRAM_SEED_ROWS
+    seed_program_registry(db.session)
+    db.session.commit()
+
 
 
 class TestRegistryLoadsFromTable:

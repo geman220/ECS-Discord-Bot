@@ -116,6 +116,76 @@ def app():
     ctx.pop()
 
 
+# ---------------------------------------------------------------------------
+# Program registry seeding
+# ---------------------------------------------------------------------------
+# `create_all()` builds the `program` table but nothing SEEDS it, and an empty
+# table makes `_load_rows()` return [] -- which is falsy, so every registry
+# accessor silently drops to `_LEGACY_FALLBACK` and answers
+# Premier / Classic / ECS FC exactly as the code did before the registry existed.
+#
+# The consequence is worth stating plainly: the entire suite could pass while the
+# registry was completely broken, because nothing outside
+# tests/unit/services/test_program_registry.py exercised a third program at all.
+#
+# Seeding here (session scope; `program` is deliberately NOT in tables_to_clean,
+# so the seed survives per-test cleanup) means every test runs against the real
+# registry with a third program present.
+PROGRAM_SEED_ROWS = [
+    dict(key='premier', display_name='Premier', sort_order=10,
+         season_league_type='Pub League', league_name='Premier',
+         membership_lane='premier', form_value='premier',
+         flask_league_role='pl-premier', flask_coach_role='Premier Coach',
+         flask_sub_role='Premier Sub', discord_role_slug='PREMIER',
+         discord_category_name='ECS FC PL Premier',
+         is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
+         rolls_over=True, is_active=True),
+    dict(key='classic', display_name='Classic', sort_order=20,
+         season_league_type='Pub League', league_name='Classic',
+         membership_lane='classic', form_value='classic',
+         flask_league_role='pl-classic', flask_coach_role='Classic Coach',
+         flask_sub_role='Classic Sub', discord_role_slug='CLASSIC',
+         discord_category_name='ECS FC PL Classic',
+         is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
+         rolls_over=True, is_active=True),
+    dict(key='ecs_fc', display_name='ECS FC', sort_order=30,
+         season_league_type='ECS FC', league_name='ECS FC',
+         membership_lane='ecs_fc', form_value='ecs-fc',
+         flask_league_role='pl-ecs-fc', flask_coach_role='ECS FC Coach',
+         flask_sub_role='ECS FC Sub', discord_role_slug='ECS-FC',
+         discord_category_name='ECS FC League',
+         is_pub_league_like=False, hide_until_reveal=False, requires_pass=True,
+         rolls_over=False, is_active=True),
+    dict(key='pl_third', display_name='Summer Sprint', sort_order=40,
+         season_league_type='PL Third', league_name='Summer Sprint',
+         membership_lane='pl_third', form_value='pl_third',
+         flask_league_role='pl-third', flask_coach_role='Summer Coach',
+         flask_sub_role='Summer Sub', discord_role_slug='SUMMER',
+         discord_category_name='ECS FC PL Summer Sprint',
+         woo_name_pattern=r'ECS\s+Pub\s+League.*Summer\s+Sprint',
+         is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
+         rolls_over=True, is_active=True),
+]
+
+
+def seed_program_registry(session):
+    """Delete + reseed the four programs, then drop the registry cache.
+
+    Idempotent, and safe to call from a test teardown to undo a mutation --
+    several tests flip `is_active` or `hide_until_reveal`, and without a restore
+    that change would leak into every test that runs afterwards.
+    """
+    from app.models.program import Program
+    from app.services import program_registry
+
+    session.query(Program).delete()
+    session.flush()
+    for row in PROGRAM_SEED_ROWS:
+        session.add(Program(**row))
+    session.flush()
+    program_registry.invalidate()
+
+
 @pytest.fixture(scope='session')
 def _database(app):
     """Create database for tests."""
@@ -123,7 +193,12 @@ def _database(app):
 
     # Create all tables once for the test session
     _db.create_all()
-    
+
+    # Seed the program registry so tests exercise the real table rather than the
+    # legacy fallback. See seed_program_registry() above for why this matters.
+    seed_program_registry(_db.session)
+    _db.session.commit()
+
     # CRITICAL: Prevent DetachedInstanceError after commit globally
     _db.session.expire_on_commit = False
     

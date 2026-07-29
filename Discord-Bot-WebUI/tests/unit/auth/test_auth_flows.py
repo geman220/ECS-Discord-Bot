@@ -14,6 +14,25 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from tests.factories import UserFactory, PlayerFactory
 
 
+@pytest.fixture
+def password_login(monkeypatch):
+    """Enable the email/password login path for a test.
+
+    `discord_only_login` defaults to TRUE, so POST /auth/login refuses password
+    auth outright -- it flashes 'Please sign in with Discord.' and re-renders the
+    form without ever checking the password. Four tests in this file were
+    previously xfail'd for that reason, which meant the behaviours they cover
+    (session creation, last_login, remember-me, the 2FA hand-off) were verified
+    by NOTHING.
+
+    `ALLOW_PASSWORD_LOGIN` is the app's own documented break-glass override, read
+    from os.environ on every call, so using it here exercises the real login code
+    rather than monkeypatching around it. The Discord-only refusal itself is
+    covered separately by TestDiscordOnlyLogin below.
+    """
+    monkeypatch.setenv('ALLOW_PASSWORD_LOGIN', '1')
+
+
 # =============================================================================
 # LOGIN BEHAVIOR TESTS
 # =============================================================================
@@ -22,8 +41,7 @@ from tests.factories import UserFactory, PlayerFactory
 class TestLoginBehavior:
     """Test login behaviors - when user submits credentials, what happens."""
 
-    @pytest.mark.xfail(reason="Pre-existing (verified at 54e8fd58: 4F/48P/5S): password login now redirects to Discord sign-in, so no session is created.", strict=False)
-    def test_user_with_valid_credentials_gains_access(self, client, db, user_role, app):
+    def test_user_with_valid_credentials_gains_access(self, client, db, user_role, app, password_login):
         """
         GIVEN a registered, approved user with valid credentials
         WHEN they submit correct email and password
@@ -136,8 +154,7 @@ class TestLoginBehavior:
         response = authenticated_client.get('/auth/login')
         assert response.status_code == 302
 
-    @pytest.mark.xfail(reason="Pre-existing (verified at 54e8fd58: 4F/48P/5S): password login now redirects to Discord sign-in, so no session is created.", strict=False)
-    def test_login_updates_last_login_timestamp(self, client, db, user_role):
+    def test_login_updates_last_login_timestamp(self, client, db, user_role, password_login):
         """
         GIVEN a registered user
         WHEN they successfully log in
@@ -165,8 +182,7 @@ class TestLoginBehavior:
         # Last login should be updated to a more recent time
         assert user.last_login > old_time
 
-    @pytest.mark.xfail(reason="Pre-existing (verified at 54e8fd58: 4F/48P/5S): password login now redirects to Discord sign-in, so no session is created.", strict=False)
-    def test_login_with_remember_me_creates_session(self, client, db, user_role):
+    def test_login_with_remember_me_creates_session(self, client, db, user_role, password_login):
         """
         GIVEN a user logging in
         WHEN they check "remember me"
@@ -602,11 +618,75 @@ class TestPasswordResetFlow:
 # =============================================================================
 
 @pytest.mark.unit
+class TestDiscordOnlyLogin:
+    """The default posture: password auth is refused server-side.
+
+    `discord_only_login` defaults ON and the UI hides the password form, but the
+    form being hidden is not a control -- a hand-crafted POST still reaches the
+    route. These tests cover the server-side refusal, which had NO coverage: the
+    four tests that used to exercise this route were xfail'd, so nothing verified
+    either the refusal or the break-glass override.
+    """
+
+    def test_password_login_is_refused_by_default(self, client, db, user_role):
+        """Correct credentials must NOT create a session while Discord-only is on."""
+        user = UserFactory(
+            username='discordonly',
+            email='discordonly@example.com',
+            password='correctpassword123',
+            is_approved=True,
+            approval_status='approved'
+        )
+        user.roles.append(user_role)
+        db.session.commit()
+
+        response = client.post('/auth/login', data={
+            'email': 'discordonly@example.com',
+            'password': 'correctpassword123'
+        })
+
+        # Re-renders the form (200), does not redirect anywhere authenticated.
+        assert response.status_code == 200
+        with client.session_transaction() as session:
+            assert session.get('_user_id') is None, (
+                "password login created a session while discord_only_login was on"
+            )
+
+    def test_break_glass_env_var_re_enables_password_login(
+        self, client, db, user_role, password_login
+    ):
+        """ALLOW_PASSWORD_LOGIN must work -- it's the Discord-outage escape hatch.
+
+        If this regresses, a Discord outage locks admins out of their own site
+        and there is no way back in.
+        """
+        user = UserFactory(
+            username='breakglass',
+            email='breakglass@example.com',
+            password='correctpassword123',
+            is_approved=True,
+            approval_status='approved'
+        )
+        user.roles.append(user_role)
+        db.session.commit()
+
+        with patch('app.auth.login.assign_roles_to_player_task'):
+            client.post('/auth/login', data={
+                'email': 'breakglass@example.com',
+                'password': 'correctpassword123'
+            }, follow_redirects=True)
+
+        with client.session_transaction() as session:
+            assert session.get('_user_id') == str(user.id), (
+                "the break-glass override did not restore password login"
+            )
+
+
+@pytest.mark.unit
 class TestTwoFactorAuthentication:
     """Test 2FA flow - users with 2FA must verify before gaining access."""
 
-    @pytest.mark.xfail(reason="Pre-existing (verified at 54e8fd58: 4F/48P/5S): password login now redirects to Discord sign-in, so no session is created.", strict=False)
-    def test_user_with_2fa_is_redirected_to_verification(self, client, db, user_role):
+    def test_user_with_2fa_is_redirected_to_verification(self, client, db, user_role, password_login):
         """
         GIVEN a user with 2FA enabled
         WHEN they login with correct credentials
