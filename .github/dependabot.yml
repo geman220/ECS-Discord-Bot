@@ -1,0 +1,83 @@
+# Dependabot configuration
+#
+# Nothing was watching dependencies before this: requirements.txt, package.json
+# and the pinned GitHub Actions all drifted silently until someone happened to
+# look. There is an open dependency-security effort in this repo, and that work
+# is a one-off sweep unless something keeps it current afterwards.
+#
+# Grouping is deliberate. Ungrouped Dependabot on a repo this size opens dozens
+# of single-package PRs a week, everyone stops reading them, and the security
+# updates get lost in the noise -- which is worse than not running it. Grouped
+# minor/patch PRs stay reviewable; majors come separately because they need
+# actual thought.
+version: 2
+
+updates:
+  # ---------------------------------------------------------------- Python (web)
+  - package-ecosystem: pip
+    directory: /Discord-Bot-WebUI
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      # Majors here are migrations, not updates -- SQLAlchemy 1.4->2.0 and
+      # Flask 2->3 both change behaviour this app depends on. Let them be
+      # deliberate, planned work rather than a surprise PR.
+      - dependency-name: sqlalchemy
+        update-types: ["version-update:semver-major"]
+      - dependency-name: flask
+        update-types: ["version-update:semver-major"]
+      - dependency-name: celery
+        update-types: ["version-update:semver-major"]
+
+  # ----------------------------------------------------------------- Python (bot)
+  # The bot pins Python 3.9 in CI (bot-core-ci.yml) while the web app is on 3.11,
+  # so its dependency set genuinely resolves differently. Separate entry.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    groups:
+      bot-python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: discord.py
+        update-types: ["version-update:semver-major"]
+
+  # ------------------------------------------------------------------- Front-end
+  - package-ecosystem: npm
+    directory: /Discord-Bot-WebUI
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  # -------------------------------------------------------------- GitHub Actions
+  # Worth having even though it looks like housekeeping: this repo pins actions by
+  # major tag (checkout@v4, setup-python@v4/@v5 inconsistently), and an
+  # unmaintained action is a supply-chain path into CI.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    groups:
+      actions-all:
+        patterns: ["*"]

@@ -681,8 +681,13 @@ def approve_user(user_id: int):
             # Check if user has pl-waitlist role (can approve directly from waitlist)
             has_waitlist_role = any(role.name == 'pl-waitlist' for role in user.roles)
 
-            # Allow approving users who are pending OR on waitlist
-            if user.approval_status != 'pending' and not has_waitlist_role:
+            # Allow approving users who are pending, on the waitlist, or DENIED.
+            # Denied used to be rejected here, which made a denial permanent: the
+            # only way to let a mis-denied person in was to edit the DB by hand.
+            # Approving a denied user is an explicit admin override — it reverses
+            # the denial and grants the league in one step (see undeny_user for
+            # the "back to the queue, no decision yet" path).
+            if user.approval_status not in ('pending', 'denied') and not has_waitlist_role:
                 return jsonify({'success': False, 'message': 'User is not pending approval or on waitlist'}), 400
 
             # Get form data
@@ -887,6 +892,134 @@ def deny_user(user_id: int):
     except Exception as e:
         logger.error(f"Error denying user {user_id}: {str(e)}")
         return jsonify({'success': False, 'message': 'Error processing denial'}), 500
+
+
+@admin_panel_bp.route('/users/approvals/undeny/<int:user_id>', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional(max_retries=3)
+def undeny_user(user_id: int):
+    """
+    Reverse a denial: put a denied person back into the pending queue.
+
+    Deny was a one-way door — it set approval_status='denied' + is_approved=False
+    and stripped pl-unverified, and every other path then refused to touch the
+    person: approve_user required 'pending', the Hub only rendered the
+    approve/deny controls for 'pending', and login blocks 'denied' outright. A
+    mis-click or a changed mind left no way back short of raw SQL.
+
+    This restores the pre-decision state (pending + pl-unverified) rather than
+    approving anyone — the admin still has to make the real call afterwards. The
+    denial reason is preserved in approval_notes so the history isn't lost.
+    """
+    try:
+        current_user_safe = safe_current_user
+
+        with lock_user_for_role_update(user_id, session=db.session) as user:
+
+            if user.approval_status != 'denied':
+                return jsonify({
+                    'success': False,
+                    'message': f'User is not denied (status: {user.approval_status or "unknown"})'
+                }), 400
+
+            notes = (request.form.get('notes') or '').strip()
+
+            # Restore pl-unverified — deny removed it, and it's what marks someone
+            # as awaiting a decision. Only if they hold no league/sub/waitlist role
+            # (a denied person shouldn't, but never stack unverified on top of one).
+            from app.services import program_registry as _pr_reg
+            _decided = set(_pr_reg.league_role_names()) | set(_pr_reg.sub_role_names()) | {'pl-waitlist'}
+            if not any(r.name in _decided for r in (user.roles or [])):
+                unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
+                if unverified_role and unverified_role not in user.roles:
+                    user.roles.append(unverified_role)
+
+            # Back to the pre-decision state. is_approved stays False: undoing a
+            # denial is NOT an approval, it only returns them to the queue.
+            # The BULK deny path (bulk_user_action 'deny' in comprehensive.py) does
+            # NOT clear approval_league, so someone denied while approved still
+            # carries the league they held. Nulling it is what makes the pending
+            # state coherent, so record it in the notes before dropping it.
+            _prior_league = user.approval_league
+            user.approval_status = 'pending'
+            user.is_approved = False
+            user.approval_league = None
+            user.approved_by = None
+            user.approved_at = None
+
+            # Keep the denial reason as history instead of silently discarding it.
+            _stamp = (f"[Denial reversed by {current_user_safe.username} on "
+                      f"{datetime.utcnow().strftime('%Y-%m-%d')}"
+                      + (f"; was on record for {_prior_league}" if _prior_league else "")
+                      + "]")
+            if notes:
+                _stamp = f"{_stamp} {notes}"
+            user.approval_notes = (f"{user.approval_notes}\n{_stamp}"
+                                   if user.approval_notes else _stamp)
+
+            db.session.add(user)
+            db.session.flush()
+
+            # Phase-0 dual-write: the denial retired their spine rows; resync so the
+            # Hub reflects "pending" rather than the retired-by-denial state.
+            if user.player:
+                resync_player_memberships(db.session, user.player.id)
+
+            # Re-add the unverified Discord role. only_add=True so this never strips
+            # anything the admin may have granted by hand while they were denied.
+            if user.player and user.player.discord_id:
+                defer_discord_sync(user.player.id, only_add=True)
+                logger.info(f"Queued Discord role sync for reinstated user {user.id}")
+
+            AdminAuditLog.log_action(
+                user_id=current_user_safe.id,
+                action='undeny_user',
+                resource_type='user_approval',
+                resource_id=str(user_id),
+                old_value='denied',
+                new_value='pending',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            logger.info(f"User {user.id} denial reversed by {current_user_safe.id}")
+
+            response_data = {
+                'success': True,
+                'message': f'{user.username} is back in the pending queue',
+                'user_id': user.id,
+                'approval_status': 'pending',
+                'reinstated_by': current_user_safe.username
+            }
+
+        return jsonify(response_data)
+
+    except UserNotFoundError:
+        logger.warning(f"User {user_id} not found during processing")
+        return jsonify({'success': False, 'message': 'User not found.'}), 404
+
+    except LockAcquisitionError:
+        db.session.rollback()
+        existing = db.session.query(User).filter_by(id=user_id).first()
+        if existing and existing.approval_status == 'pending':
+            logger.info(f"User {user_id} already reinstated by concurrent request; returning success")
+            return jsonify({
+                'success': True,
+                'message': f'{existing.username} is back in the pending queue',
+                'user_id': existing.id,
+                'approval_status': 'pending',
+                'idempotent': True
+            })
+        logger.warning(f"Lock acquisition failed for user {user_id} during undeny")
+        return jsonify({
+            'success': False,
+            'message': 'User is currently being modified by another request. Please try again.'
+        }), 409
+
+    except Exception as e:
+        logger.error(f"Error reversing denial for user {user_id}: {str(e)}")
+        return jsonify({'success': False, 'message': 'Error reversing denial'}), 500
 
 
 @admin_panel_bp.route('/users/approvals/process', methods=['POST'])

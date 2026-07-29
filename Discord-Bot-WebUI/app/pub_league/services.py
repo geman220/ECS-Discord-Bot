@@ -192,8 +192,19 @@ class PubLeagueOrderService:
         )
 
         for item in order_data.get('line_items', []):
-            product_name = item.get('name', '')
-            quantity = item.get('quantity', 1)
+            # `.get('name', '')` returns the default only when the key is ABSENT.
+            # A line item that carries an explicit `"name": null` -- which Woo
+            # does send for some deleted/renamed products -- passed None straight
+            # into `pub_league_pattern.search(...)` below and raised
+            # `TypeError: expected string or bytes-like object`.
+            #
+            # That TypeError escaped extract_pub_league_items() -> escaped
+            # create_or_get_order() -> 500'd the webhook. Woo RETRIES a failed
+            # webhook, so the practical outcome was either an order that never
+            # got created or one created twice. `or ''` makes the intent the
+            # author clearly had actually hold.
+            product_name = item.get('name') or ''
+            quantity = item.get('quantity') or 1
 
             division = None
 

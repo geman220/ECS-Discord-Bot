@@ -283,8 +283,18 @@
                 class="text-xs px-3 py-1.5 rounded-lg border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10"><i class="ti ti-user-check"></i> Enable account</button>
         {% endif %}
       </div>
-      {% if approval == 'pending' %}
+      {# Renders for 'denied' too, not just 'pending'. Deny used to be a one-way door:
+         these controls were pending-only and the backend refused to approve anyone who
+         wasn't pending, so a mis-click permanently locked someone out (denied people are
+         blocked at login and hidden from the members list) with no UI path back. #}
+      {% if approval in ('pending', 'denied') %}
       <div class="px-4 sm:px-5 pb-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+        {% if approval == 'denied' %}
+        <div class="mb-3 flex items-start gap-2 rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-3 py-2 text-[11px] text-red-800 dark:text-red-300">
+          <i class="ti ti-ban mt-0.5 shrink-0"></i>
+          <span>This person is <strong>denied</strong> — they can't log in and are hidden from the members list by default. <strong>Undo denial</strong> puts them back in the pending queue with no decision made; approving below reverses the denial and lets them in directly.</span>
+        </div>
+        {% endif %}
         <div class="flex items-center gap-2 flex-wrap">
           {# Registry-driven. This was a hardcoded classic/premier/ecs-fc list, so a
              program added later (Summer Sprint) simply could not be approved into from
@@ -303,9 +313,15 @@
             </optgroup>
           </select>
           <button data-action-approve data-url="{{ url_for('admin_panel.approve_user', user_id=m.user.id) }}"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-check"></i>Approve</button>
+                  data-denied="{{ '1' if approval == 'denied' else '0' }}"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-check"></i>{{ 'Approve anyway' if approval == 'denied' else 'Approve' }}</button>
+          {% if approval == 'denied' %}
+          <button data-action-undeny data-url="{{ url_for('admin_panel.undeny_user', user_id=m.user.id) }}"
+                  class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10"><i class="ti ti-arrow-back-up"></i>Undo denial</button>
+          {% else %}
           <button data-action-deny data-url="{{ url_for('admin_panel.deny_user', user_id=m.user.id) }}"
                   class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x"></i>Deny</button>
+          {% endif %}
         </div>
         <p class="text-[11px] text-gray-400 mt-1.5">Approving to a league/sub also creates the membership row and syncs Discord roles.</p>
       </div>
@@ -701,9 +717,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var sel = document.querySelector('[data-approve-league]');
     var lt = sel ? sel.value : '';
     var label = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : lt;
+    var wasDenied = approveBtn.getAttribute('data-denied') === '1';
     askConfirm({
       icon: 'question', title: 'Approve as "' + label + '"?',
-      text: 'This assigns their roles and syncs Discord.', confirmText: 'Approve'
+      text: wasDenied
+        ? 'This REVERSES their denial and lets them in: it assigns their roles, syncs Discord, and restores their login.'
+        : 'This assigns their roles and syncs Discord.',
+      confirmText: wasDenied ? 'Override denial & approve' : 'Approve'
     }).then(function (ok) {
       if (!ok) return;
       postForm(approveBtn.getAttribute('data-url'), 'league_type=' + encodeURIComponent(lt), approveBtn, true);
@@ -716,6 +736,16 @@ document.addEventListener('DOMContentLoaded', function () {
       title: 'Deny this person?', text: 'They will be removed from the intake queue.',
       confirmText: 'Deny', danger: true
     }).then(function (ok) { if (ok) postForm(denyBtn.getAttribute('data-url'), '', denyBtn, true); });
+  });
+
+  // Undo a denial — back to the pending queue, no approval decision made.
+  var undenyBtn = document.querySelector('[data-action-undeny]');
+  if (undenyBtn) undenyBtn.addEventListener('click', function () {
+    askConfirm({
+      icon: 'question', title: 'Undo this denial?',
+      text: 'They go back into the pending queue and can log in again. No league is granted — you still decide.',
+      confirmText: 'Undo denial'
+    }).then(function (ok) { if (ok) postForm(undenyBtn.getAttribute('data-url'), '', undenyBtn, true); });
   });
 
   // Role add/remove (form-encoded to the shared assign-role endpoint)

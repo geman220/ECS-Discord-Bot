@@ -809,6 +809,7 @@ _AUDIT_LABELS = {
     'approve_user': 'Approved', 'approve_user_comprehensive': 'Approved',
     'user_approval': 'Approval decision',
     'deny_user': 'Denied',
+    'undeny_user': 'Denial reversed',
     'assign_user_role': 'Roles changed', 'assign_user_roles': 'Roles changed',
     'remove_from_waitlist': 'Removed from waitlist',
     'update_waitlist_priority': 'Waitlist priority set',
