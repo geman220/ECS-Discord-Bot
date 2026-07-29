@@ -611,6 +611,100 @@ def reencode_profile_pictures(dry_run, delete_originals):
 
 
 @click.command()
+@click.option('--program', 'program_key', required=True,
+              help="Program key, e.g. 'pl_third'.")
+@click.option('--reconcile', is_flag=True,
+              help='DANGEROUS: also REVOKE roles the calculator does not expect. '
+                   'Default is add-only, which can never strip anyone.')
+@click.option('--dry-run', is_flag=True, help='List who would be synced; queue nothing.')
+@with_appcontext
+def sync_program_discord_roles(program_key, reconcile, dry_run):
+    """Queue a Discord role sync for everyone in ONE program.
+
+    The repair for "these N people never got their division role" — e.g. after a
+    membership backfill, or after a program's Flask roles were granted out of
+    band. Doing it one player at a time through the admin UI does not scale past
+    about three people.
+
+    ⚠️ ADD-ONLY BY DEFAULT. `only_add=True` means the batch GRANTS missing roles
+    and never revokes, so a wrong expected-role calculation cannot strip anybody
+    — including the Premier/Classic members who are not the target here. Pass
+    --reconcile only when you deliberately want removals too.
+
+    Membership: anyone holding one of the program's Flask roles (league, coach or
+    sub), UNION anyone with a live membership row in the program's current
+    season. The union matters — the two disagree exactly when something is
+    broken, which is when you are running this.
+    """
+    from app.models import Player, User, Role, LeagueMembership
+    from app.services import program_registry
+    from app.utils.season_context import current_season_for_program
+    from app.tasks.tasks_discord import process_discord_role_updates
+
+    program = program_registry.by_key(program_key, include_inactive=True)
+    if program is None:
+        click.echo(f"No program with key '{program_key}'.")
+        return
+
+    flask_roles = [r for r in (program.flask_league_role, program.flask_coach_role,
+                               program.flask_sub_role) if r]
+    click.echo(f"Program: {program.display_name} ({program.key})")
+    click.echo(f"Flask roles: {', '.join(flask_roles) or '(none)'}")
+
+    players = {}
+
+    if flask_roles:
+        rows = (db.session.query(Player)
+                .join(User, User.id == Player.user_id)
+                .filter(User.roles.any(Role.name.in_(flask_roles)),
+                        Player.discord_id.isnot(None))
+                .all())
+        for p in rows:
+            players[p.id] = p
+    by_role = len(players)
+
+    season = current_season_for_program(program_key, db.session)
+    if season is not None:
+        rows = (db.session.query(Player)
+                .join(LeagueMembership, LeagueMembership.player_id == Player.id)
+                .filter(LeagueMembership.season_id == season.id,
+                        LeagueMembership.league_type == program.membership_lane,
+                        # terminal rows are people who LEFT — syncing them would
+                        # be pointless at best and, under --reconcile, wrong.
+                        ~LeagueMembership.status.in_(('inactive', 'retired', 'removed')),
+                        Player.discord_id.isnot(None))
+                .all())
+        for p in rows:
+            players[p.id] = p
+        click.echo(f"Current season: {season.name} (id={season.id})")
+    else:
+        click.echo("WARNING: this program has no current season; matching on Flask roles only.")
+
+    if not players:
+        click.echo("\nNobody to sync. Either nobody holds this program's roles yet, "
+                   "or none of them have a linked Discord account.")
+        return
+
+    click.echo(f"\n{len(players)} player(s) to sync "
+               f"({by_role} by Flask role, {len(players) - by_role} more by membership):")
+    for p in sorted(players.values(), key=lambda x: (x.name or '')):
+        click.echo(f"  {p.id:>6}  {p.name}")
+
+    mode = 'RECONCILE (adds AND revokes)' if reconcile else 'add-only (never revokes)'
+    click.echo(f"\nMode: {mode}")
+
+    if dry_run:
+        click.echo("\n(Dry run - nothing queued.)")
+        return
+
+    discord_ids = [str(p.discord_id) for p in players.values() if p.discord_id]
+    process_discord_role_updates.delay(discord_ids, only_add=not reconcile)
+    click.echo(f"\nQueued a Discord role sync for {len(discord_ids)} player(s).")
+    click.echo("It runs on the discord worker; follow it with:")
+    click.echo("  docker logs -f ecs-discord-bot-celery-discord-worker-1")
+
+
+@click.command()
 @click.option('--batch-size', default=200, show_default=True,
               help='Players per committed batch. Smaller = shorter transactions.')
 @click.option('--dry-run', is_flag=True, help='Compute everything, then roll back each batch.')
