@@ -398,16 +398,23 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
     # Skip the '_by_season_type' bookkeeping key -- see the note in cli.py.
     if not any(v for k, v in current.items() if not k.startswith('_')):
         logger.warning("backfill_all_memberships: no current season for either program; nothing to do")
-        return {'players': 0, 'batches': 0, 'errors': 0}
+        return {'players': 0, 'batches': 0, 'errors': 0, 'rows_added': 0}
 
     player_ids = [pid for (pid,) in session.query(Player.id).order_by(Player.id).all()]
     total = len(player_ids)
-    stats = {'players': 0, 'batches': 0, 'errors': 0}
+    stats = {'players': 0, 'batches': 0, 'errors': 0, 'rows_added': 0}
 
     for start in range(0, total, batch_size):
         chunk = player_ids[start:start + batch_size]
         # One query per batch, not one per player.
         players = session.query(Player).filter(Player.id.in_(chunk)).all()
+        # Row count before/after so a DRY RUN can report what it WOULD create.
+        # Without this the dry run only proves the sweep does not crash -- it
+        # returned players/batches/errors and nothing about the actual effect,
+        # which is the one thing you run a dry run to find out. Counted inside
+        # the batch (before the rollback) because the rollback discards it.
+        rows_before = session.query(LeagueMembership).filter(
+            LeagueMembership.player_id.in_(chunk)).count()
         for player in players:
             try:
                 # SAVEPOINT per player: one bad row rolls back only itself, so the rest
@@ -418,6 +425,12 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
             except Exception:
                 stats['errors'] += 1
                 logger.exception("backfill_all_memberships: resync failed for player_id=%s", player.id)
+        try:
+            session.flush()
+            stats['rows_added'] += max(0, session.query(LeagueMembership).filter(
+                LeagueMembership.player_id.in_(chunk)).count() - rows_before)
+        except Exception:
+            logger.exception("backfill_all_memberships: row-delta count failed")
         if dry_run:
             session.rollback()
         else:
@@ -426,9 +439,10 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
         if progress:
             progress(min(start + batch_size, total), total)
 
-    logger.info("backfill_all_memberships: %s player(s) across %s batch(es), %s error(s)%s",
-                stats['players'], stats['batches'], stats['errors'],
-                ' [DRY RUN, rolled back]' if dry_run else '')
+    logger.info("backfill_all_memberships: %s player(s) across %s batch(es), "
+                "%s new row(s), %s error(s)%s",
+                stats['players'], stats['batches'], stats['rows_added'],
+                stats['errors'], ' [DRY RUN, rolled back]' if dry_run else '')
     return stats
 
 

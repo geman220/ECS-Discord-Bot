@@ -36,12 +36,33 @@ class LeagueMembership(db.Model):
         db.Index('ix_league_membership_team', 'team_id'),
     )
 
-    # --- vocab (enforced in the app layer, not the DB, to stay flexible) ---
+    # --- vocab ---
     # Declared vocabulary. NOT exhaustive once the program registry has more
-    # rows -- the authoritative list is
-    # `program_registry.membership_lanes()`, and there is no DB CHECK on this
-    # column, so a newer lane stores fine. Kept for documentation and for the
-    # legacy no-registry path.
+    # rows -- the authoritative list is `program_registry.membership_lanes()`.
+    # Kept for documentation and for the legacy no-registry path.
+    #
+    # ⚠️ THERE **IS** A DB CHECK ON `league_type` IN PRODUCTION.
+    #
+    # This comment used to claim the opposite ("no DB CHECK on this column, so a
+    # newer lane stores fine"). It is not true: the hand-run migration created
+    # `league_membership_league_type_check`, pinned to the three lanes below.
+    # The model never knew, so adding a program looked like a pure registry
+    # change -- and every write of the new lane failed with a CheckViolation
+    # that only showed up when someone ran the backfill.
+    #
+    # ADDING A PROGRAM THEREFORE NEEDS A MIGRATION. Widen the constraint to
+    # include the new `membership_lane` BEFORE anything can write it:
+    #
+    #   SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint
+    #    WHERE conrelid = 'league_membership'::regclass AND contype = 'c';
+    #
+    #   ALTER TABLE league_membership
+    #     DROP CONSTRAINT league_membership_league_type_check,
+    #     ADD  CONSTRAINT league_membership_league_type_check
+    #          CHECK (league_type IN ('classic','premier','ecs_fc','<new lane>'));
+    #
+    # Verify with `sql_check_league_membership_lane_constraint.sql`, which
+    # compares the live constraint against `program.membership_lane`.
     LEAGUE_TYPES = ('classic', 'premier', 'ecs_fc')
 
     @staticmethod
