@@ -669,6 +669,11 @@ def backfill_league_membership(batch_size, dry_run):
     click.echo("\n--- Summary ---")
     click.echo(f"Players processed: {stats['players']}")
     click.echo(f"Batches:           {stats['batches']}")
+    # The point of the dry run: what it WOULD create. Without this the summary
+    # only proved the sweep did not crash, which is not the question anyone is
+    # asking when they run it.
+    click.echo(f"Membership rows {'to create' if dry_run else 'created':<10}: "
+               f"{stats.get('rows_added', 0)}")
     click.echo(f"Errors:            {stats['errors']}")
     if stats['errors']:
         click.echo("Some players failed - see the application log for tracebacks, then re-run.")
