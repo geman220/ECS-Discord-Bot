@@ -78,6 +78,92 @@ class TestRegistryLoadsFromTable:
         assert program_registry.by_key('pl_third', include_inactive=True) is not None
 
 
+class TestWooProductPrecedence:
+    """Name pattern must beat a pinned product ID -- and the reason is subtle.
+
+    ECS creates a BRAND NEW WooCommerce product every season rather than
+    restocking one, so `woo_product_ids` is the EPHEMERAL key: correct only for
+    the season someone last pinned it, stale every season after. The title format
+    ("<year> ... ECS Pub League ... <program>") is the DURABLE one.
+
+    So if a stale pinned ID were checked first, it would silently claim NEXT
+    season's order for whichever program someone pinned it to last year -- a
+    buyer placed in the wrong program, with no error. That ordering is easy to
+    "tidy up" backwards during a refactor, which is exactly why it is pinned here.
+    """
+
+    REAL_TITLE = '2026 ECS Pub League – Summer Sprint Season'
+
+    def test_pattern_wins_over_a_stale_pinned_id(self, db, app, programs):
+        """Premier holds a stale pin for this product id; the title says Summer."""
+        premier = db.session.query(Program).filter_by(key='premier').first()
+        premier.woo_product_ids = '4242'
+        db.session.flush()
+        program_registry.invalidate()
+
+        prog = program_registry.by_woo_product(
+            product_id=4242, product_name=self.REAL_TITLE, session=db.session)
+
+        assert prog is not None
+        assert prog.key == 'pl_third', (
+            f"a stale pinned id on {prog.key if prog else None} beat the title "
+            f"pattern -- this order would be filed under the wrong program"
+        )
+
+    def test_pinned_id_is_used_when_no_pattern_matches(self, db, app, programs):
+        """The override still has to work for a title that breaks the format."""
+        premier = db.session.query(Program).filter_by(key='premier').first()
+        premier.woo_product_ids = '4242'
+        db.session.flush()
+        program_registry.invalidate()
+
+        prog = program_registry.by_woo_product(
+            product_id=4242, product_name='Totally Bespoke Product Name',
+            session=db.session)
+
+        assert prog is not None and prog.key == 'premier', (
+            "the per-season ID override no longer works, so any product whose "
+            "title breaks the house format can never be resolved"
+        )
+
+    def test_comma_separated_pins_all_match(self, db, app, programs):
+        """woo_product_ids is a LIST -- several seasons' products can be pinned."""
+        classic = db.session.query(Program).filter_by(key='classic').first()
+        classic.woo_product_ids = '11, 22 ,33'
+        db.session.flush()
+        program_registry.invalidate()
+
+        for pid in (11, 22, 33):
+            got = program_registry.by_woo_product_id(pid, db.session)
+            assert got is not None and got.key == 'classic', f"id {pid} did not resolve"
+
+    def test_garbage_in_pins_does_not_crash_or_false_match(self, db, app, programs):
+        classic = db.session.query(Program).filter_by(key='classic').first()
+        classic.woo_product_ids = 'abc, , 55'
+        db.session.flush()
+        program_registry.invalidate()
+
+        assert program_registry.by_woo_product_id(55, db.session).key == 'classic'
+        assert program_registry.by_woo_product_id('not-a-number', db.session) is None
+        assert program_registry.by_woo_product_id(None, db.session) is None
+
+    def test_invalid_pattern_is_survived(self, db, app, programs):
+        """A malformed regex in one row must not break resolution for the others.
+
+        The pattern is admin-editable data, so a bad one is a matter of time. If
+        this raised, one typo in one row would take down order resolution for
+        EVERY program.
+        """
+        classic = db.session.query(Program).filter_by(key='classic').first()
+        classic.woo_name_pattern = '([unclosed'
+        db.session.flush()
+        program_registry.invalidate()
+
+        prog = program_registry.by_woo_product(
+            product_name=self.REAL_TITLE, session=db.session)
+        assert prog is not None and prog.key == 'pl_third'
+
+
 class TestWooProductMatching:
     """The 2026 title has NO (Spring|Fall) and NO (Classic|Premier) token, and
     uses an EN DASH (U+2013). Both legacy regexes matched nothing, so the buyer
