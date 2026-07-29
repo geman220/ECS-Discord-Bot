@@ -398,11 +398,13 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
     # Skip the '_by_season_type' bookkeeping key -- see the note in cli.py.
     if not any(v for k, v in current.items() if not k.startswith('_')):
         logger.warning("backfill_all_memberships: no current season for either program; nothing to do")
-        return {'players': 0, 'batches': 0, 'errors': 0, 'rows_added': 0}
+        return {'players': 0, 'batches': 0, 'errors': 0, 'rows_added': 0, 'rows_retired': 0}
 
     player_ids = [pid for (pid,) in session.query(Player.id).order_by(Player.id).all()]
     total = len(player_ids)
-    stats = {'players': 0, 'batches': 0, 'errors': 0, 'rows_added': 0}
+    stats = {'players': 0, 'batches': 0, 'errors': 0, 'rows_added': 0, 'rows_retired': 0}
+    # player/coach -> inactive, sub -> retired, waitlist -> removed
+    _terminal_statuses = set(_TERMINAL.values())
 
     for start in range(0, total, batch_size):
         chunk = player_ids[start:start + batch_size]
@@ -415,6 +417,12 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
         # the batch (before the rollback) because the rollback discards it.
         rows_before = session.query(LeagueMembership).filter(
             LeagueMembership.player_id.in_(chunk)).count()
+        # Retirements are the ONLY way this sweep changes an EXISTING row, so
+        # they have to be reported too. Counting only insertions made a dry run
+        # look read-only when it could in fact flip live rows to inactive.
+        retired_before = session.query(LeagueMembership).filter(
+            LeagueMembership.player_id.in_(chunk),
+            LeagueMembership.status.in_(_terminal_statuses)).count()
         for player in players:
             try:
                 # SAVEPOINT per player: one bad row rolls back only itself, so the rest
@@ -429,6 +437,9 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
             session.flush()
             stats['rows_added'] += max(0, session.query(LeagueMembership).filter(
                 LeagueMembership.player_id.in_(chunk)).count() - rows_before)
+            stats['rows_retired'] += max(0, session.query(LeagueMembership).filter(
+                LeagueMembership.player_id.in_(chunk),
+                LeagueMembership.status.in_(_terminal_statuses)).count() - retired_before)
         except Exception:
             logger.exception("backfill_all_memberships: row-delta count failed")
         if dry_run:
@@ -440,9 +451,10 @@ def backfill_all_memberships(session, batch_size=200, dry_run=False, progress=No
             progress(min(start + batch_size, total), total)
 
     logger.info("backfill_all_memberships: %s player(s) across %s batch(es), "
-                "%s new row(s), %s error(s)%s",
+                "%s new row(s), %s retired, %s error(s)%s",
                 stats['players'], stats['batches'], stats['rows_added'],
-                stats['errors'], ' [DRY RUN, rolled back]' if dry_run else '')
+                stats['rows_retired'], stats['errors'],
+                ' [DRY RUN, rolled back]' if dry_run else '')
     return stats
 
 

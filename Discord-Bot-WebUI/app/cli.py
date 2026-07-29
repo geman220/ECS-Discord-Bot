@@ -674,6 +674,10 @@ def backfill_league_membership(batch_size, dry_run):
     # asking when they run it.
     click.echo(f"Membership rows {'to create' if dry_run else 'created':<10}: "
                f"{stats.get('rows_added', 0)}")
+    # Retirements are the only existing-row change this makes. A non-zero number
+    # here on a Pub League player means a source fact genuinely went away.
+    click.echo(f"Rows {'to retire' if dry_run else 'retired':<21}: "
+               f"{stats.get('rows_retired', 0)}")
     click.echo(f"Errors:            {stats['errors']}")
     if stats['errors']:
         click.echo("Some players failed - see the application log for tracebacks, then re-run.")
