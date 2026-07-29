@@ -73,10 +73,8 @@ class TestUpdateAvailabilityWeb:
 
             assert response.status_code == 400
 
-    @patch('app.mobile_api.rsvp.update_player_match_availability')
-    @patch('app.mobile_api.rsvp.notify_availability_update')
     def test_update_availability_web_success(
-        self, mock_notify, mock_update, client, app, db, match, team
+        self, client, app, db, match, team
     ):
         """
         GIVEN an authenticated user with a player profile
@@ -88,7 +86,6 @@ class TestUpdateAvailabilityWeb:
             player = PlayerFactory(name='Web Player', user=user, primary_team_id=team.id)
             db.session.commit()
 
-            mock_update.return_value = True
 
             access_token = create_access_token(identity=str(user.id))
             response = client.post(
@@ -140,9 +137,8 @@ class TestBulkAvailabilityUpdate:
 
             assert response.status_code == 400
 
-    @patch('app.mobile_api.rsvp.update_player_match_availability')
     def test_bulk_availability_handles_invalid_updates(
-        self, mock_update, client, app, db, team
+        self, client, app, db, team
     ):
         """
         GIVEN an authenticated user with a player profile
@@ -169,9 +165,8 @@ class TestBulkAvailabilityUpdate:
             assert data['failed'] == 2
             assert data['successful'] == 0
 
-    @patch('app.mobile_api.rsvp.update_player_match_availability')
     def test_bulk_availability_handles_nonexistent_matches(
-        self, mock_update, client, app, db, team
+        self, client, app, db, team
     ):
         """
         GIVEN an authenticated user with a player profile
@@ -201,9 +196,8 @@ class TestBulkAvailabilityUpdate:
                 assert result['success'] is False
                 assert 'error' in result
 
-    @patch('app.mobile_api.rsvp.update_player_match_availability')
     def test_bulk_availability_success(
-        self, mock_update, client, app, db, match, team, schedule
+        self, client, app, db, match, team, schedule
     ):
         """
         GIVEN an authenticated user with a player profile
@@ -228,7 +222,6 @@ class TestBulkAvailabilityUpdate:
             db.session.add(match2)
             db.session.commit()
 
-            mock_update.return_value = True
 
             access_token = create_access_token(identity=str(user.id))
             response = client.post(

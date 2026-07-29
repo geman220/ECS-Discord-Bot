@@ -49,6 +49,10 @@
      data-pool-approve-url="{{ url_for('admin_panel.approve_pool_member', league_type='__LT__') }}"
      data-pool-setactive-url="{{ url_for('admin_panel.set_pool_member_active', league_type='__LT__') }}"
      data-pool-reject-url="{{ url_for('admin_panel.reject_player_from_pool', league_type='__LT__') }}"
+     {# Leagues that have a substitute pool, from the program registry. The JS had
+        this as a hardcoded ['ECS FC', 'Classic', 'Premier'], so a newer program
+        never showed up in "add to another pool". #}
+     data-pool-leagues="{{ pool_leagues|tojson|forceescape }}"
      data-csrf="{{ csrf_token_value }}">
 
 {# ---- Header + top reach-out CTA + week nav ---- #}

@@ -512,6 +512,10 @@ def _fix_clear_waitlist(user_id, player_id, params, admin_id):
 # rejected, so the endpoint can't be used to run arbitrary mutations.
 FIXERS = {
     ('G1', 'approve'): _fix_approve,
+    # G17 = paid but never approved. Same repair as G1 (run the approval), so it
+    # reuses the same fixer — a detector that offers an action with no FIXERS
+    # entry renders a Resolve button that raises 'Unknown fix' on click.
+    ('G17', 'approve'): _fix_approve,
     ('G2', 'approve'): _fix_approve,
     ('G3', 'approve'): _fix_approve,
     ('G4', 'deny_cleanup'): _fix_deny_cleanup,

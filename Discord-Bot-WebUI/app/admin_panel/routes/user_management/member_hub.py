@@ -488,7 +488,8 @@ def members_worklist():
                            sub_status_filter=sub_status_filter, qp_status=qp_status,
                            any_filter=any_filter, tab_kpis=tab_kpis, waitlist_open=waitlist_open,
                            active_chips=active_chips, result_total=result_total, result_shown=result_shown,
-                           approve_programs=_approve_program_options())
+                           approve_programs=_approve_program_options(),
+                           paid_unapproved_count=_paid_unapproved_count())
 
 
 def _member_export_row(user):
@@ -643,6 +644,28 @@ def members_export():
         logger.exception("members export: session release failed (continuing)")
 
     return _build_xlsx_response([(sheet, rows), ('Filters Applied', applied)], prefix)
+
+
+def _paid_unapproved_count():
+    """How many people hold a paid pass this season without being approved.
+
+    Calls the G17 integrity detector directly rather than re-deriving the count,
+    so this banner and the integrity dashboard can never disagree about who is
+    in trouble (see reference_admin_count_definitions — shared counts come from
+    ONE helper).
+
+    Returns 0 on any failure: a banner is decoration on this page, and a broken
+    count must not take the members list down with it.
+    """
+    try:
+        # `db` is not imported at module level in this file — every other
+        # function pulls it in locally, so this must too or it NameErrors.
+        from app.core import db
+        from app.services.integrity_service import detect_g17_paid_not_approved
+        return len(detect_g17_paid_not_approved(db.session) or [])
+    except Exception:
+        logger.exception("members worklist: paid-but-unapproved count failed")
+        return 0
 
 
 def _approve_program_options():

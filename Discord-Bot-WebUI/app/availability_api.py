@@ -582,39 +582,24 @@ def update_availability_from_discord():
             'operation_id': str(__import__('uuid').uuid4())  # Generate operation ID
         }
         
-        # The enterprise call is guarded by the OUTER try/except below,
-        # which falls back to the legacy implementation on any failure.
-        # (There used to be an inner try/finally here purely to restore a
-        # monkeypatched request.json -- that assignment was invalid and is gone.)
-        # Call the enterprise endpoint internally
-        logger.info(f"🔄 Redirecting legacy Discord API call to Enterprise RSVP v2: match={data['match_id']}, discord_id={data['discord_id']}")
-        # Pass the payload explicitly. Assigning to request.json raised
-        # AttributeError ('property of Request object has no setter') on
-        # every call, so this redirect ALWAYS failed and fell through to the
-        # legacy path below.
-        response = update_rsvp_enterprise_from_discord(
-            payload=enterprise_request_data)
-        
-        # Transform enterprise response back to legacy format for compatibility
-        if response[1] == 200:  # Success response
-            enterprise_data = response[0].get_json()
-            legacy_response = {
-                'status': 'success',
-                'message': enterprise_data.get('message', 'RSVP updated successfully'),
-                'match_id': enterprise_data.get('match_id'),
-                'player_id': enterprise_data.get('player_id'),
-                # Include enterprise metadata for debugging
-                '_enterprise': {
-                    'trace_id': enterprise_data.get('trace_id'),
-                    'operation_id': enterprise_data.get('operation_id'),
-                    'via_v2': True
-                }
-            }
-            return jsonify(legacy_response), 200
-        else:
-            # Enterprise endpoint failed, return the error
-            return response
-            
+        # ⚠️ THE ENTERPRISE REDIRECT IS DELIBERATELY DISABLED.
+        #
+        # It never worked. The old code did `request.json = enterprise_request_data`,
+        # which raises AttributeError because request.json is a READ-ONLY property;
+        # a broad except swallowed it and every call fell through to the legacy
+        # implementation below. So the legacy path IS the production behaviour and
+        # always has been.
+        #
+        # Fixing the assignment (passing the payload explicitly) made the redirect
+        # actually fire -- and immediately returned 401 on every Discord RSVP,
+        # because update_rsvp_enterprise_from_discord is JWT-decorated and this is
+        # an INTERNAL call with no Authorization header. Turning a silently-dead
+        # path into a live 401 is strictly worse than leaving it dead.
+        #
+        # Re-enabling it needs the enterprise business logic extracted out from
+        # behind its JWT decorator so both entry points can call it. Until then
+        # this stays explicitly off rather than accidentally off.
+        raise NotImplementedError("enterprise redirect disabled; use legacy path")
 
     except Exception as e:
         logger.error(f"❌ Legacy Discord API redirect to enterprise failed: {str(e)}", exc_info=True)

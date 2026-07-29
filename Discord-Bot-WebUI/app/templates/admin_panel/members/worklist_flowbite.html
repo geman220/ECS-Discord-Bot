@@ -119,6 +119,31 @@
     <p>{{ tips.get(tab, tips['all']) | safe }} <a href="#member-guide" class="text-ecs-green font-medium hover:underline whitespace-nowrap">Full guide →</a></p>
   </div>
 
+  {# ===== Paid-but-not-approved alert =====
+     Deliberately a banner, not a KPI chip: this is a queue to work through, not
+     a metric to glance at. Renders only when non-zero, so it is invisible on a
+     clean day.
+
+     The copy names the MISALIGNMENT and stops. It used to say "approve them, or
+     deny and refund" — but the checker cannot know which of those is right, and
+     a banner that recommends refunding people is a recommendation someone will
+     eventually follow without thinking. State the facts; the admin decides. #}
+  {% if paid_unapproved_count %}
+  <a href="{{ url_for('admin_panel.integrity_dashboard') }}"
+     class="flex items-start gap-3 p-3 sm:p-4 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400">
+    <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400 mt-0.5" aria-hidden="true"></i>
+    <span class="min-w-0">
+      <span class="block text-sm font-semibold text-amber-800 dark:text-amber-200">
+        {{ paid_unapproved_count }} {{ 'person has' if paid_unapproved_count == 1 else 'people have' }} paid but {{ "isn't" if paid_unapproved_count == 1 else "aren't" }} approved
+      </span>
+      <span class="block text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+        Payment and approval disagree for {{ 'this person' if paid_unapproved_count == 1 else 'these people' }}.
+        They won't show up anywhere else until they're on a roster. Review →
+      </span>
+    </span>
+  </a>
+  {% endif %}
+
   <!-- ===== per-tab KPI strip (contextual; each chip links to its filter) ===== -->
   {% if tab_kpis %}
   {% set tonemap = {'primary':'text-ecs-green','success':'text-green-600 dark:text-green-400','warning':'text-amber-600 dark:text-amber-400','info':'text-blue-600 dark:text-blue-400','gold':'text-ecs-gold-500 dark:text-ecs-gold-400','danger':'text-red-600 dark:text-red-400','neutral':'text-gray-700 dark:text-gray-300'} %}

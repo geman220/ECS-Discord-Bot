@@ -305,6 +305,7 @@ def unified_substitutes():
             next_week=next_week,
             is_global_admin=is_admin(db.session, current_user.id),
             discord_channels=_discord_channels()[0],
+            pool_leagues=_pool_leagues(),
         )
     except Exception as e:
         logger.error(f"Error loading substitute command center: {e}", exc_info=True)
@@ -586,6 +587,28 @@ def sub_week_availability():
     rows = get_week_availability(db.session, week_date, league_type=league_type,
                                  season_id=season_id, available_only=False)
     return jsonify({'success': True, 'availability': rows, 'week': week_date.isoformat()})
+
+
+def _pool_leagues():
+    """League names that have a substitute pool, for the JS league picker.
+
+    ⚠️ These are `League.name` values ('Premier', 'ECS FC', 'Summer Sprint'),
+    NOT membership lanes — `SubstitutePool.league_type` stores the capitalised
+    league name, and the pool URLs are built by substituting this string into
+    `league_type=__LT__`. Passing a lane here ('pl_third') builds a URL that
+    matches no pool and 400s.
+
+    Falls back to the legacy three so an unreachable registry leaves the picker
+    exactly as it was rather than empty.
+    """
+    try:
+        from app.services import program_registry
+        names = [p.league_name for p in program_registry.all_programs() if p.league_name]
+        if names:
+            return names
+    except Exception:
+        logger.warning("pool leagues fell back to the legacy list", exc_info=True)
+    return ['ECS FC', 'Classic', 'Premier']
 
 
 def _discord_channels():

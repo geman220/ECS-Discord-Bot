@@ -160,6 +160,25 @@ def build_attention_queue(user):
         except Exception as e:
             logger.warning(f"attention/integrity: {e}")
 
+        # Paid-but-not-approved gets its OWN row rather than being buried in the
+        # integrity total, because "3 of your 41 conflicts involve people who
+        # have paid" is not something anyone reads off a total.
+        #
+        # The label states the MISALIGNMENT and stops there. It deliberately does
+        # not prescribe an outcome: what to do about any given person is a
+        # judgement call, and a dashboard that tells you to refund someone will
+        # eventually be right in a way you did not intend.
+        #
+        # Uses the SAME detector as the integrity dashboard (never a re-implemented
+        # count), so the two surfaces cannot drift apart.
+        try:
+            from app.services.integrity_service import detect_g17_paid_not_approved
+            n = len(detect_g17_paid_not_approved(db.session) or [])
+            add('paid_unapproved', 'Paid but not approved', n,
+                'warning', safe_url('admin_panel.integrity_dashboard'))
+        except Exception as e:
+            logger.warning(f"attention/paid_unapproved: {e}")
+
     # 6) Live matches in progress.
     #
     # Two independent sources, both with a staleness guard — an abandoned row is

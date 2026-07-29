@@ -871,6 +871,293 @@ def api_manual_link():
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
+def _division_form_value(division):
+    """`League.name` on a line item -> the approval form value for that program.
+
+    'Summer Sprint' -> 'pl_third'. Returns (form_value, label) or (None, None)
+    when the division resolves to no program — in which case we must NOT guess,
+    because approving into the wrong league is silent data corruption that
+    nothing downstream flags.
+    """
+    if not division:
+        return None, None
+    try:
+        from app.services import program_registry
+        pr = program_registry.by_league_name(division)
+        if pr is None:
+            return None, None
+        return (pr.form_value or pr.membership_lane), (pr.display_name or pr.league_name)
+    except Exception:
+        logger.warning("could not resolve division %r to a program", division, exc_info=True)
+        return None, None
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/player-limbo', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_player_limbo():
+    """Report the "limbo" states of the player a pass was just assigned to.
+
+    Buying a pass and being CLEARED TO PLAY are deliberately separate axes — we
+    refund people who turn out not to be a good fit — so nothing here is applied
+    automatically and this endpoint writes nothing at all. It only answers "what
+    is inconsistent about this person now that they hold a pass?", so the admin
+    doing a manual assignment can fix it in the same breath instead of leaving
+    them pending/waitlisted forever with a paid pass.
+
+    Read-only by design: the companion `api_resolve_limbo` does the writing, and
+    only for the boxes the admin actually ticked.
+    """
+    data = request.get_json(silent=True) or {}
+    player_id = data.get('player_id')
+    line_item_id = data.get('line_item_id')
+
+    if not player_id:
+        return jsonify({'success': False, 'error': 'Missing player_id'}), 400
+
+    try:
+        from app.models import Role
+        from app.models.substitutes import SubstitutePool
+
+        session = getattr(g, 'db_session', db.session)
+
+        player = session.query(Player).options(
+            joinedload(Player.user)
+        ).filter_by(id=player_id).first()
+        if not player:
+            return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+        line_item = None
+        if line_item_id:
+            line_item = session.query(PubLeagueOrderLineItem).options(
+                joinedload(PubLeagueOrderLineItem.order)
+            ).filter_by(id=line_item_id).first()
+
+        division = line_item.division if line_item else None
+        form_value, division_label = _division_form_value(division)
+
+        user = player.user if player.user_id else None
+        actions, notes = [], []
+
+        if user is None:
+            # Nothing here is actionable without an account: approval, roles and
+            # the waitlist all hang off User, not Player.
+            notes.append("This player has no linked user account, so they cannot "
+                         "be approved or taken off a waitlist here.")
+        else:
+            role_names = {r.name for r in user.roles}
+            approved = bool(getattr(user, 'is_approved', False))
+            status = (getattr(user, 'approval_status', None) or '').lower()
+
+            if not approved or status == 'pending':
+                if not form_value:
+                    notes.append(
+                        f"They are still awaiting approval, but this pass's division "
+                        f"({division or 'unknown'}) doesn't match a known program, so "
+                        f"approval can't be offered here. Approve them from their "
+                        f"member page instead.")
+                else:
+                    label = f"Approve them for {division_label}"
+                    if status == 'denied':
+                        # Surfaced, never hidden: silently re-approving someone an
+                        # admin deliberately denied is exactly the decision this
+                        # feature must not make on its own.
+                        label += " — heads up, they were previously DENIED"
+                    actions.append({
+                        'key': 'approve',
+                        'label': label,
+                        'detail': f"Grants the {division_label} role, creates their "
+                                  f"membership row, and syncs Discord.",
+                        'value': form_value,
+                    })
+
+            if 'pl-waitlist' in role_names or getattr(user, 'waitlist_league', None):
+                lane = (getattr(user, 'waitlist_league', None) or '').replace('-', ' ').title()
+                actions.append({
+                    'key': 'remove_waitlist',
+                    'label': f"Take them off the {lane or 'league'} waitlist",
+                    'detail': "They hold a paid pass, so a waitlist spot is contradictory. "
+                              "(Approving above already does this.)",
+                })
+
+        pools = session.query(SubstitutePool).filter_by(player_id=player.id).all()
+        if pools:
+            pool_names = ', '.join(sorted({p.league_type for p in pools if p.league_type}))
+            actions.append({
+                'key': 'remove_sub_pools',
+                'label': f"Remove them from the {pool_names} substitute pool"
+                         f"{'s' if len(pools) > 1 else ''}",
+                'detail': "Only if they should no longer be offered as a sub. Plenty of "
+                          "rostered players stay in a pool on purpose — leave this "
+                          "unticked to keep them.",
+            })
+
+        # Informational only. A pending quick profile can't be claimed BY an
+        # admin — the person claims it themselves — so this is a note, not an action.
+        try:
+            from app.models.quick_profile import QuickProfile, QuickProfileStatus
+            email = (line_item.order.customer_email if (line_item and line_item.order) else None)
+            if email:
+                qp = session.query(QuickProfile).filter(
+                    QuickProfile.status == QuickProfileStatus.PENDING.value,
+                    func.lower(QuickProfile.email) == email.strip().lower(),
+                ).first()
+                if qp:
+                    notes.append(
+                        f"There's an unclaimed quick profile for {email} "
+                        f"(code {qp.claim_code}). They have to claim it themselves — "
+                        f"resend the code if they never got it.")
+        except Exception:
+            logger.debug("quick-profile limbo check skipped", exc_info=True)
+
+        return jsonify({
+            'success': True,
+            'player_name': player.name,
+            'division': division,
+            'actions': actions,
+            'notes': notes,
+        })
+
+    except Exception as e:
+        logger.error(f"Error checking player limbo: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/resolve-limbo', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_resolve_limbo():
+    """Apply ONLY the limbo fixes the admin explicitly ticked.
+
+    An empty `actions` list is a valid, successful no-op — "none" is one of the
+    choices, and it must not be harder than the others.
+
+    ⚠️ SESSION: `apply_approval` mutates and expects `db.session` throughout.
+    The rest of this blueprint works on `g.db_session`, which is a DIFFERENT
+    session in this app. Everything here therefore stays on `db.session` and
+    commits it — mixing the two is the silently-discarded-write bug.
+    """
+    data = request.get_json(silent=True) or {}
+    player_id = data.get('player_id')
+    actions = data.get('actions') or []
+    approve_value = data.get('approve_value')
+
+    if not player_id:
+        return jsonify({'success': False, 'error': 'Missing player_id'}), 400
+    if not isinstance(actions, list):
+        return jsonify({'success': False, 'error': 'actions must be a list'}), 400
+    if not actions:
+        return jsonify({'success': True, 'applied': [], 'message': 'Nothing changed.'})
+
+    _ALLOWED = {'approve', 'remove_waitlist', 'remove_sub_pools'}
+    unknown = [a for a in actions if a not in _ALLOWED]
+    if unknown:
+        return jsonify({'success': False,
+                        'error': f"Unknown action(s): {', '.join(map(str, unknown))}"}), 400
+
+    try:
+        from app.models import Role
+        from app.models.admin_config import AdminAuditLog
+        from app.models.substitutes import SubstitutePool
+
+        player = db.session.query(Player).options(
+            joinedload(Player.user)
+        ).filter_by(id=player_id).first()
+        if not player:
+            return jsonify({'success': False, 'error': 'Player not found'}), 404
+        user = player.user if player.user_id else None
+
+        applied, failed = [], []
+        approved_here = False
+
+        if 'approve' in actions:
+            from app.admin_panel.routes.user_management.approvals import apply_approval
+            # ⚠️ approve_league_types lives in integrity_service, NOT in approvals —
+            # approvals only imports it inside a function body, so importing it
+            # from there raises ImportError at request time.
+            from app.services.integrity_service import approve_league_types
+            if user is None:
+                failed.append('Approve — no user account linked to this player.')
+            elif not approve_value:
+                failed.append('Approve — no league was resolved for this pass.')
+            elif approve_value not in approve_league_types():
+                # Validate against the same vocabulary the approvals page uses;
+                # never trust a value round-tripped through the browser.
+                failed.append(f"Approve — '{approve_value}' is not an approvable league.")
+            else:
+                prior = (user.approval_status or 'pending')
+                try:
+                    apply_approval(user, approve_value, approver_id=current_user.id,
+                                   notes='Approved from the order page after a pass was assigned.')
+                    AdminAuditLog.log_action(
+                        user_id=current_user.id, action='approve_user',
+                        resource_type='user_approval', resource_id=str(user.id),
+                        old_value=prior, new_value=f'approved:{approve_value}',
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get('User-Agent'))
+                    applied.append(f'Approved for {approve_value}')
+                    approved_here = True
+                except ValueError as ve:
+                    failed.append(f'Approve — {ve}')
+
+        # Skipped when approve ran: apply_approval already clears the waitlist,
+        # and re-running it would report a change that did not happen.
+        if 'remove_waitlist' in actions and not approved_here:
+            if user is None:
+                failed.append('Waitlist — no user account linked to this player.')
+            else:
+                wl_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+                if wl_role and wl_role in user.roles:
+                    user.roles.remove(wl_role)
+                user.waitlist_joined_at = None
+                user.waitlist_league = None
+                applied.append('Removed from the waitlist')
+
+        if 'remove_sub_pools' in actions:
+            pools = db.session.query(SubstitutePool).filter_by(player_id=player.id).all()
+            removed = []
+            for pool in pools:
+                removed.append(pool.league_type)
+                # ⚠️ substitute_pool_history.pool_id is NOT NULL with no ON DELETE,
+                # so history rows must go first or the delete raises.
+                try:
+                    from app.models.substitutes import SubstitutePoolHistory
+                    db.session.query(SubstitutePoolHistory).filter_by(
+                        pool_id=pool.id).delete(synchronize_session=False)
+                except Exception:
+                    logger.exception("could not clear sub pool history for pool %s", pool.id)
+                db.session.delete(pool)
+            if removed:
+                applied.append(f"Removed from sub pool(s): {', '.join(sorted(set(removed)))}")
+
+        db.session.commit()
+
+        # The spine is recomputed from the source facts we just changed, so it has
+        # to run AFTER the commit above or it recomputes from stale state.
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(db.session, player.id)
+            db.session.commit()
+        except Exception:
+            logger.exception("membership resync after limbo resolve failed for player %s",
+                             player.id)
+
+        logger.info("Admin %s resolved limbo for player %s: applied=%s failed=%s",
+                    current_user.id, player_id, applied, failed)
+
+        return jsonify({
+            'success': True,
+            'applied': applied,
+            'failed': failed,
+            'message': ('; '.join(applied) if applied else 'Nothing changed.'),
+        })
+
+    except Exception as e:
+        logger.error(f"Error resolving player limbo: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/resend-claim', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])

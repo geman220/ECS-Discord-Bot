@@ -957,16 +957,20 @@ class TestNotifyAvailabilityUpdate:
             mock_discord_task = MagicMock()
             mock_frontend_task = MagicMock()
 
+            # Patch the module the function ACTUALLY imports from.
+            # notify_availability_update does:
+            #     from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task, ...
+            # The old patch targeted 'app.tasks', which is a different module, so
+            # the real tasks were imported and the mocks were never called.
+            # No importlib.reload needed either: the import is INSIDE the
+            # function, so it resolves through sys.modules on every call.
             with patch.dict('sys.modules', {
-                'app.tasks': MagicMock(
+                'app.tasks.tasks_rsvp': MagicMock(
                     notify_discord_of_rsvp_change_task=mock_discord_task,
                     notify_frontend_of_rsvp_change_task=mock_frontend_task
                 )
             }):
-                # Re-import to get the function with mocked dependencies
-                import importlib
                 import app.app_api_helpers as helpers_module
-                importlib.reload(helpers_module)
 
                 helpers_module.notify_availability_update(
                     match_id=match.id,
