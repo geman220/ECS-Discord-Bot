@@ -62,11 +62,30 @@ class TestEditorShell:
                        'id="pse-panel"', '?edit=1', 'ecs_logo', 'h-screen',
                        'data-exit-url'):
             assert marker in html, f'missing {marker!r}'
-        # Loads a SECOND bundle (main-entry, for window.Swal) beyond shell.js —
-        # the built files are hashed (the main entry emits js/main-<hash>.js), so
-        # assert on the bundle count rather than a name.
-        assert html.count('/static/vite-dist/js/') >= 2, \
+        # Loads a SECOND bundle (main-entry, for window.Swal) beyond shell.js.
+        #
+        # This assertion only holds against a VITE BUILD: vite_asset() emits
+        # /static/vite-dist/js/<name>-<hash>.js when the manifest exists, and
+        # falls back to the raw /static/js/... source path when it does not. CI
+        # installs Python deps but never runs `npm run build`, so the manifest is
+        # absent there and the page legitimately renders source paths.
+        #
+        # Assert the real invariant either way -- TWO module scripts, one of them
+        # shell.js -- and only check the hashed-bundle form when a build exists.
+        # Previously this asserted the built form unconditionally and failed in
+        # any environment without a Vite build, which is what CI is.
+        import os
+        manifest = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'app', 'static', 'vite-dist', '.vite', 'manifest.json')
+
+        assert html.count('<script type="module"') >= 2, \
             'editor should load main-entry (Swal) + shell.js'
+        assert 'site-editor/shell' in html, 'shell.js bundle not referenced'
+
+        if os.path.exists(manifest):
+            assert html.count('/static/vite-dist/js/') >= 2, \
+                'with a Vite build present both scripts must be hashed bundles'
         # ...but renders NO admin console chrome (nav dropdowns / sidebar).
         assert 'data-admin-dropdown' not in html, 'editor must not render the admin nav'
 
