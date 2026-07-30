@@ -12,6 +12,7 @@ Common middleware functions for the mobile API including:
 
 import logging
 import ipaddress
+import os
 from functools import wraps
 
 from flask import request, current_app, jsonify, g, Blueprint
@@ -20,6 +21,23 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 logger = logging.getLogger(__name__)
 
 _middleware_registered = False
+
+# Query-string keys whose VALUE is a credential, not a diagnostic. These get
+# redacted before the request line is logged — a failed
+# GET /membership/pass/lookup?token=<barcode> would otherwise write the raw
+# member check-in token to the log at WARNING on every 4xx.
+_SENSITIVE_PARAM_KEYS = frozenset({
+    'token', 'code', 'claim_code', 'api_key', 'apikey', 'password',
+    'secret', 'access_token', 'refresh_token', 'authorization', 'barcode',
+})
+
+
+def _redact_params(args) -> dict:
+    """Copy of the query args with credential-bearing values masked."""
+    return {
+        k: ('***' if k.lower() in _SENSITIVE_PARAM_KEYS else v)
+        for k, v in args.items()
+    }
 
 
 def register_api_middleware(blueprint: Blueprint):
@@ -60,14 +78,20 @@ def register_api_middleware(blueprint: Blueprint):
         if api_key and api_key == expected_key:
             return None
 
-        # Development hosts that are always allowed
+        # Development hosts that are always allowed.
+        #
+        # NOTE: do NOT add the production domain here. `request.host` is derived
+        # from X-Forwarded-Host (ProxyFix runs with x_host=1 in init/middleware.py),
+        # which is ultimately client-supplied — so any host listed here disables
+        # the API-key gate for ALL traffic reaching that name. 'portal.ecsfc.com'
+        # used to be in this list, which meant the entire mobile API was reachable
+        # in production with no credential of any kind.
         allowed_dev_hosts = [
             '127.0.0.1:5000',
             'localhost:5000',
             'webui:5000',
             '192.168.1.112:5000',
             '10.0.2.2:5000',  # Android emulator default
-            'portal.ecsfc.com',  # Production domain
         ]
 
         # Check if host is in the allowed development hosts list
@@ -151,7 +175,7 @@ def register_api_middleware(blueprint: Blueprint):
         dur_str = f" | {dur_ms}ms" if dur_ms is not None else ""
         log_msg = f"[API] {request.method} {request.path} -> {response.status_code} | user={user_id}{dur_str}"
         if request.args:
-            log_msg += f" | params={dict(request.args)}"
+            log_msg += f" | params={_redact_params(request.args)}"
 
         # Surface anything genuinely slow at WARNING regardless of status, so a
         # slow-but-200 endpoint (the "it works but hangs" case) isn't hidden at DEBUG.
@@ -177,11 +201,26 @@ def register_api_middleware(blueprint: Blueprint):
         return response
 
 
+def bot_token_ok() -> bool:
+    """Whether this request carries the shared bot secret.
+
+    Same trust boundary as engagement.py / nad_internal.py: the Discord bot
+    proves it is the bot with X-Bot-Token == FLASK_TOKEN. Fails closed when
+    FLASK_TOKEN is unset so a missing env var can't silently open the door.
+    """
+    expected = os.getenv('FLASK_TOKEN')
+    token = request.headers.get('X-Bot-Token', '')
+    return bool(expected) and bool(token) and token == expected
+
+
 def jwt_or_discord_auth_required(f):
     """
     Decorator that allows either JWT authentication or Discord bot authentication.
 
-    For Discord bot requests, expects X-Discord-User header with Discord user ID.
+    For Discord bot requests, expects X-Discord-User header with Discord user ID
+    AND X-Bot-Token == FLASK_TOKEN. Without the token the header is just a claim
+    typed by whoever sent the request — it used to be trusted verbatim, which let
+    anyone act as any Discord user across all 15 I-Spy routes.
     For regular requests, requires valid JWT token.
     """
     @wraps(f)
@@ -197,12 +236,14 @@ def jwt_or_discord_auth_required(f):
         # app's error handlers, which return the correct status.
         discord_user_id = request.headers.get('X-Discord-User')
         if discord_user_id:
-            try:
-                g.current_user_id = discord_user_id
-                g.auth_source = 'discord'
-            except Exception as e:
-                logger.error(f"Error in Discord bot authentication: {str(e)}")
-                return jsonify({'error': 'Authentication error'}), 401
+            if not bot_token_ok():
+                logger.warning(
+                    "Rejected X-Discord-User for %s without a valid X-Bot-Token",
+                    request.path,
+                )
+                return jsonify({'error': 'Authentication required'}), 401
+            g.current_user_id = discord_user_id
+            g.auth_source = 'discord'
         else:
             # Use standard JWT authentication
             try:

@@ -99,10 +99,13 @@ def player(**overrides):
 class _FakeDiscord:
     """Records role add/remove calls instead of hitting the bot API."""
 
-    def __init__(self, member_roles):
+    def __init__(self, member_roles, fail_ops=False):
         self.member_roles = list(member_roles)
         self.added = []
         self.removed = []
+        # When True, every add/remove is attempted but Discord refuses it --
+        # models a member who left the guild (404) or a bot-hierarchy 403.
+        self.fail_ops = fail_ops
 
     def install(self, monkeypatch):
         import app.discord_utils as du
@@ -113,11 +116,17 @@ class _FakeDiscord:
         async def get_role_id(guild_id, role_name, session):
             return f"id::{normalize_name(role_name)}"
 
+        # These return True: the real helpers now report whether Discord
+        # CONFIRMED the change, and update_player_roles_async_only only records a
+        # role as added/removed on a truthy return. A stub returning None would
+        # model a permanently failing Discord.
         async def assign_role_to_member(guild_id, user_id, role_id, session):
             self.added.append(role_id)
+            return not self.fail_ops
 
         async def remove_role_from_member(guild_id, user_id, role_id, session):
             self.removed.append(role_id)
+            return not self.fail_ops
 
         async def get_member_roles(user_id, session):
             return self.member_roles
@@ -661,3 +670,525 @@ def test_deactivating_a_program_cannot_strip_its_team_roles():
     assert 'ECS-FC-PL-TEAM-Q-Player' in expected, 'Classic team role must survive'
     assert ({r for r in managed if 'TEAM-Q' in r and r.endswith('-Player')}
             <= expected)
+
+
+# --------------------------------------------------------------------------
+# Live-vs-cached role reads.
+#
+# `update_player_roles_async_only` used to build its removal list by iterating
+# `player_data['current_roles']` -- the cached `player.discord_roles` column.
+# An empty or stale cache therefore made EVERY removal a silent no-op that still
+# returned success, which neutered `remove_player_roles_task`: the only path
+# that can strip a team/division/coach role, since the reconcile allowlist
+# blocks those. Draft-remove, deny and deactivate all reported success while
+# removing nothing.
+#
+# Worse, the cache could be emptied by the system itself: `get_member_roles`
+# returns None when the bot is unreachable, and the finalizer wrote that
+# straight onto `player.discord_roles`.
+#
+# `revoke_unexpected_roles_task` already read live state and documented why;
+# these pin the same guarantee for the path everything else uses.
+# --------------------------------------------------------------------------
+
+def _run_with_split_roles(monkeypatch, cached, live, expected, managed,
+                          expect_success=True, **kwargs):
+    """Drive the reconcile with a CACHE that disagrees with LIVE Discord.
+
+    expect_success=False for cases that are SUPPOSED to report failure, e.g. the
+    mass-revoke circuit breaker, which files the refused roles under roles_failed.
+    """
+    import app.discord_utils as du
+
+    fake = _FakeDiscord(live if live is not None else [])
+    fake.install(monkeypatch)
+
+    async def get_member_roles(user_id, session):
+        return live  # may be None, meaning "could not read"
+
+    monkeypatch.setattr(du, 'get_member_roles', get_member_roles)
+
+    payload = {
+        'id': 1428, 'name': 'Test Player', 'discord_id': '123',
+        'current_roles': cached,
+        'expected_roles': expected,
+        'app_managed_roles': managed,
+    }
+    result = asyncio.run(update_player_roles_async_only(payload, **kwargs))
+    if expect_success:
+        assert result['success'], result
+    fake.result = result
+    return fake
+
+
+def test_removal_uses_live_roles_when_the_cache_is_empty(monkeypatch):
+    """The regression: an empty cache must not silently disable removal.
+
+    Cache says the member holds nothing; Discord says they hold a sub role that
+    is no longer expected. It must come off.
+    """
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=[],                                 # poisoned / never populated
+        live=['ECS-FC-PL-PREMIER-SUB'],            # what Discord actually has
+        expected=[],
+        managed=['ECS-FC-PL-PREMIER-SUB'],
+        force_update=True,
+    )
+    assert fake.removed_names() == ['ECS-FC-PL-PREMIER-SUB'], (
+        "an empty discord_roles cache silently disabled removal")
+
+
+def test_removal_uses_live_roles_when_the_cache_is_stale(monkeypatch):
+    """A cache naming the wrong roles must not decide what gets removed."""
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=['ECS-FC-PL-CLASSIC-SUB'],           # stale: they left this pool
+        live=['ECS-FC-PL-PREMIER-SUB'],             # truth
+        expected=[],
+        managed=['ECS-FC-PL-PREMIER-SUB', 'ECS-FC-PL-CLASSIC-SUB'],
+        force_update=True,
+    )
+    assert fake.removed_names() == ['ECS-FC-PL-PREMIER-SUB'], (
+        "removal followed the stale cache instead of live Discord state")
+
+
+def test_falls_back_to_cache_when_live_read_fails(monkeypatch):
+    """Bot unreachable -> get_member_roles returns None -> use the cache.
+
+    Falling back is what keeps a bot outage from turning into a no-op; falling
+    back to an EMPTY cache is the safe direction because it removes nothing.
+    """
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=['ECS-FC-PL-PREMIER-SUB'],
+        live=None,                                  # bot down / member 404
+        expected=[],
+        managed=['ECS-FC-PL-PREMIER-SUB'],
+        force_update=True,
+    )
+    assert fake.removed_names() == ['ECS-FC-PL-PREMIER-SUB'], (
+        "a failed live read should fall back to the cache, not give up")
+
+
+def test_live_read_failure_with_empty_cache_removes_nothing(monkeypatch):
+    """Both sources blind => remove nothing. Never guess at a removal."""
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=[],
+        live=None,
+        expected=[],
+        managed=['ECS-FC-PL-PREMIER-SUB'],
+        force_update=True,
+    )
+    assert fake.removed_names() == [], (
+        "with no reliable view of current roles, nothing may be removed")
+
+
+def test_live_roles_suppress_a_redundant_grant(monkeypatch):
+    """If Discord already has the role, don't re-issue the add.
+
+    The mirror of the removal bug: a cache that under-reports made the reconcile
+    re-add roles the member already held.
+    """
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=[],                                  # cache thinks they have none
+        live=['ECS-FC-PL-PREMIER'],                 # they already have it
+        expected=['ECS-FC-PL-PREMIER'],
+        managed=['ECS-FC-PL-PREMIER'],
+    )
+    assert fake.added_names() == [], (
+        "re-granted a role the member already holds")
+
+
+# --------------------------------------------------------------------------
+# Outcome vs intent.
+#
+# `roles_added` / `roles_removed` used to be appended unconditionally, and the
+# result was a hardcoded `success: True`. `assign_role_to_member` returned None
+# and only logged on failure; `remove_role_from_member` discarded the response
+# entirely and logged "Removed role" regardless. So a member who had left the
+# guild 404'd on every call and the sync still reported clean success -- which
+# then cleared `discord_needs_update`, erasing the one signal that would have
+# made a later sweep retry.
+# --------------------------------------------------------------------------
+
+def _run_failing_discord(monkeypatch, current, expected, managed, **kwargs):
+    fake = _FakeDiscord(current, fail_ops=True)
+    fake.install(monkeypatch)
+    payload = {
+        'id': 1428, 'name': 'Test Player', 'discord_id': '123',
+        'current_roles': current,
+        'expected_roles': expected,
+        'app_managed_roles': managed,
+    }
+    return fake, asyncio.run(update_player_roles_async_only(payload, **kwargs))
+
+
+def test_failed_grant_is_not_reported_as_success(monkeypatch):
+    """Discord refuses the add (404/403) -> the result must not claim success."""
+    fake, result = _run_failing_discord(
+        monkeypatch,
+        current=[],
+        expected=['ECS-FC-PL-PREMIER'],
+        managed=['ECS-FC-PL-PREMIER'],
+    )
+    assert fake.added_names() == ['ECS-FC-PL-PREMIER'], "the attempt should still be made"
+    assert result['success'] is False, "a refused grant was reported as success"
+    assert result['roles_added'] == [], "an unconfirmed role was recorded as granted"
+    assert result['roles_failed'] == ['ECS-FC-PL-PREMIER']
+    assert result['sync_status'] == 'partial'
+
+
+def test_failed_removal_is_not_reported_as_success(monkeypatch):
+    """The dangerous direction: a failed removal must never look like an offboarding."""
+    fake, result = _run_failing_discord(
+        monkeypatch,
+        current=['ECS-FC-PL-PREMIER-SUB'],
+        expected=[],
+        managed=['ECS-FC-PL-PREMIER-SUB'],
+        force_update=True,
+    )
+    assert fake.removed_names() == ['ECS-FC-PL-PREMIER-SUB'], "the attempt should still be made"
+    assert result['success'] is False, (
+        "a failed removal reported success — the member still holds the role")
+    assert result['roles_removed'] == [], "an unconfirmed removal was recorded as done"
+    assert result['roles_failed'] == ['ECS-FC-PL-PREMIER-SUB']
+
+
+def test_clean_run_still_reports_success_and_no_failures(monkeypatch):
+    """Guard the happy path so the honesty change can't invert into false alarms."""
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=[], live=[],
+        expected=['ECS-FC-PL-PREMIER'],
+        managed=['ECS-FC-PL-PREMIER'],
+    )
+    assert fake.added_names() == ['ECS-FC-PL-PREMIER']
+
+
+# --------------------------------------------------------------------------
+# Calculator unification.
+#
+# There were two "which roles should this player have" implementations:
+#   A) app/discord_utils.get_expected_roles  -- what the Discord BOT reads on
+#      member join, via app/user_api.py, and GRANTS verbatim
+#   B) app/tasks/tasks_discord._compute_expected_roles -- what the Celery
+#      reconcile uses to decide what to REVOKE
+#
+# They disagreed in at least nine documented ways (no third-program support from
+# a league/team basis, exact vs fuzzy league-name matching, all-seasons vs
+# current-season teams, fail-closed vs fail-open on approval status). Because the
+# bot granted from A and the reconcile revoked from B, roles oscillated between
+# two processes.
+#
+# This file's docstring used to claim it proved the two agreed -- but it only
+# ever imported B. These pin the delegation itself, which is the only durable
+# way to keep them from drifting apart again.
+# --------------------------------------------------------------------------
+
+def test_get_expected_roles_delegates_to_the_canonical_calculator(monkeypatch):
+    """A must return exactly B's answer, plus unmanaged roles it carries over."""
+    import asyncio as _asyncio
+    import app.discord_utils as du
+    import app.tasks.tasks_discord as td
+
+    payload = {
+        'player_id': 7, 'discord_id': '123', 'name': 'Test',
+        'approval_status': 'approved',
+        'programs': [{
+            'key': 'pl_third', 'league_name': 'Summer Sprint',
+            'flask_league_role': 'pl-third', 'flask_coach_role': 'Summer Coach',
+            'flask_sub_role': 'Summer Sub',
+            'division_role_name': 'ECS-FC-PL-SUMMER',
+            'coach_role_name': 'ECS-FC-PL-SUMMER-COACH',
+            'sub_role_name': 'ECS-FC-PL-SUMMER-SUB',
+            'is_pub_league_like': True,
+        }],
+        'teams': [], 'user_roles': ['pl-third'],
+        'league_names': [], 'is_ref': False,
+        'is_active': True, 'is_coach': False, 'current_roles': [],
+    }
+
+    monkeypatch.setattr(td, '_extract_player_role_data', lambda session, pid: payload)
+
+    async def fake_fetch_user_roles(session, discord_id, http_session):
+        # One app-managed role and two the app must leave alone.
+        return ['ECS-FC-PL-PREMIER', 'Server Booster', 'She/Her']
+
+    monkeypatch.setattr(du, 'fetch_user_roles', fake_fetch_user_roles)
+
+    class _P:
+        id = 7
+        discord_id = '123'
+
+    got = _asyncio.run(du.get_expected_roles(object(), _P()))
+    canonical = td._compute_expected_roles(payload)
+
+    # Everything the canonical calculator produces must be present.
+    assert set(canonical) <= set(got), (
+        f"delegation dropped canonical roles: {set(canonical) - set(got)}")
+    # Summer Sprint specifically -- the divergence that started this.
+    assert 'ECS-FC-PL-SUMMER' in got
+    # Unmanaged roles are carried over.
+    assert 'Server Booster' in got and 'She/Her' in got
+    # App-managed roles are NOT carried over from Discord; they must be earned
+    # from the calculator, or a revoked role would resurrect itself every sync.
+    assert 'ECS-FC-PL-PREMIER' not in got, (
+        "an app-managed Discord role was preserved, which would make revocation "
+        "impossible -- the role would be re-granted on the next sync")
+
+
+def test_get_expected_roles_refuses_to_return_a_partial_set(monkeypatch):
+    """If the payload can't be built, raise -- never return only unmanaged roles.
+
+    An empty managed set paired with a populated managed-roles list is exactly
+    what strips every role off a player, and this result feeds both the reconcile
+    and the bot's join handler.
+    """
+    import asyncio as _asyncio
+    import app.discord_utils as du
+    import app.tasks.tasks_discord as td
+
+    def _boom(session, pid):
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(td, '_extract_player_role_data', _boom)
+
+    async def fake_fetch_user_roles(session, discord_id, http_session):
+        return ['Server Booster']
+
+    monkeypatch.setattr(du, 'fetch_user_roles', fake_fetch_user_roles)
+
+    class _P:
+        id = 7
+        discord_id = '123'
+
+    with pytest.raises(RuntimeError):
+        _asyncio.run(du.get_expected_roles(object(), _P()))
+
+
+# --------------------------------------------------------------------------
+# Deleted-player offboarding.
+#
+# `delete_user_comprehensive` runs `DELETE FROM users` (cascading the player)
+# and only THEN dispatches remove_player_roles_task. The extract began with
+# `session.query(Player).get(player_id)` followed by
+# `raise ValueError(f"Player {player_id} not found")`, so the task always died
+# before doing anything -- while the route logged "Triggered Discord role
+# removal". A deleted user kept every Discord role permanently.
+#
+# Passing discord_id explicitly is the caller saying "the row will not be there;
+# here is the handle". Found by adversarially reviewing the first version of
+# this fix, which added the parameter but never reached the code that used it.
+# --------------------------------------------------------------------------
+
+def test_deleted_player_still_offboards_when_discord_id_is_supplied():
+    from app.tasks.tasks_discord import _extract_remove_roles_data
+
+    class _NoPlayerSession:
+        """Every lookup misses -- the row is gone."""
+        def query(self, *a, **k):
+            return self
+        def options(self, *a, **k):
+            return self
+        def get(self, *a, **k):
+            return None
+        def filter(self, *a, **k):
+            return self
+        def all(self):
+            return []
+
+    data = _extract_remove_roles_data(_NoPlayerSession(), 4242, discord_id='999')
+
+    assert data['discord_id'] == '999', "the caller-supplied handle was lost"
+    assert data['player_id'] == 4242
+    assert data['team_id'] is None, "must be a FULL offboarding, not team-scoped"
+    assert data['target_teams'] == []
+
+
+def test_deleted_player_without_a_discord_id_still_raises():
+    """No row and no handle means there is genuinely nothing to act on."""
+    from app.tasks.tasks_discord import _extract_remove_roles_data
+
+    class _NoPlayerSession:
+        def query(self, *a, **k):
+            return self
+        def options(self, *a, **k):
+            return self
+        def get(self, *a, **k):
+            return None
+
+    with pytest.raises(ValueError):
+        _extract_remove_roles_data(_NoPlayerSession(), 4242)
+
+
+# --------------------------------------------------------------------------
+# The gating role, ECS-FC-PL-UNVERIFIED.
+#
+# Regression introduced when get_expected_roles was unified onto this
+# calculator: the canonical one returned a bare [] for pending users and never
+# granted UNVERIFIED, nor listed it as managed. That broke two things at once.
+#
+# GRANT: app/auth/registration.py deliberately does NOT grant it at signup --
+# Discord cannot role a non-member, so it always 404'd -- and its comment says
+# on_member_join will grant it from get_expected_roles(). After unification that
+# returned [], so newly-joined pending users landed ungated.
+#
+# REVOKE: it must be MANAGED so approval strips it. discord_utils defines
+# _RECONCILE_REMOVABLE_EXACT = {'ECS-FC-PL-UNVERIFIED'} specifically to permit
+# that removal; leaving it out of the managed set made that entry unreachable.
+# --------------------------------------------------------------------------
+
+def _payload(**over):
+    base = {
+        'player_id': 1, 'discord_id': '1', 'name': 'T',
+        'approval_status': 'approved', 'programs': [], 'teams': [],
+        'user_roles': [], 'league_names': [], 'is_ref': False,
+        'is_active': True, 'is_coach': False, 'current_roles': [],
+    }
+    base.update(over)
+    return base
+
+
+def test_pending_user_with_the_flask_role_gets_the_gating_role():
+    from app.tasks.tasks_discord import _compute_expected_roles
+    got = _compute_expected_roles(
+        _payload(approval_status='pending', user_roles=['pl-unverified']))
+    assert got == ['ECS-FC-PL-UNVERIFIED'], (
+        "a pending user joined the guild ungated")
+
+
+def test_pending_user_without_the_flask_role_gets_nothing():
+    from app.tasks.tasks_discord import _compute_expected_roles
+    assert _compute_expected_roles(
+        _payload(approval_status='pending', user_roles=[])) == []
+
+
+def test_denied_user_gets_nothing_even_holding_the_flask_role():
+    """Denied is being REMOVED, not gated -- must never re-grant anything."""
+    from app.tasks.tasks_discord import _compute_expected_roles
+    assert _compute_expected_roles(
+        _payload(approval_status='denied', user_roles=['pl-unverified'])) == []
+
+
+def test_pending_user_gets_no_league_roles_alongside_the_gating_role():
+    """The gating branch must not leak division/sub roles for an unapproved user."""
+    from app.tasks.tasks_discord import _compute_expected_roles
+    got = _compute_expected_roles(_payload(
+        approval_status='pending',
+        user_roles=['pl-unverified', 'pl-premier', 'Premier Sub'],
+        programs=[{
+            'key': 'premier', 'league_name': 'Premier',
+            'flask_league_role': 'pl-premier', 'flask_coach_role': 'Premier Coach',
+            'flask_sub_role': 'Premier Sub',
+            'division_role_name': 'ECS-FC-PL-PREMIER',
+            'coach_role_name': 'ECS-FC-PL-PREMIER-COACH',
+            'sub_role_name': 'ECS-FC-PL-PREMIER-SUB',
+            'is_pub_league_like': True,
+        }],
+    ))
+    assert got == ['ECS-FC-PL-UNVERIFIED'], f"unapproved user leaked roles: {got}"
+
+
+def test_gating_role_is_managed_so_approval_can_strip_it():
+    from app.tasks.tasks_discord import _app_managed_roles
+    assert 'ECS-FC-PL-UNVERIFIED' in _app_managed_roles(_payload()), (
+        "UNVERIFIED unmanaged => approved members stay gated forever")
+
+
+def test_gating_role_is_reconcile_removable():
+    """Guards the seam: managed AND on the protected-role allowlist."""
+    from app.discord_utils import _is_reconcile_removable
+    assert _is_reconcile_removable('ECS-FC-PL-UNVERIFIED')
+
+
+# --------------------------------------------------------------------------
+# Mass-revoke circuit breaker.
+#
+# enforce_allowlist=False disables the protected-role guard. The only live user
+# is season rollover (app/season_routes.py:442), which reconciles an ENTIRE
+# LEAGUE unattended. That was self-limiting by accident -- to_remove is built by
+# iterating current_roles, which came from a frequently-empty cache -- until the
+# live-read fix made it genuinely effective. A wrong expected set there is the
+# league-wide wipe the allowlist exists to prevent.
+# --------------------------------------------------------------------------
+
+def test_mass_revoke_is_refused_when_the_allowlist_is_disabled(monkeypatch):
+    from app.discord_utils import _MASS_REVOKE_LIMIT
+    held = [f'ECS-FC-PL-TEAM-{i}-Player' for i in range(_MASS_REVOKE_LIMIT + 3)]
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=held, live=held,
+        expected=[],            # calculator returned (wrongly) nothing
+        managed=held,
+        force_update=True, enforce_allowlist=False, expect_success=False,
+    )
+    assert fake.removed_names() == [], (
+        "a league-wide wipe was executed instead of being refused")
+    assert fake.result['success'] is False, "the refusal was reported as success"
+    assert sorted(fake.result['roles_failed']) == sorted(held), (
+        "refused roles must be surfaced, not silently dropped")
+
+
+def test_normal_sized_rollover_cleanup_still_proceeds(monkeypatch):
+    """The breaker must not block a legitimate rollover (a few roles per player)."""
+    from app.discord_utils import _MASS_REVOKE_LIMIT
+    held = [f'ECS-FC-PL-TEAM-{i}-Player' for i in range(_MASS_REVOKE_LIMIT - 1)]
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=held, live=held,
+        expected=[],
+        managed=held,
+        force_update=True, enforce_allowlist=False,
+    )
+    assert sorted(fake.removed_names()) == sorted(normalize_name(h) for h in held), (
+        "the breaker blocked a legitimate rollover cleanup")
+
+
+def test_breaker_does_not_apply_when_the_allowlist_is_enforced(monkeypatch):
+    """With the allowlist ON, the allowlist itself is the guard."""
+    held = [f'ECS-FC-PL-TEAM-{i}-SUB' for i in range(20)]
+    fake = _run_with_split_roles(
+        monkeypatch,
+        cached=held, live=held,
+        expected=[],
+        managed=held,
+        force_update=True,   # enforce_allowlist defaults True
+    )
+    assert len(fake.removed_names()) == 20, (
+        "the breaker should not gate allowlist-protected reconciles")
+
+
+# --------------------------------------------------------------------------
+# Post-commit dispatch.
+#
+# Queued Discord work used to fire from an after_this_request hook, which Flask
+# runs during process_response -- BEFORE cleanup_request (registered as
+# teardown_appcontext, app/init/database.py:37) commits the request session. The
+# Celery worker reads through its own connection, so it could not see the
+# request's uncommitted writes. Now the hook only ARMS, and the dispatch happens
+# from cleanup_request right after a successful commit.
+# --------------------------------------------------------------------------
+
+def test_flush_is_a_safe_noop_without_a_request_context():
+    """cleanup_request also runs for non-request app contexts; must not raise."""
+    from app.utils.deferred_discord import flush_deferred_discord_after_commit
+    flush_deferred_discord_after_commit()  # must not raise
+
+
+def test_revoke_outside_a_request_refuses_to_dispatch(monkeypatch):
+    """A revoke re-derives expected roles from the DB, so it must never be
+    dispatched inline against an uncommitted transaction."""
+    import app.utils.deferred_discord as dd
+
+    called = []
+    monkeypatch.setattr(dd, 'get_discord_queue',
+                        lambda: called.append('queued') or dd.DeferredDiscordQueue())
+
+    dd.defer_discord_revoke(1, candidate_roles=['ECS-FC-PL-PREMIER'])
+
+    assert called == [], (
+        "a revoke was queued/dispatched outside a request context, where it "
+        "would read pre-change roster state")

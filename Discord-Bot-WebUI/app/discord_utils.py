@@ -281,7 +281,7 @@ async def get_or_create_role(guild_id: int, role_name: str, session: aiohttp.Cli
 
 
 async def assign_role_to_member(guild_id: int, user_id: str, role_id: Union[str, int],
-                                session: aiohttp.ClientSession) -> None:
+                                session: aiohttp.ClientSession) -> bool:
     """
     Assign a role to a Discord member.
 
@@ -290,6 +290,21 @@ async def assign_role_to_member(guild_id: int, user_id: str, role_id: Union[str,
         user_id (str): The Discord user ID.
         role_id (Union[str, int]): The role ID (or name to be resolved).
         session (aiohttp.ClientSession): The HTTP session.
+
+    Returns:
+        bool: True only if Discord confirmed the assignment. Callers MUST check
+        this before recording the role as granted — see the note below.
+
+    The bot's PUT endpoint returns {"status": "Role assigned"} (truthy JSON) on
+    success, and make_discord_request returns None for 404 (member/role gone)
+    and for 403 (bot lacks Manage Roles, or its role sits below the target in the
+    hierarchy). So truthiness is a valid success signal here.
+
+    This used to return None unconditionally, and callers appended to
+    `roles_added` regardless — making that list a record of INTENT, not outcome.
+    A member who had left the guild 404'd on every grant and the sync still
+    reported success, which then cleared discord_needs_update and erased the only
+    signal that would have made a later sweep retry.
     """
     role_id = str(role_id)
     logger.debug(f"Assigning role {role_id} to user {user_id}")
@@ -298,15 +313,18 @@ async def assign_role_to_member(guild_id: int, user_id: str, role_id: Union[str,
             resolved_id = await get_role_id(guild_id, role_id, session)
             if not resolved_id:
                 logger.error(f"Could not find role ID for role name '{role_id}'")
-                return
+                return False
             role_id = resolved_id
 
         url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
         result = await make_discord_request('PUT', url, session)
         if result:
             logger.info(f"Successfully assigned role {role_id} to user {user_id}")
-        else:
-            logger.error(f"Failed to assign role {role_id} to user {user_id}")
+            return True
+        logger.error(
+            f"Failed to assign role {role_id} to user {user_id} "
+            f"(404 member/role not found, or 403 bot permission/hierarchy)")
+        return False
     except Exception as e:
         logger.error(f"Error assigning role {role_id} to user {user_id}: {str(e)}")
         raise
@@ -342,7 +360,7 @@ async def set_team_channel_player_visibility(guild_id: int, channel_id: Union[st
 
 @rate_limiter.limit()
 async def remove_role_from_member(guild_id: int, user_id: str, role_id: Union[str, int],
-                                  session: aiohttp.ClientSession) -> None:
+                                  session: aiohttp.ClientSession) -> bool:
     """
     Remove a role from a Discord member.
 
@@ -351,18 +369,34 @@ async def remove_role_from_member(guild_id: int, user_id: str, role_id: Union[st
         user_id (str): The Discord user ID.
         role_id (Union[str, int]): The role ID (or name to resolve).
         session (aiohttp.ClientSession): The HTTP session.
+
+    Returns:
+        bool: True only if Discord confirmed the removal.
+
+    This used to DISCARD the response entirely and log "Removed role"
+    unconditionally, so the log and the caller's `roles_removed` list both
+    asserted a removal that may never have happened. 404 (member left the guild)
+    and 403 (bot below the target role in the hierarchy) both return None from
+    make_discord_request and were reported as success.
     """
     role_id = str(role_id)
     if not role_id.isdigit():
         resolved_id = await get_role_id(guild_id, role_id, session)
         if not resolved_id:
             logger.error(f"Could not find role ID for role name '{role_id}'")
-            return
+            return False
         role_id = resolved_id
 
     url = f"{Config.BOT_API_URL}/api/server/guilds/{guild_id}/members/{user_id}/roles/{role_id}"
-    await make_discord_request('DELETE', url, session)
-    logger.info(f"Removed role '{role_id}' from user '{user_id}'")
+    result = await make_discord_request('DELETE', url, session)
+    if result:
+        logger.info(f"Removed role '{role_id}' from user '{user_id}'")
+        return True
+    logger.error(
+        f"FAILED to remove role '{role_id}' from user '{user_id}' "
+        f"(404 member/role not found, or 403 bot permission/hierarchy). "
+        f"The role is still on the member.")
+    return False
 
 
 async def delete_role(guild_id: int, role_id: Union[str, int], session: aiohttp.ClientSession) -> None:
@@ -422,7 +456,25 @@ async def get_member_roles(user_id: str, session: aiohttp.ClientSession) -> Opti
                 role_ids = [str(r) for r in response['roles']]
         elif isinstance(response['roles'], dict):
             role_ids = list(response['roles'].keys())
-        return await get_role_names(guild_id, role_ids, session)
+
+        # The bot returns role NAMES here, not IDs
+        # (api/routes/server_routes.py: `role_names = [role.name for role in
+        # member.roles]`). Passing names to get_role_names costs a wasted round
+        # trip on EVERY call: it filters with `r not in role_name_cache.values()`
+        # where the values are numeric IDs, so a name never matches, the
+        # "missing" list is always non-empty, and it unconditionally fetches the
+        # FULL guild role list -- then discards it, because `id_to_name.get(rid,
+        # rid)` falls through to the name it already had.
+        #
+        # So get_member_roles was silently 2 HTTP requests, one of them a whole
+        # guild role list. That is now on the per-player hot path (the live read
+        # in update_player_roles_async_only), which would have made a 300-player
+        # drain issue 600 needless guild-wide fetches per tick, unrate-limited.
+        #
+        # Only resolve when the values actually look like snowflakes.
+        if role_ids and all(str(r).isdigit() for r in role_ids):
+            return await get_role_names(guild_id, role_ids, session)
+        return role_ids
     return []
 
 
@@ -842,20 +894,37 @@ async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional
     return None
 
 
-async def assign_roles_to_player(guild_id: int, player: Player) -> None:
+async def assign_roles_to_player(guild_id: int, player: Player,
+                                 db_session: Optional[Session] = None) -> None:
     """
     Assign the expected Discord roles to a player based on team and league membership.
 
     Args:
         guild_id (int): The Discord guild ID.
+        db_session (Session): REQUIRED in practice — see the guard below.
         player (Player): The player instance.
     """
     if not player.discord_id or not player.teams:
         logger.warning(f"Player '{player.name}' has no Discord ID or no team assigned.")
         return
 
+    # NO LIVE CALLERS -- the only reference is the tombstone at app/publeague.py:39.
+    #
+    # It used to call get_expected_roles(session=None, ...), which the old
+    # self-contained calculator tolerated by degrading. Now that the function
+    # delegates to _extract_player_role_data(session, ...), a None session is an
+    # immediate AttributeError. Fail with something actionable instead of a
+    # NoneType error three frames down, and accept a session so the function is
+    # correct if anyone revives it.
+    if db_session is None:
+        raise ValueError(
+            "assign_roles_to_player requires a DB session: the expected-role "
+            "calculator reads the player's teams, leagues and Flask roles. "
+            "Pass db_session=g.db_session. (This function has no live callers; "
+            "prefer assign_roles_to_player_task.)")
+
     async with aiohttp.ClientSession() as http_session:
-        expected_roles = await get_expected_roles(session=None, player=player)
+        expected_roles = await get_expected_roles(session=db_session, player=player)
         for role_name in expected_roles:
             role_id = await get_or_create_role(guild_id, role_name, http_session)
             if role_id:
@@ -1022,6 +1091,11 @@ async def delete_team_channel(session: Session, team: Team) -> Dict[str, Any]:
 # by the TARGETED remove_player_roles_task / explicit removals, NOT by this reconcile.
 _RECONCILE_REMOVABLE_EXACT = {'ECS-FC-PL-UNVERIFIED'}
 
+# Max roles a SINGLE player may lose in one allowlist-disabled reconcile before
+# it is treated as a calculator failure rather than an intended cleanup. A real
+# rollover sheds a team role, a team coach role and maybe a division role.
+_MASS_REVOKE_LIMIT = 6
+
 
 def _is_reconcile_removable(role_name: str) -> bool:
     """True only for roles a full reconcile is allowed to strip (sub + unverified)."""
@@ -1071,9 +1145,46 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
         _timeout = aiohttp.ClientTimeout(total=20, connect=5, sock_read=10)
         async with aiohttp.ClientSession(timeout=_timeout) as http_session:
             # Use the provided player data instead of database queries
-            current_roles = player_data.get('current_roles', [])
             expected_roles = player_data.get('expected_roles', [])
             app_managed_roles = player_data.get('app_managed_roles', [])
+
+            # Read LIVE Discord roles rather than trusting `player.discord_roles`.
+            #
+            # `to_remove` below is built by ITERATING current_roles, so an empty
+            # or stale cache made every removal a silent no-op that still
+            # returned success. That neutered `remove_player_roles_task` — the
+            # only path that can strip a team/division/coach role, since the
+            # reconcile allowlist blocks those — so draft-remove, deny and
+            # deactivate all reported success while removing nothing.
+            #
+            # It also skipped needed GRANTS: `to_add` excludes anything the cache
+            # claims the member already holds.
+            #
+            # There is a mechanism that actively empties the cache:
+            # `get_member_roles` returns None when the bot is down or the member
+            # 404s, and the finalizer writes that straight onto
+            # `player.discord_roles`. One transient outage was enough to make a
+            # player's removals permanently no-op.
+            #
+            # `revoke_unexpected_roles_task` already did exactly this and
+            # documented why; the fix was never applied here. Falling back to the
+            # cache on failure matches that behaviour — and a fallback to an
+            # EMPTY cache is the safe direction: it removes nothing.
+            _cached_roles = player_data.get('current_roles', []) or []
+            try:
+                _live_roles = await get_member_roles(player_data['discord_id'],
+                                                     http_session)
+            except Exception as _live_err:
+                logger.warning(
+                    f"Live role fetch failed for {player_data.get('name')}, "
+                    f"falling back to cached roles: {_live_err}")
+                _live_roles = None
+            if _live_roles is None:
+                logger.warning(
+                    f"Could not read live Discord roles for "
+                    f"{player_data.get('name')} — using the cached list "
+                    f"({len(_cached_roles)} roles). Removals may be incomplete.")
+            current_roles = _live_roles if _live_roles else _cached_roles
             
             current_normalized = {normalize_name(r) for r in current_roles or []}
             expected_normalized = {normalize_name(r) for r in expected_roles}
@@ -1142,17 +1253,67 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
             # Execute role changes via Discord API
             roles_added = []
             roles_removed = []
-            
+            # Roles Discord refused or never confirmed. Kept separate from
+            # roles_added/roles_removed so those two mean "confirmed by Discord"
+            # rather than "we tried". Surfaced in the result so the caller can
+            # decline to mark the player synced.
+            roles_failed = []
+
+            # BLAST-RADIUS CIRCUIT BREAKER.
+            #
+            # Only bites when enforce_allowlist=False, i.e. the protected-role
+            # guard is deliberately OFF. Today that is season rollover
+            # (app/season_routes.py:442), which reconciles an ENTIRE LEAGUE in
+            # one unattended task.
+            #
+            # That path was previously self-limiting by accident: to_remove is
+            # built by iterating current_roles, which came from the frequently
+            # empty `player.discord_roles` cache, so the mass revoke was largely
+            # a no-op. Reading live Discord state fixed the cache bug and, as a
+            # side effect, made this mass revoke genuinely effective for the
+            # first time -- with the allowlist off and a freshly rewritten
+            # expected-role calculator behind it. A single wrong answer there is
+            # exactly the league-wide wipe the allowlist exists to prevent.
+            #
+            # A rollover legitimately strips a handful of roles per player (last
+            # season's team + coach). Stripping many more means the expected set
+            # came back wrong. Refuse and let a human look, rather than proceed
+            # at league scale.
+            if not enforce_allowlist and len(to_remove) > _MASS_REVOKE_LIMIT:
+                logger.error(
+                    f"ABORTING role removal for {player_data.get('name')} "
+                    f"(player_id={player_data.get('id')}): {len(to_remove)} roles "
+                    f"queued for removal with the protected-role allowlist "
+                    f"DISABLED, over the safety limit of {_MASS_REVOKE_LIMIT}. "
+                    f"This usually means the expected-role calculation returned "
+                    f"too little. Roles: {to_remove}")
+                roles_failed.extend(to_remove)
+                to_remove = []
+
             # Add roles
             for role_name in to_add:
                 try:
                     # Get or create the role
                     role_id = await get_or_create_role(guild_id, role_name, http_session)
                     if role_id:
-                        # Assign role to user
-                        await assign_role_to_member(guild_id, player_data['discord_id'], role_id, http_session)
-                        roles_added.append(role_name)
-                        logger.info(f"Added role {role_name} to player {player_data['name']}")
+                        # Record the role as added ONLY if Discord confirmed it.
+                        # roles_added used to be appended unconditionally, so it
+                        # reported intent rather than outcome and the caller
+                        # stored that as fact.
+                        if await assign_role_to_member(
+                                guild_id, player_data['discord_id'], role_id, http_session):
+                            roles_added.append(role_name)
+                            logger.info(f"Added role {role_name} to player {player_data['name']}")
+                        else:
+                            roles_failed.append(role_name)
+                            logger.error(
+                                f"Could NOT add role {role_name} to player "
+                                f"{player_data['name']}")
+                    else:
+                        roles_failed.append(role_name)
+                        logger.error(
+                            f"Could not resolve/create role {role_name} for player "
+                            f"{player_data['name']}")
                 except Exception as e:
                     logger.error(f"Failed to add role {role_name}: {e}")
             
@@ -1162,21 +1323,46 @@ async def update_player_roles_async_only(player_data: Dict[str, Any], force_upda
                     # Get role ID
                     role_id = await get_role_id(guild_id, role_name, http_session)
                     if role_id:
-                        # Remove role from user
-                        await remove_role_from_member(guild_id, player_data['discord_id'], role_id, http_session)
-                        roles_removed.append(role_name)
-                        logger.info(f"Removed role {role_name} from player {player_data['name']}")
+                        # Same as the grant loop: only record what Discord
+                        # actually confirmed. A failed removal that reports
+                        # success is worse than a grant failure -- it leaves a
+                        # denied or deactivated member holding league access
+                        # while every dashboard says they were offboarded.
+                        if await remove_role_from_member(
+                                guild_id, player_data['discord_id'], role_id, http_session):
+                            roles_removed.append(role_name)
+                            logger.info(f"Removed role {role_name} from player {player_data['name']}")
+                        else:
+                            roles_failed.append(role_name)
+                            logger.error(
+                                f"Could NOT remove role {role_name} from player "
+                                f"{player_data['name']} — they STILL HOLD IT")
+                    else:
+                        roles_failed.append(role_name)
+                        logger.error(
+                            f"Could not resolve role {role_name} to remove from player "
+                            f"{player_data['name']} — they may still hold it")
                 except Exception as e:
                     logger.error(f"Failed to remove role {role_name}: {e}")
             
             # Get final roles after changes
             final_roles = await get_member_roles(player_data['discord_id'], http_session)
             
+            # success reflects whether every intended change actually landed.
+            # It used to be a hardcoded True, so a member who had left the guild
+            # (404 on every call) produced a clean success -- which then cleared
+            # discord_needs_update and erased the only signal that would have
+            # made a later sweep retry.
             return {
-                'success': True,
+                'success': not roles_failed,
                 'current_roles': final_roles,
                 'roles_added': roles_added,
                 'roles_removed': roles_removed,
+                'roles_failed': roles_failed,
+                'sync_status': 'success' if not roles_failed else 'partial',
+                'message': ('' if not roles_failed else
+                            f"{len(roles_failed)} role op(s) failed: "
+                            f"{', '.join(roles_failed)}"),
                 'player_id': player_data.get('id'),
                 'discord_id': player_data['discord_id']
             }
@@ -1210,9 +1396,30 @@ async def update_player_roles(session: Session, player: Player, force_update: bo
     try:
         async with aiohttp.ClientSession() as http_session:
             current_roles = await fetch_user_roles(session, player.discord_id, http_session)
-            app_managed = await get_app_managed_roles(session)
+
+            # Managed set from the CANONICAL per-player calculator, matching the
+            # expected set computed just below.
+            #
+            # This used to call get_app_managed_roles(session), which returns a
+            # GLOBAL list: every current-season team role in the guild, not this
+            # player's. Pairing a global managed set with a per-player expected
+            # set means every team role in the league is a removal candidate for
+            # every player -- and the two lists also disagreed about ECS FC
+            # (managed here, deliberately unmanaged in the canonical calculator)
+            # and ECS-FC-PL-UNVERIFIED (managed only here). A role in one list
+            # but not the other is exactly what makes a role flap: granted by one
+            # path, revoked by the other, forever.
+            from app.tasks.tasks_discord import (
+                _extract_player_role_data, _app_managed_roles,
+            )
+            _payload = _extract_player_role_data(session, player.id)
+            app_managed = _app_managed_roles(_payload)
+
             current_normalized = {normalize_name(r) for r in current_roles or []}
-            expected_roles = await get_expected_roles(session, player)
+            # Reuse the payload and the live role list already gathered above
+            # instead of making get_expected_roles redo both.
+            expected_roles = await get_expected_roles(
+                session, player, payload=_payload, current_roles=current_roles)
             expected_normalized = {normalize_name(r) for r in expected_roles}
             managed_normalized = {normalize_name(r) for r in app_managed}
             
@@ -1382,216 +1589,85 @@ async def get_app_managed_roles(session: Session) -> List[str]:
     return static_roles + team_roles
 
 
-async def get_expected_roles(session: Session, player: Player) -> List[str]:
+async def get_expected_roles(session: Session, player: Player,
+                             payload: Optional[Dict[str, Any]] = None,
+                             current_roles: Optional[List[str]] = None) -> List[str]:
     """
     Build the complete set of roles the player should have.
 
-    Factors include league membership, team membership, coach/ref status,
-    and preserving non-managed roles from Discord.
+    payload / current_roles let a caller that has ALREADY built the role payload
+    or fetched the member's live Discord roles hand them in. update_player_roles
+    has both, and without this it rebuilt the payload (~8 queries) and opened a
+    second aiohttp session to re-fetch the same roles -- doubling the cost of a
+    function that runs once per player over the whole league.
+
+    Thin wrapper over the CANONICAL calculator in app/tasks/tasks_discord.py.
+    Its only unique job is preserving Discord roles this app does not manage;
+    everything app-managed is delegated.
+
+    This function used to reimplement the whole calculation, and the two copies
+    drifted badly. The batch/Celery path used `_compute_expected_roles`; THIS one
+    is what the Discord bot's `on_member_join` reads (via
+    app/user_api.py::get_player_by_discord), and the bot GRANTS whatever it
+    returns. So the two halves of the system disagreed about what a member should
+    have, and each would undo the other. The concrete divergences were:
+
+      - No third-program support from a league or team basis. A Summer Sprint
+        player whose role came from league association or team membership got
+        ECS-FC-PL-SUMMER from the batch calculator, while this one omitted it AND
+        still counted it as managed -- so it revoked what the other granted.
+      - Exact string matching on league names where the canonical calculator
+        matches fuzzily, so any league-name drift flipped a division role.
+      - Team roles taken from `player.teams` (EVERY season) instead of
+        current-season teams, so last season's team roles were expected here and
+        revoked there.
+      - Fail-CLOSED on approval status (`== 'approved'`) against the canonical
+        fail-OPEN, so a NULL/odd status silently produced zero roles.
 
     Returns:
         List[str]: List of expected role names.
     """
+    # 1. Preserve roles this app does not manage (the genuinely unique part).
     roles = []
     app_role_prefixes = ["ECS-FC-PL-", "Referee"]
-
-    async with aiohttp.ClientSession() as aio_session:
-        current_roles = await fetch_user_roles(session, player.discord_id, aio_session)
-
-    # Preserve any roles that are not managed by our app
-    for role in current_roles:
+    try:
+        if current_roles is None:
+            async with aiohttp.ClientSession() as aio_session:
+                current_roles = await fetch_user_roles(
+                    session, player.discord_id, aio_session)
+    except Exception as e:
+        # Not fatal: failing to read current roles only means we cannot carry
+        # over unmanaged ones. The managed set below is computed from the DB.
+        logger.warning(
+            f"Could not read current Discord roles for player {player.id} while "
+            f"preserving unmanaged roles: {e}")
+        current_roles = []
+    for role in (current_roles or []):
         if not any(role.startswith(prefix) for prefix in app_role_prefixes):
             roles.append(role)
 
-    # Get the player's Flask application roles
-    user_roles = []
-    if player.user and player.user.roles:
-        user_roles = [role.name for role in player.user.roles]
-        logger.info(f"Player {player.id} has Flask roles: {user_roles}")
-    else:
-        logger.info(f"Player {player.id} has no Flask user or roles")
-
-    # Check user approval status for the new approval system
-    approval_status = getattr(player.user, 'approval_status', 'pending') if player.user else 'pending'
-    approval_league = getattr(player.user, 'approval_league', None) if player.user else None
-    
-    logger.info(f"Player {player.id} has approval_status='{approval_status}', approval_league='{approval_league}'")
-
-    # Handle unverified users (pending approval)
-    if approval_status == 'pending' and 'pl-unverified' in user_roles:
-        roles.append(normalize_name("ECS-FC-PL-UNVERIFIED"))
-        logger.info(f"Player {player.id} assigned ECS-FC-PL-UNVERIFIED role (pending approval)")
-        # Return early for unverified users - they only get the unverified role
-        return roles
-
-    # Handle denied users (remove all roles)
-    if approval_status == 'denied':
-        logger.info(f"Player {player.id} is denied - no league roles assigned")
-        # Return early for denied users - they only get preserved non-managed roles
-        return roles
-
-    # Handle approved users by directly mapping Flask roles to Discord roles
-    if approval_status == 'approved':
-        # Direct mapping of Flask roles to Discord roles (can have multiple)
-        # Base league roles
-        # Registry-driven Flask-role -> Discord-role mapping, covering every
-        # program's division and substitute roles in one pass. The old block was
-        # six hardcoded `if` statements, so a newer program's member was never
-        # granted their division role on this path while the BATCH calculator
-        # granted it -- the role appeared and disappeared depending on which
-        # sync ran last.
-        #
-        # Note ECS FC's canonical sub role is ECS-FC-LEAGUE-SUB (not
-        # ECS-FC-PL-ECS-FC-SUB); that name comes from the registry now, and it
-        # is the name every managed/remove list uses.
-        _d, _c, _s, _by_flask = _program_role_names(session)
-        for _flask_role, _discord_role in _by_flask.items():
-            # Coach roles are handled separately below (they are per-team scoped).
-            if _discord_role in _c:
-                continue
-            if _flask_role in user_roles:
-                roles.append(normalize_name(_discord_role))
-                logger.info(f"Player {player.id} assigned {_discord_role} "
-                            f"based on Flask role '{_flask_role}'")
-
-    should_have_coach_status = player.is_coach
-
-    # Coach roles (approved only). PARITY with the task calculators: the Premier/
-    # Classic coach role is scoped PER-TEAM (player_teams.is_coach on a team in that
-    # division) OR granted by the team-independent 'Premier Coach'/'Classic Coach'
-    # Flask role — NOT the global is_coach + pl-<div> derivation, which over-granted
-    # (a Premier player coaching a Classic team got both) and diverged from the batch
-    # reconcile, causing coach roles to flap. Falls back to the legacy global
-    # derivation only when no DB session is available to read player_teams.
-    if approval_status == 'approved':
-        # Team-independent division-coach Flask roles, every program.
-        _coach_by_flask = {}
-        _coach_by_league = {}
-        try:
-            from app.services import program_registry
-            for _pr in program_registry.all_programs(session):
-                if _pr.coach_role_name:
-                    if _pr.flask_coach_role:
-                        _coach_by_flask[_pr.flask_coach_role] = _pr.coach_role_name
-                    if _pr.league_name:
-                        _coach_by_league[_pr.league_name.strip().lower()] = _pr.coach_role_name
-        except Exception:
-            pass
-        if not _coach_by_flask:
-            _coach_by_flask = {'Premier Coach': "ECS-FC-PL-PREMIER-COACH",
-                               'Classic Coach': "ECS-FC-PL-CLASSIC-COACH"}
-            _coach_by_league = {'premier': "ECS-FC-PL-PREMIER-COACH",
-                                'classic': "ECS-FC-PL-CLASSIC-COACH"}
-        for _fr, _dr in _coach_by_flask.items():
-            if _fr in user_roles:
-                roles.append(normalize_name(_dr))
-
-        # Per-team is_coach scoped to each coached team's league.
-        coach_leagues = None
-        if session is not None:
-            try:
-                from app.models import player_teams as _pt
-                coach_leagues = set()
-                for row in session.execute(
-                    _pt.select().where(_pt.c.player_id == player.id)
-                ).fetchall():
-                    if getattr(row, 'is_coach', False):
-                        t = session.query(Team).get(row.team_id)
-                        if t and t.league and t.league.name:
-                            coach_leagues.add(t.league.name.strip().lower())
-            except Exception as e:
-                logger.warning(f"get_expected_roles per-team coach lookup failed for {player.id}: {e}")
-                coach_leagues = None
-
-        if coach_leagues is None:
-            # Fallback: legacy global derivation (no session / lookup failed).
-            if should_have_coach_status:
-                try:
-                    from app.services import program_registry
-                    for _pr in program_registry.all_programs(session):
-                        if (_pr.flask_league_role in user_roles
-                                and _pr.coach_role_name and _pr.is_pub_league_like):
-                            roles.append(normalize_name(_pr.coach_role_name))
-                except Exception:
-                    if 'pl-premier' in user_roles:
-                        roles.append(normalize_name("ECS-FC-PL-PREMIER-COACH"))
-                    if 'pl-classic' in user_roles:
-                        roles.append(normalize_name("ECS-FC-PL-CLASSIC-COACH"))
-        else:
-            for _lname, _dr in _coach_by_league.items():
-                if _lname in coach_leagues:
-                    roles.append(normalize_name(_dr))
-
-        # ECS FC coach role is NOT in the task reconcile's managed list, so it never
-        # flaps — keep the existing global-derived grant (leaves ECS FC as-is).
-        if should_have_coach_status and 'pl-ecs-fc' in user_roles:
-            roles.append(normalize_name("ECS-FC-PL-ECS-FC-COACH"))
-
-    # Determine leagues associated with the player (fallback for backward compatibility)
-    leagues_for_user = set()
-    if player.league_id:
-        league_obj = session.query(League).filter_by(id=player.league_id).first()
-        if league_obj and league_obj.name:
-            leagues_for_user.add(league_obj.name.strip().upper())
-    if player.primary_league_id:
-        league_obj = session.query(League).filter_by(id=player.primary_league_id).first()
-        if league_obj and league_obj.name:
-            leagues_for_user.add(league_obj.name.strip().upper())
-    for t in player.teams:
-        if t.league and t.league.name:
-            leagues_for_user.add(t.league.name.strip().upper())
-
-    # Priority-2 division fallback — PARITY with the task reconcile calculator
-    # (_execute_player_role_update_async in tasks_discord.py, "Priority 2: Database
-    # league associations"). Grant ECS-FC-PL-PREMIER/CLASSIC from the player's DB
-    # LEAGUE ASSOCIATIONS (league_id / primary_league_id / other_leagues) — NOT team
-    # membership — so a player whose league says Premier but who is missing the
-    # pl-premier Flask role still gets the division role, and the two calculators no
-    # longer disagree. Purely additive (approved users only); nobody loses a role.
-    if approval_status == 'approved':
-        assoc_leagues = set()
-        for lg in ([player.league, player.primary_league] + list(player.other_leagues or [])):
-            if lg and lg.name:
-                assoc_leagues.add(lg.name.strip().lower())
-        if 'premier' in assoc_leagues:
-            roles.append(normalize_name("ECS-FC-PL-PREMIER"))
-        if 'classic' in assoc_leagues:
-            roles.append(normalize_name("ECS-FC-PL-CLASSIC"))
-
-        # ECS FC league role from TEAM MEMBERSHIP — PARITY with both task
-        # calculators (tasks_discord.py), which grant ECS-FC-PL-ECS-FC to anyone
-        # rostered on an ECS FC team regardless of the pl-ecs-fc Flask role. Without
-        # this, an ECS FC player missing that Flask role was "expected" to have the
-        # league role by one calculator and not by this one — exactly the kind of
-        # drift that makes a role flap on and off between sync paths.
-        if any((t.league and (t.league.name or '').strip().lower() == 'ecs fc')
-               for t in player.teams):
-            roles.append(normalize_name("ECS-FC-PL-ECS-FC"))
-
-    # For non-approved users, no league roles are assigned - they only get team-based roles
-    if approval_status != 'approved':
-        logger.info(f"Player {player.id} is not approved, only team-based roles will be assigned")
-
-    # Append team-based roles using normalized role names. Include the per-team
-    # -Coach role for teams this player coaches, mirroring the batch calculator
-    # (tasks_discord.py) — without it this path never granted the team-channel
-    # coach role and the verification always reported a correct coach as needing
-    # an update (flapping re-syncs).
-    from app.models.players import player_teams as _player_teams
+    # 2. Delegate the app-managed set to the canonical calculator.
+    #
+    # Imported inside the function: tasks_discord imports this module at module
+    # scope, so a top-level import here would be circular. This mirrors the
+    # existing function-level import in process_single_player_update.
+    from app.tasks.tasks_discord import (
+        _extract_player_role_data, _compute_expected_roles,
+    )
     try:
-        _coach_team_ids = {r[0] for r in session.query(_player_teams.c.team_id).filter(
-            _player_teams.c.player_id == player.id,
-            _player_teams.c.is_coach == True).all()}
-    except Exception:
-        _coach_team_ids = set()
-    for t in player.teams:
-        roles.append(normalize_name(f"ECS-FC-PL-{t.name}-PLAYER"))
-        if t.id in _coach_team_ids:
-            roles.append(normalize_name(f"ECS-FC-PL-{t.name}-Coach"))
+        data = payload if payload is not None else _extract_player_role_data(
+            session, player.id)
+    except Exception as e:
+        # MUST NOT degrade to "just the unmanaged roles". An empty managed set
+        # paired with a populated managed-roles list is precisely what strips
+        # every role off a player, and this result feeds both the reconcile and
+        # the bot's join handler. Fail loudly instead.
+        logger.error(
+            f"Could not build role payload for player {player.id}; refusing to "
+            f"return a partial expected set: {e}")
+        raise
+    roles.extend(_compute_expected_roles(data))
 
-    if player.is_ref:
-        roles.append(normalize_name("Referee"))
-    
     # Remove duplicates while preserving order
     unique_roles = []
     seen = set()
@@ -1599,7 +1675,7 @@ async def get_expected_roles(session: Session, player: Player) -> List[str]:
         if role not in seen:
             seen.add(role)
             unique_roles.append(role)
-    
+
     logger.info(f"Player {player.id} final expected roles: {unique_roles}")
     return unique_roles
 

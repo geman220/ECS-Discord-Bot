@@ -134,6 +134,33 @@ def link_discord_account(code, discord_client_id, discord_client_secret, redirec
         return False, "Failed to retrieve Discord ID"
         
     player.discord_id = discord_id
+
+    # Grant their Discord roles now. Linking is the moment the app gains a
+    # handle on the member, and nothing here used to act on it: roles arrived
+    # only on the user's NEXT login (app/auth/helpers.py fires
+    # assign_roles_to_player_task) or whenever an admin ran a mass sync. Someone
+    # who linked from account settings and did not log out and back in simply
+    # had no roles.
+    #
+    # This also closes the loop with unlink_discord, which strips everything —
+    # without a grant on re-link, unlink became one-way in practice.
+    #
+    # only_add=True: linking is purely additive and must never revoke.
+    # discord_needs_update is also set so the scheduled drain retries if this
+    # dispatch is lost.
+    try:
+        player.discord_needs_update = True
+        from app.utils.deferred_discord import defer_discord_sync
+        defer_discord_sync(player.id, only_add=True)
+        logger.info(
+            f"Queued additive Discord role sync for player {player.id} after "
+            f"linking discord_id={discord_id}")
+    except Exception as e:
+        # Never fail the link itself; the flag above is the durable fallback.
+        logger.error(
+            f"Could not queue Discord role sync after linking player "
+            f"{player.id} (flagged for the scheduled drain instead): {e}")
+
     return True, None
 
 # --------------------
@@ -607,6 +634,37 @@ def unlink_discord():
     user = session.query(User).get(current_user.id)
 
     if user.player and user.player.discord_id:
+        # Strip the Discord roles BEFORE dropping the link.
+        #
+        # This used to null discord_id and stop. Every role the app had granted
+        # stayed on the Discord member — team, division, coach, sub, referee —
+        # and nulling the column destroyed the only handle that could ever remove
+        # them. Nothing could repair it afterwards: the role tasks all resolve the
+        # member via player.discord_id, which is now NULL, so an unlinked user
+        # kept full league channel access permanently.
+        #
+        # The id is passed EXPLICITLY rather than left for the task to read. This
+        # dispatch is async and the null below commits first, so a worker reading
+        # the row would find NULL and silently no-op — the same bug, just harder
+        # to see. Passing it makes the removal independent of the row.
+        from app.tasks.tasks_discord import remove_player_roles_task
+        _discord_id = user.player.discord_id
+        _player_id = user.player.id
+        try:
+            remove_player_roles_task.delay(player_id=_player_id,
+                                           discord_id=_discord_id)
+            logger.info(
+                f"Queued Discord role removal for player {_player_id} "
+                f"(discord_id={_discord_id}) before unlinking")
+        except Exception as e:
+            # Never block the unlink on this: the user asked to disconnect and is
+            # entitled to. Log loudly — the roles now need manual cleanup, since
+            # after this commit there is no automated path back to that member.
+            logger.error(
+                f"Could not queue Discord role removal for player {_player_id} "
+                f"(discord_id={_discord_id}) before unlink; roles remain on the "
+                f"Discord member and must be removed by hand: {e}")
+
         user.player.discord_id = None
         show_success('Your Discord account has been unlinked successfully.')
     else:

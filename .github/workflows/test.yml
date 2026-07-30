@@ -184,25 +184,33 @@ jobs:
 
     # THE ONE LINT STEP THAT GATES. Everything below this is advisory style.
     #
-    # These four selects are not style opinions, they are "this code cannot run":
-    #   E9  - syntax / indentation errors
-    #   F63 - comparisons that can never do what was meant
-    #   F7  - syntax misuse (`break` outside a loop, etc.)
-    #   F82 - UNDEFINED NAME
+    # Codes are listed INDIVIDUALLY, not by prefix, and that matters:
+    # `--select=F82` is a PREFIX match, so it also pulled in F824 ("`global x` is
+    # unused: name is never assigned in scope") -- 12 hits across this codebase.
+    # F824 is a redundancy nit, not a defect: the `global` statement is
+    # unnecessary when a name is only read, and the code runs correctly either
+    # way. Gating on it would have blocked every PR over nothing.
     #
-    # F82 earns its place. The most common real defect found in this codebase
-    # recently was a function-local `from app.models import Match`, which makes
-    # `Match` local to the WHOLE function -- so an earlier `session.query(Match)`
-    # in that same function raised UnboundLocalError and the endpoint returned 500
-    # on every single call. Seven sites had that exact shape, plus a helper that
-    # called `session.query(...)` with no `session` in scope at all.
+    # What IS selected, and why each one is "this code cannot run":
+    #   E9   - syntax / indentation errors
+    #   F63  - comparisons that can never do what was meant
+    #   F7   - syntax misuse (`break` outside a loop, etc.)
+    #   F821 - undefined name
+    #   F822 - undefined name in __all__
+    #   F823 - local variable referenced before assignment
     #
-    # Verified clean at the time this was enabled: E9=0, F63/F7=0, F82=0.
-    # If this step ever goes red, it is a genuine bug, not a nit.
+    # F821 and F823 are the ones that earn this step. The most common real defect
+    # found in this codebase recently was a function-local
+    # `from app.models import Match`, which makes `Match` local to the WHOLE
+    # function -- so an earlier `session.query(Match)` raised UnboundLocalError
+    # and the endpoint returned 500 on every call. Seven sites had that shape,
+    # plus a helper calling `session.query(...)` with no `session` in scope.
+    #
+    # If this step goes red, it is a genuine bug, not a nit.
     - name: Lint for errors that break at runtime (gating)
       run: |
         cd Discord-Bot-WebUI
-        flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 app/ --count --select=E9,F63,F7,F821,F822,F823 --show-source --statistics
 
     - name: Run Black
       run: |
