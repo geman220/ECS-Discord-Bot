@@ -237,8 +237,13 @@ def get_available_refs_for_match(match_id: int):
             "match_id": match_id,
             "match_date": match.date.isoformat() if match.date else None,
             "match_time": match.time.isoformat() if match.time else None,
-            "home_team": match.home_team.name,
-            "away_team": match.away_team.name,
+            # Objects, matching /referees/assignments (:470). This route used to
+            # emit bare name strings for the same two keys, so the client had to
+            # branch on the shape depending on which endpoint it asked.
+            "home_team": {"id": match.home_team.id, "name": match.home_team.name},
+            "away_team": {"id": match.away_team.id, "name": match.away_team.name},
+            "home_team_name": match.home_team.name,
+            "away_team_name": match.away_team.name,
             "current_ref": current_ref,
             "available_refs": available_refs
         }), 200
@@ -512,6 +517,9 @@ def get_ref_availability():
         return jsonify({
             "ref_id": player.id,
             "ref_name": player.name,
+            # Both keys: the client reads `is_available`, this API has always
+            # emitted `is_available_for_ref`. Emit both rather than break either.
+            "is_available": player.is_available_for_ref,
             "is_available_for_ref": player.is_available_for_ref
         }), 200
 
@@ -555,5 +563,8 @@ def update_ref_availability():
             "success": True,
             "ref_id": player.id,
             "ref_name": player.name,
+            # Both keys: the client reads `is_available`, this API has always
+            # emitted `is_available_for_ref`. Emit both rather than break either.
+            "is_available": player.is_available_for_ref,
             "is_available_for_ref": player.is_available_for_ref
         }), 200

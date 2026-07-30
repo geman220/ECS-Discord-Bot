@@ -23,9 +23,10 @@ Helper async functions perform HTTP calls to the Discord bot API using aiohttp.
 import logging
 import asyncio
 import aiohttp
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -425,6 +426,20 @@ def _compute_expected_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = 
     # An unknown status must never revoke.
     status = data.get('approval_status') or 'approved'
     if isinstance(status, str) and status.strip().lower() in ('pending', 'denied'):
+        # PENDING users still get the gating role, if they hold the Flask role
+        # that confers it. This calculator used to return a bare [] here, which
+        # was correct while it only served the reconcile — but it is now the
+        # single source of truth for the BOT's on_member_join grant too, and
+        # app/auth/registration.py deliberately skips granting
+        # ECS-FC-PL-UNVERIFIED at signup (Discord can't role a non-member, so it
+        # always 404'd) precisely because on_member_join was expected to do it.
+        # Returning [] left newly-joined pending users ungated with nothing else
+        # to grant it.
+        #
+        # DENIED users still get nothing: they are being removed, not gated.
+        if (status.strip().lower() == 'pending'
+                and 'pl-unverified' in (data.get('user_roles') or [])):
+            return ['ECS-FC-PL-UNVERIFIED']
         return []
 
     return expected
@@ -462,6 +477,14 @@ def _app_managed_roles(data: Dict[str, Any], teams: Optional[List[Dict]] = None,
             if p.get('sub_role_name'):
                 managed.append(p['sub_role_name'])
         managed.append('Referee')
+        # The gating role must be MANAGED so it comes OFF at approval.
+        # It is expected only while the user is pending (see the pending branch
+        # in _compute_expected_roles), so once approved it is managed-but-not-
+        # expected and a reconcile strips it — which is the whole point of
+        # _RECONCILE_REMOVABLE_EXACT = {'ECS-FC-PL-UNVERIFIED'} in
+        # discord_utils. Omitting it here made that allowlist entry unreachable
+        # and left approved members gated forever.
+        managed.append('ECS-FC-PL-UNVERIFIED')
     # Team-specific player + coach roles, so losing a roster spot / coach status
     # still revokes them.
     # Must stay EXACTLY symmetric with the team loop in _compute_expected_roles
@@ -649,7 +672,31 @@ def _update_player_after_role_sync(session, result):
     
     player = session.query(Player).get(result['player_id'])
     if player:
-        player.discord_roles = result.get('current_roles', [])
+        # NEVER overwrite the cache with None/empty.
+        #
+        # `current_roles` here is the post-change read from `get_member_roles`,
+        # which returns None when the bot is unreachable or the member 404s.
+        # `.get('current_roles', [])` only defaults on a MISSING key — an
+        # explicit None sailed through and nulled `player.discord_roles`.
+        #
+        # That was self-inflicted damage: the removal logic builds its candidate
+        # list by iterating this column, so one transient bot outage left the
+        # player with an empty cache and made every later targeted removal a
+        # silent no-op. Keeping the previous value is strictly better than
+        # replacing a good list with nothing.
+        _current = result.get('current_roles')
+        if _current:
+            player.discord_roles = _current
+        elif _current == []:
+            # A genuine empty read (member holds no roles) is legitimate, but
+            # indistinguishable from a failed read here — the executor already
+            # falls back to the cache on failure, so an empty list reaching this
+            # point means the live read succeeded and returned nothing.
+            player.discord_roles = []
+        else:
+            logger.warning(
+                f"Post-sync role read returned None for player {player.id}; "
+                f"keeping the previous discord_roles cache rather than nulling it")
         player.discord_last_verified = datetime.utcnow()
         player.discord_needs_update = False
         player.last_sync_attempt = datetime.utcnow()
@@ -773,10 +820,45 @@ def _extract_batch_role_update_data(session, discord_ids: List[str] = None, only
             # process_discord_role_updates.delay() with no ids. Previously this
             # raised TypeError (required positional) and silently no-op'd while
             # reporting success. Load the flagged players so the reconcile runs.
+            #
+            # BACKOFF. Selecting every flagged player unconditionally turns a
+            # permanently-failing player into a permanent cost: someone who left
+            # the guild 404s on every op, so `success` is False, so the flag is
+            # never cleared, so they are re-selected every 10 minutes forever —
+            # and the failing set only ever grows. (Before failures were
+            # reported honestly the flag was cleared regardless, which hid this
+            # but silently dropped real work.)
+            #
+            # No new column: a mapped column that outruns its hand-run migration
+            # is a site-wide UndefinedColumn outage here. Instead derive the
+            # backoff from the two timestamps we already have.
+            #
+            # `discord_last_verified` is written ONLY on a successful sync and
+            # `last_sync_attempt` on every attempt, so
+            # `last_sync_attempt - discord_last_verified` is exactly "how long
+            # this player has been failing". Under an hour: retry each tick
+            # (transient — bot restart, blip). Beyond that: retry hourly, so a
+            # genuinely broken player costs ~24 attempts/day instead of ~144,
+            # and stays visible rather than being silently dropped.
+            _now = datetime.utcnow()
+            _fresh_cutoff = _now - timedelta(hours=1)
             discord_ids = [
                 str(p.discord_id) for p in session.query(Player).filter(
                     Player.discord_id.isnot(None),
-                    Player.discord_needs_update == True  # noqa: E712 (SQLAlchemy)
+                    Player.discord_needs_update == True,  # noqa: E712 (SQLAlchemy)
+                    or_(
+                        # Never attempted — always eligible.
+                        Player.last_sync_attempt.is_(None),
+                        # Last attempt over an hour ago — the hourly floor for
+                        # anyone who keeps failing.
+                        Player.last_sync_attempt < _fresh_cutoff,
+                        # Verified successfully within the hour, i.e. currently
+                        # healthy, so a newly-set flag is acted on immediately
+                        # rather than waiting out the floor. A long-failing
+                        # player has an old or NULL discord_last_verified and so
+                        # does not match this.
+                        Player.discord_last_verified > _fresh_cutoff,
+                    )
                 ).all()
             ]
         if not discord_ids:
@@ -852,10 +934,39 @@ def _update_players_after_batch_role_sync(session, result):
     for player_result in result.get('results', []):
         player = session.query(Player).get(player_result['id'])
         if player:
-            player.discord_last_verified = datetime.utcnow()
-            player.discord_needs_update = False
+            synced = player_result.get('status') == 'synced'
             player.last_sync_attempt = datetime.utcnow()
-            player.sync_status = 'success' if player_result.get('status') == 'synced' else 'error'
+            player.sync_status = 'success' if synced else 'error'
+
+            # Only clear the work flag when the sync actually SUCCEEDED.
+            # This used to clear unconditionally, so a player whose sync failed
+            # (bot unreachable, Discord 5xx, transient timeout) was marked
+            # "no longer needs an update" and was never retried. That made the
+            # flag a record of "we tried once", not "this is settled", and it
+            # is why role gaps persisted silently until someone ran a manual
+            # cleanup. Leaving it True lets the scheduled
+            # drain-discord-role-updates beat task pick the player back up on
+            # the next tick.
+            #
+            # NOTE: `sync_status` / `sync_error` below are NOT mapped columns on
+            # Player (see app/models/players.py -- only discord_last_verified,
+            # discord_needs_update, discord_roles_synced and last_sync_attempt
+            # exist). Assigning them sets a transient instance attribute that
+            # SQLAlchemy discards, and nothing in the codebase reads them back.
+            # They are left in place as a harmless no-op rather than removed,
+            # but they mean failure detail is NOT persisted anywhere -- which is
+            # precisely why `discord_needs_update` staying True has to be the
+            # durable signal that work remains.
+            #
+            # Trade-off: a PERMANENTLY failing player (left the guild, revoked
+            # the OAuth grant) now stays flagged and is retried each tick. That
+            # is bounded, and re-attempting is safer than silently dropping real
+            # work. Surface them with the `last_sync_attempt > discord_last_verified`
+            # query rather than by trusting sync_status.
+            if synced:
+                player.discord_last_verified = datetime.utcnow()
+                player.discord_needs_update = False
+
             if not player_result.get('success'):
                 player.sync_error = player_result.get('error')
             if player_result.get('current_roles'):
@@ -1034,16 +1145,39 @@ def _update_player_after_assign_roles(session, result):
     
     player = session.query(Player).get(result['player_id'])
     if player:
-        player.discord_roles_updated = datetime.utcnow()
-        if result.get('success'):
-            player.discord_role_sync_status = 'completed'
-        else:
-            player.discord_role_sync_status = 'failed'
-            player.sync_error = result.get('message')
-        player.last_sync_attempt = datetime.utcnow()
+        # ⚠️ Of the four fields this function used to write, THREE are not
+        # mapped columns on Player: discord_roles_updated,
+        # discord_role_sync_status and sync_error do not exist in
+        # app/models/players.py. SQLAlchemy accepted the assignments as
+        # transient instance attributes and discarded them. Only
+        # last_sync_attempt and discord_roles ever persisted.
+        #
+        # The consequence was the real bug: this is the task the LOGIN path
+        # fires (app/auth/helpers.py:82 -> assign_roles_to_player_task), which
+        # was the de-facto backstop granting people their Discord roles. It
+        # granted the roles correctly but NEVER cleared discord_needs_update
+        # and NEVER set discord_last_verified. So every player the login path
+        # repaired stayed flagged forever, and the flag grew into a permanent
+        # backlog of hundreds of rows that no longer reflected reality --
+        # which in turn made the flag useless as a "who still needs work"
+        # signal and hid the players who genuinely did.
+        #
+        # It also left last_sync_attempt far ahead of discord_last_verified,
+        # so that comparison reads as "sync failed" when it actually means
+        # "last synced via the login path". Setting both here removes that
+        # ambiguity.
+        #
+        # Note this task can run add-only, which grants missing roles without
+        # revoking stale ones. Clearing the flag is still correct: every writer
+        # of discord_needs_update sets it to request a GRANT. Revocation is
+        # driven by the explicit reconcile callers, not by this flag.
+        now = datetime.utcnow()
+        player.last_sync_attempt = now
+        player.discord_last_verified = now
+        player.discord_needs_update = False
         if result.get('current_roles'):
             player.discord_roles = result['current_roles']
-    
+
     return result
 
 
@@ -1221,7 +1355,11 @@ def _update_players_after_fetch_role_status(session, result):
         if player:
             player.discord_role_sync_status = status['status']
             player.last_role_check = datetime.utcnow()
-            if 'current_roles' in status:
+            # Truthy, not key-presence: get_member_roles returns None when the
+            # bot is unreachable, and `'current_roles' in status` let that None
+            # null the cache. The removal logic iterates this column, so an
+            # emptied cache silently disables every later targeted removal.
+            if status.get('current_roles'):
                 player.discord_roles = status['current_roles']
             if 'error' in status:
                 player.sync_error = status['error']
@@ -1497,7 +1635,10 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
         if player:
             player.discord_role_sync_status = update['status']
             player.last_role_check = datetime.utcnow()
-            if 'current_roles' in update:
+            # Truthy, not key-presence — see the note in
+            # _update_players_after_fetch_role_status. A None read must never
+            # overwrite a good cached role list.
+            if update.get('current_roles'):
                 player.discord_roles = update['current_roles']
             if 'error' in update:
                 player.sync_error = update['error']
@@ -1523,12 +1664,48 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
     return results
 
 
-def _extract_remove_roles_data(session, player_id: int, team_id: Optional[int] = None):
+def _offboard_program_snapshot(session):
+    """Program roles to strip on a FULL offboarding (deny / deactivate / delete).
+
+    active_only=False, unlike every grant-side snapshot: a program retired via
+    is_active=FALSE still has members holding its Discord roles, and offboarding
+    must strip those too. Granting from an inactive program would be wrong;
+    REVOKING from one is exactly right.
+
+    Returns [] if the registry is unreachable; the caller falls back to the
+    hardcoded legacy list rather than stripping nothing.
+    """
+    try:
+        from app.services import program_registry
+        return [
+            {'division_role_name': p.division_role_name,
+             'coach_role_name': p.coach_role_name,
+             'sub_role_name': p.sub_role_name}
+            for p in program_registry.all_programs(session, active_only=False)
+        ]
+    except Exception as exc:
+        logger.warning(
+            f"program registry unavailable for offboarding vocabulary ({exc}); "
+            f"falling back to the hardcoded legacy list")
+        return []
+
+
+def _extract_remove_roles_data(session, player_id: int, team_id: Optional[int] = None,
+                               discord_id: Optional[str] = None):
     """Extract player data for role removal.
 
     When team_id is provided, only roles scoped to that team are removed.
     When team_id is None, all of the player's team-scoped roles across their
     current-season teams are removed (used for user denial/deactivation flows).
+
+    discord_id overrides the value read from the Player row. Required by callers
+    that are about to DESTROY the link before this task can run:
+      - `account.unlink_discord` nulls `player.discord_id`; by the time the
+        worker reads the row the handle is gone and the roles are unreachable
+        forever.
+      - user deletion removes the row entirely.
+    Passing it explicitly makes the removal independent of a row this task races
+    against. Without it, those flows silently strand every role on the member.
     """
     try:
         # OPTIMIZED: Load minimal player data, avoid nested joinedloads
@@ -1539,7 +1716,37 @@ def _extract_remove_roles_data(session, player_id: int, team_id: Optional[int] =
         logger.error(f"Database error in _extract_remove_roles_data: {e}")
         raise
     if not player:
-        raise ValueError(f"Player {player_id} not found")
+        # The row is GONE. For a deletion this is the normal case, not an error:
+        # `delete_user_comprehensive` runs `DELETE FROM users` (cascading the
+        # player) and only then dispatches this task, so the lookup above can
+        # never succeed. Raising here is why a deleted user kept every Discord
+        # role permanently — the task died before it could do anything, while
+        # the route logged "Triggered Discord role removal".
+        #
+        # An explicit discord_id is exactly the caller saying "the row will not
+        # be there; here is the handle". Honour it with a minimal offboarding
+        # payload. Without one there is genuinely nothing to act on, so keep the
+        # original error.
+        if not discord_id:
+            raise ValueError(f"Player {player_id} not found")
+        logger.info(
+            f"Player {player_id} no longer exists; proceeding with offboarding "
+            f"for discord_id={discord_id} from the caller-supplied handle")
+        # target_teams is empty, which is fine for a full offboarding: the
+        # executor sets pattern_sweep=True when team_id is None, so it strips
+        # every ECS-FC-PL-*-PLAYER/-COACH role the member actually holds, read
+        # LIVE from Discord rather than from the (now absent) cache. The
+        # registry-driven division/coach/sub sweep below covers the rest.
+        return {
+            'player_id': player_id,
+            'team_id': team_id,
+            'discord_id': discord_id,
+            'name': f'<deleted player {player_id}>',
+            'current_roles': [],
+            'user_roles': [],
+            'target_teams': [],
+            'offboard_programs': _offboard_program_snapshot(session),
+        }
 
     target_teams = []
     if team_id is not None:
@@ -1575,14 +1782,19 @@ def _extract_remove_roles_data(session, player_id: int, team_id: Optional[int] =
         logger.warning(f"Could not load user roles for player {player.id}: {e}")
         user_roles = []
 
+    # Taken HERE because the execute phase has no session (see _program_snapshot).
+    offboard_programs = _offboard_program_snapshot(session)
+
     return {
         'player_id': player_id,
         'team_id': team_id,
-        'discord_id': player.discord_id,
+        # Explicit override wins: the row's value may already be NULL (unlink).
+        'discord_id': discord_id or player.discord_id,
         'name': player.name,
         'current_roles': player.discord_roles or [],
         'user_roles': user_roles,
         'target_teams': target_teams,
+        'offboard_programs': offboard_programs,
     }
 
 
@@ -1616,19 +1828,40 @@ async def _execute_remove_roles_async(data):
     # because the team-scoped list above never contains those (they have no team
     # name and Referee has no ECS-FC-PL- prefix). Targeted removals (team_id set,
     # e.g. draft-remove) intentionally stay scoped to the one team.
+    #
+    # REGISTRY-DRIVEN. This list used to be hardcoded to the three original
+    # programs, so a denied or deactivated Summer Sprint member kept
+    # ECS-FC-PL-SUMMER and ECS-FC-PL-SUMMER-SUB — i.e. division-wide and
+    # sub-pool channel access — forever. The pattern sweep below does not save
+    # it: that only matches names containing -PLAYER or -COACH, so the division
+    # and sub roles slipped through. (SUMMER-COACH happened to be swept; the
+    # other two were not.)
+    #
+    # The static list is retained ONLY as the fallback for a registry outage —
+    # dropping to "no roles at all" during an offboarding would leave a denied
+    # user with full access, which is the worse failure.
     if data.get('team_id') is None:
-        roles_to_remove.extend([
-            'ECS-FC-PL-PREMIER',
-            'ECS-FC-PL-CLASSIC',
-            'ECS-FC-PL-ECS-FC',  # ECS FC league role — same leak as the two above
-            'ECS-FC-PL-PREMIER-SUB',
-            'ECS-FC-PL-CLASSIC-SUB',
-            'ECS-FC-LEAGUE-SUB',
-            'ECS-FC-PL-PREMIER-COACH',
-            'ECS-FC-PL-CLASSIC-COACH',
-            'ECS-FC-PL-ECS-FC-COACH',
-            'Referee',
-        ])
+        _offboard = []
+        for prog in (data.get('offboard_programs') or []):
+            for key in ('division_role_name', 'coach_role_name', 'sub_role_name'):
+                name = prog.get(key)
+                if name and name not in _offboard:
+                    _offboard.append(name)
+        if not _offboard:
+            _offboard = [
+                'ECS-FC-PL-PREMIER',
+                'ECS-FC-PL-CLASSIC',
+                'ECS-FC-PL-ECS-FC',  # ECS FC league role — same leak as the two above
+                'ECS-FC-PL-PREMIER-SUB',
+                'ECS-FC-PL-CLASSIC-SUB',
+                'ECS-FC-LEAGUE-SUB',
+                'ECS-FC-PL-PREMIER-COACH',
+                'ECS-FC-PL-CLASSIC-COACH',
+                'ECS-FC-PL-ECS-FC-COACH',
+            ]
+        # Referee is not a program role, so it is never in the snapshot.
+        _offboard.append('Referee')
+        roles_to_remove.extend(r for r in _offboard if r not in roles_to_remove)
 
     # Prepare data for role removal
     player_data = {
@@ -1712,7 +1945,8 @@ def _update_player_after_role_removal(session, result):
     retry_backoff=True,
     ignore_result=True  # fire-and-forget role sync: don't accumulate result keys in Redis
 )
-async def remove_player_roles_task(self, session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
+async def remove_player_roles_task(self, session, player_id: int, team_id: Optional[int] = None,
+                                   discord_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Remove Discord roles for a player using two-phase pattern.
 
@@ -1722,6 +1956,10 @@ async def remove_player_roles_task(self, session, player_id: int, team_id: Optio
         team_id: Optional. If provided, only roles scoped to that team are removed.
                  If None, all of the player's team-scoped Discord roles are removed
                  (used for user denial / deactivation flows).
+        discord_id: Optional override, for callers that are about to null the
+                 player's discord_id or delete the row (see
+                 _extract_remove_roles_data). Pass it whenever the link will not
+                 survive until the worker runs.
 
     Returns:
         A dictionary with the result and updated player info.

@@ -176,11 +176,17 @@ def get_updated_passes(device_library_id: str, pass_type_identifier: str):
                 since_ts = None
 
         with managed_session() as session:
+            # 'voided' MUST be listed alongside 'active'. Apple's only way to
+            # revoke an installed pass is to hand the device a pkpass carrying
+            # voided:true — which it fetches solely because this endpoint named
+            # the serial. Filtering to 'active' meant every void pushed a nudge
+            # that returned 204 ("spurious push"), and the revoked pass stayed
+            # valid on the phone indefinitely.
             q = (
                 session.query(WalletPass)
                 .join(WalletPassDevice, WalletPassDevice.wallet_pass_id == WalletPass.id)
                 .filter(WalletPassDevice.device_library_id == device_library_id)
-                .filter(WalletPass.status == 'active')
+                .filter(WalletPass.status.in_(('active', 'voided')))
             )
             if since_ts:
                 q = q.filter(WalletPass.updated_at > since_ts)

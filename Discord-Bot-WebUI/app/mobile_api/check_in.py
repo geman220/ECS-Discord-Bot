@@ -32,7 +32,7 @@ from app.models import Player, Season, MatchCheckInToken
 from app.models.wallet import WalletPass
 from app.check_in.service import (
     perform_check_in, get_match, build_roster_view,
-    is_coach_of_match, has_admin_role,
+    is_coach_of_match, has_admin_role, can_operate_scanner,
     resolve_member_token, resolve_player_id_or_token,
 )
 
@@ -124,6 +124,15 @@ def lookup_membership_pass():
 
     try:
         with managed_session() as session_db:
+            # Coach/admin only — this is the scanner tool. Without the gate any
+            # authenticated user could turn a barcode into a member identity.
+            from app.models import User
+            caller_id = int(get_jwt_identity())
+            caller_user = session_db.query(User).get(caller_id)
+            caller_player = session_db.query(Player).filter_by(user_id=caller_id).first()
+            if not can_operate_scanner(session_db, caller_user, caller_player):
+                return jsonify({"msg": "Not authorized"}), 403
+
             wallet_pass = session_db.query(WalletPass).filter_by(
                 barcode_data=token
             ).first()

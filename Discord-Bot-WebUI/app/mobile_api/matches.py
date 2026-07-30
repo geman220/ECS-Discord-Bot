@@ -65,8 +65,8 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
         'date': match.match_date.isoformat() if match.match_date else None,
         'time': match.match_time.isoformat() if match.match_time else None,
         'location': match.location,
-        'latitude': match.latitude or 0.0,
-        'longitude': match.longitude or 0.0,
+        'latitude': match.latitude,
+        'longitude': match.longitude,
         'field': match.field_name or match.location,
         'status': match.status,
         'is_completed': is_completed,
@@ -585,7 +585,11 @@ def get_match_availability(match_id: int):
                     avail_list.append({
                         'player_id': p.id,
                         'name': p.name,
+                        # Both keys: the Pub League branch of this same endpoint
+                        # (:630) emits `availability`, so one response shape
+                        # depended on which league the match belonged to.
                         'response': avail.response if avail else None,
+                        'availability': avail.response if avail else None,
                         'responded_at': avail.responded_at.isoformat() if avail and avail.responded_at else None,
                     })
 

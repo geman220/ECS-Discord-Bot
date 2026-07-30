@@ -51,6 +51,26 @@ LEAGUE_PATTERNS = {
     ]
 }
 
+# Mentions of the Summer Sprint program.
+#
+# There is deliberately NO 'pub_league_summer' entry in LEAGUE_PATTERNS yet:
+# the league key is not an enum, it is a lookup into the webui's
+# `league_settings` table (Discord-Bot-WebUI/app/admin/discord_onboarding_routes.py
+# get_league_settings), so routing to a key with no row returns 404 and the bot
+# falls through to FALLBACK_LEAGUE_INFO, which has no entry either. Inventing a
+# key here would just move the failure.
+#
+# What this DOES fix is the misroute. The ecs_fc patterns match bare `fc` and
+# bare `ecs`, so "ECS FC PL Summer Sprint" -- the actual product name -- matched
+# ecs_fc and silently signed the person up for the wrong program. Detecting
+# Summer and returning None instead routes them to the clarification DM, which
+# asks a human to pick. A question beats a wrong answer.
+#
+# TO FINISH SUMMER ONBOARDING: add a `league_settings` row, add its key here and
+# to FALLBACK_LEAGUE_INFO, and add the option to the clarification copy.
+_SUMMER_HINT = re.compile(r'\b(summer|sprint)\b', re.IGNORECASE)
+
+
 def parse_league_selection(message_content: str) -> Optional[str]:
     """
     Parse user message to determine league selection using fuzzy matching.
@@ -62,7 +82,16 @@ def parse_league_selection(message_content: str) -> Optional[str]:
         League name if matched, None otherwise
     """
     content_lower = message_content.lower().strip()
-    
+
+    # Summer Sprint is not yet a routable option (see _SUMMER_HINT). Bail out
+    # BEFORE the ecs_fc patterns, which would otherwise claim it via bare `fc`.
+    if _SUMMER_HINT.search(content_lower):
+        logger.info(
+            f"Message mentions Summer Sprint but it is not a routable league "
+            f"option yet; asking for clarification instead of guessing: "
+            f"'{content_lower}'")
+        return None
+
     # Direct matches first
     for league, patterns in LEAGUE_PATTERNS.items():
         for pattern in patterns:

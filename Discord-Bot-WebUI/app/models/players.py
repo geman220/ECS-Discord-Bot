@@ -43,6 +43,10 @@ player_teams = db.Table(
     db.Column('team_id', db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), primary_key=True),
     db.Column('is_coach', db.Boolean, default=False),
     db.Column('position', db.String(20), default='bench'),
+    # Slot ordering within a draft-pitch position. NULL = unordered.
+    # Added by sql_draft_pitch_order_notes.sql — without it the draft pitch
+    # could not round-trip a reorder.
+    db.Column('position_order', db.Integer, nullable=True),
     # Composite PK leads with player_id, so team_id needs its own index for
     # roster/standings joins that group or filter by team.
     db.Index('idx_player_teams_team_id', 'team_id'),
@@ -72,6 +76,9 @@ class Team(db.Model):
     )
 
     kit_url = db.Column(db.String(255), nullable=True)
+    # Coach notes on the DRAFT pitch. Match-day notes live on match_lineup.notes;
+    # draft mode had nowhere to put them, so its GET hardcoded notes=None.
+    draft_notes = db.Column(db.Text, nullable=True)
     background_image_url = db.Column(db.String(255), nullable=True)
     background_position = db.Column(db.String(50), nullable=True, default='center')
     background_size = db.Column(db.String(50), nullable=True, default='cover')
@@ -89,10 +96,70 @@ class Team(db.Model):
             'top_scorer': self.top_scorer,
             'top_assist': self.top_assist,
             'avg_goals_per_match': self.avg_goals_per_match,
+            # Program identity for clients that need league context without
+            # string-matching League.name. `program_key` is the opaque,
+            # permanent id (premier / classic / ecs_fc / pl_third) the mobile
+            # app joins on; `membership_lane` is its secondary fallback.
+            # Both are null when the program can't be resolved (no league, or
+            # a league name the registry doesn't recognise) — clients treat
+            # null as "fall back to matching by league name".
+            'program_key': self._program.key if self._program else None,
+            'membership_lane': self._program.membership_lane if self._program else None,
+            # Crest + league name. Their absence here is why every team badge in
+            # the mobile app fell back to initials even though kit_url was set:
+            # /teams, /teams/{id}, /teams/my_team and /teams/my_teams all serialize
+            # through this method, and teams.py's `if team_data.get('logo_url')`
+            # was unreachable. /teams/{id}/players built the same URL by hand.
+            'logo_url': self.absolute_kit_url,
+            'league_name': self.league.name if self.league else None,
         }
         if include_players:
             data['players'] = [player.to_dict(public=True) for player in self.players]
         return data
+
+    @property
+    def absolute_kit_url(self):
+        """kit_url as an absolute URL, or None.
+
+        Relative kit paths are stored as-is; mobile clients can't resolve those,
+        so prefix the request host the same way teams.py already does. Falls back
+        to the raw value outside a request context (Celery, CLI) rather than
+        raising — serialization must not depend on there being a request.
+        """
+        if not self.kit_url:
+            return None
+        if self.kit_url.startswith('http'):
+            return self.kit_url
+        try:
+            from flask import request, has_request_context
+            if has_request_context():
+                return f"{request.host_url.rstrip('/')}{self.kit_url}"
+        except Exception:
+            pass
+        return self.kit_url
+
+    @property
+    def _program(self):
+        """This team's Program, or None if it can't be resolved.
+
+        Resolution is `team.league.name` -> registry (program_for_team). The
+        registry caches per request on `g` and per process on a TTL, so this
+        costs no query on the hot paths; the one thing it can touch is the
+        `league` relationship, which every to_dict() caller already reads.
+
+        `object_session` rather than the registry's session=None default: with
+        no session it opens its own on a cache miss, which outside a request
+        context (Celery, CLI) means a second pooled connection against a
+        22-slot PgBouncer budget. Never raises — serialization must not fail
+        because the registry is unavailable.
+        """
+        try:
+            from sqlalchemy.orm import object_session
+            from app.services import program_registry
+            return program_registry.program_for_team(self, session=object_session(self))
+        except Exception:
+            logger.debug("program lookup failed for team %s", self.id, exc_info=True)
+            return None
 
     @property
     def coaches(self):
