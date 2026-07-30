@@ -18,8 +18,6 @@
 // (parent -> bridge): swap-section {sid, html}, remove-section {sid},
 // refresh-page {html}, deselect.
 
-/* eslint-env browser */
-
 const parentWin = window.parent;
 const SAME = window.location.origin;
 

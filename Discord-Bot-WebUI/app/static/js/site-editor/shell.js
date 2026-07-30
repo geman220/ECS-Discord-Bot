@@ -9,8 +9,6 @@
 // Save protocol: every write carries base_rev; a 409 means another tab/editor
 // moved the draft — we reload state and tell the user, never blind-overwrite.
 
-/* eslint-env browser */
-
 const root = document.getElementById('site-editor');
 if (root) initEditor(root);
 
