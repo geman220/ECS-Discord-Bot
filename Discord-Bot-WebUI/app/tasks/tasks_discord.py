@@ -852,10 +852,39 @@ def _update_players_after_batch_role_sync(session, result):
     for player_result in result.get('results', []):
         player = session.query(Player).get(player_result['id'])
         if player:
-            player.discord_last_verified = datetime.utcnow()
-            player.discord_needs_update = False
+            synced = player_result.get('status') == 'synced'
             player.last_sync_attempt = datetime.utcnow()
-            player.sync_status = 'success' if player_result.get('status') == 'synced' else 'error'
+            player.sync_status = 'success' if synced else 'error'
+
+            # Only clear the work flag when the sync actually SUCCEEDED.
+            # This used to clear unconditionally, so a player whose sync failed
+            # (bot unreachable, Discord 5xx, transient timeout) was marked
+            # "no longer needs an update" and was never retried. That made the
+            # flag a record of "we tried once", not "this is settled", and it
+            # is why role gaps persisted silently until someone ran a manual
+            # cleanup. Leaving it True lets the scheduled
+            # drain-discord-role-updates beat task pick the player back up on
+            # the next tick.
+            #
+            # NOTE: `sync_status` / `sync_error` below are NOT mapped columns on
+            # Player (see app/models/players.py -- only discord_last_verified,
+            # discord_needs_update, discord_roles_synced and last_sync_attempt
+            # exist). Assigning them sets a transient instance attribute that
+            # SQLAlchemy discards, and nothing in the codebase reads them back.
+            # They are left in place as a harmless no-op rather than removed,
+            # but they mean failure detail is NOT persisted anywhere -- which is
+            # precisely why `discord_needs_update` staying True has to be the
+            # durable signal that work remains.
+            #
+            # Trade-off: a PERMANENTLY failing player (left the guild, revoked
+            # the OAuth grant) now stays flagged and is retried each tick. That
+            # is bounded, and re-attempting is safer than silently dropping real
+            # work. Surface them with the `last_sync_attempt > discord_last_verified`
+            # query rather than by trusting sync_status.
+            if synced:
+                player.discord_last_verified = datetime.utcnow()
+                player.discord_needs_update = False
+
             if not player_result.get('success'):
                 player.sync_error = player_result.get('error')
             if player_result.get('current_roles'):
@@ -1034,16 +1063,39 @@ def _update_player_after_assign_roles(session, result):
     
     player = session.query(Player).get(result['player_id'])
     if player:
-        player.discord_roles_updated = datetime.utcnow()
-        if result.get('success'):
-            player.discord_role_sync_status = 'completed'
-        else:
-            player.discord_role_sync_status = 'failed'
-            player.sync_error = result.get('message')
-        player.last_sync_attempt = datetime.utcnow()
+        # ⚠️ Of the four fields this function used to write, THREE are not
+        # mapped columns on Player: discord_roles_updated,
+        # discord_role_sync_status and sync_error do not exist in
+        # app/models/players.py. SQLAlchemy accepted the assignments as
+        # transient instance attributes and discarded them. Only
+        # last_sync_attempt and discord_roles ever persisted.
+        #
+        # The consequence was the real bug: this is the task the LOGIN path
+        # fires (app/auth/helpers.py:82 -> assign_roles_to_player_task), which
+        # was the de-facto backstop granting people their Discord roles. It
+        # granted the roles correctly but NEVER cleared discord_needs_update
+        # and NEVER set discord_last_verified. So every player the login path
+        # repaired stayed flagged forever, and the flag grew into a permanent
+        # backlog of hundreds of rows that no longer reflected reality --
+        # which in turn made the flag useless as a "who still needs work"
+        # signal and hid the players who genuinely did.
+        #
+        # It also left last_sync_attempt far ahead of discord_last_verified,
+        # so that comparison reads as "sync failed" when it actually means
+        # "last synced via the login path". Setting both here removes that
+        # ambiguity.
+        #
+        # Note this task can run add-only, which grants missing roles without
+        # revoking stale ones. Clearing the flag is still correct: every writer
+        # of discord_needs_update sets it to request a GRANT. Revocation is
+        # driven by the explicit reconcile callers, not by this flag.
+        now = datetime.utcnow()
+        player.last_sync_attempt = now
+        player.discord_last_verified = now
+        player.discord_needs_update = False
         if result.get('current_roles'):
             player.discord_roles = result['current_roles']
-    
+
     return result
 
 

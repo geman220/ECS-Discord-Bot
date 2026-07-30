@@ -1139,31 +1139,74 @@ class RoleSyncService:
     @staticmethod
     def _sync_discord_role(player: Player) -> None:
         """
-        Mark player for Discord role sync.
+        Flag AND dispatch a Discord role sync for a player whose Flask roles
+        just changed via the season-pass path.
 
-        The Discord role sync system reads Flask roles and syncs them to Discord.
-        After updating Flask roles (in _sync_flask_role), we mark the player
-        for update so the background sync job picks it up.
+        This used to only set `discord_needs_update = True`, on the stated
+        assumption that "the background sync job picks it up". There was no
+        such job: no `tasks_discord.*` entry existed in `beat_schedule`, and
+        the flag's only drains were the two admin "Sync All Roles" buttons and
+        `flask` CLI commands. So a player could pay, be granted `pl-premier` /
+        `pl-third`, and never receive the Discord role until they happened to
+        log in again (`app/auth/helpers.py:82`) or an admin pressed a button.
+
+        Both halves are kept deliberately:
+          - the flag is the DURABLE record, drained by the scheduled
+            `drain-discord-role-updates` beat task, so a dispatch that fails
+            (bot down, Celery down) still self-heals on the next tick;
+          - the dispatch is the FAST path, so the role lands in seconds
+            rather than waiting for the tick.
+
+        `only_add=True` throughout: this path grants a newly-purchased
+        division's role and must never strip an existing one. Programs run
+        concurrently now (a Summer Sprint buyer legitimately keeps
+        `pl-premier`), so a reconcile here would revoke live roles. Revocation
+        stays with the explicit admin / rollover callers.
 
         Args:
-            player: Player to mark for Discord update
+            player: Player to sync
         """
         try:
             if not player.discord_id:
                 logger.warning(f"Player {player.id} has no Discord ID, skipping Discord role sync")
                 return
 
-            # Mark player for Discord update - the sync system will read
-            # Flask roles (pl-classic, pl-premier) and map them to Discord roles
-            # (ECS-FC-PL-CLASSIC, ECS-FC-PL-PREMIER)
+            # Durable flag first, committed before dispatch: if the enqueue or
+            # the bot call dies, the beat drain still finds this player.
             session = getattr(g, 'db_session', db.session)
             player.discord_needs_update = True
             session.commit()
 
-            logger.info(f"Marked player {player.id} for Discord role sync")
+            player_id = player.id
+
+            # Outside a request context `get_discord_queue()` hands back an
+            # EPHEMERAL queue whose operations are silently DROPPED -- nothing
+            # ever calls execute_all() on it. activate_player_for_league runs
+            # from CLI and Celery as well as from routes, so branch explicitly
+            # rather than letting those callers no-op.
+            from flask import has_request_context
+            if has_request_context():
+                from app.utils.deferred_discord import defer_discord_sync
+                defer_discord_sync(player_id, only_add=True)
+                logger.info(
+                    f"Queued Discord role sync for player {player_id} "
+                    f"(add-only, dispatches after this request commits)"
+                )
+            else:
+                from app.tasks.tasks_discord import assign_roles_to_player_task
+                assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
+                logger.info(
+                    f"Dispatched Discord role sync for player {player_id} "
+                    f"(add-only, no request context)"
+                )
 
         except Exception as e:
-            logger.error(f"Error marking player {player.id} for Discord update: {e}")
+            # Never fail the caller: the pass is already linked and the player
+            # already active. The flag is committed, so the beat drain retries.
+            logger.error(
+                f"Error dispatching Discord sync for player {player.id} "
+                f"(flagged for the scheduled drain instead): {e}"
+            )
 
 
 class ProfileConflictService:

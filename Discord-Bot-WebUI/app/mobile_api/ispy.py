@@ -282,6 +282,24 @@ def ispy_category_stats(category_key):
 
 # Admin I-Spy endpoints (for moderators)
 
+
+def _deny_if_not_ispy_admin(discord_id: str):
+    """Return an error response tuple unless `discord_id` has iSpy admin authority.
+
+    The helpers behind these routes take `moderator_discord_id` purely as an audit
+    field — they do not authorize. Without this check any authenticated caller
+    could disallow shots, recategorize them, or jail other players.
+    """
+    with managed_session() as session:
+        caller = session.query(Player).filter_by(discord_id=discord_id).first()
+        if not _is_ispy_admin(caller):
+            return jsonify({
+                'error_code': 'NOT_AUTHORIZED',
+                'error': 'Not authorized',
+            }), 403
+    return None
+
+
 @mobile_api_v2.route('/ispy/admin/disallow/<int:shot_id>', methods=['POST'])
 @jwt_or_discord_auth_required
 def ispy_admin_disallow(shot_id):
@@ -291,6 +309,10 @@ def ispy_admin_disallow(shot_id):
 
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        denied = _deny_if_not_ispy_admin(discord_id)
+        if denied:
+            return denied
 
         data = request.get_json(silent=True) or {}
         reason = data.get('reason', 'No reason provided')
@@ -317,6 +339,10 @@ def ispy_admin_recategorize(shot_id):
 
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        denied = _deny_if_not_ispy_admin(discord_id)
+        if denied:
+            return denied
 
         data = request.get_json()
 
@@ -349,6 +375,10 @@ def ispy_admin_jail():
 
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        denied = _deny_if_not_ispy_admin(discord_id)
+        if denied:
+            return denied
 
         data = request.get_json()
 

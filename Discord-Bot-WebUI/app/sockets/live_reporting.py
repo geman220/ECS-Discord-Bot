@@ -230,7 +230,12 @@ def handle_live_connect():
                 user_id = None
                 try:
                     from flask_jwt_extended import decode_token
+                    from app.init.jwt import jwt_claims_revoked
                     decoded_token = decode_token(token)
+                    # decode_token checks signature/expiry only — a logged-out or
+                    # revoked session still decodes cleanly. Degrade to anonymous.
+                    if jwt_claims_revoked(decoded_token):
+                        raise ValueError("token revoked (logout or session revoke)")
                     raw_id = decoded_token.get('sub') or decoded_token.get('identity')
                     if raw_id is not None:
                         try:

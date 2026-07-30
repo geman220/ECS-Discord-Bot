@@ -1131,7 +1131,13 @@ def handle_draft_connect(auth=None):
 
     try:
         from flask_jwt_extended import decode_token
+        from app.init.jwt import jwt_claims_revoked
         decoded = decode_token(token)
+        # decode_token checks signature/expiry only — reject logged-out or
+        # revoked sessions, which would otherwise keep their draft subscription.
+        if jwt_claims_revoked(decoded):
+            logger.info("draft namespace: connect rejected (token revoked)")
+            return False
         raw_id = decoded.get('sub') or decoded.get('identity')
         user_id = int(raw_id) if raw_id is not None else None
     except Exception as e:

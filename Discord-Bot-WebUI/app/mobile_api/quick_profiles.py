@@ -27,7 +27,7 @@ from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import Player, User, QuickProfile, QuickProfileStatus
 from app.players_helpers import save_quick_profile_picture
-from app.utils.log_sanitizer import mask_code
+from app.utils.log_sanitizer import mask_code, mask_email
 
 logger = logging.getLogger(__name__)
 
@@ -450,7 +450,15 @@ def get_quick_profile(profile_id: int):
                 }
             }), 404
 
-        data = profile.to_dict()
+        # Coaches get the scouting view only. The prospect-review privacy rule
+        # says a coach must never see a prospect's contact details, and an
+        # unredeemed claim_code would let them claim the profile themselves.
+        caller_id = int(get_jwt_identity())
+        caller = session.query(User).get(caller_id)
+        caller_roles = {r.name for r in (caller.roles or [])} if caller else set()
+        is_admin = bool(caller_roles & set(ADMIN_ROLES))
+
+        data = profile.to_dict(include_contact=is_admin)
 
         if profile.claimed_by_player:
             data['linked_player'] = {
@@ -891,7 +899,7 @@ def send_claim_code_email(profile_id: int):
         from app.services.quick_profile_notifications import defer_claim_code_send
         defer_claim_code_send(profile.id, via_email=True, via_sms=False)
 
-        logger.info(f"Claim code email queued to {email} for profile {profile_id}")
+        logger.info(f"Claim code email queued to {mask_email(email)} for profile {profile_id}")
         return jsonify({
             'success': True,
             'message': f'Claim code queued to {email}'

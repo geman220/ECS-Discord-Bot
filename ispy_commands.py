@@ -11,6 +11,19 @@ from common import server_id, has_admin_role
 logger = logging.getLogger(__name__)
 WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
 
+
+def ispy_headers(interaction: discord.Interaction) -> dict:
+    """Headers identifying the caller to the WebUI I-Spy API.
+
+    X-Discord-User says who is acting; X-Bot-Token proves the request really came
+    from the bot. The server rejects the former without the latter — otherwise the
+    user id is just a string anyone could type.
+    """
+    return {
+        "X-Discord-User": str(interaction.user.id),
+        "X-Bot-Token": os.getenv("FLASK_TOKEN", ""),
+    }
+
 # Channel restriction
 PL_NONSENSE_CHANNEL_NAME = "pl-miscellaneous"
 
@@ -107,7 +120,7 @@ class ISpySubmissionView(discord.ui.View):
                 async with session.post(
                     f"{WEBUI_API_URL}/ispy/submit",
                     json=payload,
-                    headers={"X-Discord-User": str(interaction.user.id)}
+                    headers=ispy_headers(interaction)
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -367,7 +380,7 @@ async def ispy_submit(
             try:
                 async with session.get(
                     f"{WEBUI_API_URL}/ispy/categories",
-                    headers={"X-Discord-User": str(interaction.user.id)}
+                    headers=ispy_headers(interaction)
                 ) as resp:
                     if resp.status != 200:
                         await interaction.followup.send(
@@ -477,7 +490,7 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
         try:
             async with session.get(
                 f"{WEBUI_API_URL}/ispy/leaderboard?limit={limit}",
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status != 200:
                     await interaction.followup.send(
@@ -570,7 +583,7 @@ async def ispy_personal_stats(interaction: discord.Interaction):
         try:
             async with session.get(
                 f"{WEBUI_API_URL}/ispy/me",
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status != 200:
                     await interaction.followup.send(
@@ -660,7 +673,7 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
         try:
             async with session.get(
                 f"{WEBUI_API_URL}/ispy/stats/category/{category}",
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status == 404:
                     await interaction.followup.send(
@@ -769,7 +782,7 @@ async def ispy_admin_disallow(
             async with session.post(
                 f"{WEBUI_API_URL}/ispy/admin/disallow/{shot_id}",
                 json=payload,
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -837,7 +850,7 @@ async def ispy_admin_recategorize(
             async with session.post(
                 f"{WEBUI_API_URL}/ispy/admin/recategorize/{shot_id}",
                 json=payload,
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status == 200:
                     embed = discord.Embed(
@@ -905,7 +918,7 @@ async def ispy_admin_jail(
             async with session.post(
                 f"{WEBUI_API_URL}/ispy/admin/jail",
                 json=payload,
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status == 200:
                     embed = discord.Embed(
@@ -1062,7 +1075,7 @@ async def ispy_check_cooldowns(interaction: discord.Interaction, user: discord.M
         try:
             async with session.get(
                 f"{WEBUI_API_URL}/ispy/cooldowns/{user.id}",
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status == 200:
                     data = await resp.json()
@@ -1143,7 +1156,7 @@ async def ispy_admin_reset_cooldowns(
             async with session.post(
                 f"{WEBUI_API_URL}/ispy/admin/reset-cooldowns",
                 json=payload,
-                headers={"X-Discord-User": str(interaction.user.id)}
+                headers=ispy_headers(interaction)
             ) as resp:
                 if resp.status == 200:
                     embed = discord.Embed(
