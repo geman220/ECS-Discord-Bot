@@ -12,7 +12,15 @@ from interactions import VerifyModal
 
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
 LEADERSHIP_ROLE_NAME = "WG: ECS FC PL Leadership"
-TEAM_ROLE_PATTERN = r"^ECS-FC-PL-.*-PLAYER$"
+# Case-INSENSITIVE. The portal mints team roles as
+# f"ECS-FC-PL-{normalize_name(team)}-Player" (Discord-Bot-WebUI/app/discord_utils.py),
+# i.e. "-Player", while this pattern demanded "-PLAYER" and re.match is
+# case-sensitive -- so _get_team_roles() returned an EMPTY set for every member.
+# /lookup then compared two empty sets, which are always disjoint, and refused
+# every non-leadership caller. Every other role check in this bot already
+# normalises case (publeague_commands lowercases, subs_commands uppercases);
+# this was the lone inconsistent one.
+TEAM_ROLE_PATTERN = re.compile(r"^ECS-FC-PL-.*-PLAYER$", re.IGNORECASE)
 
 class GeneralCommands(commands.Cog):
     def __init__(self, bot):
@@ -25,7 +33,7 @@ class GeneralCommands(commands.Cog):
         """
         matches = set()
         for role in member.roles:
-            if re.match(TEAM_ROLE_PATTERN, role.name):
+            if TEAM_ROLE_PATTERN.match(role.name):
                 matches.add(role.name)
         return matches
 
