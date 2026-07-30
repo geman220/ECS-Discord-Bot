@@ -1813,12 +1813,33 @@ def member_place(user_id):
                     # come off, and a division coach role comes off only if they no
                     # longer coach any team in that division. Every other team's roles
                     # (e.g. an ECS FC team they are still on) are re-checked and kept.
+                    # Candidate coach roles come from the REGISTRY, not a literal
+                    # list. This was hardcoded to the three original programs, so
+                    # a Summer Sprint coach removed from their last Summer team
+                    # kept ECS-FC-PL-SUMMER-COACH forever — the reconcile can't
+                    # strip a coach role either (protected-role allowlist), so
+                    # nothing could. Every candidate is still re-checked against
+                    # the shared calculator before it comes off.
+                    _coach_candidates = []
+                    try:
+                        from app.services import program_registry
+                        _coach_candidates = [
+                            p.coach_role_name
+                            for p in program_registry.all_programs(db.session)
+                            if p.coach_role_name
+                        ]
+                    except Exception as _reg_err:
+                        logger.warning(
+                            f"program registry unavailable for coach revoke "
+                            f"candidates ({_reg_err}); using the legacy three")
+                    if not _coach_candidates:
+                        _coach_candidates = ['ECS-FC-PL-PREMIER-COACH',
+                                             'ECS-FC-PL-CLASSIC-COACH',
+                                             'ECS-FC-PL-ECS-FC-COACH']
                     defer_discord_revoke(
                         player.id,
                         team_ids=[team.id],
-                        candidate_roles=['ECS-FC-PL-PREMIER-COACH',
-                                         'ECS-FC-PL-CLASSIC-COACH',
-                                         'ECS-FC-PL-ECS-FC-COACH'],
+                        candidate_roles=_coach_candidates,
                     )
                 message = f'{player.name} removed from {team.name}'
             elif action == 'primary':

@@ -447,16 +447,57 @@ class TestTypeSpecificPreferences:
 
         assert result is False
 
-    def test_announcement_respects_announcements_preference(self, orchestrator):
+    def test_admin_announcement_respects_general_announcements_preference(self, orchestrator):
         """
         GIVEN an admin announcement notification
-        WHEN user has announcements disabled
+        WHEN user has general_announcements disabled
         THEN push should not be sent
+
+        ADMIN_ANNOUNCEMENT / SYSTEM are gated by `general_announcements`
+        ("General announcements"), NOT by `announcements` — that one belongs to
+        LEAGUE_ANNOUNCEMENT. The two used to share a key, which left
+        general_announcements read by nothing.
         """
         payload = NotificationPayload(
             notification_type=NotificationType.ADMIN_ANNOUNCEMENT,
             title='Announcement',
             message='Important news',
+            user_ids=[1],
+        )
+        preferences = {'push_enabled': True, 'general_announcements': False}
+
+        result = orchestrator._should_send_push(payload, preferences)
+
+        assert result is False
+
+    def test_admin_announcement_ignores_league_announcements_preference(self, orchestrator):
+        """
+        GIVEN an admin announcement notification
+        WHEN only the league-announcement preference is disabled
+        THEN push should still be sent
+        """
+        payload = NotificationPayload(
+            notification_type=NotificationType.ADMIN_ANNOUNCEMENT,
+            title='Announcement',
+            message='Important news',
+            user_ids=[1],
+        )
+        preferences = {'push_enabled': True, 'announcements': False}
+
+        result = orchestrator._should_send_push(payload, preferences)
+
+        assert result is True
+
+    def test_league_announcement_respects_announcements_preference(self, orchestrator):
+        """
+        GIVEN a league announcement notification
+        WHEN user has announcements disabled
+        THEN push should not be sent
+        """
+        payload = NotificationPayload(
+            notification_type=NotificationType.LEAGUE_ANNOUNCEMENT,
+            title='League news',
+            message='Season starts Saturday',
             user_ids=[1],
         )
         preferences = {'push_enabled': True, 'announcements': False}

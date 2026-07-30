@@ -446,6 +446,8 @@ def get_board_state(session):
             'unrated_default': float(config['unrated_default']),
             'suggestion_count': config['suggestion_count'],
             'gender_balance_enabled': config['gender_balance_enabled'],
+            # Admin rollback toggle — see mobile_api/classic_ratings.py.
+            'balanced_draft_enabled': config['balanced_draft_enabled'],
             'weights': {m: float(rating_service.quantize2(config['weights'][m])) for m in METRICS},
         },
     }

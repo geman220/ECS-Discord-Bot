@@ -222,6 +222,41 @@ def _fetch_events_for_match_state(session, league_type: str, match_id: int) -> L
 
 
 # -----------------------------------------------------------------------------
+# Player shift counts (rotation sheet)
+# -----------------------------------------------------------------------------
+
+def _fetch_player_shifts(session, match_id: int, team_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    """
+    Sit/stay counts for a match, in the V1 `player_shifts` shape.
+
+    V2 writes PlayerShift rows in on_update_player_shift but had no read path,
+    so a rejoin (including the background/resume leave+join) left the rotation
+    sheet at 0/0. Pass team_id to scope to one side (what a coach sees); omit it
+    for the whole match (admin / match_state).
+    """
+    query = (
+        session.query(PlayerShift, Player)
+        .join(Player, PlayerShift.player_id == Player.id)
+        .filter(PlayerShift.match_id == int(match_id))
+    )
+    if team_id is not None:
+        query = query.filter(PlayerShift.team_id == int(team_id))
+
+    return [
+        {
+            'player_id': player.id,
+            'player_name': player.name,
+            'team_id': shift.team_id,
+            'sit_count': shift.sit_count,
+            'stay_count': shift.stay_count,
+            'last_updated': shift.last_updated.isoformat() if shift.last_updated else None,
+            'updated_by': shift.updated_by,
+        }
+        for shift, player in query
+    ]
+
+
+# -----------------------------------------------------------------------------
 # Connected coach list (ActiveMatchReporter)
 # -----------------------------------------------------------------------------
 
@@ -309,6 +344,9 @@ def build_match_state_payload(session, league_type: str, match_id: int) -> Dict[
         'away_team_id': away_team_id,
         'home_team_name': (payload.get('home_team') or {}).get('name'),
         'away_team_name': (payload.get('away_team') or {}).get('name'),
+        # Whole-match rotation counts; each row carries team_id so the client
+        # can scope to its own side.
+        'player_shifts': _fetch_player_shifts(session, int(match_id)),
     })
     return payload
 
@@ -443,6 +481,15 @@ def on_join_match(data):
         payload = build_match_state_payload(session, league_type, int(match_id))
         emit('match_state', payload, to=request.sid)
 
+        # V1-shaped `player_shifts` (bare list) so clients that only listen for
+        # this event still rehydrate the rotation sheet on join/rejoin. Scoped
+        # to the coach's team; admins get every side.
+        emit(
+            'player_shifts',
+            _fetch_player_shifts(session, int(match_id), int(team_id) if team_id else None),
+            to=request.sid,
+        )
+
         # Broadcast refreshed coach list to room (coaches only).
         if league_type == redis_state.LEAGUE_PUB and not admin:
             from app.sockets.live_reporting import get_active_reporters
@@ -555,6 +602,20 @@ def on_resync_match(data):
 
         payload = build_match_state_payload(session, league_type, int(match_id))
         emit('match_state', payload, to=request.sid)
+
+        # Resync is the recovery path — replay shifts too, scoped to the
+        # requesting coach's team when we can resolve it.
+        team_id = data.get('team_id')
+        if not team_id:
+            reporter = session.query(ActiveMatchReporter).filter_by(
+                match_id=int(match_id), user_id=user.id
+            ).first()
+            team_id = reporter.team_id if reporter else None
+        emit(
+            'player_shifts',
+            _fetch_player_shifts(session, int(match_id), int(team_id) if team_id else None),
+            to=request.sid,
+        )
 
 
 # -----------------------------------------------------------------------------
@@ -1535,12 +1596,19 @@ def on_submit_report(data):
         else:
             league_type = infer_league_type_from_match_id(session, int(match_id))
 
+        # Match notes from the submit dialog. V1 persisted these
+        # (live_reporting.py :1438); V2 read only match_id/league_type, so with
+        # V2 on a coach typed their notes, submitted, saw success, and the notes
+        # were silently dropped.
+        notes = (data.get('report_data') or {}).get('notes')
+
         result = submit_match_report(
             session=session,
             match_id=int(match_id),
             league_type=league_type,
             submitted_by_user_id=user.id,
             socketio=socketio,
+            notes=notes,
         )
 
         if result['status'] == STATUS_ALREADY_SUBMITTED:

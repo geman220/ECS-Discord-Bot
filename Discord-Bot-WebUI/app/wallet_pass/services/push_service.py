@@ -481,6 +481,24 @@ class PushService:
 
         results['total_passes'] = len(passes)
 
+        # Bump + COMMIT before any push. A design change alters what the pkpass
+        # renders but touches no WalletPass column, so without this the rows look
+        # untouched: the device gets the nudge, asks
+        # /v1/devices/../registrations?passesUpdatedSince=<tag>, matches nothing
+        # (updated_at is unchanged), and logs "Device received spurious push ...
+        # returned no serial numbers". Deterministic, not a race — every device,
+        # every design edit, and the new design never reaches anyone.
+        for wallet_pass in passes:
+            wallet_pass.version = (wallet_pass.version or 0) + 1
+            wallet_pass.updated_at = datetime.utcnow()
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"update_pass_design: bump commit failed, not pushing: {e}")
+            results['errors'].append(f"bump commit failed: {e}")
+            return results
+
         for wallet_pass in passes:
             try:
                 update_result = self.send_update_to_all_platforms(wallet_pass)
@@ -749,8 +767,52 @@ push_service = PushService()
 # Pass-changed trigger
 # ===========================================================================
 
-def trigger_wallet_refresh(wallet_pass: WalletPass, *, commit: bool = True) -> dict:
-    """Mark a WalletPass as updated and push the change to all registered devices.
+def mark_wallet_pass_updated(wallet_pass: WalletPass) -> bool:
+    """Phase 1 of a refresh: bump the change markers. No push, no commit.
+
+    Pair with push_wallet_pass(), and COMMIT IN BETWEEN. Split out from
+    trigger_wallet_refresh so a batch can bump-many / commit-once / push-many
+    rather than pushing inside the loop.
+    """
+    if not wallet_pass:
+        return False
+    try:
+        wallet_pass.version = (wallet_pass.version or 0) + 1
+        wallet_pass.updated_at = datetime.utcnow()
+        return True
+    except Exception as e:
+        logger.error(f"mark_wallet_pass_updated: failed to bump {getattr(wallet_pass, 'id', '?')}: {e}")
+        return False
+
+
+def push_wallet_pass(wallet_pass: WalletPass) -> dict:
+    """Phase 2 of a refresh: nudge every registered device.
+
+    ⚠️ The mark_wallet_pass_updated() bump MUST ALREADY BE COMMITTED.
+
+    Apple's contract is commit-then-nudge. The APNs payload is empty, so on
+    receipt the device immediately calls
+    GET /v1/devices/<id>/registrations/<type>?passesUpdatedSince=<tag> — within
+    about a second, and usually on a *different* gunicorn worker with its own
+    DB session. If the bump is still sitting in an open transaction, that query
+    sees the old updated_at, matches nothing, and returns 204. The device then
+    logs "Device received spurious push ... returned no serial numbers" and
+    DROPS the update: nothing retries, so the pass stays stale until some later
+    change happens to bump the row again.
+
+    That is exactly what pushing inside a loop and committing afterwards did.
+    """
+    if not wallet_pass:
+        return {'apple': None, 'google': None, 'any_success': False, 'error': 'no pass'}
+    try:
+        return push_service.send_update_to_all_platforms(wallet_pass)
+    except Exception as e:
+        logger.error(f"push_wallet_pass: push failed for pass {wallet_pass.id}: {e}", exc_info=True)
+        return {'apple': None, 'google': None, 'any_success': False, 'error': str(e)}
+
+
+def trigger_wallet_refresh(wallet_pass: WalletPass, *, session=None) -> dict:
+    """Bump, COMMIT, then push — in that order — for a single pass.
 
     Call this whenever data baked into the .pkpass would change (player
     name, jersey number, team, season, barcode reset, voiding, next-match
@@ -759,8 +821,14 @@ def trigger_wallet_refresh(wallet_pass: WalletPass, *, commit: bool = True) -> d
 
     Args:
         wallet_pass: the row that changed.
-        commit: bump updated_at + version and commit. Set False if the
-                caller is in a larger transaction and will commit itself.
+        session: the session that OWNS `wallet_pass`; defaults to db.session.
+            Pass it explicitly from Celery tasks and request handlers that use
+            g.db_session — this app runs SessionLocal alongside
+            Flask-SQLAlchemy's db.session, and committing the session that
+            doesn't own the instance silently discards the bump.
+
+    For more than one pass, prefer mark_wallet_pass_updated() on each ->
+    one commit -> push_wallet_pass() on each.
 
     Returns: same shape as send_update_to_all_platforms — per-platform
     counts plus an `any_success` summary.
@@ -768,19 +836,19 @@ def trigger_wallet_refresh(wallet_pass: WalletPass, *, commit: bool = True) -> d
     if not wallet_pass:
         return {'apple': None, 'google': None, 'any_success': False, 'error': 'no pass'}
 
-    try:
-        wallet_pass.version = (wallet_pass.version or 0) + 1
-        wallet_pass.updated_at = datetime.utcnow()
-        if commit:
-            db.session.commit()
-    except Exception as e:
-        logger.error(f"trigger_wallet_refresh: failed to bump version on {wallet_pass.id}: {e}")
-        if commit:
-            db.session.rollback()
-        return {'apple': None, 'google': None, 'any_success': False, 'error': str(e)}
+    sess = session if session is not None else db.session
+
+    if not mark_wallet_pass_updated(wallet_pass):
+        return {'apple': None, 'google': None, 'any_success': False, 'error': 'bump failed'}
 
     try:
-        return push_service.send_update_to_all_platforms(wallet_pass)
+        sess.commit()
     except Exception as e:
-        logger.error(f"trigger_wallet_refresh: push failed for pass {wallet_pass.id}: {e}", exc_info=True)
+        logger.error(f"trigger_wallet_refresh: commit failed for pass {wallet_pass.id}: {e}")
+        try:
+            sess.rollback()
+        except Exception:
+            pass
         return {'apple': None, 'google': None, 'any_success': False, 'error': str(e)}
+
+    return push_wallet_pass(wallet_pass)

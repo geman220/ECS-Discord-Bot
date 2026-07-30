@@ -484,8 +484,23 @@ def send_on_the_clock_push(self, session, team_id: int, round_no: int = None,
 
     # URL league name ("premier" / "classic" / "ecs_fc") for the mobile deep link —
     # without it the tap lands on the leagues LIST instead of the draft board.
+    #
+    # Resolve via the program registry, matching mobile_api/draft.py:274-279.
+    # Deriving the slug from League.name (a DISPLAY name) is what that code
+    # deliberately stopped doing: a multi-word program yields a slug the server
+    # rejects, and any rename silently breaks every draft deep link. The
+    # lower/underscore form stays as a last-resort fallback only.
     league = session.query(League).filter(League.id == team.league_id).first()
-    league_url_name = league.name.lower().replace(' ', '_') if league else ''
+    league_url_name = ''
+    if league:
+        try:
+            from app.services import program_registry
+            program = program_registry.by_league_name(league.name, session=session)
+            league_url_name = program.membership_lane if program else ''
+        except Exception:
+            logger.debug("program registry lookup failed for draft deep link", exc_info=True)
+        if not league_url_name:
+            league_url_name = league.name.lower().replace(' ', '_')
 
     # Staleness guard: an admin Back/undo (or a very fast next pick) can move the
     # clock off this team between enqueue and execution. Re-check the live session
