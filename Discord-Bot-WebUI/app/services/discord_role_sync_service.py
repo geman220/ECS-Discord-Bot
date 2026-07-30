@@ -607,6 +607,57 @@ CANONICAL_DISCORD_ROLE_MAP: Dict[str, List[str]] = {
 }
 
 
+def canonical_discord_role_map(session=None) -> Dict[str, List[str]]:
+    """CANONICAL_DISCORD_ROLE_MAP widened with every program in the registry.
+
+    ⚠️ Use THIS, not the static dict, anywhere the result drives a REVOKE.
+
+    The static table above is hardcoded to the three original programs. A fourth
+    program's Flask roles (`pl-third`, `Summer Coach`, `Summer Sub` for Summer
+    Sprint) were simply absent, and the lookup is a `.get(name, [])` — so
+    un-toggling `pl-third` produced ZERO revoke candidates and
+    `ECS-FC-PL-SUMMER` became permanently unremovable. The reconcile cannot take
+    it off either (the protected-role allowlist blocks division roles), so
+    nothing in the system could.
+
+    `_revocable_vocabulary()` in tasks_discord.py was already made registry-aware
+    for exactly this reason, but no caller could ever *produce* a new program's
+    roles as candidates. This closes that half.
+
+    Registry entries are merged rather than replacing the static ones, so the
+    hand-maintained aliases survive — notably `ECS-FC-LEAGUE` on `pl-ecs-fc`,
+    which is a match-only alias no calculator emits (see
+    `test_every_mapped_flask_role_target_is_revocable_or_an_alias`).
+
+    Falls back to the static table if the registry is unavailable: degrading to
+    "the three legacy programs" is strictly better than raising inside a revoke.
+    """
+    merged: Dict[str, List[str]] = {k: list(v) for k, v in
+                                    CANONICAL_DISCORD_ROLE_MAP.items()}
+    try:
+        from app.services import program_registry
+        for prog in program_registry.all_programs(session=session):
+            for flask_role, discord_role in (
+                (prog.flask_league_role, prog.division_role_name),
+                (prog.flask_coach_role, prog.coach_role_name),
+                (prog.flask_sub_role, prog.sub_role_name),
+            ):
+                if not flask_role or not discord_role:
+                    continue
+                existing = merged.setdefault(flask_role, [])
+                if discord_role not in existing:
+                    # Registry name goes FIRST: it is the authoritative target,
+                    # any pre-existing entry is a legacy alias kept for matching.
+                    existing.insert(0, discord_role)
+    except Exception as e:
+        logger.warning(
+            f"program_registry unavailable building the canonical role map; "
+            f"falling back to the {len(CANONICAL_DISCORD_ROLE_MAP)} static "
+            f"entries (a new program's roles will not be revocable): {e}"
+        )
+    return merged
+
+
 def _normalize_role_name(name: str) -> str:
     """Normalize a role name for case/separator-insensitive matching.
 
@@ -645,6 +696,7 @@ def auto_map_flask_roles(session, discord_roles: List[Dict[str, Any]],
             live_by_norm[norm] = dr
 
     roles = session.query(Role).order_by(Role.name).all()
+    _role_map = canonical_discord_role_map(session=session)
 
     proposals: List[Dict[str, Any]] = []
     matched = applied = app_only = unmatched = 0
@@ -655,7 +707,12 @@ def auto_map_flask_roles(session, discord_roles: List[Dict[str, Any]],
         # counterpart — we do NOT attempt to match them, even if a live Discord
         # role happens to share their name, so a coincidental name collision can
         # never silently map (and later auto-push) a powerful admin role.
-        candidates = CANONICAL_DISCORD_ROLE_MAP.get(role.name)
+        # Registry-aware map, so a new program's roles (pl-third / Summer Coach
+        # / Summer Sub) are matchable. With the static table they were treated as
+        # "app-only, no Discord counterpart" and auto_map could never populate
+        # their roles.discord_role_id — which is why the inbound
+        # /discord/role-sync direction was dead for Summer Sprint.
+        candidates = _role_map.get(role.name)
         is_app_only = candidates is None
 
         match = None

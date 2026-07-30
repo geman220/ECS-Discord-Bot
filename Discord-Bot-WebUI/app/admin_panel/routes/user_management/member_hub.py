@@ -281,6 +281,7 @@ def members_worklist():
                                analytics_data=get_user_analytics())
 
     users, profiles, pagination, sub_summary = [], [], None, {}
+    hidden_denied, hidden_denied_url = 0, None
 
     if tab == 'waitlist':
         # The tab-bar badge (counts.waitlist) stays the DEFAULT non-denied count — the
@@ -334,9 +335,23 @@ def members_worklist():
 
     else:
         tab = 'all'
-        pagination = _all_tab_query(db.session, _all_tab_filters(request.args)).paginate(
+        _all_f = _all_tab_filters(request.args)
+        pagination = _all_tab_query(db.session, _all_f).paginate(
             page=page, per_page=50, error_out=False)
         users = pagination.items
+        # Denied people are hidden by DEFAULT here (see _all_tab_query). That is the
+        # right default -- but silently, it made denied members UNFINDABLE: searching a
+        # name returned "No members found", which reads as "this person does not exist"
+        # rather than "this person is denied". Someone flagged on the integrity dashboard
+        # as paid-but-denied could not be located from this page at all. So: count what
+        # the default is hiding and say so, with a one-click way to include them.
+        if _all_f['approval'] not in ('all', 'denied'):
+            _denied_f = dict(_all_f, approval='denied')
+            hidden_denied = _all_tab_query(db.session, _denied_f).count()
+            if hidden_denied:
+                hidden_denied_url = url_for(
+                    'admin_panel.members_worklist',
+                    **dict({k: v for k, v in _all_f.items() if v}, tab='all', approval='all'))
 
     # Waitlist open now? Gates the waitlist approve/pre-approve options (closed in break/offseason).
     try:
@@ -487,7 +502,10 @@ def members_worklist():
                            season_filter=season_filter, lane_filter=lane_filter,
                            sub_status_filter=sub_status_filter, qp_status=qp_status,
                            any_filter=any_filter, tab_kpis=tab_kpis, waitlist_open=waitlist_open,
-                           active_chips=active_chips, result_total=result_total, result_shown=result_shown)
+                           active_chips=active_chips, result_total=result_total, result_shown=result_shown,
+                           approve_programs=_approve_program_options(),
+                           hidden_denied=hidden_denied, hidden_denied_url=hidden_denied_url,
+                           paid_unapproved_count=_paid_unapproved_count())
 
 
 def _member_export_row(user):
@@ -644,6 +662,95 @@ def members_export():
     return _build_xlsx_response([(sheet, rows), ('Filters Applied', applied)], prefix)
 
 
+def _paid_unapproved_count():
+    """How many people hold a paid pass this season without being approved.
+
+    Calls the G17 integrity detector directly rather than re-deriving the count,
+    so this banner and the integrity dashboard can never disagree about who is
+    in trouble (see reference_admin_count_definitions — shared counts come from
+    ONE helper).
+
+    Returns 0 on any failure: a banner is decoration on this page, and a broken
+    count must not take the members list down with it.
+    """
+    try:
+        # `db` is not imported at module level in this file — every other
+        # function pulls it in locally, so this must too or it NameErrors.
+        from app.core import db
+        from app.services.integrity_service import detect_g17_paid_not_approved
+        return len(detect_g17_paid_not_approved(db.session) or [])
+    except Exception:
+        logger.exception("members worklist: paid-but-unapproved count failed")
+        return 0
+
+
+def _approve_program_options():
+    """[{value, label, waitlist_value}] for the Hub's approve-into dropdown.
+
+    Mirrors the two vocabularies the backend actually validates against, rather
+    than inventing a third:
+
+      * league / sub  -> `integrity_service.approve_league_types()`, which is
+        `form_value or membership_lane` (and its `sub-` twin);
+      * waitlist      -> `approvals.waitlist_league_map()`, whose keys are
+        `waitlist-<lane with underscores swapped for hyphens>`.
+
+    Those two disagree for a lane like `pl_third` (approve wants `pl_third`,
+    waitlist wants `waitlist-pl-third`), so the values are derived separately
+    and the waitlist entry is emitted ONLY when the map really has that key.
+    Offering an option the validator rejects is a 400 the admin cannot explain.
+
+    Falls back to the legacy three if the registry is unreachable, so a missing
+    `program` table degrades to today's behaviour instead of an empty select.
+    """
+    legacy = [
+        {'value': 'classic', 'label': 'Classic', 'waitlist_value': 'waitlist-classic'},
+        {'value': 'premier', 'label': 'Premier', 'waitlist_value': 'waitlist-premier'},
+        {'value': 'ecs-fc', 'label': 'ECS FC', 'waitlist_value': 'waitlist-ecs-fc'},
+    ]
+    try:
+        from app.services import program_registry
+        from app.admin_panel.routes.user_management.approvals import waitlist_league_map
+
+        wl_map = waitlist_league_map()
+        out = []
+        for p in program_registry.all_programs():
+            value = p.form_value or p.membership_lane
+            if not value:
+                continue
+            wl_key = f"waitlist-{(p.form_value or p.membership_lane).replace('_', '-')}"
+            out.append({
+                'value': value,
+                'label': p.display_name or p.league_name or value,
+                'waitlist_value': wl_key if wl_key in wl_map else None,
+            })
+        return out or legacy
+    except Exception:
+        logger.exception("member hub: approval program options fell back to legacy list")
+        return legacy
+
+
+def _preapproval_values():
+    """Every pre-approval value the quick-profile dropdown can emit.
+
+    Derived from the SAME source as the dropdown (`_approve_program_options`) so the
+    two can't disagree. They used to: the select was registry-driven while the POST
+    validator held a literal set of the legacy three, so pre-approving a walk-in into
+    Summer Sprint (`pl_third`) returned "Invalid league" for an option the page had
+    just offered — an error the admin has no way to act on.
+    """
+    out = set()
+    for p in _approve_program_options():
+        v = p.get('value')
+        if not v:
+            continue
+        out.add(v)
+        out.add(f'sub-{v}')
+        if p.get('waitlist_value'):
+            out.add(p['waitlist_value'])
+    return out
+
+
 @admin_panel_bp.route('/members/<int:user_id>')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -693,7 +800,8 @@ def member_hub(user_id):
     return render_template('admin_panel/members/member_hub_flowbite.html', m=data,
                            all_roles=all_roles, user_role_ids=user_role_ids, leagues=leagues,
                            primary_team_id=primary_team_id, hub_teams=hub_teams, extras=extras,
-                           relink_request=relink_request)
+                           relink_request=relink_request,
+                           approve_programs=_approve_program_options())
 
 
 _AUDIT_LABELS = {
@@ -701,6 +809,7 @@ _AUDIT_LABELS = {
     'approve_user': 'Approved', 'approve_user_comprehensive': 'Approved',
     'user_approval': 'Approval decision',
     'deny_user': 'Denied',
+    'undeny_user': 'Denial reversed',
     'assign_user_role': 'Roles changed', 'assign_user_roles': 'Roles changed',
     'remove_from_waitlist': 'Removed from waitlist',
     'update_waitlist_priority': 'Waitlist priority set',
@@ -1274,10 +1383,13 @@ def member_qp_preapprove(profile_id):
         return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
     data = request.get_json(silent=True) or {}
     league = (data.get('league_type') or '').strip()
-    valid = {'classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc',
-             'waitlist-classic', 'waitlist-premier', 'waitlist-ecs-fc'}
+    valid = _preapproval_values()
     if league and league not in valid:
-        return jsonify({'success': False, 'message': 'Invalid league'}), 400
+        # Name the value AND what was allowed: "Invalid league" alone is unactionable,
+        # and this rejecting a program the dropdown offered is the bug worth seeing.
+        logger.warning("QP pre-approval rejected league_type=%r (valid: %s)", league, sorted(valid))
+        return jsonify({'success': False,
+                        'message': f'Invalid league "{league}" — not a known program.'}), 400
     if league:
         profile.pre_approved_league = league
         profile.pre_approved_by_user_id = getattr(current_user, 'id', None)
@@ -1370,6 +1482,19 @@ def _pool_row_for_lane(session, player_id, lane):
         if _norm_league_type(row.league_type) == lane:
             return row
     return None
+
+
+def _delete_pool_row(session, row):
+    """Delete a SubstitutePool row, clearing its history rows first.
+
+    substitute_pool_history.pool_id is NOT NULL and the FK has no ON DELETE
+    rule, so a bare delete of a pool row that the legacy log_pool_action ever
+    wrote history for raises IntegrityError instead of removing the member.
+    """
+    from app.models.substitutes import SubstitutePoolHistory
+    session.query(SubstitutePoolHistory).filter_by(
+        pool_id=row.id).delete(synchronize_session=False)
+    session.delete(row)
 
 
 def _canonical_league_type(lane):
@@ -1560,7 +1685,7 @@ def member_sub_remove(user_id):
 
     sp = _pool_row_for_lane(db.session, pid, target)
     if sp:
-        db.session.delete(sp)
+        _delete_pool_row(db.session, sp)
     if target == 'ecs_fc':
         ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
         if ep:
@@ -1614,7 +1739,7 @@ def member_sub_reject(user_id):
         return jsonify({'success': False, 'message': 'No pending sub signup to reject'}), 404
 
     for r in rows:
-        db.session.delete(r)
+        _delete_pool_row(db.session, r)
     rname = role_map.get(league_type)
     if rname:
         role = db.session.query(Role).filter_by(name=rname).first()
@@ -1688,12 +1813,33 @@ def member_place(user_id):
                     # come off, and a division coach role comes off only if they no
                     # longer coach any team in that division. Every other team's roles
                     # (e.g. an ECS FC team they are still on) are re-checked and kept.
+                    # Candidate coach roles come from the REGISTRY, not a literal
+                    # list. This was hardcoded to the three original programs, so
+                    # a Summer Sprint coach removed from their last Summer team
+                    # kept ECS-FC-PL-SUMMER-COACH forever — the reconcile can't
+                    # strip a coach role either (protected-role allowlist), so
+                    # nothing could. Every candidate is still re-checked against
+                    # the shared calculator before it comes off.
+                    _coach_candidates = []
+                    try:
+                        from app.services import program_registry
+                        _coach_candidates = [
+                            p.coach_role_name
+                            for p in program_registry.all_programs(db.session)
+                            if p.coach_role_name
+                        ]
+                    except Exception as _reg_err:
+                        logger.warning(
+                            f"program registry unavailable for coach revoke "
+                            f"candidates ({_reg_err}); using the legacy three")
+                    if not _coach_candidates:
+                        _coach_candidates = ['ECS-FC-PL-PREMIER-COACH',
+                                             'ECS-FC-PL-CLASSIC-COACH',
+                                             'ECS-FC-PL-ECS-FC-COACH']
                     defer_discord_revoke(
                         player.id,
                         team_ids=[team.id],
-                        candidate_roles=['ECS-FC-PL-PREMIER-COACH',
-                                         'ECS-FC-PL-CLASSIC-COACH',
-                                         'ECS-FC-PL-ECS-FC-COACH'],
+                        candidate_roles=_coach_candidates,
                     )
                 message = f'{player.name} removed from {team.name}'
             elif action == 'primary':

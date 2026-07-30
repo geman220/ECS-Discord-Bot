@@ -277,14 +277,27 @@ def notify_substitute_request_cancelled(self, session, request_id: int, league_t
         return {'success': False, 'error': str(e)}
 
 
-def get_match_info_for_league(sub_request: SubstituteRequest, league_type: str) -> Optional[Dict[str, Any]]:
+def get_match_info_for_league(session, sub_request: SubstituteRequest, league_type: str) -> Optional[Dict[str, Any]]:
     """
     Get match information for a substitute request based on league type.
-    
+
+    ⚠️ `session` used to be missing from this signature while the body called
+    `session.query(...)` twice. Every call therefore raised
+    `NameError: name 'session' is not defined`, which the blanket `except
+    Exception` below swallowed into a log line and a `return None` -- so the
+    function could only ever report "no match found", silently.
+
+    It has no callers today, so nothing was actually broken in production; the
+    bug was latent. `session` is now an explicit first parameter, matching the
+    convention every other helper in this module uses
+    (`_resolve_eligible_player_ids(session, ...)`) and the `@celery_task`
+    signature that supplies one.
+
     Args:
+        session: SQLAlchemy session (supplied by @celery_task at the call site)
         sub_request: The substitute request
-        league_type: The league type ('ECS FC', 'Classic', 'Premier')
-        
+        league_type: The league type ('ECS FC', 'Classic', 'Premier', 'Summer Sprint')
+
     Returns:
         Dictionary with match information or None if not found
     """

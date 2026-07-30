@@ -32,7 +32,15 @@ class TestDDL:
     ])
     def test_ddl_parses_as_postgres(self, sqlfile):
         import os
-        import sqlglot
+        # importorskip, not a bare import: this test was written when sqlglot
+        # happened to be installed locally, and a bare `import sqlglot` turned a
+        # missing OPTIONAL test dependency into a hard failure the moment the
+        # file was run in CI. The sibling test_css_conflicts.py already uses this
+        # idiom for cssutils; match it.
+        #
+        # sqlglot is now in requirements-test.txt, so CI does run this for real.
+        sqlglot = pytest.importorskip(
+            'sqlglot', reason='sqlglot not installed; DDL parse check skipped')
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         path = os.path.join(root, sqlfile)
         if not os.path.exists(path):

@@ -382,34 +382,28 @@ class TestUpdateLiveMatch:
     """Test update_live_match functionality."""
 
     @pytest.mark.asyncio
-    async def test_update_live_match_success(self, discord_service):
+    async def test_update_live_match_is_deprecated_and_returns_false(self, discord_service):
         """
-        GIVEN valid thread ID and match data
-        WHEN updating a live match
-        THEN True should be returned
+        GIVEN update_live_match, which is DEPRECATED
+        WHEN it is called
+        THEN it returns False and makes NO HTTP call.
+
+        Live reporting moved to RealtimeReportingService (/api/live-reporting/*).
+        This test previously asserted the OLD contract (True on HTTP 200), which
+        is why it failed: the method now short-circuits before any request.
+        Asserting the deprecation explicitly means reviving the HTTP path by
+        accident fails loudly instead of silently double-posting alongside the
+        realtime service.
         """
-        mock_response = AsyncMock()
-        mock_response.status = 200
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
+        with patch.object(discord_service, '_get_session') as mock_get_session:
+            result = await discord_service.update_live_match(
+                '123456',
+                {'thread_id': '123456', 'update_type': 'score_update',
+                 'update_data': {'score': '1-0'}},
+            )
 
-        match_data = {
-            'thread_id': '123456',
-            'update_type': 'score_update',
-            'update_data': {'score': '1-0'}
-        }
-
-        with patch.object(discord_service, '_should_skip_call', return_value=False), \
-             patch.object(discord_service, '_get_session') as mock_get_session:
-
-            mock_session = AsyncMock()
-            mock_session.post = MagicMock(return_value=mock_response)
-            mock_get_session.return_value = mock_session
-
-            result = await discord_service.update_live_match('123456', match_data)
-
-            assert result is True
-
+        assert result is False
+        mock_get_session.assert_not_called()
     @pytest.mark.asyncio
     async def test_update_live_match_skipped_when_circuit_open(self, discord_service):
         """
@@ -423,44 +417,27 @@ class TestUpdateLiveMatch:
             assert result is False
 
     @pytest.mark.asyncio
-    async def test_update_live_match_retries_on_failure(self, discord_service):
+    async def test_update_live_match_does_not_retry(self, discord_service):
         """
-        GIVEN a failing API response
-        WHEN updating a live match
-        THEN the operation should retry
-        """
-        mock_response = AsyncMock()
-        mock_response.status = 503
-        mock_response.text = AsyncMock(return_value='Service Unavailable')
-        mock_response.__aenter__ = AsyncMock(return_value=mock_response)
-        mock_response.__aexit__ = AsyncMock(return_value=None)
+        GIVEN update_live_match, which is DEPRECATED
+        WHEN it is called
+        THEN it performs no request and therefore no retries.
 
+        The old test asserted two retry attempts. There is no HTTP call left to
+        retry, so it asserted behaviour that was deliberately removed.
+        """
         call_count = 0
 
-        with patch.object(discord_service, '_should_skip_call', return_value=False), \
-             patch.object(discord_service, '_get_session') as mock_get_session, \
-             patch('asyncio.sleep', new_callable=AsyncMock):
+        def _count(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            raise AssertionError("update_live_match must not perform HTTP calls")
 
-            mock_session = AsyncMock()
+        with patch.object(discord_service, '_get_session', side_effect=_count):
+            result = await discord_service.update_live_match('123456', {})
 
-            def count_calls(*args, **kwargs):
-                nonlocal call_count
-                call_count += 1
-                return mock_response
-
-            mock_session.post = MagicMock(side_effect=count_calls)
-            mock_get_session.return_value = mock_session
-
-            result = await discord_service.update_live_match('123456', {'update_type': 'test'})
-
-            assert result is False
-            assert call_count == 2  # max_retries is 2 for update_live_match
-
-
-# =============================================================================
-# SEND MATCH EMBED TESTS
-# =============================================================================
-
+        assert result is False
+        assert call_count == 0
 @pytest.mark.unit
 class TestSendMatchEmbed:
     """Test send_match_embed functionality."""

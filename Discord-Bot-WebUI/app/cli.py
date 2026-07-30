@@ -611,6 +611,100 @@ def reencode_profile_pictures(dry_run, delete_originals):
 
 
 @click.command()
+@click.option('--program', 'program_key', required=True,
+              help="Program key, e.g. 'pl_third'.")
+@click.option('--reconcile', is_flag=True,
+              help='DANGEROUS: also REVOKE roles the calculator does not expect. '
+                   'Default is add-only, which can never strip anyone.')
+@click.option('--dry-run', is_flag=True, help='List who would be synced; queue nothing.')
+@with_appcontext
+def sync_program_discord_roles(program_key, reconcile, dry_run):
+    """Queue a Discord role sync for everyone in ONE program.
+
+    The repair for "these N people never got their division role" — e.g. after a
+    membership backfill, or after a program's Flask roles were granted out of
+    band. Doing it one player at a time through the admin UI does not scale past
+    about three people.
+
+    ⚠️ ADD-ONLY BY DEFAULT. `only_add=True` means the batch GRANTS missing roles
+    and never revokes, so a wrong expected-role calculation cannot strip anybody
+    — including the Premier/Classic members who are not the target here. Pass
+    --reconcile only when you deliberately want removals too.
+
+    Membership: anyone holding one of the program's Flask roles (league, coach or
+    sub), UNION anyone with a live membership row in the program's current
+    season. The union matters — the two disagree exactly when something is
+    broken, which is when you are running this.
+    """
+    from app.models import Player, User, Role, LeagueMembership
+    from app.services import program_registry
+    from app.utils.season_context import current_season_for_program
+    from app.tasks.tasks_discord import process_discord_role_updates
+
+    program = program_registry.by_key(program_key, include_inactive=True)
+    if program is None:
+        click.echo(f"No program with key '{program_key}'.")
+        return
+
+    flask_roles = [r for r in (program.flask_league_role, program.flask_coach_role,
+                               program.flask_sub_role) if r]
+    click.echo(f"Program: {program.display_name} ({program.key})")
+    click.echo(f"Flask roles: {', '.join(flask_roles) or '(none)'}")
+
+    players = {}
+
+    if flask_roles:
+        rows = (db.session.query(Player)
+                .join(User, User.id == Player.user_id)
+                .filter(User.roles.any(Role.name.in_(flask_roles)),
+                        Player.discord_id.isnot(None))
+                .all())
+        for p in rows:
+            players[p.id] = p
+    by_role = len(players)
+
+    season = current_season_for_program(program_key, db.session)
+    if season is not None:
+        rows = (db.session.query(Player)
+                .join(LeagueMembership, LeagueMembership.player_id == Player.id)
+                .filter(LeagueMembership.season_id == season.id,
+                        LeagueMembership.league_type == program.membership_lane,
+                        # terminal rows are people who LEFT — syncing them would
+                        # be pointless at best and, under --reconcile, wrong.
+                        ~LeagueMembership.status.in_(('inactive', 'retired', 'removed')),
+                        Player.discord_id.isnot(None))
+                .all())
+        for p in rows:
+            players[p.id] = p
+        click.echo(f"Current season: {season.name} (id={season.id})")
+    else:
+        click.echo("WARNING: this program has no current season; matching on Flask roles only.")
+
+    if not players:
+        click.echo("\nNobody to sync. Either nobody holds this program's roles yet, "
+                   "or none of them have a linked Discord account.")
+        return
+
+    click.echo(f"\n{len(players)} player(s) to sync "
+               f"({by_role} by Flask role, {len(players) - by_role} more by membership):")
+    for p in sorted(players.values(), key=lambda x: (x.name or '')):
+        click.echo(f"  {p.id:>6}  {p.name}")
+
+    mode = 'RECONCILE (adds AND revokes)' if reconcile else 'add-only (never revokes)'
+    click.echo(f"\nMode: {mode}")
+
+    if dry_run:
+        click.echo("\n(Dry run - nothing queued.)")
+        return
+
+    discord_ids = [str(p.discord_id) for p in players.values() if p.discord_id]
+    process_discord_role_updates.delay(discord_ids, only_add=not reconcile)
+    click.echo(f"\nQueued a Discord role sync for {len(discord_ids)} player(s).")
+    click.echo("It runs on the discord worker; follow it with:")
+    click.echo("  docker logs -f ecs-discord-bot-celery-discord-worker-1")
+
+
+@click.command()
 @click.option('--batch-size', default=200, show_default=True,
               help='Players per committed batch. Smaller = shorter transactions.')
 @click.option('--dry-run', is_flag=True, help='Compute everything, then roll back each batch.')
@@ -631,7 +725,18 @@ def backfill_league_membership(batch_size, dry_run):
     )
 
     current = _current_season_ids(db.session)
-    click.echo(f"Current seasons: Pub League={current['pub_league']}, ECS FC={current['ecs_fc']}")
+    # Report EVERY current season by type, not just the two legacy lanes. The
+    # backfill itself has always been program-aware (_season_for_lane resolves
+    # per program), but this line named only Pub League and ECS FC — so running
+    # it while chasing a missing Summer Sprint row printed a header that looked
+    # like Summer was out of scope, when its rows were being written all along.
+    _by_type = current.get('_by_season_type') or {}
+    if _by_type:
+        click.echo("Current seasons: " + ', '.join(
+            f"{ltype}={sid}" for ltype, sid in sorted(_by_type.items())))
+    else:
+        click.echo(f"Current seasons: Pub League={current['pub_league']}, "
+                   f"ECS FC={current['ecs_fc']}")
     # Ignore the '_by_season_type' bookkeeping key. `any(current.values())` was
     # true whenever that nested dict was non-empty -- which it almost always is
     # -- so the "nothing to do" guard was dead and both WARNING branches printed
@@ -658,6 +763,15 @@ def backfill_league_membership(batch_size, dry_run):
     click.echo("\n--- Summary ---")
     click.echo(f"Players processed: {stats['players']}")
     click.echo(f"Batches:           {stats['batches']}")
+    # The point of the dry run: what it WOULD create. Without this the summary
+    # only proved the sweep did not crash, which is not the question anyone is
+    # asking when they run it.
+    click.echo(f"Membership rows {'to create' if dry_run else 'created':<10}: "
+               f"{stats.get('rows_added', 0)}")
+    # Retirements are the only existing-row change this makes. A non-zero number
+    # here on a Pub League player means a source fact genuinely went away.
+    click.echo(f"Rows {'to retire' if dry_run else 'retired':<21}: "
+               f"{stats.get('rows_retired', 0)}")
     click.echo(f"Errors:            {stats['errors']}")
     if stats['errors']:
         click.echo("Some players failed - see the application log for tracebacks, then re-run.")
@@ -1146,3 +1260,145 @@ def seed_program_automations(program_key, dry_run):
             click.echo(f"\nDone. {created} created (all disabled), {skipped} already "
                        f"present, {refused} built-in rules skipped.")
             click.echo("Enable them at /admin-panel/communication/automations after review.")
+
+
+@click.command()
+@click.option('--limit', default=0, show_default=True,
+              help='Only inspect the first N flagged players (0 = all).')
+@click.option('--player-id', default=None, type=int,
+              help='Inspect one specific player instead of the flagged set.')
+@click.option('--show-noop', is_flag=True,
+              help='Also list players the drain would not change.')
+@click.option('--reconcile', is_flag=True,
+              help='ALSO show what a removal-capable reconcile would STRIP. '
+                   'Still read-only. Use this to evaluate turning the drain '
+                   'from add-only into a full reconcile.')
+@with_appcontext
+def preview_discord_role_drain(limit, player_id, show_noop, reconcile):
+    """Show exactly what the scheduled Discord role drain WOULD do. Read-only.
+
+    Runs the same expected-role calculator the drain uses, against the same set
+    of players (`discord_needs_update = true`), and prints the roles it would
+    GRANT. Touches neither the database nor Discord -- safe to run any time,
+    including before the beat task is deployed.
+
+    The drain runs add-only (`only_add=True` -> `force_update=False`), and in
+    that branch `to_remove` is unconditionally an empty list
+    (app/discord_utils.py). So no removal can appear here, because none can
+    happen. This command reports grants only.
+
+    ⚠️ CAVEAT: 'current roles' comes from the cached `player.discord_roles`
+    column, not from a live Discord read. If that cache is stale the preview
+    can OVERSTATE what will be added -- a role listed here may already be on
+    the member in Discord, in which case the grant is a harmless no-op. It
+    cannot UNDERSTATE removals, since there are none. Spot-check a few names
+    in Discord directly before trusting the totals.
+    """
+    from collections import Counter
+    from app.models import Player
+    from app.tasks.tasks_discord import (
+        _extract_player_role_data, _compute_expected_roles, _app_managed_roles,
+    )
+    from app.discord_utils import normalize_name, _is_reconcile_removable
+
+    session = db.session
+
+    q = session.query(Player).filter(Player.discord_id.isnot(None))
+    if player_id:
+        q = q.filter(Player.id == player_id)
+    else:
+        q = q.filter(Player.discord_needs_update.is_(True))
+    q = q.order_by(Player.id)
+    if limit:
+        q = q.limit(limit)
+
+    players = q.all()
+    if not players:
+        click.echo("No matching players. Nothing for the drain to do.")
+        return
+
+    click.echo(f"Inspecting {len(players)} player(s). Read-only; nothing is written.\n")
+
+    changed, noop, failed = [], [], []
+    add_histogram = Counter()
+    strip_histogram = Counter()
+
+    for p in players:
+        try:
+            data = _extract_player_role_data(session, p.id)
+        except Exception as e:
+            failed.append((p, str(e)))
+            continue
+
+        expected = _compute_expected_roles(data)
+        cur = data.get('current_roles') or []
+        current_norm = {normalize_name(r) for r in cur}
+        to_add = [r for r in expected if normalize_name(r) not in current_norm]
+
+        # What a RECONCILE would strip: held AND app-managed AND no longer
+        # expected. Split by the protected-role allowlist, which today permits
+        # removing only *-SUB and ECS-FC-PL-UNVERIFIED -- everything else is
+        # reported as blocked so you can see exactly what relaxing it would do.
+        strip_allowed, strip_blocked = [], []
+        if reconcile:
+            expected_norm = {normalize_name(r) for r in expected}
+            managed_norm = {normalize_name(r) for r in _app_managed_roles(data)}
+            for role in cur:
+                rn = normalize_name(role)
+                if rn in managed_norm and rn not in expected_norm:
+                    (strip_allowed if _is_reconcile_removable(role)
+                     else strip_blocked).append(role)
+                    strip_histogram.update([role])
+
+        if to_add or strip_allowed or strip_blocked:
+            changed.append((p, to_add, cur, strip_allowed, strip_blocked))
+            add_histogram.update(to_add)
+        else:
+            noop.append(p)
+
+    if changed:
+        click.echo(f"--- CHANGES ({len(changed)} players) ---")
+        for p, to_add, cur, s_ok, s_no in changed:
+            click.echo(f"  [{p.id}] {p.name}")
+            if to_add:
+                click.echo(f"        + {', '.join(to_add)}")
+            if s_ok:
+                click.echo(f"        - {', '.join(s_ok)}   (reconcile WOULD strip)")
+            if s_no:
+                click.echo(f"        ~ {', '.join(s_no)}   (BLOCKED by protected-role allowlist)")
+            click.echo(f"        (cached current: {', '.join(cur) if cur else '<none recorded>'})")
+
+    if show_noop and noop:
+        click.echo(f"\n--- NO CHANGE ({len(noop)} players) ---")
+        for p in noop:
+            click.echo(f"  [{p.id}] {p.name}")
+
+    if failed:
+        click.echo(f"\n--- COULD NOT EVALUATE ({len(failed)}) ---")
+        for p, err in failed:
+            click.echo(f"  [{p.id}] {p.name}: {err}")
+
+    click.echo("\n================ SUMMARY ================")
+    click.echo(f"  inspected      : {len(players)}")
+    click.echo(f"  would grant    : {len(changed)}")
+    click.echo(f"  no change      : {len(noop)}")
+    click.echo(f"  not evaluable  : {len(failed)}")
+    if reconcile:
+        _allowed = sum(1 for c in changed if c[3])
+        _blocked = sum(1 for c in changed if c[4])
+        click.echo(f"  --- reconcile preview (NOT what the drain does today) ---")
+        click.echo(f"  players with strippable roles : {_allowed}")
+        click.echo(f"  players with BLOCKED strips   : {_blocked}")
+        if strip_histogram:
+            click.echo("  roles a reconcile would target, by frequency:")
+            for role, n in strip_histogram.most_common():
+                mark = '' if _is_reconcile_removable(role) else '  [BLOCKED today]'
+                click.echo(f"    {n:5d}  {role}{mark}")
+    else:
+        click.echo(f"  would REVOKE   : 0  (add-only; removal is structurally impossible)")
+    if add_histogram:
+        click.echo("\n  roles that would be granted, by frequency:")
+        for role, n in add_histogram.most_common():
+            click.echo(f"    {n:5d}  {role}")
+    click.echo("=========================================")
+    click.echo("\nRead-only. Nothing was written to the database or to Discord.")

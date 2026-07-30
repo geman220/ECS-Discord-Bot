@@ -1378,7 +1378,10 @@ class TestGetExpectedRoles:
 
             result = await get_expected_roles(db.session, ref_player)
 
-            assert 'REFEREE' in result
+            # The canonical calculator emits the Discord role name as-is
+            # ('Referee'). Uppercase is only the normalized form used for the
+            # revocable-vocabulary check in tasks_discord.
+            assert 'Referee' in result
 
 
 # =============================================================================

@@ -232,6 +232,32 @@ def has_admin_role(user, session=None) -> bool:
         return False
 
 
+def is_any_team_coach(session, player: Optional[Player]) -> bool:
+    """True if the player is flagged as coach on ANY team.
+
+    is_coach_of_match() answers "coach of THIS match", which the barcode-lookup
+    endpoints can't ask — they resolve a token with no match context. This is the
+    weaker "is a scanner operator at all" predicate for those.
+    """
+    if not player:
+        return False
+    row = session.query(player_teams).filter(
+        player_teams.c.player_id == player.id,
+        player_teams.c.is_coach.is_(True),
+    ).first()
+    return row is not None
+
+
+def can_operate_scanner(session, user, player: Optional[Player]) -> bool:
+    """True if this caller may resolve a membership barcode to a member identity.
+
+    The scanner is a coach/admin tool. Any authenticated user used to be able to
+    POST arbitrary barcodes and read back memberName/teamName/validUntil, which
+    turns a harvested barcode list into a membership directory.
+    """
+    return has_admin_role(user, session) or is_any_team_coach(session, player)
+
+
 # ---------------------------------------------------------------------------
 # Token resolution
 # ---------------------------------------------------------------------------

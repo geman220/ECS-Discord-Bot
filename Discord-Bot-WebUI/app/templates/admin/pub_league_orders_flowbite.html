@@ -238,11 +238,13 @@
             <div class="w-full md:w-52">
                 <select id="seasonFilter" aria-label="Filter by season"
                         class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
-                    <option value="current" {{ 'selected' if season_filter == 'current' else '' }}>Current Season{% if current_season %} ({{ current_season.name }}){% endif %}</option>
+                    {# "Current Season" spans every program's current season (Pub League AND
+                       Summer Sprint), so the individual seasons are ALSO listed — picking one
+                       narrows to just that program's season. They are no longer hidden as
+                       duplicates, because they no longer mean the same thing. #}
+                    <option value="current" {{ 'selected' if season_filter == 'current' else '' }}>Current Season{% if current_season_label %} ({{ current_season_label }}){% endif %}</option>
                     {% for s in season_options %}
-                        {% if not (current_season and s.id == current_season.id) %}
-                        <option value="{{ s.id }}" {{ 'selected' if season_filter == s.id|string else '' }}>{{ s.name }}</option>
-                        {% endif %}
+                        <option value="{{ s.id }}" {{ 'selected' if season_filter == s.id|string else '' }}>{{ s.name }}{% if s.id in (current_season_ids or []) %} · current{% endif %}</option>
                     {% endfor %}
                     <option value="all" {{ 'selected' if season_filter == 'all' else '' }}>All Seasons</option>
                 </select>
@@ -275,6 +277,23 @@
                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green whitespace-nowrap">
                     <i class="ti ti-download text-base" aria-hidden="true"></i> Export Emails
                 </a>
+            </div>
+            {# Recovery for a sale the Woo webhook never ingested — it creates nothing at
+               all when no line item resolves to a program, which is what happened to
+               every Summer Sprint purchase made before that program was registered. #}
+            <div class="flex items-center">
+                <button type="button" id="importOrderBtn"
+                        title="Pull a WooCommerce order in by its order number. Use this when a paid order never showed up here."
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green whitespace-nowrap">
+                    <i class="ti ti-file-import text-base" aria-hidden="true"></i> Import Order
+                </button>
+            </div>
+            <div class="flex items-center">
+                <button type="button" id="scanOrdersBtn"
+                        title="Ask WooCommerce for paid orders that contain league passes but never made it into this system"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green whitespace-nowrap">
+                    <i class="ti ti-radar text-base" aria-hidden="true"></i> Find Missing
+                </button>
             </div>
             {% if search or (status_filter and status_filter != 'all') or (division_filter and division_filter != 'all') %}
             <div class="flex items-center">
@@ -599,11 +618,13 @@
             <div class="w-full md:w-48">
                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Season</label>
                 <select id="seasonFilter" aria-label="Filter by season" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="current" {{ 'selected' if season_filter == 'current' else '' }}>Current Season{% if current_season %} ({{ current_season.name }}){% endif %}</option>
+                    {# "Current Season" spans every program's current season (Pub League AND
+                       Summer Sprint), so the individual seasons are ALSO listed — picking one
+                       narrows to just that program's season. They are no longer hidden as
+                       duplicates, because they no longer mean the same thing. #}
+                    <option value="current" {{ 'selected' if season_filter == 'current' else '' }}>Current Season{% if current_season_label %} ({{ current_season_label }}){% endif %}</option>
                     {% for s in season_options %}
-                        {% if not (current_season and s.id == current_season.id) %}
-                        <option value="{{ s.id }}" {{ 'selected' if season_filter == s.id|string else '' }}>{{ s.name }}</option>
-                        {% endif %}
+                        <option value="{{ s.id }}" {{ 'selected' if season_filter == s.id|string else '' }}>{{ s.name }}{% if s.id in (current_season_ids or []) %} · current{% endif %}</option>
                     {% endfor %}
                     <option value="all" {{ 'selected' if season_filter == 'all' else '' }}>All Seasons</option>
                 </select>
@@ -844,6 +865,149 @@ document.addEventListener('DOMContentLoaded', function() {
             url.searchParams.set('division', this.value);
             url.searchParams.delete('page');
             window.location.href = url.toString();
+        });
+    }
+
+    // Import an order by its WooCommerce order number.
+    // Matches the dark-mode theming the order detail page uses for its dialogs.
+    const swalTheme = { background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' };
+
+    // Customer names and emails come from WooCommerce — untrusted, and they go
+    // into Swal's `html`. String()-coerce so numeric ids escape to "123", not "".
+    function esc(s) { const d = document.createElement('div'); d.textContent = (s === null || s === undefined) ? '' : String(s); return d.innerHTML; }
+    // One order in, by number. Returns true when something was imported.
+    async function importOne(wooId) {
+        const res = await fetch('{{ url_for("pub_league_orders_admin.api_import_order") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ woo_order_id: String(wooId).trim() })
+        });
+        return res.json();
+    }
+
+    // "Which order numbers do I type in?" — ask WooCommerce directly rather than
+    // making someone reconcile two systems by hand. Read-only: it lists, the
+    // admin decides.
+    const scanBtn = document.getElementById('scanOrdersBtn');
+    if (scanBtn) {
+        scanBtn.addEventListener('click', async function () {
+            Swal.fire({ title: 'Asking WooCommerce…', text: 'This can take a few seconds.', allowOutsideClick: false, didOpen: () => Swal.showLoading(), ...swalTheme });
+            let data;
+            try {
+                const res = await fetch('{{ url_for("pub_league_orders_admin.api_scan_missing_orders") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ days: 180 })
+                });
+                data = await res.json();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Network error', text: 'Could not reach the server.', ...swalTheme });
+                return;
+            }
+            if (!data.success) {
+                Swal.fire({ icon: 'error', title: 'Scan failed', text: data.error || 'Failed.', ...swalTheme });
+                return;
+            }
+            // "truncated" means we hit the page ceiling — never let that read as "all clear".
+            const note = data.truncated
+                ? '<p class="text-xs text-amber-600 dark:text-amber-400 mt-3">Hit the scan limit — there may be more further back. Import these, then scan again.</p>'
+                : '';
+            if (!data.missing.length) {
+                Swal.fire({
+                    icon: 'success', title: 'Nothing missing',
+                    html: '<p class="text-sm">Checked ' + data.scanned + ' paid orders from the last ' + data.days +
+                          ' days; ' + data.with_passes + ' contain passes and all of them are already here.</p>' + note,
+                    ...swalTheme
+                });
+                return;
+            }
+            const rows = data.missing.map(m =>
+                '<tr class="border-b border-gray-200 dark:border-gray-700">' +
+                '<td class="py-1.5 pe-3 font-mono text-xs">#' + esc(m.woo_order_id) + '</td>' +
+                '<td class="py-1.5 pe-3 text-start">' + esc(m.customer_name || m.customer_email) + '</td>' +
+                '<td class="py-1.5 pe-3 text-start">' + esc(m.divisions || '—') + '</td>' +
+                '<td class="py-1.5 pe-3">' + esc(m.passes) + '</td>' +
+                '<td class="py-1.5 text-xs text-gray-500">' + esc(m.date) + '</td></tr>').join('');
+            const confirmed = await Swal.fire({
+                title: data.missing.length + ' order' + (data.missing.length === 1 ? '' : 's') + ' missing',
+                html: '<p class="text-sm mb-3 text-start">Paid, contain passes, and are not in the system. ' +
+                      'Importing them creates the order and its passes exactly as the webhook should have.</p>' +
+                      '<div class="max-h-72 overflow-y-auto"><table class="w-full text-sm text-center">' +
+                      '<thead><tr class="text-xs uppercase text-gray-500"><th class="pb-1 pe-3">Order</th>' +
+                      '<th class="pb-1 pe-3 text-start">Customer</th><th class="pb-1 pe-3 text-start">Division</th>' +
+                      '<th class="pb-1 pe-3">Passes</th><th class="pb-1">Date</th></tr></thead>' +
+                      '<tbody>' + rows + '</tbody></table></div>' + note,
+                width: 720,
+                showCancelButton: true,
+                confirmButtonText: 'Import all ' + data.missing.length,
+                cancelButtonText: 'Close',
+                confirmButtonColor: '#1a472a',
+                ...swalTheme
+            });
+            if (!confirmed.isConfirmed) return;
+
+            Swal.fire({ title: 'Importing…', allowOutsideClick: false, didOpen: () => Swal.showLoading(), ...swalTheme });
+            let ok = 0; const failed = [];
+            // Sequential on purpose: each import is a WooCommerce fetch plus a
+            // write, and firing them all at once would burn PgBouncer slots.
+            for (const m of data.missing) {
+                try {
+                    const r = await importOne(m.woo_order_id);
+                    if (r.success) ok++; else failed.push('#' + m.woo_order_id + ' — ' + (r.error || 'failed'));
+                } catch (err) {
+                    failed.push('#' + m.woo_order_id + ' — network error');
+                }
+            }
+            await Swal.fire({
+                icon: failed.length ? 'warning' : 'success',
+                title: 'Imported ' + ok + ' of ' + data.missing.length,
+                html: failed.length ? '<p class="text-sm text-start">Could not import:</p><ul class="text-xs text-start mt-1">' +
+                      failed.map(f => '<li>' + esc(f) + '</li>').join('') + '</ul>' : undefined,
+                confirmButtonColor: '#1a472a',
+                ...swalTheme
+            });
+            window.location.reload();
+        });
+    }
+
+    const importBtn = document.getElementById('importOrderBtn');
+    if (importBtn) {
+        importBtn.addEventListener('click', async function () {
+            const { value: wooId } = await Swal.fire({
+                title: 'Import a WooCommerce order',
+                input: 'text',
+                inputLabel: 'WooCommerce order number',
+                inputPlaceholder: 'e.g. 1015725',
+                text: 'Use this when a paid order never appeared here. Already-imported orders are left untouched.',
+                showCancelButton: true,
+                confirmButtonText: 'Import',
+                confirmButtonColor: '#1a472a',
+                inputValidator: (v) => (/^#?\d+$/.test((v || '').trim()) ? undefined : 'Enter the order number, digits only.'),
+                ...swalTheme
+            });
+            if (!wooId) return;
+
+            Swal.fire({ title: 'Importing…', allowOutsideClick: false, didOpen: () => Swal.showLoading(), ...swalTheme });
+            try {
+                const data = await importOne(wooId);
+                if (!data.success) {
+                    Swal.fire({ icon: 'error', title: 'Could not import', text: data.error || 'Failed.', ...swalTheme });
+                    return;
+                }
+                // `no_passes` is a success with nothing granted — surface it as a warning
+                // rather than a tick, or it reads as "done" when a human still has to look.
+                await Swal.fire({
+                    icon: data.no_passes ? 'warning' : 'success',
+                    title: data.already_existed ? 'Already imported' : (data.no_passes ? 'Imported, but no passes' : 'Imported'),
+                    text: data.message,
+                    confirmButtonColor: '#1a472a',
+                    ...swalTheme
+                });
+                if (data.order_url) window.location.href = data.order_url;
+                else window.location.reload();
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Network error', text: 'Could not reach the server.', ...swalTheme });
+            }
         });
     }
 

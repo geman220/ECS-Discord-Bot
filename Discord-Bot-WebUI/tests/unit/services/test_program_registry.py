@@ -27,54 +27,27 @@ from app.services import program_registry
 
 @pytest.fixture
 def programs(db):
-    """Seed the four real programs, mirroring sql_create_program_registry.sql."""
-    rows = [
-        dict(key='premier', display_name='Premier', sort_order=10,
-             season_league_type='Pub League', league_name='Premier',
-             membership_lane='premier', form_value='premier',
-             flask_league_role='pl-premier', flask_coach_role='Premier Coach',
-             flask_sub_role='Premier Sub', discord_role_slug='PREMIER',
-             discord_category_name='ECS FC PL Premier',
-             is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
-             rolls_over=True, is_active=True),
-        dict(key='classic', display_name='Classic', sort_order=20,
-             season_league_type='Pub League', league_name='Classic',
-             membership_lane='classic', form_value='classic',
-             flask_league_role='pl-classic', flask_coach_role='Classic Coach',
-             flask_sub_role='Classic Sub', discord_role_slug='CLASSIC',
-             discord_category_name='ECS FC PL Classic',
-             is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
-             rolls_over=True, is_active=True),
-        dict(key='ecs_fc', display_name='ECS FC', sort_order=30,
-             season_league_type='ECS FC', league_name='ECS FC',
-             membership_lane='ecs_fc', form_value='ecs-fc',
-             flask_league_role='pl-ecs-fc', flask_coach_role='ECS FC Coach',
-             flask_sub_role='ECS FC Sub', discord_role_slug='ECS-FC',
-             discord_category_name='ECS FC League',
-             is_pub_league_like=False, hide_until_reveal=False, requires_pass=True,
-             rolls_over=False, is_active=True),
-        dict(key='pl_third', display_name='Summer Sprint', sort_order=40,
-             season_league_type='PL Third', league_name='Summer Sprint',
-             membership_lane='pl_third', form_value='pl_third',
-             flask_league_role='pl-third', flask_coach_role='Summer Coach',
-             flask_sub_role='Summer Sub', discord_role_slug='SUMMER',
-             discord_category_name='ECS FC PL Summer Sprint',
-             woo_name_pattern=r'ECS\s+Pub\s+League.*Summer\s+Sprint',
-             is_pub_league_like=True, hide_until_reveal=True, requires_pass=True,
-             rolls_over=True, is_active=True),
-    ]
-    # Idempotent: the shared `db` fixture does not isolate these rows between
-    # tests, so a second seeding would hit UNIQUE(program.key).
-    db.session.query(Program).delete()
-    db.session.flush()
-    for r in rows:
-        db.session.add(Program(**r))
-    db.session.flush()
-    program_registry.invalidate()
-    yield rows
-    db.session.query(Program).delete()
-    db.session.flush()
-    program_registry.invalidate()
+    """Restore the four seeded programs before AND after each test here.
+
+    conftest.py now seeds the registry once at session scope, so this fixture is
+    no longer what makes the rows exist -- it is what makes MUTATION SAFE. Tests
+    in this file deliberately flip `is_active` and add reveal overrides, and the
+    shared `db` fixture does not isolate the `program` table (it is not in
+    tables_to_clean, by design, so the session seed survives).
+
+    Without the teardown reseed, `test_inactive_program_is_invisible` would leave
+    pl_third inactive for the REST OF THE RUN -- every later test would silently
+    go back to a three-program world, which is the exact blindness the session
+    seed was added to remove.
+    """
+    from tests.conftest import seed_program_registry, PROGRAM_SEED_ROWS
+
+    seed_program_registry(db.session)
+    db.session.commit()
+    yield PROGRAM_SEED_ROWS
+    seed_program_registry(db.session)
+    db.session.commit()
+
 
 
 class TestRegistryLoadsFromTable:
@@ -103,6 +76,92 @@ class TestRegistryLoadsFromTable:
         assert 'pl_third' not in [p.key for p in program_registry.all_programs(db.session)]
         # ...but setup tooling must still be able to see it.
         assert program_registry.by_key('pl_third', include_inactive=True) is not None
+
+
+class TestWooProductPrecedence:
+    """Name pattern must beat a pinned product ID -- and the reason is subtle.
+
+    ECS creates a BRAND NEW WooCommerce product every season rather than
+    restocking one, so `woo_product_ids` is the EPHEMERAL key: correct only for
+    the season someone last pinned it, stale every season after. The title format
+    ("<year> ... ECS Pub League ... <program>") is the DURABLE one.
+
+    So if a stale pinned ID were checked first, it would silently claim NEXT
+    season's order for whichever program someone pinned it to last year -- a
+    buyer placed in the wrong program, with no error. That ordering is easy to
+    "tidy up" backwards during a refactor, which is exactly why it is pinned here.
+    """
+
+    REAL_TITLE = '2026 ECS Pub League – Summer Sprint Season'
+
+    def test_pattern_wins_over_a_stale_pinned_id(self, db, app, programs):
+        """Premier holds a stale pin for this product id; the title says Summer."""
+        premier = db.session.query(Program).filter_by(key='premier').first()
+        premier.woo_product_ids = '4242'
+        db.session.flush()
+        program_registry.invalidate()
+
+        prog = program_registry.by_woo_product(
+            product_id=4242, product_name=self.REAL_TITLE, session=db.session)
+
+        assert prog is not None
+        assert prog.key == 'pl_third', (
+            f"a stale pinned id on {prog.key if prog else None} beat the title "
+            f"pattern -- this order would be filed under the wrong program"
+        )
+
+    def test_pinned_id_is_used_when_no_pattern_matches(self, db, app, programs):
+        """The override still has to work for a title that breaks the format."""
+        premier = db.session.query(Program).filter_by(key='premier').first()
+        premier.woo_product_ids = '4242'
+        db.session.flush()
+        program_registry.invalidate()
+
+        prog = program_registry.by_woo_product(
+            product_id=4242, product_name='Totally Bespoke Product Name',
+            session=db.session)
+
+        assert prog is not None and prog.key == 'premier', (
+            "the per-season ID override no longer works, so any product whose "
+            "title breaks the house format can never be resolved"
+        )
+
+    def test_comma_separated_pins_all_match(self, db, app, programs):
+        """woo_product_ids is a LIST -- several seasons' products can be pinned."""
+        classic = db.session.query(Program).filter_by(key='classic').first()
+        classic.woo_product_ids = '11, 22 ,33'
+        db.session.flush()
+        program_registry.invalidate()
+
+        for pid in (11, 22, 33):
+            got = program_registry.by_woo_product_id(pid, db.session)
+            assert got is not None and got.key == 'classic', f"id {pid} did not resolve"
+
+    def test_garbage_in_pins_does_not_crash_or_false_match(self, db, app, programs):
+        classic = db.session.query(Program).filter_by(key='classic').first()
+        classic.woo_product_ids = 'abc, , 55'
+        db.session.flush()
+        program_registry.invalidate()
+
+        assert program_registry.by_woo_product_id(55, db.session).key == 'classic'
+        assert program_registry.by_woo_product_id('not-a-number', db.session) is None
+        assert program_registry.by_woo_product_id(None, db.session) is None
+
+    def test_invalid_pattern_is_survived(self, db, app, programs):
+        """A malformed regex in one row must not break resolution for the others.
+
+        The pattern is admin-editable data, so a bad one is a matter of time. If
+        this raised, one typo in one row would take down order resolution for
+        EVERY program.
+        """
+        classic = db.session.query(Program).filter_by(key='classic').first()
+        classic.woo_name_pattern = '([unclosed'
+        db.session.flush()
+        program_registry.invalidate()
+
+        prog = program_registry.by_woo_product(
+            product_name=self.REAL_TITLE, session=db.session)
+        assert prog is not None and prog.key == 'pl_third'
 
 
 class TestWooProductMatching:

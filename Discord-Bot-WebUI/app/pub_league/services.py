@@ -192,8 +192,19 @@ class PubLeagueOrderService:
         )
 
         for item in order_data.get('line_items', []):
-            product_name = item.get('name', '')
-            quantity = item.get('quantity', 1)
+            # `.get('name', '')` returns the default only when the key is ABSENT.
+            # A line item that carries an explicit `"name": null` -- which Woo
+            # does send for some deleted/renamed products -- passed None straight
+            # into `pub_league_pattern.search(...)` below and raised
+            # `TypeError: expected string or bytes-like object`.
+            #
+            # That TypeError escaped extract_pub_league_items() -> escaped
+            # create_or_get_order() -> 500'd the webhook. Woo RETRIES a failed
+            # webhook, so the practical outcome was either an order that never
+            # got created or one created twice. `or ''` makes the intent the
+            # author clearly had actually hold.
+            product_name = item.get('name') or ''
+            quantity = item.get('quantity') or 1
 
             division = None
 
@@ -514,6 +525,40 @@ class PubLeagueOrderService:
         session.commit()
 
         logger.info(f"Created wallet pass {wallet_pass.id} for line item {line_item.id}")
+
+        # Email the download link. The wizard's final step is otherwise the ONLY
+        # place this link ever appears, so anyone whose tap didn't land there —
+        # in-app webview, closed tab, dead battery — was permanently separated
+        # from a pass they'd paid for, with no self-serve way back. Best-effort:
+        # a mail failure must never undo a successfully created pass.
+        try:
+            recipient_email = (player.user.email if player.user else None) or order.customer_email
+            if recipient_email:
+                from app.pub_league.email_helpers import send_pass_ready_email
+                send_pass_ready_email(
+                    recipient_email=recipient_email,
+                    recipient_name=player.name,
+                    division=line_item.division,
+                    # No platform= here: email_helpers appends `&platform=...`
+                    # per button.
+                    download_url=url_for(
+                        'public_wallet.download_pass_by_token',
+                        token=wallet_pass.download_token,
+                        _external=True,
+                    ),
+                )
+            else:
+                logger.warning(
+                    f"No email address for wallet pass {wallet_pass.id} "
+                    f"(line item {line_item.id}); skipping pass-ready email"
+                )
+        except Exception as mail_err:
+            logger.error(
+                f"Pass-ready email failed for wallet pass {wallet_pass.id} "
+                f"(pass IS created and downloadable): {mail_err}",
+                exc_info=True,
+            )
+
         return wallet_pass
 
 
@@ -1094,31 +1139,65 @@ class RoleSyncService:
     @staticmethod
     def _sync_discord_role(player: Player) -> None:
         """
-        Mark player for Discord role sync.
+        Flag AND dispatch a Discord role sync for a player whose Flask roles
+        just changed via the season-pass path.
 
-        The Discord role sync system reads Flask roles and syncs them to Discord.
-        After updating Flask roles (in _sync_flask_role), we mark the player
-        for update so the background sync job picks it up.
+        This used to only set `discord_needs_update = True`, on the stated
+        assumption that "the background sync job picks it up". There was no
+        such job: no `tasks_discord.*` entry existed in `beat_schedule`, and
+        the flag's only drains were the two admin "Sync All Roles" buttons and
+        `flask` CLI commands. So a player could pay, be granted `pl-premier` /
+        `pl-third`, and never receive the Discord role until they happened to
+        log in again (`app/auth/helpers.py:82`) or an admin pressed a button.
+
+        Both halves are kept deliberately:
+          - the flag is the DURABLE record, drained by the scheduled
+            `drain-discord-role-updates` beat task, so a dispatch that fails
+            (bot down, Celery down) still self-heals on the next tick;
+          - the dispatch is the FAST path, so the role lands in seconds
+            rather than waiting for the tick.
+
+        `only_add=True` throughout: this path grants a newly-purchased
+        division's role and must never strip an existing one. Programs run
+        concurrently now (a Summer Sprint buyer legitimately keeps
+        `pl-premier`), so a reconcile here would revoke live roles. Revocation
+        stays with the explicit admin / rollover callers.
 
         Args:
-            player: Player to mark for Discord update
+            player: Player to sync
         """
         try:
             if not player.discord_id:
                 logger.warning(f"Player {player.id} has no Discord ID, skipping Discord role sync")
                 return
 
-            # Mark player for Discord update - the sync system will read
-            # Flask roles (pl-classic, pl-premier) and map them to Discord roles
-            # (ECS-FC-PL-CLASSIC, ECS-FC-PL-PREMIER)
+            # Durable flag first, committed before dispatch: if the enqueue or
+            # the bot call dies, the beat drain still finds this player.
             session = getattr(g, 'db_session', db.session)
             player.discord_needs_update = True
             session.commit()
 
-            logger.info(f"Marked player {player.id} for Discord role sync")
+            player_id = player.id
+
+            # `defer_discord_sync` now handles the no-request-context case
+            # itself (app/utils/deferred_discord.py::_queue_or_dispatch): inside
+            # a request it queues for after-commit dispatch, outside one it
+            # dispatches immediately. This used to hand-roll that branch here
+            # because the helper silently DROPPED the op outside a request --
+            # `activate_player_for_league` runs from CLI and Celery as well as
+            # from routes. The guard now lives in one place instead of being
+            # every caller's job to remember.
+            from app.utils.deferred_discord import defer_discord_sync
+            defer_discord_sync(player_id, only_add=True)
+            logger.info(f"Queued Discord role sync for player {player_id} (add-only)")
 
         except Exception as e:
-            logger.error(f"Error marking player {player.id} for Discord update: {e}")
+            # Never fail the caller: the pass is already linked and the player
+            # already active. The flag is committed, so the beat drain retries.
+            logger.error(
+                f"Error dispatching Discord sync for player {player.id} "
+                f"(flagged for the scheduled drain instead): {e}"
+            )
 
 
 class ProfileConflictService:

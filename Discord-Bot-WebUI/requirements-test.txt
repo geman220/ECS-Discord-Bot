@@ -35,3 +35,11 @@ pytest-playwright==0.4.4
 pillow>=12.3.0              # Screenshot comparison
 pixelmatch==0.3.0           # Visual diff
 cssutils==2.11.1            # CSS parsing and analysis
+
+# SQL DDL validation
+# tests/test_public_site_runtime.py::TestDDL parses the public-site .sql files as
+# Postgres. It was written against a locally-installed sqlglot and used a bare
+# `import sqlglot`, so it failed outright the first time CI ran that file.
+# Listed here so the check actually runs; the test also importorskips so a
+# missing copy degrades to a skip rather than a failure.
+sqlglot>=25,<28

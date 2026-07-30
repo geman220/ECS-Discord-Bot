@@ -95,6 +95,11 @@ def _parse_device_name(user_agent):
         return 'iPhone'
     if 'ipad' in ua:
         return 'iPad'
+    # The Flutter iOS user-agent says "iOS", not "iPhone"/"iPad", so without
+    # this branch EVERY iPhone and iPad showed up as "Unknown Device" in Active
+    # Sessions. _parse_device_type() below already checks for it.
+    if 'ios' in ua:
+        return 'iOS Device'
     if 'android' in ua:
         return 'Android Device'
     if 'macintosh' in ua or 'mac os' in ua:

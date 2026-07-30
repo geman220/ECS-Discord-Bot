@@ -45,19 +45,21 @@ class MobileTeamService(BaseService):
         Returns:
             ServiceResult with list of teams
         """
-        # Get current seasons
-        current_pub_season = self.session.query(Season).filter_by(
-            is_current=True, league_type='Pub League'
-        ).first()
+        # Every current season, across every program — not just Pub League's.
+        # Hardcoding 'Pub League' here meant a program with its own season type
+        # (Summer Sprint = 'PL Third') had NO teams in the mobile app at all:
+        # its League.season_id matched neither condition, so the roster screen
+        # was simply empty for those players.
+        from app.utils.season_context import current_program_season_ids
+        season_ids = list(current_program_season_ids(self.session))
+
         current_ecs_season = self.session.query(Season).filter_by(
             is_current=True, league_type='ECS FC'
         ).first()
-
-        conditions = []
-        if current_pub_season:
-            conditions.append(League.season_id == current_pub_season.id)
         if current_ecs_season:
-            conditions.append(League.season_id == current_ecs_season.id)
+            season_ids.append(current_ecs_season.id)
+
+        conditions = [League.season_id.in_(season_ids)] if season_ids else []
 
         query = self.session.query(Team).join(
             League, Team.league_id == League.id
@@ -168,11 +170,32 @@ class MobileTeamService(BaseService):
         if not team:
             return ServiceResult.fail("Team not found", "TEAM_NOT_FOUND")
 
-        current_season = self.session.query(Season).filter_by(is_current=True).first()
+        # Resolve the season from the TEAM, not from a global is_current lookup.
+        #
+        # `Season.query.filter_by(is_current=True).first()` is an unqualified
+        # pick across ALL league types. With three programs there are three
+        # is_current rows, so which season it returned was arbitrary -- and a
+        # team's stats would be read against another program's season, silently
+        # returning the wrong numbers (or zeros).
+        #
+        # A team is not ambiguous: it belongs to a league, which belongs to
+        # exactly one season. Use that.
+        # Resolve a Season OBJECT, not just an id: the response reports
+        # `season.name` further down, and binding the name only inside the
+        # fallback branch made that read a NameError on the COMMON path (any
+        # team that has a league — i.e. all of them), so team stats raised
+        # rather than returning numbers.
+        season = None
+        if team.league is not None and team.league.season_id is not None:
+            season = self.session.query(Season).get(team.league.season_id)
+        if season is None:
+            season = (self.session.query(Season)
+                      .filter_by(is_current=True).first())
+        season_id = season.id if season else None
 
         standings = self.session.query(Standings).filter_by(
             team_id=team_id,
-            season_id=current_season.id if current_season else None
+            season_id=season_id
         ).first()
 
         if standings:
@@ -196,7 +219,7 @@ class MobileTeamService(BaseService):
         return ServiceResult.ok({
             "team_id": team_id,
             "team_name": team.name,
-            "season": current_season.name if current_season else None,
+            "season": season.name if season else None,
             "stats": stats
         })
 

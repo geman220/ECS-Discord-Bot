@@ -18,7 +18,7 @@ import requests
 from flask import jsonify, request, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, func
 from sqlalchemy.exc import IntegrityError
 
 from web_config import Config
@@ -400,6 +400,19 @@ def get_substitute_request(request_id: int):
         if not (is_coach or is_admin or in_pool):
             return jsonify({"msg": "You are not authorized to view this request"}), 403
 
+        # The caller's OWN response, resolved regardless of role. Uses the
+        # already-eagerloaded sub_request.responses, so no extra query.
+        my_response_data = None
+        if player:
+            _mine = next((r for r in sub_request.responses
+                          if r.player_id == player.id), None)
+            if _mine is not None and _mine.responded_at is not None:
+                my_response_data = {
+                    "is_available": _mine.is_available,
+                    "response_text": _mine.response_text,
+                    "responded_at": _mine.responded_at.isoformat(),
+                }
+
         # Build responses list (only for coach/admin)
         responses_data = []
         if is_coach or is_admin:
@@ -459,7 +472,20 @@ def get_substitute_request(request_id: int):
                 "updated_at": sub_request.updated_at.isoformat() if sub_request.updated_at else None
             },
             "responses": responses_data,
-            "assignments": assignments_data
+            "assignments": assignments_data,
+            # The CALLER's own response, for everyone — not just coaches/admins.
+            #
+            # `responses` above is coach/admin-only (correct: a sub must not see
+            # who else was asked or what they said). But that left a sub opening
+            # this request from a push deep link with no way to know they had
+            # already answered: the screen offered the buttons again and the
+            # respond call came back 400 "You have already responded". The
+            # client had to treat that 400 as success.
+            #
+            # Same shape as /substitutes/my-responses so the client has one
+            # model: null when they have not responded, otherwise the response.
+            "my_response": my_response_data,
+            "has_responded": my_response_data is not None
         }), 200
 
 
@@ -670,6 +696,8 @@ def get_all_substitute_requests():
         status: Filter by status (OPEN, FILLED, CANCELLED)
         match_id: Filter by match
         team_id: Filter by team
+        league_type: Filter by league name (Premier, Classic, ECS FC,
+                     Summer Sprint). Case-insensitive.
         limit: Maximum number of requests (default: 50)
         page: Page number (default: 1)
 
@@ -679,6 +707,7 @@ def get_all_substitute_requests():
     status_filter = request.args.get('status')
     match_id = request.args.get('match_id', type=int)
     team_id = request.args.get('team_id', type=int)
+    league_type = request.args.get('league_type')
     limit = min(request.args.get('limit', 50, type=int), 100)
     page = request.args.get('page', 1, type=int)
 
@@ -698,6 +727,24 @@ def get_all_substitute_requests():
 
         if team_id:
             query = query.filter(SubstituteRequest.team_id == team_id)
+
+        # league_type was accepted by the client but never read here, so the
+        # admin's league chip was a silent no-op and the client had to filter
+        # the page it received -- which only ever filters the CURRENT page, so
+        # with enough requests a league's entries fall off the end of the list.
+        #
+        # Filtering server-side also makes `total` and the pagination correct
+        # for the filtered set, which client-side filtering cannot do.
+        #
+        # SubstituteRequest carries its own league_type (set from
+        # team.league.name on create, see create_substitute_request), so this
+        # needs no join. Case-insensitive because it is a display name coming
+        # back from a UI chip, and registry-agnostic -- a new program's name
+        # works with no change here.
+        if league_type:
+            query = query.filter(
+                func.lower(SubstituteRequest.league_type) == league_type.strip().lower()
+            )
 
         total = query.count()
 
@@ -1901,11 +1948,20 @@ def _build_availability_buckets(session, target_date):
     exact join (no time-string tolerance matching needed).
     """
     from collections import defaultdict
-    from app.models.core import Season
+    from app.utils.season_context import (
+        current_program_seasons, pub_league_like_season_types,
+    )
 
-    season = session.query(Season).filter_by(
-        league_type='Pub League', is_current=True
-    ).first()
+    # ⚠️ Every pub-league-like program, not just 'Pub League'.
+    #
+    # Both the season lookup and the per-match gate below used to hardcode
+    # `league_type == 'Pub League'`, so a program with its own season type
+    # (Summer Sprint = 'PL Third') contributed NO buckets: its matches were
+    # filtered out one by one, the poll went up covering only Premier/Classic,
+    # and nobody could mark themselves available for a Summer fixture. Silent —
+    # the poll posts perfectly, just missing a whole league.
+    _current_seasons = current_program_seasons(session)
+    _allowed_types = set(pub_league_like_season_types())
 
     matches = session.query(Match).filter(
         Match.date == target_date,
@@ -1913,16 +1969,32 @@ def _build_availability_buckets(session, target_date):
         Match.home_team_id != Match.away_team_id,  # exclude BYE/special self-match rows
     ).all()
     by_league = defaultdict(list)
+    _seasons_seen = set()
     for m in matches:
         home = m.home_team
         league = home.league if home else None
         if not league or not league.season:
             continue
-        if league.season.league_type != 'Pub League' or not league.season.is_current:
+        if league.season.league_type not in _allowed_types or not league.season.is_current:
             continue
         if m.time is None:
             continue
         by_league[league.name].append(m)
+        _seasons_seen.add(league.season_id)
+
+    # The poll carries ONE season_id, so derive it from the matches actually
+    # bucketed rather than assuming Pub League. A single-program poll (the
+    # normal case, including a Summer-only Sunday) is then stamped correctly;
+    # only a genuinely cross-program date falls back to Pub League, which is
+    # what it did before for every date.
+    season = None
+    if len(_seasons_seen) == 1:
+        _only = next(iter(_seasons_seen))
+        season = next((s for s in _current_seasons if s.id == _only), None)
+    if season is None:
+        season = next((s for s in _current_seasons if s.league_type == 'Pub League'), None)
+    if season is None and _current_seasons:
+        season = _current_seasons[0]
 
     buckets = []
     for league_name in sorted(by_league.keys()):
@@ -2689,6 +2761,12 @@ def get_available_requests():
                     "date": req.match.date.isoformat() if req.match.date else None,
                     "time": req.match.time.isoformat() if req.match.time else None,
                     "location": req.match.location,
+                    # `_name` keys, matching get_my_team_requests (:338-339).
+                    # This route emitted bare `home_team`/`away_team` for the same
+                    # concept, so the client saw two shapes for one field.
+                    # Old keys retained so nothing in flight breaks.
+                    "home_team_name": req.match.home_team.name if req.match.home_team else None,
+                    "away_team_name": req.match.away_team.name if req.match.away_team else None,
                     "home_team": req.match.home_team.name if req.match.home_team else None,
                     "away_team": req.match.away_team.name if req.match.away_team else None
                 } if req.match else None,
@@ -2913,9 +2991,26 @@ def _pub_league_type_names():
 
 
 
-def _current_pub_league_season_id(session):
-    """Current Pub League season id (for stamping reach-out/availability rows)."""
+def _current_pub_league_season_id(session, league_name=None):
+    """Season id for stamping reach-out / availability rows.
+
+    Resolved PER PROGRAM when the caller knows which league the reach-out is
+    for. Hardcoding 'Pub League' stamped every Summer Sprint reach-out with
+    Premier/Classic's season id — the row is then filtered out of that
+    program's availability queries and counted against the wrong season, which
+    is worse than a missing row because it looks like real data.
+
+    Falls back to the Pub League season (the previous behaviour) when the league
+    is unknown or has no current season of its own.
+    """
     from app.models.core import Season
+    from app.utils.season_context import current_season_for_program
+
+    if league_name:
+        s = current_season_for_program(league_name, session)
+        if s:
+            return s.id
+
     row = session.query(Season.id).filter_by(
         league_type='Pub League', is_current=True
     ).order_by(Season.id.desc()).first()
@@ -3054,7 +3149,9 @@ def create_substitute_reachout():
             kind=kind,
             league_type=league_type,
             match_date=match_date,
-            season_id=_current_pub_league_season_id(session),
+            # `league_type` here is the League.name ('Premier', 'Summer Sprint'),
+            # which is what resolves the reach-out to its own program's season.
+            season_id=_current_pub_league_season_id(session, league_type),
             time_slots=time_slots,
             match_ids=match_ids,
             request_id=request_id,

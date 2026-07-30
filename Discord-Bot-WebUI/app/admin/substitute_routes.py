@@ -25,7 +25,7 @@ from app.admin_helpers import (
     edit_sub_request
 )
 from app.models import (
-    Match, Team, Player, Schedule, Season,
+    Match, Team, Player, Schedule,
     TemporarySubAssignment
 )
 from app.models.substitutes import SubstituteRequest
@@ -57,14 +57,24 @@ def manage_sub_requests():
     show_requested = request.args.get('show_requested', 'all')
     week = request.args.get('week')
     
-    # Get all weeks for the filter dropdown
-    current_season = session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
+    # Weeks for the filter dropdown, across EVERY current season.
+    #
+    # Scoped to the Pub League season alone, a program with its own season type
+    # (Summer Sprint = 'PL Third') contributed no weeks, so its fixtures could
+    # not be filtered to on the substitute page at all — the dropdown simply had
+    # no entry for them.
+    from app.utils.season_context import current_program_season_ids
+    _season_ids = current_program_season_ids(session)
     weeks = []
-    if current_season:
+    if _season_ids:
         weeks_query = session.query(Schedule.week).filter(
-            Schedule.season_id == current_season.id
+            Schedule.season_id.in_(_season_ids)
         ).distinct().order_by(Schedule.week)
-        weeks = [str(week_row[0]) for week_row in weeks_query]
+        # Distinct across seasons can repeat a week number (both leagues have a
+        # "week 3"), so de-dupe while keeping the ordering.
+        _seen = set()
+        weeks = [str(w) for (w,) in weeks_query
+                 if w is not None and not (str(w) in _seen or _seen.add(str(w)))]
     
     # Get upcoming matches (for the next 30 days)
     today = datetime.now().date()

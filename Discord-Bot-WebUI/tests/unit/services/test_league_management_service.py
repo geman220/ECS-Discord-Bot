@@ -516,15 +516,27 @@ class TestTeamOperations:
 
     def test_delete_team_success(self, league_service, db, league, user):
         """
-        GIVEN an existing team without players
-        WHEN deleting team
-        THEN should mark deletion and return success message
+        GIVEN a placeholder team carrying NO matches, standings or season history
+        WHEN deleting it
+        THEN deletion succeeds.
+
+        The team must be genuinely empty. delete_team guards against destroying
+        history: matches/standings FKs are NO ACTION (the delete would error
+        mid-request) and player_team_season is ON DELETE CASCADE (it would
+        silently destroy history). Only placeholder teams may be removed.
         """
-        # Create a clean team without FK references
+        from app.models.stats import Standings
+
         team_to_delete = Team(name='Team To Delete', league_id=league.id)
         db.session.add(team_to_delete)
         db.session.commit()
         team_name = team_to_delete.name
+
+        # Ensure the team really is empty -- a Standings row is created for teams
+        # elsewhere in the fixture chain, and its presence is exactly what the
+        # guard blocks on.
+        db.session.query(Standings).filter_by(team_id=team_to_delete.id).delete()
+        db.session.commit()
 
         with patch.object(league_service, '_queue_discord_team_cleanup_task'):
             success, message = league_service.delete_team(
@@ -534,7 +546,33 @@ class TestTeamOperations:
 
         assert success is True, f"Failed with message: {message}"
         assert team_name in message
-        # Note: actual deletion depends on session.commit() being called after
+
+    def test_delete_team_blocked_when_it_has_standings(self, league_service, db, league, user):
+        """
+        GIVEN a team that carries standings
+        WHEN deleting it
+        THEN the delete is REFUSED and the reason names what is blocking.
+
+        This is the deliberate data-protection guard. It is asserted explicitly
+        so that removing it -- and silently destroying historical stats -- fails
+        loudly here instead of in production.
+        """
+        from app.models.stats import Standings
+
+        team = Team(name='Team With History', league_id=league.id)
+        db.session.add(team)
+        db.session.commit()
+
+        if not db.session.query(Standings).filter_by(team_id=team.id).count():
+            db.session.add(Standings(team_id=team.id, season_id=league.season_id))
+            db.session.commit()
+
+        with patch.object(league_service, '_queue_discord_team_cleanup_task'):
+            success, message = league_service.delete_team(team_id=team.id, user_id=user.id)
+
+        assert success is False
+        assert 'standings' in message.lower()
+        assert db.session.query(Team).get(team.id) is not None, "team must survive a refused delete"
 
     def test_delete_team_nonexistent(self, league_service, user):
         """

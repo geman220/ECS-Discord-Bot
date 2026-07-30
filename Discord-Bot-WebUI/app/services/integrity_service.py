@@ -234,6 +234,21 @@ CHECK_META = {
             'reappears the moment a season is set current.'),
     'G1':  (SEV_HIGH, 'approval', 'Pending user is rostered',
             'Awaiting approval but already on a team — gets no team/league Discord role.'),
+    # ⚠️ A detector with no CHECK_META entry is not a missing label — it is a
+    # KeyError in _counts_from_results and summarize(), i.e. a 500 on the
+    # integrity dashboard AND on every page that reads the cached counts.
+    'G18': (SEV_MED,  'league',   'League role without a membership row',
+            'Holds a program\'s Flask league role but has no membership row for that '
+            'program\'s current season, so the league does not list them anywhere. The '
+            'spine is event-driven, so a role granted outside the role endpoints (direct '
+            'SQL, a rolled-back resync, a role added before the season existed) never got '
+            'its row and nothing retries. Repair: flask backfill-league-membership.'),
+    'G17': (SEV_MED,  'approval', 'Paid but not approved',
+            'Holds a paid pass for a current season but is not approved to play. Payment and '
+            'approval are separate axes on purpose; this only flags that the two DISAGREE, '
+            'and leaves what to do about it to you. Unlike G1 this does NOT require a roster '
+            'row, which is the whole point — before the draft nothing else flags these '
+            'people at all.'),
     'G2':  (SEV_HIGH, 'approval', 'Approved vs Discord drift',
             'is_approved=True but approval_status is not "approved" — app lets them in, Discord treats them as unverified.'),
     'G3':  (SEV_HIGH, 'approval', 'Approved but no league role',
@@ -1063,6 +1078,166 @@ def detect_g15_waitlisted_active(session, player_ids=None):
     return findings
 
 
+def detect_g17_paid_not_approved(session, player_ids=None):
+    """Holds a PAID pass for a current season but is not approved to play.
+
+    The money and the permission are separate axes on purpose — a purchase is
+    not a clearance. This detector does NOT say what the answer is; it only
+    surfaces that the two axes DISAGREE, which is the state nobody notices
+    because neither side looks wrong on its own. What to do about any given
+    person — approve, deny, refund, chase them for information, leave it a while
+    — is a judgement call for whoever reads it, not something a checker can know.
+
+    ⚠️ Deliberately NOT covered by G1. G1 requires a current-season ROSTER row,
+    so it only fires once someone is on a team — i.e. after the draft. The
+    expensive window is BEFORE that: pass paid and linked, approval never
+    actioned, no roster to give it away. That person is invisible to every
+    existing check and simply never gets placed.
+
+    Scoped to line items whose ORDER belongs to a current season, so last
+    season's paid-and-never-approved people don't haunt the dashboard forever.
+    """
+    from app.models import Player, User
+    from app.models import (PubLeagueOrder, PubLeagueOrderLineItem,
+                            PubLeagueOrderStatus)
+
+    season_ids = _current_season_ids(session)
+    if not season_ids:
+        return []
+
+    rows = (session.query(Player.id, Player.name, User.id, User.approval_status,
+                          User.is_approved, PubLeagueOrderLineItem.division)
+            .join(User, User.id == Player.user_id)
+            .join(PubLeagueOrderLineItem,
+                  PubLeagueOrderLineItem.assigned_player_id == Player.id)
+            .join(PubLeagueOrder, PubLeagueOrder.id == PubLeagueOrderLineItem.order_id)
+            .filter(PubLeagueOrder.season_id.in_(season_ids),
+                    PubLeagueOrder.status != PubLeagueOrderStatus.CANCELLED.value))
+    if player_ids is not None:
+        rows = rows.filter(Player.id.in_(player_ids))
+
+    findings, seen = [], set()
+    for pid, pname, uid, status, is_approved, division in rows.distinct().all():
+        if pid in seen:
+            continue
+        status = (status or '').lower()
+        # 'approved' is the only clean state. Anything else — pending, denied,
+        # or an empty status on a user that was never run through approval — is
+        # a paid person nobody has decided about.
+        if is_approved and status == 'approved':
+            continue
+        seen.add(pid)
+
+        denied = status == 'denied'
+        if denied:
+            detail = (f"{pname} paid for a {division or 'league'} pass, but their account "
+                      "is marked denied. Payment and approval disagree — worth a look to "
+                      "decide which one is right.")
+        else:
+            detail = (f"{pname} paid for a {division or 'league'} pass but has not been "
+                      "approved, and is not on a roster yet — so nothing else will flag "
+                      "them. Payment and approval disagree.")
+
+        actions = []
+        if not denied:
+            # The ONE action offered is the one that is unambiguous when it is
+            # what you want: approve them. Everything else (denying, refunding,
+            # chasing them) is deliberately NOT a button here — those are
+            # decisions with money or a relationship attached, and a one-click
+            # affordance next to a warning icon is how they get made by accident.
+            actions.append({
+                'action': 'approve', 'label': 'Approve for selected division',
+                'style': 'primary', 'params': {},
+                'select': _league_select(league_name_to_approve_type((division or '').lower())),
+            })
+        findings.append(IntegrityFinding(
+            # Denied-and-paid ranks higher only because it is the less likely
+            # state and therefore the more likely to be a mistake — not because
+            # the checker has an opinion about the resolution.
+            code='G17', severity=SEV_HIGH if denied else SEV_MED, category='approval',
+            title=('Paid but denied' if denied else 'Paid but not approved'),
+            name=pname, player_id=pid, user_id=uid, detail=detail,
+            fix_actions=actions,
+        ))
+    return findings
+
+
+def detect_g18_league_role_no_membership(session, player_ids=None):
+    """Holds a program's Flask league role but has NO membership row for that
+    program's current season.
+
+    This is SPINE DRIFT, and it is invisible from every direction. The person
+    looks approved (they hold the role), the role looks granted (it is), and the
+    league simply does not list them — "Memberships · this season" shows nothing
+    for that program and no page anywhere says why.
+
+    It happens because the spine is EVENT-DRIVEN: `resync_player_memberships`
+    runs from the endpoints that change roles. Anything that grants a role
+    outside those endpoints — a direct SQL grant, a failed resync inside a
+    rolled-back transaction, a role added before the program's season existed —
+    leaves the role without its row, permanently. Nothing retries.
+
+    `flask backfill-league-membership` is the repair; this is the thing that
+    tells you to run it.
+    """
+    from app.models import Player, User, LeagueMembership
+
+    try:
+        from app.services import program_registry
+        programs = [p for p in program_registry.all_programs(session)
+                    if p.flask_league_role and p.membership_lane]
+    except Exception:
+        return []
+    if not programs:
+        return []
+
+    # lane -> current season id for that lane's program
+    from app.models import Season
+    current_by_type = {
+        ltype: sid for sid, ltype in
+        session.query(Season.id, Season.league_type).filter(Season.is_current.is_(True)).all()
+    }
+
+    findings = []
+    for prog in programs:
+        season_id = current_by_type.get(prog.season_league_type)
+        if not season_id:
+            continue  # G16 already reports a program with no current season
+
+        q = (session.query(Player.id, Player.name, User.id)
+             .join(User, User.id == Player.user_id)
+             .filter(User.roles.any(name=prog.flask_league_role),
+                     User.is_approved.is_(True))
+             .filter(~session.query(LeagueMembership).filter(
+                 LeagueMembership.player_id == Player.id,
+                 LeagueMembership.season_id == season_id,
+                 LeagueMembership.league_type == prog.membership_lane,
+                 LeagueMembership.role == 'player',
+             ).exists()))
+        if player_ids is not None:
+            q = q.filter(Player.id.in_(player_ids))
+
+        for pid, pname, uid in q.distinct().all():
+            findings.append(IntegrityFinding(
+                code='G18', severity=SEV_MED, category='league',
+                title='League role without a membership row',
+                name=pname, player_id=pid, user_id=uid,
+                detail=(f"{pname} holds {prog.flask_league_role} but has no "
+                        f"{prog.display_name} membership for the current season, so "
+                        f"the league does not list them anywhere. The spine is "
+                        f"event-driven — a role granted outside the role endpoints "
+                        f"never got its row. `flask backfill-league-membership` "
+                        f"rebuilds it from the source facts."),
+                fix_actions=[{
+                    'action': 'resync_membership', 'style': 'primary', 'params': {},
+                    'label': f'Rebuild {pname}’s membership rows',
+                    'confirm': ('Recomputes this player’s membership rows from their '
+                                'roles, roster and pools. Changes nothing else.'),
+                }],
+            ))
+    return findings
+
+
 # Registry — order = dashboard order (high severity first).
 def detect_g16_program_no_current_season(session, player_ids=None):
     """Every active program must have EXACTLY ONE current season.
@@ -1139,6 +1314,8 @@ def detect_g16_program_no_current_season(session, player_ids=None):
 DETECTORS = [
     ('G16', detect_g16_program_no_current_season),
     ('G1', detect_g1_pending_rostered),
+    ('G17', detect_g17_paid_not_approved),
+    ('G18', detect_g18_league_role_no_membership),
     ('G2', detect_g2_approval_drift),
     ('G3', detect_g3_approved_no_league_role),
     ('G4', detect_g4_denied_active),

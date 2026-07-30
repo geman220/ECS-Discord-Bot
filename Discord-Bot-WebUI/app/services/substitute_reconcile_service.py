@@ -21,7 +21,6 @@ no linked Player, are surfaced rather than silently dropped.
 
 import logging
 
-from app.models.core import Season
 from app.models.players import Player, player_teams
 from app.models.discord_polls import DiscordPoll, DiscordPollVote
 from app.models.substitutes import SubstituteRequest, SubstituteResponse, get_eligible_players
@@ -53,10 +52,14 @@ def build_poll_reconcile(session, poll_id):
 
     slot_map = poll.slot_map or {}
 
-    current = session.query(Season).filter_by(
-        league_type='Pub League', is_current=True
-    ).first()
-    season_stale = bool(poll.season_id and current and poll.season_id != current.id)
+    # "Stale" means the poll belongs to a season that is no longer running —
+    # so it must be checked against EVERY current season, not just Pub League's.
+    # Scoped to Pub League alone, a perfectly live Summer Sprint poll compared
+    # its own season_id to Premier/Classic's, never matched, and was flagged
+    # stale on every reconcile.
+    from app.utils.season_context import current_program_season_ids
+    _current_ids = set(current_program_season_ids(session))
+    season_stale = bool(poll.season_id and _current_ids and poll.season_id not in _current_ids)
 
     # --- Current votes (removed_at IS NULL) grouped by answer_id ---
     votes = session.query(DiscordPollVote).filter(

@@ -3,15 +3,29 @@ name: Test Suite
 permissions:
   contents: read
 
+# ⚠️ NO `paths:` FILTER — this is deliberate, do not "optimise" it back.
+#
+# There used to be `paths: ['Discord-Bot-WebUI/**']` here, so the suite only ran
+# when webui files changed. That is fine until a status check from this workflow
+# becomes REQUIRED in branch protection: a PR that touches only the bot, or a
+# root-level file, never triggers the workflow, the required check therefore
+# never reports, and GitHub blocks the PR FOREVER waiting for a result that
+# cannot arrive. The failure looks like a hung check, not a config problem, so it
+# costs an afternoon to diagnose.
+#
+# Running the suite on every PR costs ~2 minutes. Leave it.
 on:
   push:
     branches: [ main, master, develop ]
-    paths:
-      - 'Discord-Bot-WebUI/**'
   pull_request:
     branches: [ main, master, develop ]
-    paths:
-      - 'Discord-Bot-WebUI/**'
+
+# A newer push supersedes an older one, so two quick pushes don't pay for two
+# full suites. Never cancels on the default branches, so master/main always ends
+# up with a real result for its final commit.
+concurrency:
+  group: test-suite-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' }}
 
 jobs:
   test:
@@ -99,6 +113,29 @@ jobs:
         SECRET_KEY: test-secret-key
         JWT_SECRET_KEY: test-jwt-secret
 
+    # The 12 test files that live directly in tests/ -- public-site builder,
+    # sanitizer, redirects, notification census, automation overlaps, Discord role
+    # alignment. ~245 tests that NO workflow ran, because CI only ever pointed at
+    # tests/unit/ and tests/integration/. They collect cleanly and 252 of them
+    # pass; they were simply never executed, so they protected nothing.
+    #
+    # Kept as its own step rather than widening the two steps above to a single
+    # `pytest tests/`: those two are known-green, and merging everything into one
+    # session would let these files share fixture state (the `db` fixture does not
+    # isolate every table) with 1000+ existing tests for the first time. Additive
+    # is the reversible version of this change.
+    - name: Run standalone tests in tests/ root
+      run: |
+        cd Discord-Bot-WebUI
+        pytest tests/ -v --cov=app --cov-append --cov-report=xml --cov-report=term-missing \
+          --ignore=tests/unit --ignore=tests/integration
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379/15
+        TESTING: true
+        SECRET_KEY: test-secret-key
+        JWT_SECRET_KEY: test-jwt-secret
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -134,11 +171,47 @@ jobs:
       with:
         python-version: '3.11'
     
+    # Major versions are constrained on purpose. `pip install flake8` unpinned
+    # means the gating step below runs whatever flake8 released this morning, and
+    # a new MAJOR can add or re-scope checks inside the E9/F6/F7/F8 ranges -- so
+    # a build that passed yesterday goes red today with nobody having touched the
+    # code. Constraining the major (not the patch) keeps bug fixes flowing while
+    # making the gate reproducible.
     - name: Install linting tools
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 black isort mypy
-    
+        pip install 'flake8>=7,<8' 'black>=24,<26' 'isort>=5,<7' 'mypy>=1,<2'
+
+    # THE ONE LINT STEP THAT GATES. Everything below this is advisory style.
+    #
+    # Codes are listed INDIVIDUALLY, not by prefix, and that matters:
+    # `--select=F82` is a PREFIX match, so it also pulled in F824 ("`global x` is
+    # unused: name is never assigned in scope") -- 12 hits across this codebase.
+    # F824 is a redundancy nit, not a defect: the `global` statement is
+    # unnecessary when a name is only read, and the code runs correctly either
+    # way. Gating on it would have blocked every PR over nothing.
+    #
+    # What IS selected, and why each one is "this code cannot run":
+    #   E9   - syntax / indentation errors
+    #   F63  - comparisons that can never do what was meant
+    #   F7   - syntax misuse (`break` outside a loop, etc.)
+    #   F821 - undefined name
+    #   F822 - undefined name in __all__
+    #   F823 - local variable referenced before assignment
+    #
+    # F821 and F823 are the ones that earn this step. The most common real defect
+    # found in this codebase recently was a function-local
+    # `from app.models import Match`, which makes `Match` local to the WHOLE
+    # function -- so an earlier `session.query(Match)` raised UnboundLocalError
+    # and the endpoint returned 500 on every call. Seven sites had that shape,
+    # plus a helper calling `session.query(...)` with no `session` in scope.
+    #
+    # If this step goes red, it is a genuine bug, not a nit.
+    - name: Lint for errors that break at runtime (gating)
+      run: |
+        cd Discord-Bot-WebUI
+        flake8 app/ --count --select=E9,F63,F7,F821,F822,F823 --show-source --statistics
+
     - name: Run Black
       run: |
         cd Discord-Bot-WebUI
@@ -162,6 +235,50 @@ jobs:
         cd Discord-Bot-WebUI
         mypy app/ --ignore-missing-imports
       continue-on-error: true  # Don't fail CI for type errors initially
+
+  # The front-end has a real vitest suite that NO workflow ran, so four test
+  # files sat in the repo providing zero protection. That matters more than it
+  # looks: the front end is vanilla ES modules built by Vite, several recent
+  # regressions were JS-only (event-delegation timing, escapeHtml dropping
+  # non-strings), and a JS change needs a Vite rebuild to even reach users --
+  # so a broken module is invisible until someone loads the page.
+  #
+  # TODO(maintainer): flip this to gating by deleting `continue-on-error` below.
+  # It is advisory ONLY because nobody has yet confirmed these 4 files pass in a
+  # clean CI checkout. Check the first run's output: if `npm test` is green,
+  # delete the continue-on-error line and add `js-tests` to the required checks.
+  js-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # No `cache: 'npm'` and no `npm ci`, both for the same reason:
+    # package-lock.json is GITIGNORED (.gitignore:49), so a CI checkout never
+    # receives it. `npm ci` requires a lockfile and fails outright, and the npm
+    # cache has no lockfile to key on ("Some specified paths were not resolved").
+    #
+    # ⚠️ Worth knowing rather than working around silently: with no committed
+    # lockfile, every CI run and every fresh clone re-resolves dependency
+    # versions. Builds are not reproducible and a compromised transitive release
+    # would be picked up automatically. Committing package-lock.json would fix
+    # that and let `npm ci` + caching work -- a deliberate decision, not
+    # something to change as a side effect of adding a test job.
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install dependencies
+      run: |
+        cd Discord-Bot-WebUI
+        npm install --no-audit --no-fund
+
+    - name: Run vitest
+      run: |
+        cd Discord-Bot-WebUI
+        npm test -- --run
+      continue-on-error: true
 
   security:
     runs-on: ubuntu-latest

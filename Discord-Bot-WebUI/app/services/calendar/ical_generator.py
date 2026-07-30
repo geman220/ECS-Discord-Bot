@@ -8,7 +8,21 @@ Generates RFC 5545 compliant iCalendar feeds for calendar subscriptions.
 
 import logging
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+# `icalendar` is imported lazily inside each method (it is an optional dependency
+# and one path degrades gracefully when it is absent), but the return annotations
+# below still say -> 'Calendar' / -> 'Event'. Those are QUOTED, so Python never
+# evaluates them and nothing breaks at runtime -- but a static checker cannot
+# resolve the name and reports it as undefined (F821), ten times in this file.
+#
+# That matters beyond tidiness: those ten false positives are what stop
+# `flake8 --select=E9,F63,F7,F82` from being turned into a required check, and
+# that check is the one that catches genuine undefined-name bugs. Declaring the
+# names under TYPE_CHECKING resolves the annotations for the checker while
+# importing nothing at runtime.
+if TYPE_CHECKING:  # pragma: no cover
+    from icalendar import Calendar, Event, Timezone
 
 from sqlalchemy.orm import Session, joinedload
 

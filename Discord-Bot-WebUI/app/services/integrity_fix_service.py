@@ -510,8 +510,46 @@ def _fix_clear_waitlist(user_id, player_id, params, admin_id):
 
 # (code, action) -> fixer. An action listed under a code it wasn't offered for is
 # rejected, so the endpoint can't be used to run arbitrary mutations.
+def _fix_resync_membership(user_id, player_id, params, admin_id):
+    """G18: rebuild this player's membership rows from the source facts.
+
+    Deliberately just runs the normal resync rather than INSERTing the missing
+    row by hand. The spine is a computed projection of roles + roster + pools;
+    hand-writing one row would paper over whichever source fact is actually
+    wrong and leave the two disagreeing again on the next real resync.
+
+    Note `apply_fix` already calls `resync_player_memberships` after every
+    fixer, so this reports what changed rather than doing the work twice.
+    """
+    from app.models import LeagueMembership
+    from app.services.league_membership_sync import resync_player_memberships
+
+    player = _get_player(player_id)
+    before = db.session.query(LeagueMembership).filter(
+        LeagueMembership.player_id == player.id).count()
+    resync_player_memberships(db.session, player.id)
+    db.session.flush()
+    after = db.session.query(LeagueMembership).filter(
+        LeagueMembership.player_id == player.id).count()
+
+    _sync_discord(player, only_add=True)
+
+    if after > before:
+        return (f"Rebuilt {player.name}'s memberships — added {after - before} row(s). "
+                "Discord roles queued.")
+    if after == before:
+        return (f"Recomputed {player.name}'s memberships; no rows were missing. "
+                "If the league still doesn't list them, the source fact is wrong "
+                "(role, roster or pool), not the spine.")
+    return f"Rebuilt {player.name}'s memberships — retired {before - after} stale row(s)."
+
+
 FIXERS = {
     ('G1', 'approve'): _fix_approve,
+    # G17 = paid but never approved. Same repair as G1 (run the approval), so it
+    # reuses the same fixer — a detector that offers an action with no FIXERS
+    # entry renders a Resolve button that raises 'Unknown fix' on click.
+    ('G17', 'approve'): _fix_approve,
     ('G2', 'approve'): _fix_approve,
     ('G3', 'approve'): _fix_approve,
     ('G4', 'deny_cleanup'): _fix_deny_cleanup,
@@ -530,6 +568,7 @@ FIXERS = {
     ('G12', 'mark_inactive'): _fix_mark_inactive,
     ('G13', 'sync_league_id'): _fix_sync_league_id,
     ('G15', 'clear_waitlist'): _fix_clear_waitlist,
+    ('G18', 'resync_membership'): _fix_resync_membership,
 }
 
 

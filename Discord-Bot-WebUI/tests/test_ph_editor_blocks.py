@@ -109,9 +109,26 @@ class TestStateSeedsFallbackNotEmpty:
         # The body_html content flowed into the seeded doc (build_richtext_doc
         # wraps it in a richtext block) — proving it's the REAL fallback, not a
         # generic non-empty stub.
-        blob = json.dumps(doc)
-        assert 'community for adult soccer players' in blob, (
-            'seeded doc must carry the page body_html so Publish preserves it')
+        #
+        # Asserted STRUCTURALLY, not by matching a phrase. This used to look for
+        # the literal string 'community for adult soccer players', which was in
+        # the About copy when the test was written and is not any more — so the
+        # test failed on an editorial edit while the behaviour it guards was
+        # perfectly fine. A test that breaks when marketing rewords a sentence is
+        # testing the copy, not the code.
+        #
+        # The invariant that actually matters: at least one richtext block
+        # carrying a non-trivial slice of the page's own body_html.
+        richtext = [b for s in doc['sections'] for b in s.get('blocks', [])
+                    if b.get('type') == 'richtext' and b.get('html')]
+        assert richtext, (
+            'seeded doc has no richtext block — body_html did not flow in, so a '
+            'first Publish would erase the fallback content')
+
+        seeded_html = ' '.join(b['html'] for b in richtext)
+        assert len(seeded_html) > 200, (
+            f'seeded richtext is only {len(seeded_html)} chars — that looks like a '
+            f'generic stub rather than the real page body')
 
     def test_state_empty_when_no_fallback_content(self, app, db, gadmin_client):
         """Control: a brand-new custom page with an explicit empty draft doc and

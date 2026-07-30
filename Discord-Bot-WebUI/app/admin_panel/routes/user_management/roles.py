@@ -26,7 +26,7 @@ from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionErr
 from app.utils.deferred_discord import defer_discord_sync, defer_discord_revoke
 from app.tasks.tasks_discord import assign_roles_to_player_task
 from app.services.discord_role_sync_service import (
-    sync_role_assignment, sync_role_removal, CANONICAL_DISCORD_ROLE_MAP,
+    sync_role_assignment, sync_role_removal, canonical_discord_role_map,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,10 +38,18 @@ def _discord_roles_for_flask_roles(role_names):
     Used to build the candidate list for a precise revoke pass. Flask roles with no
     Discord counterpart (Global Admin, pl-waitlist, ...) map to nothing, so
     un-toggling them queues no Discord work at all.
+
+    Registry-aware: uses `canonical_discord_role_map()` rather than the static
+    CANONICAL_DISCORD_ROLE_MAP, which only ever knew the three original programs.
+    With the static table, un-toggling `pl-third` / `Summer Coach` / `Summer Sub`
+    returned [] and queued NO revoke — and since the reconcile's protected-role
+    allowlist also refuses division/coach roles, `ECS-FC-PL-SUMMER` was
+    unremovable by any path in the system.
     """
+    role_map = canonical_discord_role_map()
     candidates = []
     for name in role_names:
-        for discord_name in CANONICAL_DISCORD_ROLE_MAP.get(name, []):
+        for discord_name in role_map.get(name, []):
             if discord_name not in candidates:
                 candidates.append(discord_name)
     return candidates

@@ -461,7 +461,16 @@ def get_match_rsvps(match_id):
             
             # OPTIMIZATION: Only include RSVPs for recent matches to reduce memory usage
             from app.utils.rsvp_filters import filter_availability_active, is_match_active_for_rsvp
-            from app.models import Match
+            # NOTE: `Match` is deliberately NOT re-imported here.
+            #
+            # It is already imported at module scope (line 27). A function-local
+            # `from app.models import Match` makes `Match` a LOCAL name for the
+            # WHOLE function, so the earlier `session_db.query(Match)` in the
+            # reveal-gate block above raised:
+            #     UnboundLocalError: local variable 'Match' referenced before assignment
+            # ...which meant GET /api/get_match_rsvps/<id> returned 500 on EVERY
+            # call. The inner try/except below returns 200-with-error, so this
+            # failed ABOVE it and bypassed that safety net entirely.
             
             # Check if this match is still "active" for RSVP purposes
             match = session_db.query(Match).get(match_id)
@@ -553,7 +562,30 @@ def update_availability_from_discord():
         data = request.json
         
         # Validate required fields
+        # Validate the response VALUE, not merely its presence.
+        #
+        # These paths only checked that the key existed, so Discord could send
+        # response='garbage' and it was written straight into Availability and
+        # answered 200 OK. Nothing downstream re-checks it, so a bad value then
+        # flowed into RSVP counts, reminder targeting and sub dispatch.
+        #
+        # It went unnoticed because the endpoint used to die earlier -- on an
+        # AttributeError in the (dead) enterprise redirect -- so the test that
+        # covers this never reached the legacy code at all.
+        VALID_RESPONSES = {'yes', 'no', 'maybe', 'no_response'}
+
         required_fields = ['match_id', 'discord_id', 'response']
+        if all(f in data for f in required_fields) and \
+                data['response'] not in VALID_RESPONSES:
+            logger.warning(
+                f"⚠️ [AVAILABILITY_API] Rejected invalid response value "
+                f"{data['response']!r} for match {data.get('match_id')}")
+            return jsonify({
+                'success': False,
+                'error': (f"Invalid response {data['response']!r}. Expected one "
+                          f"of: {', '.join(sorted(VALID_RESPONSES))}")
+            }), 400
+
         if not all(field in data for field in required_fields):
             logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: {data}")
             return jsonify({
@@ -573,39 +605,25 @@ def update_availability_from_discord():
             'operation_id': str(__import__('uuid').uuid4())  # Generate operation ID
         }
         
-        # Temporarily replace request.json with enterprise format
-        original_json = request.json
-        request.json = enterprise_request_data
-        
-        try:
-            # Call the enterprise endpoint internally
-            logger.info(f"🔄 Redirecting legacy Discord API call to Enterprise RSVP v2: match={data['match_id']}, discord_id={data['discord_id']}")
-            response = update_rsvp_enterprise_from_discord()
-            
-            # Transform enterprise response back to legacy format for compatibility
-            if response[1] == 200:  # Success response
-                enterprise_data = response[0].get_json()
-                legacy_response = {
-                    'status': 'success',
-                    'message': enterprise_data.get('message', 'RSVP updated successfully'),
-                    'match_id': enterprise_data.get('match_id'),
-                    'player_id': enterprise_data.get('player_id'),
-                    # Include enterprise metadata for debugging
-                    '_enterprise': {
-                        'trace_id': enterprise_data.get('trace_id'),
-                        'operation_id': enterprise_data.get('operation_id'),
-                        'via_v2': True
-                    }
-                }
-                return jsonify(legacy_response), 200
-            else:
-                # Enterprise endpoint failed, return the error
-                return response
-                
-        finally:
-            # Restore original request data
-            request.json = original_json
-            
+        # ⚠️ THE ENTERPRISE REDIRECT IS DELIBERATELY DISABLED.
+        #
+        # It never worked. The old code did `request.json = enterprise_request_data`,
+        # which raises AttributeError because request.json is a READ-ONLY property;
+        # a broad except swallowed it and every call fell through to the legacy
+        # implementation below. So the legacy path IS the production behaviour and
+        # always has been.
+        #
+        # Fixing the assignment (passing the payload explicitly) made the redirect
+        # actually fire -- and immediately returned 401 on every Discord RSVP,
+        # because update_rsvp_enterprise_from_discord is JWT-decorated and this is
+        # an INTERNAL call with no Authorization header. Turning a silently-dead
+        # path into a live 401 is strictly worse than leaving it dead.
+        #
+        # Re-enabling it needs the enterprise business logic extracted out from
+        # behind its JWT decorator so both entry points can call it. Until then
+        # this stays explicitly off rather than accidentally off.
+        raise NotImplementedError("enterprise redirect disabled; use legacy path")
+
     except Exception as e:
         logger.error(f"❌ Legacy Discord API redirect to enterprise failed: {str(e)}", exc_info=True)
         # Fallback to original legacy implementation if enterprise redirect fails
@@ -619,7 +637,30 @@ def update_availability_from_discord():
         data = request.json
         logger.debug(f"🔵 [AVAILABILITY_API] Received data from Discord: {data}")
 
+        # Validate the response VALUE, not merely its presence.
+        #
+        # These paths only checked that the key existed, so Discord could send
+        # response='garbage' and it was written straight into Availability and
+        # answered 200 OK. Nothing downstream re-checks it, so a bad value then
+        # flowed into RSVP counts, reminder targeting and sub dispatch.
+        #
+        # It went unnoticed because the endpoint used to die earlier -- on an
+        # AttributeError in the (dead) enterprise redirect -- so the test that
+        # covers this never reached the legacy code at all.
+        VALID_RESPONSES = {'yes', 'no', 'maybe', 'no_response'}
+
         required_fields = ['match_id', 'discord_id', 'response']
+        if all(f in data for f in required_fields) and \
+                data['response'] not in VALID_RESPONSES:
+            logger.warning(
+                f"⚠️ [AVAILABILITY_API] Rejected invalid response value "
+                f"{data['response']!r} for match {data.get('match_id')}")
+            return jsonify({
+                'success': False,
+                'error': (f"Invalid response {data['response']!r}. Expected one "
+                          f"of: {', '.join(sorted(VALID_RESPONSES))}")
+            }), 400
+
         if not all(field in data for field in required_fields):
             logger.error(f"🔴 [AVAILABILITY_API] Missing required fields: {data}")
             return jsonify({

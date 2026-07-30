@@ -225,10 +225,13 @@ def send_pass_ready_email(recipient_email, recipient_name, division, download_ur
             </div>
 
             <div class="button-group">
-                <a href="{{ download_url }}?platform=apple" class="button button-apple">
+                {# `&`, not `?` -- download_url already carries ?token=<...>, so a
+                   second `?` folds the platform into the token value and the
+                   route 404s with "Pass not found". #}
+                <a href="{{ download_url }}&platform=apple" class="button button-apple">
                     &#63743; Add to Apple Wallet
                 </a>
-                <a href="{{ download_url }}?platform=google" class="button button-google">
+                <a href="{{ download_url }}&platform=google" class="button button-google">
                     Add to Google Wallet
                 </a>
             </div>

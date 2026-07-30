@@ -12,10 +12,11 @@ Admin routes for managing Pub League WooCommerce orders, including:
 import io
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import (
     Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect, g,
+    current_app,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import desc, asc, or_, and_, func, distinct, exists, nullslast, select
@@ -105,6 +106,16 @@ def _division_condition(division_filter):
 
     Uses correlated EXISTS so it composes with the plain PubLeagueOrder query
     (no join needed) and reuses across list/stats/export. None for 'all'.
+
+    ⚠️ `.correlate(PubLeagueOrder)` is load-bearing, not decoration. Left to
+    auto-correlation, SQLAlchemy correlates EVERY table the subquery shares with
+    the enclosing query -- so the moment this is used on a query that also
+    selects from `pub_league_order_line_item` (the auto-unconfirmed stat, the
+    jersey-size export aggregate), the line-item table is correlated away too
+    and the subquery is left with NO FROM clause at all. That raises
+    InvalidRequestError and drops the whole orders page into its error state:
+    picking any division but "All divisions" blanked the page. Naming the one
+    table we mean to correlate keeps the line-item table in the subquery's FROM.
     """
     if not division_filter or division_filter == 'all':
         return None
@@ -113,13 +124,15 @@ def _division_condition(division_filter):
     names = _division_names()
 
     def _has(name):
-        return exists().where(and_(li.order_id == PubLeagueOrder.id,
-                                   func.lower(li.division) == name.lower()))
+        return (exists().where(and_(li.order_id == PubLeagueOrder.id,
+                                    func.lower(li.division) == name.lower()))
+                .correlate(PubLeagueOrder))
 
     if division_filter == 'mixed':
         # More than one distinct division on the same order.
         return (select(func.count(func.distinct(li.division)))
                 .where(li.order_id == PubLeagueOrder.id)
+                .correlate(PubLeagueOrder)
                 .scalar_subquery()) > 1
 
     match = next((n for n in names if n.lower() == division_filter.lower()), None)
@@ -136,13 +149,15 @@ def _parse_order_filters():
     Parse the status/search/season/division/sort filter params shared by the
     orders list and the email export, and build the season scope condition.
 
-    Season scope defaults to the CURRENT Pub League season so the list is
-    not clogged with last season's orders. This "ties to rollover": whichever
-    season is is_current becomes the default view automatically, no config.
-    'all' shows every season; a numeric id shows one specific season.
+    Season scope defaults to the current season of EVERY pub-league-like
+    program so the list is not clogged with last season's orders. This "ties to
+    rollover": whichever seasons are is_current become the default view
+    automatically, no config. 'all' shows every season; a numeric id shows one
+    specific season.
 
     Returns a dict with: status_filter, search, season_filter,
-    selected_season_id, is_current_view, current_season, season_condition.
+    selected_season_id, is_current_view, current_season, current_seasons,
+    current_season_ids, current_season_label, season_condition.
     """
     status_filter = request.args.get('status', 'all')
     search = request.args.get('search', '').strip()
@@ -157,9 +172,37 @@ def _parse_order_filters():
         division_filter = 'all'
     division_condition = _division_condition(division_filter)
 
-    current_season = db.session.query(Season).filter_by(
-        league_type='Pub League', is_current=True
-    ).first()
+    # "Current" spans EVERY pub-league-like program, not just Pub League.
+    #
+    # ⚠️ This was `filter_by(league_type='Pub League', is_current=True).first()`.
+    # Each program carries its OWN `Season.league_type` precisely so it can have
+    # its own `is_current` row -- Summer Sprint's seasons are 'PL Third'. So a
+    # Summer Sprint order, correctly bound to the current 'PL Third' season, did
+    # not match `season_id == <Pub League current>` and did not match the orphan
+    # branch either (its `season_name` is set and is not the Pub League season's
+    # name). It was invisible on the default view with no error and no empty
+    # state -- the page simply looked like nobody had bought one.
+    #
+    # `pub_league_like_season_types()` is exactly the "I genuinely want all
+    # pub-league-like seasons at once" case its docstring sanctions; the bug it
+    # warns about is feeding that list to `.in_()` and then `.first()`, which is
+    # not what happens here -- every current season is kept.
+    try:
+        from app.services import program_registry
+        _season_types = program_registry.pub_league_like_season_types() or ['Pub League']
+    except Exception as exc:
+        logger.warning(f"orders: season types fell back to Pub League: {exc}")
+        _season_types = ['Pub League']
+
+    current_seasons = db.session.query(Season).filter(
+        Season.league_type.in_(_season_types), Season.is_current.is_(True)
+    ).order_by(Season.id.desc()).all()
+    current_season_ids = [s.id for s in current_seasons]
+    # Kept for the template's "is this option already the current one" check and
+    # for callers that want a single representative season.
+    current_season = current_seasons[0] if current_seasons else None
+    current_season_label = ', '.join(s.name for s in current_seasons if s.name)
+
     season_filter = request.args.get('season', 'current')
     is_current_view = False
     if season_filter == 'all':
@@ -170,7 +213,7 @@ def _parse_order_filters():
     else:
         try:
             selected_season_id = int(season_filter)
-            is_current_view = bool(current_season and selected_season_id == current_season.id)
+            is_current_view = False
         except (TypeError, ValueError):
             selected_season_id = current_season.id if current_season else None
             season_filter = 'current'
@@ -183,23 +226,27 @@ def _parse_order_filters():
     season_condition = None
     if season_filter != 'all' and selected_season_id is not None:
         if is_current_view:
-            # Current view = orders in the current season, PLUS genuine
-            # orphans that need attention. An orphan is a NULL season_id
-            # with no season_name (truly unmatched) or a name that IS the
-            # current season. We must NOT sweep in legacy orders that carry
+            # Current view = orders in ANY program's current season, PLUS
+            # genuine orphans that need attention. An orphan is a NULL season_id
+            # with no season_name (truly unmatched) or a name that IS one of the
+            # current seasons. We must NOT sweep in legacy orders that carry
             # a PAST season_name (e.g. "2024 Spring") but never had their
             # season_id backfilled — those were flooding the current view.
             orphan_names = [PubLeagueOrder.season_name.is_(None), PubLeagueOrder.season_name == '']
-            if current_season and current_season.name:
-                orphan_names.append(PubLeagueOrder.season_name == current_season.name)
+            for _cs in current_seasons:
+                if _cs.name:
+                    orphan_names.append(PubLeagueOrder.season_name == _cs.name)
             season_condition = or_(
-                PubLeagueOrder.season_id == selected_season_id,
+                PubLeagueOrder.season_id.in_(current_season_ids),
                 and_(
                     PubLeagueOrder.season_id.is_(None),
                     or_(*orphan_names)
                 )
             )
         else:
+            # An explicitly chosen season means THAT season only — including
+            # when it happens to be a current one. Orphans stay on the
+            # "Current Season" view, which is the queue for them.
             season_condition = PubLeagueOrder.season_id == selected_season_id
 
     return {
@@ -209,6 +256,9 @@ def _parse_order_filters():
         'selected_season_id': selected_season_id,
         'is_current_view': is_current_view,
         'current_season': current_season,
+        'current_seasons': current_seasons,
+        'current_season_ids': current_season_ids,
+        'current_season_label': current_season_label,
         'season_condition': season_condition,
         'sort': sort,
         'division_filter': division_filter,
@@ -232,6 +282,8 @@ def orders_list():
         selected_season_id = filters['selected_season_id']
         season_condition = filters['season_condition']
         current_season = filters['current_season']
+        current_season_ids = filters['current_season_ids']
+        current_season_label = filters['current_season_label']
         sort = filters['sort']
         division_filter = filters['division_filter']
         division_condition = filters['division_condition']
@@ -385,6 +437,8 @@ def orders_list():
             selected_season_id=selected_season_id,
             season_options=season_options,
             current_season=current_season,
+            current_season_ids=current_season_ids,
+            current_season_label=current_season_label,
             sort=sort,
             division_filter=division_filter,
             division_options=division_filter_options(),
@@ -407,6 +461,8 @@ def orders_list():
             selected_season_id=None,
             season_options=[],
             current_season=None,
+            current_season_ids=[],
+            current_season_label='',
             sort=DEFAULT_SORT,
             division_filter='all',
             user_roles=[],
@@ -815,6 +871,293 @@ def api_manual_link():
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
+def _division_form_value(division):
+    """`League.name` on a line item -> the approval form value for that program.
+
+    'Summer Sprint' -> 'pl_third'. Returns (form_value, label) or (None, None)
+    when the division resolves to no program — in which case we must NOT guess,
+    because approving into the wrong league is silent data corruption that
+    nothing downstream flags.
+    """
+    if not division:
+        return None, None
+    try:
+        from app.services import program_registry
+        pr = program_registry.by_league_name(division)
+        if pr is None:
+            return None, None
+        return (pr.form_value or pr.membership_lane), (pr.display_name or pr.league_name)
+    except Exception:
+        logger.warning("could not resolve division %r to a program", division, exc_info=True)
+        return None, None
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/player-limbo', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_player_limbo():
+    """Report the "limbo" states of the player a pass was just assigned to.
+
+    Buying a pass and being CLEARED TO PLAY are deliberately separate axes — we
+    refund people who turn out not to be a good fit — so nothing here is applied
+    automatically and this endpoint writes nothing at all. It only answers "what
+    is inconsistent about this person now that they hold a pass?", so the admin
+    doing a manual assignment can fix it in the same breath instead of leaving
+    them pending/waitlisted forever with a paid pass.
+
+    Read-only by design: the companion `api_resolve_limbo` does the writing, and
+    only for the boxes the admin actually ticked.
+    """
+    data = request.get_json(silent=True) or {}
+    player_id = data.get('player_id')
+    line_item_id = data.get('line_item_id')
+
+    if not player_id:
+        return jsonify({'success': False, 'error': 'Missing player_id'}), 400
+
+    try:
+        from app.models import Role
+        from app.models.substitutes import SubstitutePool
+
+        session = getattr(g, 'db_session', db.session)
+
+        player = session.query(Player).options(
+            joinedload(Player.user)
+        ).filter_by(id=player_id).first()
+        if not player:
+            return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+        line_item = None
+        if line_item_id:
+            line_item = session.query(PubLeagueOrderLineItem).options(
+                joinedload(PubLeagueOrderLineItem.order)
+            ).filter_by(id=line_item_id).first()
+
+        division = line_item.division if line_item else None
+        form_value, division_label = _division_form_value(division)
+
+        user = player.user if player.user_id else None
+        actions, notes = [], []
+
+        if user is None:
+            # Nothing here is actionable without an account: approval, roles and
+            # the waitlist all hang off User, not Player.
+            notes.append("This player has no linked user account, so they cannot "
+                         "be approved or taken off a waitlist here.")
+        else:
+            role_names = {r.name for r in user.roles}
+            approved = bool(getattr(user, 'is_approved', False))
+            status = (getattr(user, 'approval_status', None) or '').lower()
+
+            if not approved or status == 'pending':
+                if not form_value:
+                    notes.append(
+                        f"They are still awaiting approval, but this pass's division "
+                        f"({division or 'unknown'}) doesn't match a known program, so "
+                        f"approval can't be offered here. Approve them from their "
+                        f"member page instead.")
+                else:
+                    label = f"Approve them for {division_label}"
+                    if status == 'denied':
+                        # Surfaced, never hidden: silently re-approving someone an
+                        # admin deliberately denied is exactly the decision this
+                        # feature must not make on its own.
+                        label += " — heads up, they were previously DENIED"
+                    actions.append({
+                        'key': 'approve',
+                        'label': label,
+                        'detail': f"Grants the {division_label} role, creates their "
+                                  f"membership row, and syncs Discord.",
+                        'value': form_value,
+                    })
+
+            if 'pl-waitlist' in role_names or getattr(user, 'waitlist_league', None):
+                lane = (getattr(user, 'waitlist_league', None) or '').replace('-', ' ').title()
+                actions.append({
+                    'key': 'remove_waitlist',
+                    'label': f"Take them off the {lane or 'league'} waitlist",
+                    'detail': "They hold a paid pass, so a waitlist spot is contradictory. "
+                              "(Approving above already does this.)",
+                })
+
+        pools = session.query(SubstitutePool).filter_by(player_id=player.id).all()
+        if pools:
+            pool_names = ', '.join(sorted({p.league_type for p in pools if p.league_type}))
+            actions.append({
+                'key': 'remove_sub_pools',
+                'label': f"Remove them from the {pool_names} substitute pool"
+                         f"{'s' if len(pools) > 1 else ''}",
+                'detail': "Only if they should no longer be offered as a sub. Plenty of "
+                          "rostered players stay in a pool on purpose — leave this "
+                          "unticked to keep them.",
+            })
+
+        # Informational only. A pending quick profile can't be claimed BY an
+        # admin — the person claims it themselves — so this is a note, not an action.
+        try:
+            from app.models.quick_profile import QuickProfile, QuickProfileStatus
+            email = (line_item.order.customer_email if (line_item and line_item.order) else None)
+            if email:
+                qp = session.query(QuickProfile).filter(
+                    QuickProfile.status == QuickProfileStatus.PENDING.value,
+                    func.lower(QuickProfile.email) == email.strip().lower(),
+                ).first()
+                if qp:
+                    notes.append(
+                        f"There's an unclaimed quick profile for {email} "
+                        f"(code {qp.claim_code}). They have to claim it themselves — "
+                        f"resend the code if they never got it.")
+        except Exception:
+            logger.debug("quick-profile limbo check skipped", exc_info=True)
+
+        return jsonify({
+            'success': True,
+            'player_name': player.name,
+            'division': division,
+            'actions': actions,
+            'notes': notes,
+        })
+
+    except Exception as e:
+        logger.error(f"Error checking player limbo: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/resolve-limbo', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_resolve_limbo():
+    """Apply ONLY the limbo fixes the admin explicitly ticked.
+
+    An empty `actions` list is a valid, successful no-op — "none" is one of the
+    choices, and it must not be harder than the others.
+
+    ⚠️ SESSION: `apply_approval` mutates and expects `db.session` throughout.
+    The rest of this blueprint works on `g.db_session`, which is a DIFFERENT
+    session in this app. Everything here therefore stays on `db.session` and
+    commits it — mixing the two is the silently-discarded-write bug.
+    """
+    data = request.get_json(silent=True) or {}
+    player_id = data.get('player_id')
+    actions = data.get('actions') or []
+    approve_value = data.get('approve_value')
+
+    if not player_id:
+        return jsonify({'success': False, 'error': 'Missing player_id'}), 400
+    if not isinstance(actions, list):
+        return jsonify({'success': False, 'error': 'actions must be a list'}), 400
+    if not actions:
+        return jsonify({'success': True, 'applied': [], 'message': 'Nothing changed.'})
+
+    _ALLOWED = {'approve', 'remove_waitlist', 'remove_sub_pools'}
+    unknown = [a for a in actions if a not in _ALLOWED]
+    if unknown:
+        return jsonify({'success': False,
+                        'error': f"Unknown action(s): {', '.join(map(str, unknown))}"}), 400
+
+    try:
+        from app.models import Role
+        from app.models.admin_config import AdminAuditLog
+        from app.models.substitutes import SubstitutePool
+
+        player = db.session.query(Player).options(
+            joinedload(Player.user)
+        ).filter_by(id=player_id).first()
+        if not player:
+            return jsonify({'success': False, 'error': 'Player not found'}), 404
+        user = player.user if player.user_id else None
+
+        applied, failed = [], []
+        approved_here = False
+
+        if 'approve' in actions:
+            from app.admin_panel.routes.user_management.approvals import apply_approval
+            # ⚠️ approve_league_types lives in integrity_service, NOT in approvals —
+            # approvals only imports it inside a function body, so importing it
+            # from there raises ImportError at request time.
+            from app.services.integrity_service import approve_league_types
+            if user is None:
+                failed.append('Approve — no user account linked to this player.')
+            elif not approve_value:
+                failed.append('Approve — no league was resolved for this pass.')
+            elif approve_value not in approve_league_types():
+                # Validate against the same vocabulary the approvals page uses;
+                # never trust a value round-tripped through the browser.
+                failed.append(f"Approve — '{approve_value}' is not an approvable league.")
+            else:
+                prior = (user.approval_status or 'pending')
+                try:
+                    apply_approval(user, approve_value, approver_id=current_user.id,
+                                   notes='Approved from the order page after a pass was assigned.')
+                    AdminAuditLog.log_action(
+                        user_id=current_user.id, action='approve_user',
+                        resource_type='user_approval', resource_id=str(user.id),
+                        old_value=prior, new_value=f'approved:{approve_value}',
+                        ip_address=request.remote_addr,
+                        user_agent=request.headers.get('User-Agent'))
+                    applied.append(f'Approved for {approve_value}')
+                    approved_here = True
+                except ValueError as ve:
+                    failed.append(f'Approve — {ve}')
+
+        # Skipped when approve ran: apply_approval already clears the waitlist,
+        # and re-running it would report a change that did not happen.
+        if 'remove_waitlist' in actions and not approved_here:
+            if user is None:
+                failed.append('Waitlist — no user account linked to this player.')
+            else:
+                wl_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+                if wl_role and wl_role in user.roles:
+                    user.roles.remove(wl_role)
+                user.waitlist_joined_at = None
+                user.waitlist_league = None
+                applied.append('Removed from the waitlist')
+
+        if 'remove_sub_pools' in actions:
+            pools = db.session.query(SubstitutePool).filter_by(player_id=player.id).all()
+            removed = []
+            for pool in pools:
+                removed.append(pool.league_type)
+                # ⚠️ substitute_pool_history.pool_id is NOT NULL with no ON DELETE,
+                # so history rows must go first or the delete raises.
+                try:
+                    from app.models.substitutes import SubstitutePoolHistory
+                    db.session.query(SubstitutePoolHistory).filter_by(
+                        pool_id=pool.id).delete(synchronize_session=False)
+                except Exception:
+                    logger.exception("could not clear sub pool history for pool %s", pool.id)
+                db.session.delete(pool)
+            if removed:
+                applied.append(f"Removed from sub pool(s): {', '.join(sorted(set(removed)))}")
+
+        db.session.commit()
+
+        # The spine is recomputed from the source facts we just changed, so it has
+        # to run AFTER the commit above or it recomputes from stale state.
+        try:
+            from app.services.league_membership_sync import resync_player_memberships
+            resync_player_memberships(db.session, player.id)
+            db.session.commit()
+        except Exception:
+            logger.exception("membership resync after limbo resolve failed for player %s",
+                             player.id)
+
+        logger.info("Admin %s resolved limbo for player %s: applied=%s failed=%s",
+                    current_user.id, player_id, applied, failed)
+
+        return jsonify({
+            'success': True,
+            'applied': applied,
+            'failed': failed,
+            'message': ('; '.join(applied) if applied else 'Nothing changed.'),
+        })
+
+    except Exception as e:
+        logger.error(f"Error resolving player limbo: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/resend-claim', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -959,6 +1302,230 @@ def api_refresh_order():
     except Exception as e:
         logger.error(f"Error refreshing order: {e}", exc_info=True)
         db.session.rollback()
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/scan-missing', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_scan_missing_orders():
+    """List paid WooCommerce orders that contain league passes but are NOT here.
+
+    The companion to `api_import_order`: it answers "which order numbers do I
+    type in?", which otherwise means reconciling WooCommerce against this page
+    by hand.
+
+    It exists because a missed order is invisible from BOTH ends. The Woo
+    webhook creates a `PubLeagueOrder` only when a line item resolves to a
+    program, so anything bought before its program was registered produced no
+    row, no ERROR log, and a 200 back to WooCommerce. Nothing in this app knew
+    the sale had happened, so nothing could report it as missing.
+
+    READ-ONLY on purpose. It writes nothing and imports nothing — an admin sees
+    the list, recognises the names, and imports deliberately. A scan that
+    silently bulk-created orders would be very hard to undo if the parser were
+    ever wrong about what counts as a league product.
+
+    Re-runs the CURRENT parser over the LIVE order data, so it reports what
+    would happen if these were ingested today, not what happened then.
+    """
+    data = request.get_json(silent=True) or {}
+
+    try:
+        days = int(data.get('days') or 180)
+    except (TypeError, ValueError):
+        days = 180
+    days = max(1, min(days, 730))
+
+    # Hard ceilings, not tuning knobs. Each page is one 5s-timeout HTTP call and
+    # this runs inside a web request; unbounded paging is a hung worker.
+    per_page, max_pages = 100, 5
+
+    try:
+        from woocommerce import API
+        from app.pub_league.services import PubLeagueOrderService
+
+        # Release the transaction BEFORE the network calls — same rule as
+        # fetch_order_from_woocommerce. PgBouncer runs transaction pooling with
+        # a 30s idle-transaction timeout, so holding one open across several
+        # WooCommerce round trips gets the connection killed under us.
+        for _sess in (getattr(g, 'db_session', None), db.session):
+            if _sess is None:
+                continue
+            try:
+                if _sess.new or _sess.dirty or _sess.deleted:
+                    continue
+                _sess.commit()
+            except Exception:
+                logger.debug("Could not release transaction before Woo scan", exc_info=True)
+
+        wcapi = API(
+            url=current_app.config['WOO_API_URL'],
+            consumer_key=current_app.config['WOO_CONSUMER_KEY'],
+            consumer_secret=current_app.config['WOO_CONSUMER_SECRET'],
+            version="wc/v3",
+            timeout=15,
+        )
+
+        after = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%dT%H:%M:%S')
+        fetched, truncated = [], False
+        for page in range(1, max_pages + 1):
+            resp = wcapi.get("orders", params={
+                # 'any' then filtered below: wc/v3 wants repeated status[] params
+                # for a multi-status filter, which does not survive a plain dict.
+                'status': 'any', 'after': after,
+                'page': page, 'per_page': per_page, 'orderby': 'date', 'order': 'desc',
+            })
+            resp.raise_for_status()
+            batch = resp.json()
+            if not isinstance(batch, list) or not batch:
+                break
+            fetched.extend(batch)
+            if len(batch) < per_page:
+                break
+            if page == max_pages:
+                truncated = True
+
+        # Only paid orders can be ingested — fetch_order_from_woocommerce
+        # rejects anything else, so listing them would produce import failures.
+        paid = [o for o in fetched if o.get('status') in ('processing', 'completed')]
+
+        candidates = {}
+        for o in paid:
+            woo_id = o.get('id')
+            if woo_id is None:
+                continue
+            items = PubLeagueOrderService.extract_pub_league_items(o)
+            if not items:
+                continue
+            billing = o.get('billing') or {}
+            candidates[int(woo_id)] = {
+                'woo_order_id': int(woo_id),
+                'customer_name': f"{billing.get('first_name', '')} {billing.get('last_name', '')}".strip(),
+                'customer_email': billing.get('email', ''),
+                'date': (o.get('date_paid') or o.get('date_created') or '')[:10],
+                'passes': len(items),
+                'divisions': ', '.join(sorted({i['division'] for i in items if i.get('division')})),
+            }
+
+        known = set()
+        if candidates:
+            session = getattr(g, 'db_session', db.session)
+            known = {
+                wid for (wid,) in session.query(PubLeagueOrder.woo_order_id)
+                .filter(PubLeagueOrder.woo_order_id.in_(list(candidates)))
+                .all()
+            }
+
+        missing = [candidates[w] for w in sorted(candidates) if w not in known]
+        missing.sort(key=lambda m: m['date'], reverse=True)
+
+        logger.info(f"Admin {current_user.id} scanned {len(paid)} paid Woo orders "
+                    f"({days}d): {len(candidates)} with passes, {len(missing)} missing")
+
+        return jsonify({
+            'success': True,
+            'missing': missing,
+            'scanned': len(paid),
+            'with_passes': len(candidates),
+            # Surfaced so "0 missing" can never quietly mean "we stopped looking".
+            'truncated': truncated,
+            'days': days,
+        })
+
+    except Exception as e:
+        logger.error(f"Error scanning WooCommerce for missing orders: {e}", exc_info=True)
+        return jsonify({'success': False,
+                        'error': 'Could not reach WooCommerce or read its response.'}), 502
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/import-order', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_import_order():
+    """Pull one WooCommerce order into the system by its Woo order number.
+
+    This is the recovery path for a sale that was never ingested at all.
+
+    The Woo webhook creates a `PubLeagueOrder` only `if pub_league_items` — i.e.
+    only when a line item resolves to a division. Before a program was in the
+    registry (or while it was still `is_active = FALSE`), a purchase of ITS
+    product resolved to nothing, so the webhook created NO order row, logged
+    nothing at ERROR, and returned 200 to WooCommerce. The sale simply did not
+    exist here, and there was no admin surface that could bring it in: every
+    other action on this page starts from an order row that is already present,
+    and the buyer-facing claim link 302s to the homepage for the same reason.
+
+    Now that the registry resolves the product, re-running the same ingest
+    against the live Woo order fills the gap. Idempotent: `create_or_get_order`
+    returns the existing row untouched if the order is already here, so this is
+    safe to retry and safe to run over a list of order numbers.
+    """
+    data = request.get_json(silent=True) or {}
+    raw = str(data.get('woo_order_id') or '').strip().lstrip('#')
+
+    if not raw.isdigit():
+        return jsonify({'success': False, 'error': 'Enter a WooCommerce order number.'}), 400
+    woo_order_id = int(raw)
+
+    # ⚠️ `create_or_get_order` writes on `g.db_session`, not `db.session` — this
+    # app has two independent sessionmakers. Reading on one and committing the
+    # other is the silently-discarded-write bug, so do the whole thing on the
+    # session the service itself will use.
+    session = getattr(g, 'db_session', db.session)
+
+    try:
+        from app.pub_league.services import PubLeagueOrderService
+
+        existing = session.query(PubLeagueOrder).filter_by(woo_order_id=woo_order_id).first()
+        if existing:
+            return jsonify({
+                'success': True,
+                'already_existed': True,
+                'message': f'Order #{woo_order_id} is already here.',
+                'order_url': url_for('pub_league_orders_admin.order_detail', order_id=existing.id),
+            })
+
+        order_data = PubLeagueOrderService.fetch_order_from_woocommerce(woo_order_id)
+        if not order_data:
+            # fetch_order_from_woocommerce also returns None for an order that
+            # exists but is not paid (it requires processing/completed), so say
+            # both things rather than asserting the order does not exist.
+            return jsonify({
+                'success': False,
+                'error': f'WooCommerce returned nothing for #{woo_order_id}. '
+                         'Check the number, and that the order is paid '
+                         '(processing or completed).'
+            }), 404
+
+        order = PubLeagueOrderService.create_or_get_order(woo_order_id, order_data)
+        session.commit()
+
+        # total_passes == 0 means the products on this order matched no program.
+        # That is the ONLY outcome that still needs a human, so it is reported as
+        # a distinct, non-silent result instead of a cheerful "imported".
+        if not order.total_passes:
+            return jsonify({
+                'success': True,
+                'no_passes': True,
+                'message': f'Order #{woo_order_id} was imported, but none of its '
+                           'products matched a program — nobody was granted a pass. '
+                           "Check the program's woo_name_pattern against the product title.",
+                'order_url': url_for('pub_league_orders_admin.order_detail', order_id=order.id),
+            })
+
+        logger.info(f"Admin {current_user.id} imported Woo order {woo_order_id} "
+                    f"({order.total_passes} passes)")
+        return jsonify({
+            'success': True,
+            'message': f'Imported order #{woo_order_id} — {order.total_passes} pass'
+                       f'{"es" if order.total_passes != 1 else ""}.',
+            'order_url': url_for('pub_league_orders_admin.order_detail', order_id=order.id),
+        })
+
+    except Exception as e:
+        logger.error(f"Error importing Woo order {woo_order_id}: {e}", exc_info=True)
+        session.rollback()
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 

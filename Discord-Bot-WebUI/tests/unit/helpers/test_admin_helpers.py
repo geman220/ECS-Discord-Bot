@@ -1015,6 +1015,13 @@ class TestUpdateSubRequestStatus:
 
         # Ensure team is part of the match
         match.home_team_id = team.id
+
+        # Clear any request left by an earlier test in this class -- the db
+        # fixture does not isolate these rows, and create_sub_request refuses a
+        # duplicate for the same (match, team), so this failed with
+        # "A sub request already exists" rather than anything about status.
+        db.session.query(SubstituteRequest).filter_by(
+            match_id=match.id, team_id=team.id).delete()
         db.session.commit()
 
         # Create sub request first

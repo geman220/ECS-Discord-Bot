@@ -312,6 +312,10 @@ class TestHandleProfileUpdate:
         mock_form.name.data = '  New Name  '
         mock_form.phone.data = '  9876543210  '
         mock_form.jersey_size.data = 'L'
+        # Mock() auto-creates date_of_birth.data as a Mock, which SQLite
+        # rejects ('Date type only accepts Python date objects'). The form
+        # field is optional in the real app, so None is the honest value.
+        mock_form.date_of_birth.data = None
         mock_form.pronouns.data = 'they/them'
         mock_form.expected_weeks_available.data = 10
         mock_form.favorite_position.data = 'Midfielder'
@@ -359,6 +363,10 @@ class TestHandleProfileUpdate:
         mock_form.name.data = 'Name'
         mock_form.phone.data = '1234567890'
         mock_form.jersey_size.data = 'M'
+        # Mock() auto-creates date_of_birth.data as a Mock, which SQLite
+        # rejects ('Date type only accepts Python date objects'). The form
+        # field is optional in the real app, so None is the honest value.
+        mock_form.date_of_birth.data = None
         mock_form.pronouns.data = None
         mock_form.expected_weeks_available.data = 8
         mock_form.favorite_position.data = None
@@ -700,6 +708,10 @@ class TestHandleWizardCompletion:
         mock_form.name.data = '  Wizard Complete  '
         mock_form.phone.data = '  5551234567  '
         mock_form.jersey_size.data = 'XL'
+        # Mock() auto-creates date_of_birth.data as a Mock, which SQLite
+        # rejects ('Date type only accepts Python date objects'). The form
+        # field is optional in the real app, so None is the honest value.
+        mock_form.date_of_birth.data = None
         mock_form.pronouns.data = 'he/him'
         mock_form.expected_weeks_available.data = 12
         mock_form.favorite_position.data = 'Forward'

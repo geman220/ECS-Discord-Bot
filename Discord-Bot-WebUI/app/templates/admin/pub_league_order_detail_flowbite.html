@@ -1344,6 +1344,115 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmBtn.disabled = true;
     });
 
+    // ---- Post-assignment cleanup -------------------------------------------
+    //
+    // Nothing here happens on its own. We ask the server what is inconsistent
+    // about this person now that they hold a pass, show it as a checklist with
+    // EVERYTHING UNTICKED, and apply only what the admin ticks. Buying a pass
+    // is not approval — sometimes we refund people who aren't a good fit — so
+    // "none" has to be the default and the easiest answer.
+    function escLimbo(s) {
+        const d = document.createElement('div');
+        d.textContent = (s === null || s === undefined) ? '' : String(s);
+        return d.innerHTML;
+    }
+
+    async function offerLimboFixes(playerId, lineItemId) {
+        let info;
+        try {
+            const res = await fetch('/admin-panel/pub-league-orders/api/player-limbo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ player_id: playerId, line_item_id: lineItemId })
+            });
+            info = await res.json();
+        } catch (err) {
+            return; // never block the assignment on this
+        }
+        if (!info || !info.success) return;
+
+        const hasActions = (info.actions || []).length > 0;
+        const hasNotes = (info.notes || []).length > 0;
+        if (!hasActions && !hasNotes) return;   // nothing to say — stay out of the way
+
+        const notesHtml = (info.notes || []).map(n =>
+            `<p class="text-xs text-amber-700 dark:text-amber-400 mt-2 text-start">
+               <i class="ti ti-info-circle"></i> ${escLimbo(n)}</p>`).join('');
+
+        if (!hasActions) {
+            await Swal.fire({
+                icon: 'info', title: 'Heads up', html: notesHtml,
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+            });
+            return;
+        }
+
+        const rows = info.actions.map((a, i) => `
+            <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer text-start">
+              <input type="checkbox" class="limbo-act mt-0.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"
+                     data-key="${escLimbo(a.key)}" id="limbo-act-${i}">
+              <span>
+                <span class="block text-sm font-medium text-gray-900 dark:text-gray-100">${escLimbo(a.label)}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">${escLimbo(a.detail || '')}</span>
+              </span>
+            </label>`).join('');
+
+        const result = await Swal.fire({
+            title: 'Anything to tidy up?',
+            html: `<p class="text-sm text-start mb-3">${escLimbo(info.player_name)} now holds a pass, but is still in a
+                     half-finished state. Tick only what you want to change — leaving everything
+                     unticked is fine.</p>
+                   <div class="space-y-2">${rows}</div>${notesHtml}`,
+            width: 620,
+            showCancelButton: true,
+            confirmButtonText: 'Apply selected',
+            cancelButtonText: 'Leave as is',
+            confirmButtonColor: '#1a472a',
+            background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827',
+            preConfirm: () => Array.from(document.querySelectorAll('.limbo-act:checked'))
+                                   .map(el => el.dataset.key)
+        });
+
+        if (!result.isConfirmed) return;
+        const chosen = result.value || [];
+        if (!chosen.length) return;   // "Apply" with nothing ticked == no-op
+
+        const approveAction = info.actions.find(a => a.key === 'approve');
+        try {
+            const res = await fetch('/admin-panel/pub-league-orders/api/resolve-limbo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    player_id: playerId,
+                    actions: chosen,
+                    approve_value: approveAction ? approveAction.value : null
+                })
+            });
+            const out = await res.json();
+            if (!out.success) {
+                await Swal.fire({ icon: 'error', title: 'Could not apply', text: out.error || 'Failed.',
+                    background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                return;
+            }
+            // Partial success is reported as a warning, never a tick — some of
+            // these can fail independently and a green check would hide that.
+            const failed = out.failed || [];
+            await Swal.fire({
+                icon: failed.length ? 'warning' : 'success',
+                title: failed.length ? 'Partly applied' : 'Done',
+                html: `<p class="text-sm text-start">${escLimbo(out.message)}</p>` +
+                      (failed.length ? `<ul class="text-xs text-start mt-2 text-red-600 dark:text-red-400">` +
+                        failed.map(f => `<li>${escLimbo(f)}</li>`).join('') + '</ul>' : ''),
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+            });
+        } catch (err) {
+            await Swal.fire({ icon: 'error', title: 'Network error', text: 'Could not reach the server.',
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    }
+
     confirmBtn?.addEventListener('click', function() {
         if (!selectedPlayerId) return;
         const lineItemId = document.getElementById('manualLinkLineItemId').value;
@@ -1360,7 +1469,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
-                Swal.fire({ icon: 'success', title: 'Assigned', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                // Assigning a pass often leaves the person half-set-up (still
+                // pending, still on a waitlist). Offer to tidy that up here —
+                // strictly opt-in, because holding a pass is NOT the same as
+                // being cleared to play and we do refund people.
+                Swal.fire({ icon: 'success', title: 'Assigned', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' })
+                    .then(() => offerLimboFixes(selectedPlayerId, lineItemId))
+                    .then(() => location.reload());
             } else {
                 Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
                 confirmBtn.disabled = false;

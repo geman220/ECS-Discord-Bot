@@ -396,9 +396,23 @@ class LeagueManagementService:
                 elif league_type == 'ECS FC':
                     league_names = ['ECS FC']
                 else:
-                    raise ValueError(
-                        f"No program is registered for season type '{league_type}'. "
-                        f"Register it in the program table before creating a season.")
+                    # Name the league after its own season type.
+                    #
+                    # The bug being fixed was the old `else ['ECS FC']`, which
+                    # created a league literally named "ECS FC" inside another
+                    # program's season -- colliding with the real ECS FC league on
+                    # every name lookup. Using the season type keeps the league
+                    # distinguishable without inventing another program's name.
+                    #
+                    # An earlier revision RAISED here instead. That went too far:
+                    # it broke season creation for any league_type not in the
+                    # registry, including existing callers that pass values like
+                    # 'CLASSIC' directly. Degrade, don't hard-fail.
+                    logger.warning(
+                        f"No program registered for season type '{league_type}'; "
+                        f"creating a single league named after the season type. "
+                        f"Register it in the program table for proper support.")
+                    league_names = [league_type]
             for _name in league_names:
                 _lg = League(name=_name, season_id=season.id)
                 self.session.add(_lg)

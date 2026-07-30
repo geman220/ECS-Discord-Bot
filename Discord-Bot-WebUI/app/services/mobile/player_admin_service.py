@@ -19,6 +19,9 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session, joinedload
 
 from app.services.base_service import BaseService, ServiceResult
+from app.constants.positions import (
+    normalize_position, format_positions, label_for, to_label_array,
+)
 from app.models import User, Player
 from app.models.players import PlayerAdminNote
 
@@ -70,7 +73,15 @@ class PlayerAdminService(BaseService):
             # Fail CLOSED — hide notes on a derivation error rather than leaking them.
             logger.warning(f"NAD check failed for player {player_id}: {e}")
             _player_is_nad = False
-        if not _player_is_nad:
+        # A waiting-room prospect is by construction approval_status='pending', and
+        # NAD membership requires 'approved' — so the thread was hidden for exactly
+        # the people coaches are reviewing. Writes were never gated and the
+        # waiting-room tile counts notes with no NAD filter, so a coach would add a
+        # note, get 201, see the badge say "1", reopen, and be told "No notes yet".
+        _is_pending_prospect = bool(
+            player.user and player.user.approval_status == 'pending'
+        )
+        if not _player_is_nad and not _is_pending_prospect:
             return ServiceResult.ok({
                 "player_id": player.id,
                 "player_name": player.name,
@@ -407,6 +418,16 @@ class PlayerAdminService(BaseService):
                 if field in ['is_coach', 'is_ref', 'is_current_player', 'ispy_opt_out']:
                     new_value = bool(new_value)
 
+                # Positions -> canonical slugs / {slug,slug}, matching
+                # players.py's /player/update and account.py's profile update.
+                # Without this the admin editor wrote whatever the client sent
+                # (a JSON array) straight into a db.Text column, bypassing the
+                # normalization every reader assumes.
+                if field == 'favorite_position':
+                    new_value = normalize_position(new_value) or None
+                elif field in ('other_positions', 'positions_not_to_play'):
+                    new_value = format_positions(new_value)
+
                 if old_value != new_value:
                     setattr(player, field, new_value)
                     updated_fields.append(field)
@@ -601,9 +622,11 @@ class PlayerAdminService(BaseService):
             "date_of_birth": player.date_of_birth.isoformat() if player.date_of_birth else None,
             "ispy_opt_out": player.ispy_opt_out,
             "phone": player.phone,
-            "favorite_position": player.favorite_position,
-            "other_positions": player.other_positions,
-            "positions_not_to_play": player.positions_not_to_play,
+            # Labels, not the raw column. Every other surface converts, so the
+            # admin editor was the one place handing the client `{slug,slug}`.
+            "favorite_position": label_for(player.favorite_position),
+            "other_positions": to_label_array(player.other_positions),
+            "positions_not_to_play": to_label_array(player.positions_not_to_play),
             "frequency_play_goal": player.frequency_play_goal,
             "expected_weeks_available": player.expected_weeks_available,
             "unavailable_dates": player.unavailable_dates,

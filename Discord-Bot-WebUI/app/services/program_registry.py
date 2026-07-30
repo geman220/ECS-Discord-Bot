@@ -355,13 +355,31 @@ def invalidate():
 
 
 def all_programs(session=None, active_only=True):
-    """Every program, ordered by sort_order. Returns _ProgramView objects."""
+    """Every program, ordered by sort_order. Returns _ProgramView objects.
+
+    The `g` cache is scoped to a REQUEST, not merely to an app context.
+
+    `g` lives on the app context, and a Celery worker typically pushes ONE
+    long-lived app context for the life of the process. Caching there meant the
+    snapshot was taken once and then served forever — outliving
+    _CACHE_TTL_SECONDS entirely and defeating `invalidate()`. A worker could
+    keep computing expected Discord roles from a program list that had been
+    edited hours earlier, while the web workers used the current one. Since the
+    role calculators read this to decide which roles exist, the two halves of
+    the system could disagree about a program's very existence.
+
+    Falling through to `_load_rows` (which has its own module-level TTL cache)
+    outside a request keeps the hot path cheap without pinning the value.
+    """
     try:
-        from flask import g
-        cached = getattr(g, _G_KEY, None)
-        if cached is None:
+        from flask import g, has_request_context
+        if has_request_context():
+            cached = getattr(g, _G_KEY, None)
+            if cached is None:
+                cached = [_ProgramView(d) for d in _load_rows(session)]
+                setattr(g, _G_KEY, cached)
+        else:
             cached = [_ProgramView(d) for d in _load_rows(session)]
-            setattr(g, _G_KEY, cached)
     except Exception:
         cached = [_ProgramView(d) for d in _load_rows(session)]
 

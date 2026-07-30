@@ -54,8 +54,24 @@ function cfg() {
         poolApproveUrl: r.dataset.poolApproveUrl,
         poolSetActiveUrl: r.dataset.poolSetactiveUrl,
         poolRejectUrl: r.dataset.poolRejectUrl,
+        // Every league that HAS a substitute pool, server-rendered from the
+        // program registry. Falls back to the legacy three so a missing/empty
+        // attribute behaves exactly like the old hardcoded constant instead of
+        // silently emptying the "add to another pool" picker.
+        poolLeagues: parseLeagues(r.dataset.poolLeagues),
         csrf: r.dataset.csrf || (document.querySelector('meta[name=csrf-token]') || {}).content || '',
     };
+}
+
+function parseLeagues(raw) {
+    const fallback = ['ECS FC', 'Classic', 'Premier'];
+    if (!raw) return fallback;
+    try {
+        const parsed = JSON.parse(raw);
+        return (Array.isArray(parsed) && parsed.length) ? parsed : fallback;
+    } catch (e) {
+        return fallback;
+    }
 }
 
 // The pool endpoints carry the league type in the path. url_for rendered a
@@ -366,7 +382,7 @@ async function poolRemove(el) {
     const ctx = poolCardCtx(el); if (!ctx) return;
     const ok = await confirmAction({
         title: 'Remove from pool?',
-        text: `Remove ${ctx.d.name} from the ${ctx.leagueType} substitute pool? Their sub role is revoked if they are in no other pool.`,
+        text: `Remove ${ctx.d.name} from the ${ctx.leagueType} substitute pool for good? Their membership is deleted and their ${ctx.leagueType} sub role revoked. Use "Set on break" instead to pause them without losing the record.`,
         confirmText: 'Remove', danger: true,
     });
     if (!ok) return;
@@ -392,13 +408,15 @@ async function poolReject(el) {
 // Multi-league membership: put the same person into another league's pool. The
 // roster shows one card per (player, league), so the added league appears as its
 // own card and can be removed independently via that card's Remove.
-const POOL_LEAGUES = ['ECS FC', 'Classic', 'Premier'];
-
+//
+// The league list is server-rendered (cfg().poolLeagues) rather than a constant
+// here: hardcoded to ECS FC/Classic/Premier, a newer program never appeared in
+// the picker, so nobody could be added to its substitute pool from this page.
 async function poolAddLeague(el) {
     const playerId = parseInt(el.dataset.playerId, 10);
     const name = el.dataset.playerName || 'this player';
     const current = el.dataset.currentLeague || '';
-    const others = POOL_LEAGUES.filter(lt => lt !== current);
+    const others = cfg().poolLeagues.filter(lt => lt !== current);
     if (!playerId || !others.length || !window.Swal) return;
     const dark = document.documentElement.classList.contains('dark');
     const inputOptions = {};

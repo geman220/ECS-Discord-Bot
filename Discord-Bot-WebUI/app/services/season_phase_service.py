@@ -8,12 +8,22 @@ for whether the waitlist and registration are open, and whether sub auto-rest ru
 ECS FC is pinned `in_season` and NEVER auto-flips or rolls over (user decision
 2026-07-22).
 
-TWO DIFFERENT SCOPES LIVE HERE, and the distinction is deliberate:
+THREE DIFFERENT SCOPES LIVE HERE, and the distinctions are deliberate:
 
-  * **Phase ADVANCEMENT** (`sync_season_phase_from_dates`) runs for EVERY
-    phase-governed program, resolved from the registry. Without this a newer
-    program's `phase` was written once at season creation and then never moved
-    again -- a decorative column that said `preseason` through its whole season.
+  * **Phase ADVANCEMENT** (`auto_advance_phases`) runs for EVERY phase-governed
+    program, resolved from the registry. Without this a newer program's `phase`
+    was written once at season creation and then never moved again -- a
+    decorative column that said `preseason` through its whole season.
+    ⚠️ Phase governance is NOT `rolls_over` alone; see
+    `phase_governed_season_types` for why that conflation silently freezes a
+    one-off program's phase.
+
+  * **Phase READS** are per-program via `get_program_phase(key)`.
+    `get_pub_league_phase()` is specifically the Pub League one and should only
+    be used where Pub League genuinely governs (the waitlist, below). Asking it
+    "is this program in season?" is confidently wrong whenever two programs sit
+    in different parts of their calendars -- which, for a summer sprint running
+    against a fall season, is most of the time.
 
   * **Waitlist SIDE EFFECTS** stay Pub-League-only. `pl-waitlist` is a single
     GLOBAL population, not a per-program one, so clearing it on another
@@ -106,16 +116,74 @@ def get_pub_league_phase(session=None):
 
 
 def season_phase_map(session=None):
-    """{'pub_league': <phase|None>, 'ecs_fc': <phase|None>} for the current seasons."""
+    """{<membership lane>: <phase|None>} for every program's current season.
+
+    `pub_league` and `ecs_fc` are ALWAYS present (None when there is no current
+    season) because the mobile app reads those two keys by name — see
+    mobile_api/auth.py. Every other program is added under its own membership
+    lane, so a newer program's phase reaches the client instead of being
+    silently dropped by an if/elif that only knew two league types.
+    """
+    out = {'pub_league': None, 'ecs_fc': None}
+
+    # lane per season type, e.g. {'Pub League': 'pub_league', 'PL Third': 'pl_third'}
+    #
+    # Programs on an ALREADY-MAPPED season type are skipped: Premier and Classic
+    # share the 'Pub League' season, so adding 'premier'/'classic' keys would
+    # publish two lanes that are permanently null (the season type is already
+    # reported as 'pub_league') — a client reading `premier` would see null while
+    # the real phase sat under a different key. Only a program with its OWN
+    # season type gets its own key.
+    lane_by_type = {'Pub League': 'pub_league', 'ECS FC': 'ecs_fc'}
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs(session):
+            if (p.season_league_type and p.membership_lane
+                    and p.season_league_type not in lane_by_type):
+                lane_by_type[p.season_league_type] = p.membership_lane
+                out.setdefault(p.membership_lane, None)
+    except Exception:
+        logger.warning("season_phase_map: registry unavailable; "
+                       "reporting Pub League + ECS FC only", exc_info=True)
+
     rows = (_sess(session).query(Season.league_type, Season.phase)
             .filter(Season.is_current.is_(True)).all())
-    out = {'pub_league': None, 'ecs_fc': None}
     for ltype, phase in rows:
-        if ltype == 'Pub League':
-            out['pub_league'] = phase
-        elif ltype == 'ECS FC':
-            out['ecs_fc'] = phase
+        lane = lane_by_type.get(ltype)
+        if lane:
+            out[lane] = phase
     return out
+
+
+def get_program_phase(program_key, session=None):
+    """Current phase of ONE program's season, or None.
+
+    `get_pub_league_phase` remains the right call for the WAITLIST, which is a
+    single global population governed by Pub League. Use this wherever the
+    question is genuinely per-program ("is Summer Sprint in season?") — asking
+    the Pub League phase there gives a confidently wrong answer whenever the two
+    programs are in different parts of their calendars, which for a summer
+    sprint running against a fall season is most of the time.
+
+    Accepts a program key, membership lane, or League.name.
+    """
+    if not program_key:
+        return None
+    try:
+        from app.services import program_registry
+        pr = (program_registry.by_key(program_key)
+              or program_registry.by_membership_lane(program_key)
+              or program_registry.by_league_name(program_key))
+        if pr is None or not pr.season_league_type:
+            return None
+        season_type = pr.season_league_type
+    except Exception:
+        return None
+
+    row = (_sess(session).query(Season.phase)
+           .filter(Season.is_current.is_(True), Season.league_type == season_type)
+           .first())
+    return row[0] if row else None
 
 
 def is_waitlist_open(session=None):
@@ -148,9 +216,20 @@ def is_registration_open(session=None):
     return phase in REGISTRATION_OPEN_PHASES
 
 
-def is_auto_rest_active(session=None):
-    """Whether sub auto-rest should run for Pub League right now."""
-    return get_pub_league_phase(session) in AUTO_REST_PHASES
+def is_auto_rest_active(session=None, program=None):
+    """Whether sub auto-rest should run right now.
+
+    Auto-rest means "matches are actually being played", which is a PER-PROGRAM
+    fact. Pass `program` (key, lane or League.name) to ask about one program;
+    omit it for the legacy Pub League answer.
+
+    Still unwired at the time of writing (see models/core.py), so widening the
+    signature here changes no live behaviour — but it means whoever wires it up
+    cannot accidentally rest Summer Sprint's subs because Premier happens to be
+    between seasons.
+    """
+    phase = get_program_phase(program, session) if program else get_pub_league_phase(session)
+    return phase in AUTO_REST_PHASES
 
 
 def set_season_phase(session, season_id, phase):
@@ -183,14 +262,30 @@ def set_season_phase(session, season_id, phase):
 def phase_governed_season_types(session=None):
     """Season types whose `phase` is advanced from dates.
 
-    Registry-driven: a program that rolls over is phase-governed. ECS FC does
-    not roll over and is pinned in_season, so it is excluded naturally.
+    ⚠️ `rolls_over` alone is NOT the right test, even though its column comment
+    mentions phase.
+
+    `rolls_over` answers "does this program hand its teams to a next season?",
+    which is a DIFFERENT question from "do this season's dates move it through
+    preseason -> in_season -> offseason?". They coincide for Premier/Classic
+    (both true) and for ECS FC (both false, pinned in_season by an explicit
+    2026-07-22 decision), which is why one flag appeared to cover both.
+
+    They come apart for a one-off program. A Summer Sprint that is not intended
+    to roll into another Summer is a perfectly reasonable `rolls_over = FALSE`
+    — and that single flag would then ALSO silently freeze its phase at whatever
+    it was seeded with, for the entire season, with no error. The waitlist and
+    registration gates read that phase.
+
+    So: a program is phase-governed if it rolls over OR it is pub-league-like.
+    ECS FC is neither and stays excluded; every pub-league-like program is
+    covered no matter how its rollover flag is set.
     """
     try:
         from app.services import program_registry
         types = sorted({p.season_league_type for p in
                         program_registry.all_programs(session)
-                        if p.rolls_over and p.season_league_type})
+                        if (p.rolls_over or p.is_pub_league_like) and p.season_league_type})
         if types:
             return types
     except Exception:
