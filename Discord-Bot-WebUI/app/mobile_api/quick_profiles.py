@@ -460,6 +460,28 @@ def get_quick_profile(profile_id: int):
 
         data = profile.to_dict(include_contact=is_admin)
 
+        # claim_url, so the detail screen can render a QR that points at THIS
+        # environment. Without it the client fell back to a hardcoded production
+        # URL, meaning a QR generated on dev/staging sent the prospect to prod.
+        # build_claim_url reads WEBUI_BASE_URL, so it is environment-correct and
+        # needs no request context.
+        #
+        # ADMIN-ONLY, and only while unclaimed — deliberately matching
+        # to_dict(include_contact=...) rather than being a plain serializer key.
+        # The URL embeds the claim code, so handing it to a coach would defeat
+        # the privacy rule documented above: an unredeemed code lets the holder
+        # claim the profile themselves. A claimed profile's code is spent, so
+        # there is nothing useful to return.
+        if is_admin and not profile.claimed_by_player and profile.claim_code:
+            try:
+                from app.services.quick_profile_notifications import build_claim_url
+                data['claim_url'] = build_claim_url(profile)
+            except Exception as _url_err:
+                # Never fail the detail read over a convenience field.
+                logger.warning(
+                    f"Could not build claim_url for quick profile "
+                    f"{profile_id}: {_url_err}")
+
         if profile.claimed_by_player:
             data['linked_player'] = {
                 'id': profile.claimed_by_player.id,

@@ -910,6 +910,19 @@ def get_ecs_fc_match_lineup(match_id, team_id=None):
         # For ECS FC, always use the match's team_id (ignore any passed team_id)
         team_id = ecs_match.team_id
 
+        # Coach-or-admin, same as every sibling on this resource.
+        #
+        # This route was @jwt_required() only, so ANY authenticated user could
+        # read an ECS FC team's full lineup — every player's name, position and
+        # RSVP state. Its own PUT/PATCH/DELETE siblings all call
+        # check_coach_permission, as does the Pub League lineup route; the GET
+        # was simply missed. The mobile client hides the screen from
+        # non-coaches, but that is a UI affordance, not access control — the
+        # endpoint is directly reachable with any valid JWT.
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify(
+                {'msg': 'You are not authorized to view this team\'s lineup'}), 403
+
         team = session_db.query(Team).options(
             joinedload(Team.players)
         ).filter_by(id=team_id).first()
