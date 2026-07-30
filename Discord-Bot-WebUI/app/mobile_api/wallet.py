@@ -62,7 +62,10 @@ def _resolve_member_barcode(session_db, user_id, player, team_name, season_name)
     return f"ECS2025{barcode_hash}"
 
 
-def _pass_team_name(session_db, player, viewer_user_id, default="ECS FC"):
+def _pass_team_name(session_db, player, viewer_user_id, default="Unassigned"):
+    # "Unassigned", not "ECS FC": an undrafted player has no team, and the
+    # installed pkpass says "Unassigned" (generate_pass.py). Defaulting to a
+    # club name here made the app and the pass disagree for the same player.
     """Team name for pass display, honoring the make_teams_public reveal gate:
     a hidden current Premier/Classic team reads as 'Unassigned' for
     non-coach/non-admin viewers."""
@@ -99,12 +102,17 @@ def get_membership_pass_info():
             if not player:
                 return jsonify({"msg": "No membership pass found"}), 404
 
-            # Check eligibility
-            eligible = player.is_current_player and player.user and player.user.is_authenticated
-            has_team = (player.primary_team is not None) or (hasattr(player, 'teams') and player.teams and len(player.teams) > 0)
-
-            if not (eligible and has_team):
-                return jsonify({"msg": "User must be assigned to a team"}), 400
+            # Eligibility is PAYMENT, not roster placement. This used to also
+            # require a team, which 400'd every player who had paid but not yet
+            # been drafted -- i.e. every buyer in the window between purchase and
+            # draft night, and every Summer Sprint buyer. The app retries the
+            # call, so they saw a hard "pass not available" error while the web
+            # download link (which has no such check) served them fine.
+            # `_pass_team_name` already renders teamless players as "ECS FC",
+            # and create_pub_league_pass accepts team_name=None, so nothing
+            # downstream needs a team.
+            if not (player.is_current_player and player.user):
+                return jsonify({"msg": "No active membership for this season"}), 400
 
             # Get team and league info
             team_name = _pass_team_name(session_db, player, current_user_id)
@@ -271,13 +279,11 @@ def generate_membership_pass():
             if not player:
                 return jsonify({"msg": "No membership pass found"}), 404
 
-            # Check eligibility
+            # Payment gates the pass, not roster placement -- see the note on
+            # get_membership_pass_info(). A pre-draft buyer has no team and must
+            # still be able to mint their pass.
             if not player.is_current_player:
-                return jsonify({"msg": "User must be assigned to a team"}), 400
-
-            has_team = (player.primary_team is not None) or (hasattr(player, 'teams') and player.teams and len(player.teams) > 0)
-            if not has_team:
-                return jsonify({"msg": "User must be assigned to a team"}), 400
+                return jsonify({"msg": "No active membership for this season"}), 400
 
             # Get team and league info
             team_name = _pass_team_name(session_db, player, current_user_id)
@@ -560,8 +566,9 @@ def trigger_wallet_pass_refresh_push():
                 return jsonify({"msg": "No active wallet pass for user"}), 404
 
             from app.wallet_pass.services.push_service import trigger_wallet_refresh
-            result = trigger_wallet_refresh(wallet_pass, commit=False)
-            session_db.commit()
+            # Commit on the session that owns the row, and BEFORE the push —
+            # trigger_wallet_refresh handles the ordering.
+            result = trigger_wallet_refresh(wallet_pass, session=session_db)
             return jsonify({
                 'success': bool(result.get('any_success')),
                 'apple': result.get('apple'),

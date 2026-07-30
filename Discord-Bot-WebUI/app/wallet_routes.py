@@ -156,10 +156,11 @@ def validate_pass_eligibility(player_id):
         
         if not player.user:
             eligibility['reasons'].append('Player has no associated user account')
-        
-        if not player.primary_team:
-            eligibility['reasons'].append('Player is not assigned to a team')
-        
+
+        # NOT gated on a team — a paid, undrafted player is eligible, and the
+        # pass renders them as "Unassigned". Must stay in step with
+        # WalletPassGenerator._is_player_eligible().
+
         if len(eligibility['reasons']) == 0:
             eligibility['eligible'] = True
             eligibility['team_name'] = player.primary_team.name if player.primary_team else None

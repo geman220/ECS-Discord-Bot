@@ -89,10 +89,42 @@ class Team(db.Model):
             'top_scorer': self.top_scorer,
             'top_assist': self.top_assist,
             'avg_goals_per_match': self.avg_goals_per_match,
+            # Program identity for clients that need league context without
+            # string-matching League.name. `program_key` is the opaque,
+            # permanent id (premier / classic / ecs_fc / pl_third) the mobile
+            # app joins on; `membership_lane` is its secondary fallback.
+            # Both are null when the program can't be resolved (no league, or
+            # a league name the registry doesn't recognise) — clients treat
+            # null as "fall back to matching by league name".
+            'program_key': self._program.key if self._program else None,
+            'membership_lane': self._program.membership_lane if self._program else None,
         }
         if include_players:
             data['players'] = [player.to_dict(public=True) for player in self.players]
         return data
+
+    @property
+    def _program(self):
+        """This team's Program, or None if it can't be resolved.
+
+        Resolution is `team.league.name` -> registry (program_for_team). The
+        registry caches per request on `g` and per process on a TTL, so this
+        costs no query on the hot paths; the one thing it can touch is the
+        `league` relationship, which every to_dict() caller already reads.
+
+        `object_session` rather than the registry's session=None default: with
+        no session it opens its own on a cache miss, which outside a request
+        context (Celery, CLI) means a second pooled connection against a
+        22-slot PgBouncer budget. Never raises — serialization must not fail
+        because the registry is unavailable.
+        """
+        try:
+            from sqlalchemy.orm import object_session
+            from app.services import program_registry
+            return program_registry.program_for_team(self, session=object_session(self))
+        except Exception:
+            logger.debug("program lookup failed for team %s", self.id, exc_info=True)
+            return None
 
     @property
     def coaches(self):

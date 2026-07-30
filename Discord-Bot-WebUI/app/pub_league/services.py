@@ -525,6 +525,40 @@ class PubLeagueOrderService:
         session.commit()
 
         logger.info(f"Created wallet pass {wallet_pass.id} for line item {line_item.id}")
+
+        # Email the download link. The wizard's final step is otherwise the ONLY
+        # place this link ever appears, so anyone whose tap didn't land there —
+        # in-app webview, closed tab, dead battery — was permanently separated
+        # from a pass they'd paid for, with no self-serve way back. Best-effort:
+        # a mail failure must never undo a successfully created pass.
+        try:
+            recipient_email = (player.user.email if player.user else None) or order.customer_email
+            if recipient_email:
+                from app.pub_league.email_helpers import send_pass_ready_email
+                send_pass_ready_email(
+                    recipient_email=recipient_email,
+                    recipient_name=player.name,
+                    division=line_item.division,
+                    # No platform= here: email_helpers appends `&platform=...`
+                    # per button.
+                    download_url=url_for(
+                        'public_wallet.download_pass_by_token',
+                        token=wallet_pass.download_token,
+                        _external=True,
+                    ),
+                )
+            else:
+                logger.warning(
+                    f"No email address for wallet pass {wallet_pass.id} "
+                    f"(line item {line_item.id}); skipping pass-ready email"
+                )
+        except Exception as mail_err:
+            logger.error(
+                f"Pass-ready email failed for wallet pass {wallet_pass.id} "
+                f"(pass IS created and downloadable): {mail_err}",
+                exc_info=True,
+            )
+
         return wallet_pass
 
 

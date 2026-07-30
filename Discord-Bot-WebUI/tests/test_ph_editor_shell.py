@@ -79,13 +79,20 @@ class TestEditorShell:
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             'app', 'static', 'vite-dist', '.vite', 'manifest.json')
 
+        # TWO module scripts is the invariant that holds in both worlds.
         assert html.count('<script type="module"') >= 2, \
             'editor should load main-entry (Swal) + shell.js'
-        assert 'site-editor/shell' in html, 'shell.js bundle not referenced'
 
         if os.path.exists(manifest):
+            # Built: vite_asset() emits js/<name>-<hash>.js, and the hashed
+            # filename DROPS the source directory -- so 'site-editor/shell' is
+            # NOT present here. Assert the bundle form instead.
             assert html.count('/static/vite-dist/js/') >= 2, \
                 'with a Vite build present both scripts must be hashed bundles'
+        else:
+            # Unbuilt (CI): raw source paths, which do carry the directory.
+            assert 'site-editor/shell' in html, \
+                'shell.js source path not referenced without a Vite build'
         # ...but renders NO admin console chrome (nav dropdowns / sidebar).
         assert 'data-admin-dropdown' not in html, 'editor must not render the admin nav'
 

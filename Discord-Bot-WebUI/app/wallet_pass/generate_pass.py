@@ -82,18 +82,24 @@ class ECSFCPassGenerator:
             raise
     
     def _is_player_eligible(self, player):
-        """Check if player is eligible for a membership pass"""
-        # Check if player has any team assignment (primary, current season, or any team)
-        has_any_team = (
-            (hasattr(player, 'primary_team') and player.primary_team is not None) or
-            (hasattr(player, 'teams') and player.teams and len(player.teams) > 0)
-        )
-        
-        return (
+        """Check if player is eligible for a membership pass.
+
+        PAYMENT ONLY — deliberately NOT team membership. This used to also
+        require a primary/any team, which made every path through
+        create_pass_for_player() raise ValueError for a player who had paid but
+        not yet been drafted: the whole window between purchase and draft night,
+        across Premier, Classic and Summer Sprint alike. Callers surface that as
+        a 500/"failed to download", and it hit the app's own
+        /membership/pass/download.
+
+        _load_pass_template() already renders a teamless player as "Unassigned"
+        (and does the same for a pre-reveal Pub League team), so nothing
+        downstream needs a team to exist.
+        """
+        return bool(
             player.is_current_player and
             player.user and
-            player.user.is_authenticated and
-            has_any_team
+            player.user.is_authenticated
         )
     
     def _load_pass_template(self, player):
@@ -137,7 +143,7 @@ class ECSFCPassGenerator:
         auth_token = str(uuid.uuid4())
         
         # Get current season info
-        current_season = self._get_current_season()
+        current_season = self._get_current_season(player)
         season_name = current_season.name if current_season else "Current Season"
         
         # Team information - get the best available team
@@ -202,11 +208,28 @@ class ECSFCPassGenerator:
             'season_history': season_history
         }
     
-    def _get_current_season(self):
-        """Get the current active Pub League season"""
+    def _get_current_season(self, player=None):
+        """Current season for THIS player's own program.
+
+        Resolved via the program registry, not a hardcoded
+        `league_type='Pub League'`. Summer Sprint seasons carry
+        `league_type='PL Third'`, so the old literal matched nothing for a
+        Summer buyer and the pass fell through to the "Current Season" label
+        with a generic 365-day expiry. Falls back to Pub League only when the
+        player's program can't be resolved.
+        """
+        from app.models import Season
         try:
-            from app.models import Season
-            # Get Pub League season since that's what determines membership
+            league_name = player.league.name if (player and player.league) else None
+            if league_name:
+                from app.utils.season_context import current_season_for_program
+                season = current_season_for_program(league_name)
+                if season:
+                    return season
+        except Exception as e:
+            logger.warning(f"Program-scoped season lookup failed, falling back: {e}")
+
+        try:
             return Season.query.filter_by(
                 league_type='Pub League',
                 is_current=True
