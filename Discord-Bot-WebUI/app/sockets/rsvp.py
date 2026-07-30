@@ -237,7 +237,12 @@ def emit_ecs_fc_rsvp_update(match_id, player_id, response, team_id, source='syst
         event_data = {
             'match_id': match_id,
             'player_id': player_id,
+            # Both keys. This broadcast rides the SAME `rsvp_update` event name
+            # the Pub League path uses (:169-177), where the value lives under
+            # `availability` — so a client with one handler for that event read
+            # None for every ECS FC update.
             'response': response,
+            'availability': response,
             'match_type': 'ecs_fc',
             'timestamp': datetime.utcnow().isoformat(),
             'source': source,

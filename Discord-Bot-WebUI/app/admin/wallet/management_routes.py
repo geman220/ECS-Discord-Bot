@@ -69,10 +69,10 @@ def wallet_management():
             Player.is_current_player == True
         ).join(User).options(joinedload(Player.teams)).all()
 
-        eligible_players = [
-            player for player in eligible_players
-            if player.primary_team or (player.teams and len(player.teams) > 0)
-        ]
+        # Eligibility is payment, not a roster spot — see
+        # WalletPassGenerator._is_player_eligible(). Filtering on a team here
+        # hid every pre-draft buyer from the dashboard, so no admin could see
+        # (let alone issue) the passes that were missing.
 
         # Get current seasons
         pub_league_season = Season.query.filter_by(
@@ -87,6 +87,7 @@ def wallet_management():
 
         # Stats
         all_active_players = Player.query.filter_by(is_current_player=True).options(joinedload(Player.teams)).all()
+        # Kept for the "on a roster" breakdown only — NOT an eligibility filter.
         players_with_any_team = [
             player for player in all_active_players
             if player.primary_team or (player.teams and len(player.teams) > 0)
@@ -233,12 +234,9 @@ def wallet_players():
             query = query.filter(Player.primary_team_id == team_filter)
 
         if status_filter == 'eligible':
-            query = query.filter(
-                and_(
-                    Player.is_current_player == True,
-                    Player.primary_team_id.isnot(None)
-                )
-            )
+            # Payment only — undrafted players are eligible and must appear in
+            # the "eligible" list so an admin can issue their pass.
+            query = query.filter(Player.is_current_player == True)
         elif status_filter == 'active':
             query = query.filter(Player.is_current_player == True)
         elif status_filter == 'inactive':
@@ -271,10 +269,7 @@ def wallet_players():
         # with what the table renders.
         total_players = Player.query.count()
         eligible_players = Player.query.filter(
-            and_(
-                Player.is_current_player == True,
-                Player.primary_team_id.isnot(None)
-            )
+            Player.is_current_player == True
         ).count()
         passes_issued = WalletPass.query.filter(
             WalletPass.status == PassStatus.ACTIVE.value
@@ -334,9 +329,9 @@ def check_player_eligibility(player_id):
         elif not player.user.is_authenticated:
             eligibility['issues'].append('User account is not verified')
 
-        has_any_team = player.primary_team or (player.teams and len(player.teams) > 0)
-        if not has_any_team:
-            eligibility['issues'].append('Player is not assigned to any team')
+        # Deliberately NOT an issue: an undrafted player is eligible. Reporting
+        # it here made this endpoint contradict /wallet/api/pass/validate/<id>
+        # and _is_player_eligible(), which both say the same player is fine.
 
         all_team_names = []
         if player.primary_team:
@@ -687,12 +682,14 @@ def generate_bulk_passes():
                     })
                     continue
 
-                has_any_team = player.primary_team or (player.teams and len(player.teams) > 0)
-                if not player.is_current_player or not has_any_team:
+                # Payment only — a paid, undrafted player IS eligible and their
+                # pass renders as "Unassigned". Must match
+                # WalletPassGenerator._is_player_eligible().
+                if not player.is_current_player:
                     results['failed'].append({
                         'player_id': player_id,
                         'player_name': player.name,
-                        'error': 'Player not eligible'
+                        'error': 'Player has no active membership this season'
                     })
                     continue
 
@@ -863,14 +860,12 @@ def bulk_generate_passes_ui():
         if not pass_type:
             return jsonify({'error': f'Pass type {pass_type_code} not found'}), 400
 
+        # No team filter: "generate all" must include paid-but-undrafted
+        # players, who are exactly the cohort that needs a pass before the
+        # season starts.
         eligible_players = Player.query.filter(
             Player.is_current_player == True
         ).join(User).options(joinedload(Player.teams)).all()
-
-        eligible_players = [
-            p for p in eligible_players
-            if p.primary_team or (p.teams and len(p.teams) > 0)
-        ]
 
         results = {
             'success': [],
@@ -902,14 +897,26 @@ def bulk_generate_passes_ui():
                         year=year
                     )
                 else:
-                    team_name = player.primary_team.name if player.primary_team else (
-                        player.teams[0].name if player.teams else 'Unknown'
-                    )
+                    # create_pub_league_pass takes (player, season) model
+                    # objects. It was being called with member_name/
+                    # member_email/team_name/season_name keywords, which raised
+                    # TypeError for EVERY player — swallowed by the except below
+                    # into a generic "Internal Server Error", so pub league bulk
+                    # generate had never worked at all.
+                    from app.utils.season_context import current_season_for_program
+                    player_season = None
+                    if player.league:
+                        player_season = current_season_for_program(player.league.name)
+                    if player_season is None:
+                        results['failed'].append({
+                            'player_id': player.id,
+                            'player_name': player.name,
+                            'error': 'No current season for this player\'s program'
+                        })
+                        continue
                     wallet_pass = pass_service.create_pub_league_pass(
-                        member_name=player.name,
-                        member_email=player.user.email,
-                        team_name=team_name,
-                        season_name=season_name or f'Season {year}'
+                        player=player,
+                        season=player_season,
                     )
 
                 results['success'].append({

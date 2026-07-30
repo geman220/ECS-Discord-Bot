@@ -276,6 +276,53 @@ class TestTeamSerialization:
         assert len(data['players']) == 1
         assert data['players'][0]['name'] == 'Dict Player'
 
+    @patch('app.team_performance_helpers.get_team_stats_cached')
+    def test_team_to_dict_includes_program_identity(self, mock_stats, db, season):
+        """
+        GIVEN a Team in a league the program registry knows
+        WHEN to_dict is called
+        THEN program_key and membership_lane should identify the program
+        """
+        mock_stats.return_value = {
+            'top_scorer': 'N/A',
+            'top_assist': 'N/A',
+            'avg_goals_per_match': 0.0
+        }
+
+        league = LeagueFactory(name='Premier', season=season)
+        team = TeamFactory(name='Program Team', league=league)
+        db.session.commit()
+
+        data = team.to_dict()
+
+        assert data['program_key'] == 'premier'
+        assert data['membership_lane'] == 'premier'
+
+    @patch('app.team_performance_helpers.get_team_stats_cached')
+    def test_team_to_dict_program_identity_null_when_unresolvable(self, mock_stats, db, season):
+        """
+        GIVEN a Team whose league name matches no program
+        WHEN to_dict is called
+        THEN program_key and membership_lane should be None, not missing
+
+        Clients treat null as "fall back to matching by league name", so the
+        keys must always be present even when resolution fails.
+        """
+        mock_stats.return_value = {
+            'top_scorer': 'N/A',
+            'top_assist': 'N/A',
+            'avg_goals_per_match': 0.0
+        }
+
+        league = LeagueFactory(name='Zzz Unregistered Competition', season=season)
+        team = TeamFactory(name='Orphan Team', league=league)
+        db.session.commit()
+
+        data = team.to_dict()
+
+        assert data['program_key'] is None
+        assert data['membership_lane'] is None
+
 
 @pytest.mark.unit
 class TestTeamStatisticsProperties:

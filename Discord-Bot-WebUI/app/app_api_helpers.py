@@ -240,10 +240,11 @@ def process_discord_user(session, user_data: Dict) -> User:
         has_skipped_profile_creation=False,
         has_completed_tour=False,
     )
-    # Random password — Discord OAuth is the auth method; password is just a placeholder.
-    import secrets as _secrets
-    import string as _string
-    user.set_password(''.join(_secrets.choice(_string.ascii_letters + _string.digits) for _ in range(16)))
+    # Discord OAuth is the auth method; there is no password. This used to store a
+    # random 16-char password, which looked exactly like a real one — so every
+    # "confirm with your password" gate (delete account, deactivate, change email)
+    # was unpassable for Discord-only users, with no recovery path.
+    user.set_unusable_password()
     session.add(user)
     session.flush()  # need user.id for the player FK
 

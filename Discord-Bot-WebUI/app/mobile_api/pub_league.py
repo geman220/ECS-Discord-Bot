@@ -573,6 +573,16 @@ def pub_league_claim_process(claim_token):
 
         player = PlayerActivationService.ensure_player_for_user(user)
 
+        # The gift-claim flow renders a full profile step (positions, jersey,
+        # phone) and POSTs it as the body. This handler never read it, so every
+        # field the user filled in was dropped while the UI reported success.
+        # Same service the order-link flow reaches via /confirm-profile, so both
+        # paths whitelist, normalize positions and stamp profile_last_updated
+        # identically.
+        profile_payload = request.get_json(silent=True) or {}
+        if profile_payload:
+            ProfileUpdateService.apply(player, profile_payload)
+
         # IDEMPOTENT: a slow first claim can leave the app retrying. If THIS user
         # already claimed this token, return success with the existing pass rather
         # than a 409 — the claim is single-use and the retry must not look like a

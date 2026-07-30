@@ -117,10 +117,22 @@ def authenticate_socket_connection(auth=None):
         # Use Flask-JWT-Extended for validation (same as API endpoints)
         from flask_jwt_extended import decode_token
         from flask import current_app
+        # decode_token checks signature/expiry only. The blocklist loader runs
+        # only inside verify_jwt_in_request(), so without this a logged-out or
+        # revoked device keeps its socket subscription alive. Imported outside the
+        # try so the manual-decode fallback below can use it too.
+        from app.init.jwt import jwt_claims_revoked
 
         try:
             # Try Flask-JWT-Extended first (matches API authentication)
             decoded_token = decode_token(token)
+            if jwt_claims_revoked(decoded_token):
+                logger.info("🔌 [AUTH] Rejecting revoked token (logout / session revoke)")
+                return {
+                    'authenticated': False,
+                    'user_id': None,
+                    'error': 'Token revoked'
+                }
             user_id = decoded_token.get('sub') or decoded_token.get('identity')
 
         except Exception as jwt_ext_error:
@@ -134,6 +146,15 @@ def authenticate_socket_connection(auth=None):
                     current_app.config.get('JWT_SECRET_KEY'),
                     algorithms=['HS256']
                 )
+                # Same revocation gate as the primary path — otherwise this
+                # fallback is a way around it.
+                if jwt_claims_revoked(decoded_token):
+                    logger.info("🔌 [AUTH] Rejecting revoked token (manual decode path)")
+                    return {
+                        'authenticated': False,
+                        'user_id': None,
+                        'error': 'Token revoked'
+                    }
                 user_id = decoded_token.get('sub') or decoded_token.get('identity') or decoded_token.get('id')
 
             except Exception as manual_error:

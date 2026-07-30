@@ -19,6 +19,7 @@ Key Features:
 - Event-based notification triggers
 """
 
+import json
 import logging
 import os
 import re
@@ -626,6 +627,10 @@ class NotificationOrchestrator:
                 'rsvp_reminders': getattr(user, 'rsvp_reminder_notifications', True),
                 'team_updates': getattr(user, 'team_update_notifications', True),
                 'announcements': getattr(user, 'announcement_notifications', True),
+                # Was persisted (account.py:449-454) and shown as a settings
+                # toggle, but never loaded here and never read by
+                # _should_send_push — so the tile did nothing at all.
+                'general_announcements': getattr(user, 'general_announcements', True),
                 'dm_notifications': getattr(user, 'dm_notifications', True),
                 'feedback_updates': getattr(user, 'feedback_update_notifications', True),
                 'feedback_alerts': getattr(user, 'feedback_alert_notifications', True),
@@ -668,11 +673,29 @@ class NotificationOrchestrator:
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
             return preferences.get('rsvp_reminders', True)
 
-        if notification_type in (NotificationType.TEAM_UPDATE, NotificationType.TEAM_ROSTER_CHANGE):
+        # Team updates. TEAM_UPDATE / TEAM_ROSTER_CHANGE are declared but never
+        # emitted anywhere, so this preference previously gated nothing —
+        # ROLE_ASSIGNED ("you've been added to a team") and STANDINGS_UPDATE are
+        # the team-scoped events users actually receive and expect this tile to
+        # control.
+        if notification_type in (NotificationType.TEAM_UPDATE,
+                                 NotificationType.TEAM_ROSTER_CHANGE,
+                                 NotificationType.STANDINGS_UPDATE,
+                                 NotificationType.ROLE_ASSIGNED):
             return preferences.get('team_updates', True)
 
-        if notification_type in (NotificationType.LEAGUE_ANNOUNCEMENT, NotificationType.ADMIN_ANNOUNCEMENT):
+        # Two distinct announcement preferences, two distinct types.
+        # LEAGUE_ANNOUNCEMENT -> "League announcements" (announcement_notifications);
+        # ADMIN_ANNOUNCEMENT / SYSTEM -> "General announcements". Both used to map
+        # to `announcements`, leaving general_announcements unread by anything.
+        #
+        # WELCOME and ACCOUNT_APPROVED stay ungated on purpose — they're account
+        # lifecycle, and suppressing them would break onboarding.
+        if notification_type == NotificationType.LEAGUE_ANNOUNCEMENT:
             return preferences.get('announcements', True)
+
+        if notification_type in (NotificationType.ADMIN_ANNOUNCEMENT, NotificationType.SYSTEM):
+            return preferences.get('general_announcements', True)
 
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
@@ -725,11 +748,29 @@ class NotificationOrchestrator:
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
             return preferences.get('rsvp_reminders', True)
 
-        if notification_type in (NotificationType.TEAM_UPDATE, NotificationType.TEAM_ROSTER_CHANGE):
+        # Team updates. TEAM_UPDATE / TEAM_ROSTER_CHANGE are declared but never
+        # emitted anywhere, so this preference previously gated nothing —
+        # ROLE_ASSIGNED ("you've been added to a team") and STANDINGS_UPDATE are
+        # the team-scoped events users actually receive and expect this tile to
+        # control.
+        if notification_type in (NotificationType.TEAM_UPDATE,
+                                 NotificationType.TEAM_ROSTER_CHANGE,
+                                 NotificationType.STANDINGS_UPDATE,
+                                 NotificationType.ROLE_ASSIGNED):
             return preferences.get('team_updates', True)
 
-        if notification_type in (NotificationType.LEAGUE_ANNOUNCEMENT, NotificationType.ADMIN_ANNOUNCEMENT):
+        # Two distinct announcement preferences, two distinct types.
+        # LEAGUE_ANNOUNCEMENT -> "League announcements" (announcement_notifications);
+        # ADMIN_ANNOUNCEMENT / SYSTEM -> "General announcements". Both used to map
+        # to `announcements`, leaving general_announcements unread by anything.
+        #
+        # WELCOME and ACCOUNT_APPROVED stay ungated on purpose — they're account
+        # lifecycle, and suppressing them would break onboarding.
+        if notification_type == NotificationType.LEAGUE_ANNOUNCEMENT:
             return preferences.get('announcements', True)
+
+        if notification_type in (NotificationType.ADMIN_ANNOUNCEMENT, NotificationType.SYSTEM):
+            return preferences.get('general_announcements', True)
 
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
@@ -802,11 +843,29 @@ class NotificationOrchestrator:
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
             return preferences.get('rsvp_reminders', True)
 
-        if notification_type in (NotificationType.TEAM_UPDATE, NotificationType.TEAM_ROSTER_CHANGE):
+        # Team updates. TEAM_UPDATE / TEAM_ROSTER_CHANGE are declared but never
+        # emitted anywhere, so this preference previously gated nothing —
+        # ROLE_ASSIGNED ("you've been added to a team") and STANDINGS_UPDATE are
+        # the team-scoped events users actually receive and expect this tile to
+        # control.
+        if notification_type in (NotificationType.TEAM_UPDATE,
+                                 NotificationType.TEAM_ROSTER_CHANGE,
+                                 NotificationType.STANDINGS_UPDATE,
+                                 NotificationType.ROLE_ASSIGNED):
             return preferences.get('team_updates', True)
 
-        if notification_type in (NotificationType.LEAGUE_ANNOUNCEMENT, NotificationType.ADMIN_ANNOUNCEMENT):
+        # Two distinct announcement preferences, two distinct types.
+        # LEAGUE_ANNOUNCEMENT -> "League announcements" (announcement_notifications);
+        # ADMIN_ANNOUNCEMENT / SYSTEM -> "General announcements". Both used to map
+        # to `announcements`, leaving general_announcements unread by anything.
+        #
+        # WELCOME and ACCOUNT_APPROVED stay ungated on purpose — they're account
+        # lifecycle, and suppressing them would break onboarding.
+        if notification_type == NotificationType.LEAGUE_ANNOUNCEMENT:
             return preferences.get('announcements', True)
+
+        if notification_type in (NotificationType.ADMIN_ANNOUNCEMENT, NotificationType.SYSTEM):
+            return preferences.get('general_announcements', True)
 
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
@@ -859,11 +918,29 @@ class NotificationOrchestrator:
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
             return preferences.get('rsvp_reminders', True)
 
-        if notification_type in (NotificationType.TEAM_UPDATE, NotificationType.TEAM_ROSTER_CHANGE):
+        # Team updates. TEAM_UPDATE / TEAM_ROSTER_CHANGE are declared but never
+        # emitted anywhere, so this preference previously gated nothing —
+        # ROLE_ASSIGNED ("you've been added to a team") and STANDINGS_UPDATE are
+        # the team-scoped events users actually receive and expect this tile to
+        # control.
+        if notification_type in (NotificationType.TEAM_UPDATE,
+                                 NotificationType.TEAM_ROSTER_CHANGE,
+                                 NotificationType.STANDINGS_UPDATE,
+                                 NotificationType.ROLE_ASSIGNED):
             return preferences.get('team_updates', True)
 
-        if notification_type in (NotificationType.LEAGUE_ANNOUNCEMENT, NotificationType.ADMIN_ANNOUNCEMENT):
+        # Two distinct announcement preferences, two distinct types.
+        # LEAGUE_ANNOUNCEMENT -> "League announcements" (announcement_notifications);
+        # ADMIN_ANNOUNCEMENT / SYSTEM -> "General announcements". Both used to map
+        # to `announcements`, leaving general_announcements unread by anything.
+        #
+        # WELCOME and ACCOUNT_APPROVED stay ungated on purpose — they're account
+        # lifecycle, and suppressing them would break onboarding.
+        if notification_type == NotificationType.LEAGUE_ANNOUNCEMENT:
             return preferences.get('announcements', True)
+
+        if notification_type in (NotificationType.ADMIN_ANNOUNCEMENT, NotificationType.SYSTEM):
+            return preferences.get('general_announcements', True)
 
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
@@ -964,6 +1041,30 @@ class NotificationOrchestrator:
                     data['deep_link'] = f"ecs-fc-scheme://match/{data['match_id']}"
             elif 'feedback_id' in data:
                 data['deep_link'] = f"ecs-fc-scheme://feedback/{data['feedback_id']}"
+
+            # FCM rejects a message whose data payload exceeds 4 KB. Rather than
+            # lose the whole notification, shed the optional bulk fields — the
+            # scalar ids that drive routing and the deep link are what matter.
+            #
+            # Runs AFTER the deep link is added so those bytes are counted, and
+            # str()-coerces both sides of the measurement: `priority` is only
+            # type-HINTED str and payload.data is Dict[str, Any], so a stray
+            # non-string would raise TypeError here and kill the very
+            # notification this guard exists to preserve.
+            _FCM_DATA_LIMIT = 4000
+
+            def _data_bytes():
+                return sum(len(str(k)) + len(str(v)) for k, v in data.items())
+
+            for _bulk_key in ('matches', 'items', 'players'):
+                if _data_bytes() <= _FCM_DATA_LIMIT:
+                    break
+                if _bulk_key in data:
+                    logger.warning(
+                        "Dropping '%s' from %s push data: payload over %d bytes",
+                        _bulk_key, payload.notification_type.value, _FCM_DATA_LIMIT,
+                    )
+                    data.pop(_bulk_key)
 
             channel_id = NOTIFICATION_CHANNEL_IDS.get(payload.notification_type, 'general')
 
@@ -1300,7 +1401,16 @@ class NotificationOrchestrator:
             data={
                 'target_date': target_date.isoformat(),
                 'match_count': len(matches),
-                'matches': [
+                # Scalar match_id so tapping the push actually goes somewhere:
+                # the deep-link block in send() keys off a TOP-LEVEL 'match_id',
+                # so without this a match reminder was the one notification type
+                # that opened the app to nothing. On a multi-match day we link to
+                # the first — the digest body lists the rest.
+                'match_id': matches[0]['match_id'] if matches else '',
+                # json.dumps, not the str() the coercion loop in send() would
+                # otherwise apply: that produced a single-quoted Python repr,
+                # which is not JSON and no client could parse.
+                'matches': json.dumps([
                     {
                         'match_id': m['match_id'],
                         'match_type': m['match_type'],
@@ -1310,7 +1420,7 @@ class NotificationOrchestrator:
                         'rsvp_status': m.get('rsvp_status'),
                     }
                     for m in matches
-                ],
+                ]),
             },
             priority='normal',
             discord_view='match_reminder',

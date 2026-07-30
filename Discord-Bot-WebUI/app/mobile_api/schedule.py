@@ -20,6 +20,7 @@ from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import Match, Player, Season
 from app.utils.special_weeks import get_special_week_display_name
+from app.utils.pacific_time import pacific_today
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ def get_weekly_schedule():
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 
         # Calculate week boundaries
-        today = datetime.now().date()
+        today = pacific_today()
         start_of_week = today - timedelta(days=today.weekday())  # Monday
         start_of_week += timedelta(weeks=week_offset)
         end_of_week = start_of_week + timedelta(days=6)  # Sunday
@@ -120,7 +121,10 @@ def get_monthly_schedule():
     """
     current_user_id = int(get_jwt_identity())
 
-    now = datetime.now()
+    # Pacific, not container-local: between 5pm and midnight Pacific a UTC
+    # container is already on tomorrow, which on the last day of a month
+    # defaulted this view to the wrong month entirely.
+    now = pacific_today()
     year = request.args.get('year', now.year, type=int)
     month = request.args.get('month', now.month, type=int)
 
@@ -210,10 +214,38 @@ def get_upcoming_schedule():
             joinedload(Match.home_team),
             joinedload(Match.away_team)
         ).filter(
-            Match.date >= datetime.now().date()
+            Match.date >= pacific_today()
         )
 
-        if player and player.teams:
+        # Explicit team_id wins, and admins see the whole schedule.
+        #
+        # This route unconditionally narrowed to the caller's OWN teams, so an
+        # admin using the (documented admin-only) sub-request match picker saw
+        # only their own fixtures and could not raise a request for anyone else.
+        # Mirrors matches.py:221, which already accepts team_id.
+        requested_team_id = request.args.get('team_id', type=int)
+        is_admin = False
+        try:
+            from app.models import User
+            caller = session_db.query(User).get(current_user_id)
+            is_admin = bool(caller) and any(
+                r.name in ('Global Admin', 'Pub League Admin', 'ECS FC Admin')
+                for r in (caller.roles or [])
+            )
+        except Exception:
+            logger.debug("admin check failed on /schedule/upcoming", exc_info=True)
+
+        if requested_team_id:
+            from sqlalchemy import or_
+            query = query.filter(
+                or_(
+                    Match.home_team_id == requested_team_id,
+                    Match.away_team_id == requested_team_id,
+                )
+            )
+        elif is_admin:
+            pass  # Unfiltered league-wide schedule.
+        elif player and player.teams:
             from sqlalchemy import or_
             # Pre-reveal: a schedule filtered to the caller's hidden Pub League
             # team would reveal the assignment. Drop hidden teams from the
