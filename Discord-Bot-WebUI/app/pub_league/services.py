@@ -1179,26 +1179,17 @@ class RoleSyncService:
 
             player_id = player.id
 
-            # Outside a request context `get_discord_queue()` hands back an
-            # EPHEMERAL queue whose operations are silently DROPPED -- nothing
-            # ever calls execute_all() on it. activate_player_for_league runs
-            # from CLI and Celery as well as from routes, so branch explicitly
-            # rather than letting those callers no-op.
-            from flask import has_request_context
-            if has_request_context():
-                from app.utils.deferred_discord import defer_discord_sync
-                defer_discord_sync(player_id, only_add=True)
-                logger.info(
-                    f"Queued Discord role sync for player {player_id} "
-                    f"(add-only, dispatches after this request commits)"
-                )
-            else:
-                from app.tasks.tasks_discord import assign_roles_to_player_task
-                assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
-                logger.info(
-                    f"Dispatched Discord role sync for player {player_id} "
-                    f"(add-only, no request context)"
-                )
+            # `defer_discord_sync` now handles the no-request-context case
+            # itself (app/utils/deferred_discord.py::_queue_or_dispatch): inside
+            # a request it queues for after-commit dispatch, outside one it
+            # dispatches immediately. This used to hand-roll that branch here
+            # because the helper silently DROPPED the op outside a request --
+            # `activate_player_for_league` runs from CLI and Celery as well as
+            # from routes. The guard now lives in one place instead of being
+            # every caller's job to remember.
+            from app.utils.deferred_discord import defer_discord_sync
+            defer_discord_sync(player_id, only_add=True)
+            logger.info(f"Queued Discord role sync for player {player_id} (add-only)")
 
         except Exception as e:
             # Never fail the caller: the pass is already linked and the player

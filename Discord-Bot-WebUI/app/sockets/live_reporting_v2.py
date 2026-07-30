@@ -1535,12 +1535,19 @@ def on_submit_report(data):
         else:
             league_type = infer_league_type_from_match_id(session, int(match_id))
 
+        # Match notes from the submit dialog. V1 persisted these
+        # (live_reporting.py :1438); V2 read only match_id/league_type, so with
+        # V2 on a coach typed their notes, submitted, saw success, and the notes
+        # were silently dropped.
+        notes = (data.get('report_data') or {}).get('notes')
+
         result = submit_match_report(
             session=session,
             match_id=int(match_id),
             league_type=league_type,
             submitted_by_user_id=user.id,
             socketio=socketio,
+            notes=notes,
         )
 
         if result['status'] == STATUS_ALREADY_SUBMITTED:

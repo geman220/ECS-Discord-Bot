@@ -27,11 +27,47 @@ def ispy_headers(interaction: discord.Interaction) -> dict:
 # Channel restriction
 PL_NONSENSE_CHANNEL_NAME = "pl-miscellaneous"
 
-# Role requirements for I-Spy usage
+# Role requirements for I-Spy usage.
+#
+# Kept only as documentation / a floor. The live gate is has_pl_role(), which
+# matches STRUCTURALLY -- an exact allowlist silently locks out every program
+# added after it was written, and that is exactly what happened: Summer Sprint
+# players (ECS-FC-PL-SUMMER) could not use ANY I-Spy command, because the bot
+# has no database access and cannot read the portal's program registry.
 ALLOWED_ROLES = [
     "ECS-FC-PL-CLASSIC",
-    "ECS-FC-PL-PREMIER"
+    "ECS-FC-PL-PREMIER",
+    "ECS-FC-PL-SUMMER"
 ]
+
+# A division role is `ECS-FC-PL-<DIVISION>` with no role-type suffix. The
+# suffixed variants are deliberately excluded: -PLAYER and -COACH are per-TEAM
+# roles (ECS-FC-PL-TEAM-A-Player), and -SUB is the substitute pool. Gating I-Spy
+# on a team role would let anyone rostered anywhere in, which is a wider grant
+# than the original allowlist intended.
+_PL_ROLE_PREFIX = "ECS-FC-PL-"
+_NON_DIVISION_SUFFIXES = ("-PLAYER", "-COACH", "-SUB")
+
+# ECS FC is NOT a pub-league program (external opponents, no draft, no season
+# pass) and was never in the original Classic+Premier allowlist. Excluded
+# explicitly so making this check structural RESTORES access for new pub-league
+# programs without silently GRANTING it to ECS FC, which would be a behaviour
+# change nobody asked for. The bot cannot read `program.is_pub_league_like`,
+# so this one name has to stay hardcoded.
+_NON_PUB_LEAGUE_DIVISIONS = {"ECS-FC-PL-ECS-FC"}
+
+
+def _is_pl_division_role(role_name: str) -> bool:
+    """True for a PUB-LEAGUE division role: ECS-FC-PL-PREMIER / -CLASSIC / -SUMMER.
+
+    Excludes per-team roles (-PLAYER/-COACH), sub-pool roles (-SUB), and ECS FC.
+    """
+    n = (role_name or "").strip().upper()
+    if not n.startswith(_PL_ROLE_PREFIX):
+        return False
+    if n in _NON_PUB_LEAGUE_DIVISIONS:
+        return False
+    return not n.endswith(_NON_DIVISION_SUFFIXES)
 
 # Admin/moderator roles
 MODERATOR_ROLES = [
@@ -40,9 +76,12 @@ MODERATOR_ROLES = [
 ]
 
 def has_pl_role(interaction: discord.Interaction) -> bool:
-    """Check if user has required pub league role."""
-    user_roles = [role.name for role in interaction.user.roles]
-    return any(role in user_roles for role in ALLOWED_ROLES)
+    """Check if user holds ANY pub-league division role.
+
+    Structural, not an allowlist -- see ALLOWED_ROLES. This is what lets a
+    newly-added program work without a bot redeploy.
+    """
+    return any(_is_pl_division_role(role.name) for role in interaction.user.roles)
 
 def has_moderator_role(interaction: discord.Interaction) -> bool:
     """Check if user has moderator role."""
@@ -330,7 +369,7 @@ async def ispy_submit(
         # Check role requirement
         if not has_pl_role(interaction):
             await interaction.followup.send(
-                "❌ You need a pub league role (ECS-FC-PL-CLASSIC or ECS-FC-PL-PREMIER) to use I-Spy!",
+                "❌ You need a pub league division role to use I-Spy!",
                 ephemeral=True
             )
             return
@@ -967,7 +1006,7 @@ async def ispy_help(interaction: discord.Interaction):
         name="📏 Game Rules",
         value=(
             "• **Channel:** Only works in #pl-miscellaneous\n"
-            "• **Roles:** Requires ECS-FC-PL-CLASSIC or PREMIER\n"
+            "• **Roles:** Requires a pub league division role\n"
             "• **Photos:** Must be candid - NO posed pictures allowed\n"
             "• **Targets:** Can't target yourself or same person twice\n"
             "• **Daily Limit:** 3 shots per 24 hours\n"

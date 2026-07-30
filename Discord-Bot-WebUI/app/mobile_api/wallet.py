@@ -332,7 +332,11 @@ def generate_membership_pass():
             # Return new pass data in Flutter format (Status 201 for created)
             now = datetime.utcnow()
             response_data = {
-                "id": str(player.id + 1000),  # New ID for generated pass
+                # Same id GET /membership/pass returns (:154). This was
+                # player.id + 1000, so generating a pass and then fetching it
+                # gave two different ids for the same pass and the client
+                # treated them as distinct records.
+                "id": str(player.id),
                 "userId": str(current_user_id),
                 "playerName": player.name,
                 "teamName": team_name,

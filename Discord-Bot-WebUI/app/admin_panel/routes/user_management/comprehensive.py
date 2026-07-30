@@ -1151,6 +1151,46 @@ def approve_user_comprehensive(user_id):
         with lock_user_for_role_update(user_id, session=db.session) as user:
             old_status = user.is_approved
 
+            # Complete the role transition, not just the status flags.
+            #
+            # This route set is_approved=True and stopped there, leaving the
+            # user holding 'pl-unverified' (and 'pl-waitlist' if they'd been
+            # parked) with no league role — so the app kept them on the
+            # "awaiting approval" screen permanently, AFTER being approved.
+            # approvals.py's apply_approval() does both; delegate to it when the
+            # user's lane is known, and otherwise at least strip the gate roles.
+            #
+            # Only approval_league is usable here. preferred_league is the
+            # onboarding HINT and speaks a different vocabulary
+            # ('pub_league_classic' vs the 'classic' form values apply_approval
+            # maps), so feeding it in would only ever raise.
+            #
+            # waitlist-* is refused explicitly: apply_approval routes those to
+            # _apply_waitlist, which would park the user with approval_status
+            # 'pending' while this route reported "approved successfully".
+            league_type = user.approval_league
+            transitioned = False
+            if league_type and not str(league_type).startswith('waitlist-'):
+                try:
+                    from app.admin_panel.routes.user_management.approvals import apply_approval
+                    # Shares db.session and does not commit — the caller owns the
+                    # transaction, which here is the lock_user_for_role_update block.
+                    apply_approval(user, league_type, current_user.id)
+                    transitioned = True
+                except Exception as exc:
+                    logger.warning(
+                        f"apply_approval failed for user {user_id} "
+                        f"(league_type={league_type!r}); falling back to role strip: {exc}"
+                    )
+
+            if not transitioned:
+                for gate_role in ('pl-unverified', 'pl-waitlist'):
+                    r = db.session.query(Role).filter_by(name=gate_role).first()
+                    if r and r in user.roles:
+                        user.roles.remove(r)
+
+            # Set AFTER the transition so these can't be silently reverted by a
+            # delegated path — this route's response promises "approved".
             user.is_approved = True
             user.approval_status = 'approved'
 
@@ -1386,10 +1426,23 @@ def delete_user_comprehensive(user_id):
         {"uid": user_id}
     )
 
-    # Remove Discord roles AFTER successful delete
+    # Remove Discord roles AFTER successful delete.
+    #
+    # discord_id MUST be passed explicitly. The player row is gone by now, and
+    # _extract_remove_roles_data starts with `session.query(Player).get(player_id)`
+    # followed by `raise ValueError(f"Player {player_id} not found")` — so this
+    # task ALWAYS failed and a deleted user kept every Discord role permanently.
+    # It logged "Triggered Discord role removal" either way.
+    #
+    # The override lets the extract skip the dead row lookup for the id and
+    # resolve the member directly. (Team-scoped role names still come from the
+    # captured target_teams; a deleted user is a full offboarding anyway, which
+    # applies the registry-wide division/coach/sub sweep.)
     if player_id and discord_id:
-        remove_player_roles_task.delay(player_id=player_id)
-        logger.info(f"Triggered Discord role removal for deleted user {user_id}")
+        remove_player_roles_task.delay(player_id=player_id, discord_id=discord_id)
+        logger.info(
+            f"Triggered Discord role removal for deleted user {user_id} "
+            f"(player_id={player_id}, discord_id={discord_id})")
 
     return jsonify({'success': True, 'message': f'User {username} deleted successfully'})
 

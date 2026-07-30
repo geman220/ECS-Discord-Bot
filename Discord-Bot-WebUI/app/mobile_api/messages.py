@@ -32,7 +32,21 @@ def _build_avatar_url(profile_picture_url):
         return f"{base_url}/static/img/default_player.png"
 
 
-def _user_to_dict(user, session_db):
+def _online_user_ids():
+    """Set of currently-online user ids, or None if presence is unavailable.
+
+    One Redis SMEMBERS for the whole response instead of a call per user — the
+    list endpoints serialize many users at once.
+    """
+    try:
+        from app.sockets.presence import PresenceManager
+        return {int(uid) for uid in (PresenceManager.get_online_users(limit=1000) or [])}
+    except Exception:
+        logger.debug("presence lookup failed; omitting is_online", exc_info=True)
+        return None
+
+
+def _user_to_dict(user, session_db, online_ids=None):
     """Serialize user for API responses with full avatar URLs and role badges."""
     player = session_db.query(Player).filter_by(user_id=user.id).first()
     avatar_url = _build_avatar_url(player.profile_picture_url if player else None)
@@ -57,7 +71,41 @@ def _user_to_dict(user, session_db):
         'is_admin': is_admin,
         'is_global_admin': is_global_admin,
         'is_ref': is_ref,
+        # Presence. PresenceManager was already imported and used 300 lines below
+        # for delivery decisions, but never surfaced here — so the three
+        # presence-dot affordances in the UI had nothing to bind to.
+        'is_online': (
+            (user.id in online_ids) if online_ids is not None
+            else _is_user_online(user.id)
+        ),
     }
+
+
+def _emit_message_deleted(message_id, user_id, deleted_for='me'):
+    """Emit message_deleted to a user's room on both namespaces.
+
+    Mirrors routes/messages.py:503-516 — the client already listens for this
+    event (websocket_messaging_manager.dart:125-135).
+    """
+    try:
+        from flask import current_app
+        socketio = current_app.extensions.get('socketio')
+        if not socketio:
+            return
+        payload = {'message_id': message_id, 'deleted_for': deleted_for}
+        socketio.emit('message_deleted', payload, room=f'user_{user_id}')
+        socketio.emit('message_deleted', payload, room=f'user_{user_id}', namespace='/live')
+    except Exception as e:
+        logger.warning(f"Failed to emit message_deleted event: {e}")
+
+
+def _is_user_online(user_id):
+    """Single-user presence check, for callers not batching."""
+    try:
+        from app.sockets.presence import PresenceManager
+        return bool(PresenceManager.is_user_online(user_id))
+    except Exception:
+        return False
 
 
 def _message_to_dict(msg, for_user_id=None):
@@ -205,6 +253,9 @@ def get_conversations():
         ).group_by(DirectMessage.sender_id).all()
         unread_by_sender = dict(unread_counts)
 
+        # One presence lookup for the whole page, not one per conversation.
+        online_ids = _online_user_ids()
+
         # Build response using pre-fetched data
         conversations = []
         for msg in messages:
@@ -215,7 +266,7 @@ def get_conversations():
                 continue
 
             conversations.append({
-                'user': _user_to_dict(other_user, session_db),
+                'user': _user_to_dict(other_user, session_db, online_ids),
                 'last_message': {
                     'content': msg.content[:100] + '...' if len(msg.content) > 100 else msg.content,
                     'sent_by_me': msg.sender_id == current_user_id,
@@ -436,16 +487,20 @@ def mark_message_read(message_id):
 @jwt_required()
 def delete_message(message_id):
     """
-    Delete (hide) a single message for the current user.
+    Delete a single message.
 
-    This is a soft delete - the message is hidden for the current user
-    but remains visible to the other participant.
+    Sender  -> unsend: soft-deleted for EVERYONE (content cleared, placeholder
+               shown to both sides), matching the web route.
+    Recipient -> hide for themselves only; the sender still sees it.
+
+    This used to always hide-for-me while the app's dialog promised "removed for
+    everyone", so an unsend silently left the message on the recipient's screen.
 
     Args:
         message_id: The ID of the message to delete
 
     Returns:
-        JSON with success message
+        JSON with success message and which scope was applied
     """
     current_user_id = int(get_jwt_identity())
 
@@ -460,15 +515,39 @@ def delete_message(message_id):
         if not message:
             return jsonify({"msg": "Message not found"}), 404
 
-        # Hide for this user only
-        message.hide_for_user(current_user_id)
+        is_sender = (message.sender_id == current_user_id)
+        recipient_id = message.recipient_id
+        sender_id = message.sender_id
+
+        if is_sender:
+            # Unsend — same call the web route makes.
+            message.delete_for_everyone()
+            deleted_for = 'everyone'
+        else:
+            message.hide_for_user(current_user_id)
+            deleted_for = 'me'
+
         session_db.commit()
 
-        logger.info(f"User {current_user_id} deleted message {message_id}")
+        # Mobile mutations emitted nothing (only the web route did), so deleting
+        # on your phone left the message sitting there on your tablet — and, for
+        # an unsend, on the recipient's screen too.
+        _emit_message_deleted(message_id, current_user_id, deleted_for=deleted_for)
+        if deleted_for == 'everyone':
+            other_id = recipient_id if current_user_id == sender_id else sender_id
+            if other_id and other_id != current_user_id:
+                _emit_message_deleted(message_id, other_id, deleted_for='everyone')
+
+        logger.info(
+            f"User {current_user_id} deleted message {message_id} (scope={deleted_for})"
+        )
 
         return jsonify({
             'msg': 'Message deleted',
-            'message_id': message_id
+            'message_id': message_id,
+            # So the client can word its confirmation truthfully instead of
+            # always claiming "removed for everyone".
+            'deleted_for': deleted_for
         }), 200
 
 
@@ -530,12 +609,15 @@ def search_users():
             )
         ).limit(limit).all()
 
+        # One presence lookup for the whole result set.
+        online_ids = _online_user_ids()
+
         # Filter to users we can message
         results = []
         for user in users:
             can_msg, _ = _can_user_message(current_user, user, session_db)
             if can_msg:
-                results.append(_user_to_dict(user, session_db))
+                results.append(_user_to_dict(user, session_db, online_ids))
 
         return jsonify({'users': results}), 200
 
@@ -596,6 +678,19 @@ def delete_conversation(user_id):
             current_user_id, user_id, session=session_db
         )
         session_db.commit()
+
+        # Sync the caller's other devices (hide-for-me, so the other
+        # participant's room is deliberately not notified).
+        try:
+            from flask import current_app
+            socketio = current_app.extensions.get('socketio')
+            if socketio:
+                payload = {'with_user_id': user_id, 'deleted_for': 'me'}
+                socketio.emit('conversation_deleted', payload, room=f'user_{current_user_id}')
+                socketio.emit('conversation_deleted', payload,
+                              room=f'user_{current_user_id}', namespace='/live')
+        except Exception as e:
+            logger.warning(f"Failed to emit conversation_deleted event: {e}")
 
         logger.info(f"User {current_user_id} hid conversation with user {user_id} ({hidden_count} messages)")
 

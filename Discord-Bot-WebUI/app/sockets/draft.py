@@ -292,17 +292,23 @@ def handle_draft_player_enhanced(data):
             # Transaction 1 committed automatically - connection released
 
             # Validation + guards passed — now tell the room someone is mid-pick.
-            emit('user_drafting', {
-                'username': username,
-                'player_name': player_name_from_request,
-                'team_name': team_name
-            }, room=f'draft_{league_name}')
-            # Mirror to the mobile namespace so phones see web-board coaches
-            # mid-pick too, not just other phones.
-            socketio.emit('user_drafting', {
-                'username': username,
-                'player_name': player_name_from_request,
-            }, room=f'draft_{league_name}', namespace='/draft')
+            #
+            # Loop the rooms like the player_drafted_enhanced emit below: a web
+            # board on draft_Classic and phones on draft_classic are different
+            # rooms, so a single-casing emit silently skipped one of them.
+            from app.draft_clock import draft_rooms as _draft_rooms
+            for _room in _draft_rooms(league_name):
+                emit('user_drafting', {
+                    'username': username,
+                    'player_name': player_name_from_request,
+                    'team_name': team_name
+                }, room=_room)
+                # Mirror to the mobile namespace so phones see web-board coaches
+                # mid-pick too, not just other phones.
+                socketio.emit('user_drafting', {
+                    'username': username,
+                    'player_name': player_name_from_request,
+                }, room=_room, namespace='/draft')
 
             # ===== TRANSACTION 2: Core write + history, ALL under the FOR UPDATE lock =====
             # Claim the turn ATOMICALLY: lock the draft_session row FOR UPDATE so this

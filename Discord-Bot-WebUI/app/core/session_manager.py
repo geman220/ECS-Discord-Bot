@@ -155,7 +155,29 @@ def cleanup_request(exception=None):
                 logger.debug(f"Committing session {session_id}")
                 g.db_session.commit()
                 monitor.register_session_commit(session_id)
-                
+
+                # Dispatch queued Discord work now that the transaction is
+                # DURABLE. It used to fire from an after_this_request hook,
+                # which Flask runs during process_response — i.e. before this
+                # commit. The Celery worker reads through its own connection, so
+                # it could not see the request's uncommitted writes: it acted on
+                # pre-change state, or resolved no players at all and silently
+                # dispatched nothing. And if the commit above had failed, the
+                # tasks were already published for work that got rolled back.
+                #
+                # Deliberately inside the `else` (no exception) branch and after
+                # the commit, so a rollback never dispatches.
+                try:
+                    from app.utils.deferred_discord import (
+                        flush_deferred_discord_after_commit,
+                    )
+                    flush_deferred_discord_after_commit()
+                except Exception as _dd_err:
+                    # Never let a dispatch problem fail teardown.
+                    logger.error(
+                        f"Error flushing deferred Discord ops after commit "
+                        f"for session {session_id}: {_dd_err}")
+
         except Exception as e:
             status = 'cleanup-error'
             logger.error(f"Error during session cleanup for {session_id}: {e}", exc_info=True)

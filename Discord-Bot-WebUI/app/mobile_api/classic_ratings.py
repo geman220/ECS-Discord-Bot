@@ -60,6 +60,10 @@ def classic_ratings_config():
             "window_open": config['window_open'],
             "max_metric_gap": float(config['max_metric_gap']),
             "gender_balance_enabled": config['gender_balance_enabled'],
+            # The admin rollback toggle. Without it in the mobile payload,
+            # flipping classic_balanced_draft_enabled reverted the web board
+            # while every phone stayed on the balanced board.
+            "balanced_draft_enabled": config['balanced_draft_enabled'],
         }), 200
 
 

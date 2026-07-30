@@ -15,6 +15,7 @@ from app.models import Player, User
 from app.wallet_pass import create_pass_for_player, validate_pass_configuration
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
+from app.utils.log_sanitizer import mask_email
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def get_wallet_pass(user_id):
             return redirect(url_for('account.settings'))
         
         # Generate the pass
-        logger.info(f"Generating wallet pass for user {user.email} (player: {player.name})")
+        logger.info(f"Generating wallet pass for user {mask_email(user.email)} (player: {player.name})")
         
         pass_data = create_pass_for_player(player.id)
         

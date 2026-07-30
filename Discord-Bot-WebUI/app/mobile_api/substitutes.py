@@ -2714,6 +2714,12 @@ def get_available_requests():
                     "date": req.match.date.isoformat() if req.match.date else None,
                     "time": req.match.time.isoformat() if req.match.time else None,
                     "location": req.match.location,
+                    # `_name` keys, matching get_my_team_requests (:338-339).
+                    # This route emitted bare `home_team`/`away_team` for the same
+                    # concept, so the client saw two shapes for one field.
+                    # Old keys retained so nothing in flight breaks.
+                    "home_team_name": req.match.home_team.name if req.match.home_team else None,
+                    "away_team_name": req.match.away_team.name if req.match.away_team else None,
                     "home_team": req.match.home_team.name if req.match.home_team else None,
                     "away_team": req.match.away_team.name if req.match.away_team else None
                 } if req.match else None,

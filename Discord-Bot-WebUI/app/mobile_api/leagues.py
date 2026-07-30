@@ -251,9 +251,19 @@ def get_league_standings(league_id: int):
         teams = [t for t in league.teams if t.name != "Practice"]
         team_ids = [t.id for t in teams]
 
-        standings = session.query(Standings).filter(
+        # Scope to the league's season. Filtering on team_id alone (unlike
+        # teams.py:501, which filters both) would list a team once per season
+        # if a Team row is ever carried across seasons.
+        standings_query = session.query(Standings).filter(
             Standings.team_id.in_(team_ids)
-        ).order_by(
+        )
+        league_season_id = league.season.id if league.season else None
+        if league_season_id:
+            standings_query = standings_query.filter(
+                Standings.season_id == league_season_id
+            )
+
+        standings = standings_query.order_by(
             Standings.points.desc(),
             Standings.goal_difference.desc(),
             Standings.goals_for.desc()

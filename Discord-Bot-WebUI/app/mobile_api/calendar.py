@@ -24,6 +24,7 @@ from app.models import Match, Player, Season
 from app.models.calendar import LeagueEvent
 from app.models_ecs import EcsFcMatch
 from app.utils.special_weeks import get_special_week_display_name
+from app.utils.pacific_time import pacific_today
 
 logger = logging.getLogger(__name__)
 
@@ -254,7 +255,7 @@ def get_calendar_events():
         except ValueError:
             start_date = datetime.strptime(start_str[:10], '%Y-%m-%d').date()
     else:
-        start_date = datetime.now().date()
+        start_date = pacific_today()
 
     if end_str:
         try:
@@ -451,7 +452,7 @@ def get_upcoming_calendar():
     limit = request.args.get('limit', 10, type=int)
     limit = min(limit, 50)  # Cap at 50
 
-    start_date = datetime.now().date()
+    start_date = pacific_today()
     end_date = start_date + timedelta(days=days)
 
     events = []

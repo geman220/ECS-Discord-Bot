@@ -199,29 +199,125 @@ def get_discord_queue() -> DeferredDiscordQueue:
 
         @after_this_request
         def _dispatch_deferred_discord(response):
-            # Only dispatch on success. Non-2xx means the route returned
-            # an error or validation failure; rolled-back work shouldn't
-            # trigger Discord side effects.
-            if 200 <= response.status_code < 300:
-                try:
-                    g._discord_queue.execute_all()
-                except Exception as e:
-                    logger.error(f"Error dispatching deferred Discord ops: {e}")
+            # Dispatch on success. 4xx/5xx means the route returned an error or
+            # validation failure; rolled-back work shouldn't trigger Discord
+            # side effects.
+            #
+            # 3xx COUNTS AS SUCCESS. This gate used to be `< 300`, which silently
+            # discarded every operation queued by a form route that ends in the
+            # normal POST-redirect-GET pattern. The confirmed victim was
+            # admin_panel/routes/user_management/roles.py `assign_user_roles`:
+            # it queues a reconcile AND a precise revoke, then returns
+            # `redirect(...)` -> 302 -> clear(). That route is the ONLY path in
+            # the app that can strip a protected division/coach Discord role
+            # (the reconcile allowlist blocks those by design), so this one
+            # comparison meant revoking `pl-premier` never actually removed
+            # ECS-FC-PL-PREMIER. It logged "Queued Discord role sync", flashed
+            # success, and committed the Flask-side change -- so the UI and DB
+            # agreed while Discord silently diverged, with no error anywhere and
+            # nothing for the beat drain to pick up (no flag is set on this path,
+            # and the drain is add-only regardless).
+            #
+            # Safety of widening: an exception escaping to @transactional runs
+            # _safe_rollback() -> clear_deferred_discord(), which empties the
+            # queue BEFORE any response exists. So a failed request cannot reach
+            # here with live operations, whatever status it ends up returning.
+            # ARM ONLY -- the actual dispatch happens after the COMMIT.
+            #
+            # after_this_request runs during process_response, but the request
+            # session is committed later, by cleanup_request registered as
+            # teardown_appcontext (app/init/database.py). Dispatching here
+            # published Celery tasks BEFORE the transaction was durable: the
+            # worker opens its own connection and cannot see uncommitted rows,
+            # so it either acted on pre-change state or found nothing at all —
+            # and if the teardown commit then failed, the tasks had already
+            # gone out for work that was rolled back.
+            #
+            # @transactional routes commit inside the view, so they were fine;
+            # everything relying on the teardown commit was not. Arming here and
+            # flushing from cleanup_request (see flush_deferred_discord_after_commit)
+            # makes the ordering correct for both.
+            if 200 <= response.status_code < 400:
+                g._discord_dispatch_armed = True
             else:
                 g._discord_queue.clear()
+                g._discord_dispatch_armed = False
             return response
 
     return g._discord_queue
 
 
+def _queue_or_dispatch(add_op):
+    """Queue an op on the request-scoped queue, or dispatch it NOW if there is no request.
+
+    Outside a request context `get_discord_queue()` hands back an EPHEMERAL queue
+    that nothing ever calls `execute_all()` on, so the operation was silently
+    DISCARDED -- no log line, no exception, no trace. Callers of the module-level
+    `defer_*` helpers get no handle on the queue, so they could not flush it even
+    if they knew to.
+
+    That made the helpers a landmine: correct from a route, a silent no-op from a
+    Celery task, CLI command, socketio handler or background thread. Only
+    `app/pub_league/services.py` had noticed and hand-rolled a
+    `has_request_context()` branch. Centralising it here means no caller has to
+    know, and a service-layer function stays correct when someone later wires it
+    to a beat schedule.
+
+    Args:
+        add_op: callable taking the queue and enqueuing exactly one operation.
+    """
+    q = get_discord_queue()
+    add_op(q)
+    if not has_request_context():
+        # No after_this_request hook will ever fire for this queue -- flush it
+        # ourselves rather than dropping it on the floor.
+        try:
+            q.execute_all()
+        except Exception as e:
+            logger.error(
+                f"Direct dispatch of Discord op outside request context failed: {e}"
+            )
+
+
+def flush_deferred_discord_after_commit():
+    """Dispatch queued Discord ops. Call ONLY after the request session commits.
+
+    Invoked by app/core/session_manager.cleanup_request immediately after a
+    successful commit, which is the earliest point at which a Celery worker —
+    reading through its own connection — can actually see the request's writes.
+
+    Safe to call when nothing is queued, when no queue was ever created, or when
+    the response was an error (the after_this_request hook disarms and clears in
+    that case). Never raises: a dispatch problem must not turn into a failed
+    teardown.
+    """
+    if not has_request_context():
+        return
+    queue = getattr(g, '_discord_queue', None)
+    if queue is None or not getattr(g, '_discord_dispatch_armed', False):
+        return
+    try:
+        queue.execute_all()
+    except Exception as e:
+        logger.error(f"Error dispatching deferred Discord ops after commit: {e}")
+    finally:
+        g._discord_dispatch_armed = False
+
+
 def defer_discord_sync(player_id: int, only_add: bool = True):
-    """Queue a Discord role sync. Dispatched after the request commits."""
-    get_discord_queue().add_role_sync(player_id, only_add)
+    """Queue a Discord role sync. Dispatched after the request commits.
+
+    Outside a request context, dispatches immediately instead of being dropped.
+    """
+    _queue_or_dispatch(lambda q: q.add_role_sync(player_id, only_add))
 
 
 def defer_discord_removal(player_id: int):
-    """Queue a Discord role removal. Dispatched after the request commits."""
-    get_discord_queue().add_role_removal(player_id)
+    """Queue a Discord role removal. Dispatched after the request commits.
+
+    Outside a request context, dispatches immediately instead of being dropped.
+    """
+    _queue_or_dispatch(lambda q: q.add_role_removal(player_id))
 
 
 def defer_discord_revoke(player_id: int, candidate_roles=None, team_ids=None):
@@ -229,8 +325,28 @@ def defer_discord_revoke(player_id: int, candidate_roles=None, team_ids=None):
 
     Only roles the shared expected-role calculator no longer grants are removed, so
     this is safe to call after any roster or Flask-role change.
+
+    Outside a request context, dispatches immediately instead of being dropped.
     """
-    get_discord_queue().add_role_revoke(player_id, candidate_roles, team_ids)
+    if not has_request_context():
+        # Do NOT dispatch inline. add_role_revoke's own contract (above) says a
+        # revoke MUST run after the caller's transaction commits, because the
+        # task re-derives expected roles from the DB -- dispatched inline it
+        # reads the PRE-change roster and either revokes nothing (a silent
+        # no-op that looks like success) or revokes against stale state.
+        #
+        # Unlike a sync, getting this wrong REMOVES access. So outside a request
+        # we refuse and say so, rather than guessing that the caller committed.
+        # Callers in Celery/CLI should commit first and then call
+        # revoke_unexpected_roles_task.delay(...) directly.
+        logger.error(
+            f"defer_discord_revoke called for player {player_id} outside a "
+            f"request context; REFUSING to dispatch inline because the revoke "
+            f"would re-derive expected roles from an uncommitted transaction. "
+            f"Commit first, then call revoke_unexpected_roles_task.delay().")
+        return
+    _queue_or_dispatch(
+        lambda q: q.add_role_revoke(player_id, candidate_roles, team_ids))
 
 
 def clear_deferred_discord():

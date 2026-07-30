@@ -1269,8 +1269,12 @@ def seed_program_automations(program_key, dry_run):
               help='Inspect one specific player instead of the flagged set.')
 @click.option('--show-noop', is_flag=True,
               help='Also list players the drain would not change.')
+@click.option('--reconcile', is_flag=True,
+              help='ALSO show what a removal-capable reconcile would STRIP. '
+                   'Still read-only. Use this to evaluate turning the drain '
+                   'from add-only into a full reconcile.')
 @with_appcontext
-def preview_discord_role_drain(limit, player_id, show_noop):
+def preview_discord_role_drain(limit, player_id, show_noop, reconcile):
     """Show exactly what the scheduled Discord role drain WOULD do. Read-only.
 
     Runs the same expected-role calculator the drain uses, against the same set
@@ -1293,9 +1297,9 @@ def preview_discord_role_drain(limit, player_id, show_noop):
     from collections import Counter
     from app.models import Player
     from app.tasks.tasks_discord import (
-        _extract_player_role_data, _compute_expected_roles,
+        _extract_player_role_data, _compute_expected_roles, _app_managed_roles,
     )
-    from app.discord_utils import normalize_name
+    from app.discord_utils import normalize_name, _is_reconcile_removable
 
     session = db.session
 
@@ -1317,6 +1321,7 @@ def preview_discord_role_drain(limit, player_id, show_noop):
 
     changed, noop, failed = [], [], []
     add_histogram = Counter()
+    strip_histogram = Counter()
 
     for p in players:
         try:
@@ -1326,20 +1331,41 @@ def preview_discord_role_drain(limit, player_id, show_noop):
             continue
 
         expected = _compute_expected_roles(data)
-        current_norm = {normalize_name(r) for r in (data.get('current_roles') or [])}
+        cur = data.get('current_roles') or []
+        current_norm = {normalize_name(r) for r in cur}
         to_add = [r for r in expected if normalize_name(r) not in current_norm]
 
-        if to_add:
-            changed.append((p, to_add, data.get('current_roles') or []))
+        # What a RECONCILE would strip: held AND app-managed AND no longer
+        # expected. Split by the protected-role allowlist, which today permits
+        # removing only *-SUB and ECS-FC-PL-UNVERIFIED -- everything else is
+        # reported as blocked so you can see exactly what relaxing it would do.
+        strip_allowed, strip_blocked = [], []
+        if reconcile:
+            expected_norm = {normalize_name(r) for r in expected}
+            managed_norm = {normalize_name(r) for r in _app_managed_roles(data)}
+            for role in cur:
+                rn = normalize_name(role)
+                if rn in managed_norm and rn not in expected_norm:
+                    (strip_allowed if _is_reconcile_removable(role)
+                     else strip_blocked).append(role)
+                    strip_histogram.update([role])
+
+        if to_add or strip_allowed or strip_blocked:
+            changed.append((p, to_add, cur, strip_allowed, strip_blocked))
             add_histogram.update(to_add)
         else:
             noop.append(p)
 
     if changed:
-        click.echo(f"--- WOULD GRANT ({len(changed)} players) ---")
-        for p, to_add, cur in changed:
+        click.echo(f"--- CHANGES ({len(changed)} players) ---")
+        for p, to_add, cur, s_ok, s_no in changed:
             click.echo(f"  [{p.id}] {p.name}")
-            click.echo(f"        + {', '.join(to_add)}")
+            if to_add:
+                click.echo(f"        + {', '.join(to_add)}")
+            if s_ok:
+                click.echo(f"        - {', '.join(s_ok)}   (reconcile WOULD strip)")
+            if s_no:
+                click.echo(f"        ~ {', '.join(s_no)}   (BLOCKED by protected-role allowlist)")
             click.echo(f"        (cached current: {', '.join(cur) if cur else '<none recorded>'})")
 
     if show_noop and noop:
@@ -1357,7 +1383,19 @@ def preview_discord_role_drain(limit, player_id, show_noop):
     click.echo(f"  would grant    : {len(changed)}")
     click.echo(f"  no change      : {len(noop)}")
     click.echo(f"  not evaluable  : {len(failed)}")
-    click.echo(f"  would REVOKE   : 0  (add-only; removal is structurally impossible)")
+    if reconcile:
+        _allowed = sum(1 for c in changed if c[3])
+        _blocked = sum(1 for c in changed if c[4])
+        click.echo(f"  --- reconcile preview (NOT what the drain does today) ---")
+        click.echo(f"  players with strippable roles : {_allowed}")
+        click.echo(f"  players with BLOCKED strips   : {_blocked}")
+        if strip_histogram:
+            click.echo("  roles a reconcile would target, by frequency:")
+            for role, n in strip_histogram.most_common():
+                mark = '' if _is_reconcile_removable(role) else '  [BLOCKED today]'
+                click.echo(f"    {n:5d}  {role}{mark}")
+    else:
+        click.echo(f"  would REVOKE   : 0  (add-only; removal is structurally impossible)")
     if add_histogram:
         click.echo("\n  roles that would be granted, by frequency:")
         for role, n in add_histogram.most_common():

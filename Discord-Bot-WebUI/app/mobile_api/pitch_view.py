@@ -288,23 +288,27 @@ def get_team_draft_pitch(team_id):
         # Get team players with their draft positions
         players = team.players
 
-        # Build positions from player_teams position column
+        # Build positions from player_teams. One query for the whole team rather
+        # than one per player.
+        rows = session_db.execute(
+            player_teams.select().where(player_teams.c.team_id == team_id)
+        ).fetchall()
+        row_by_player = {r.player_id: r for r in rows}
+
         positions = []
         for i, player in enumerate(players):
-            # Get position from player_teams association
-            result = session_db.execute(
-                player_teams.select().where(
-                    player_teams.c.player_id == player.id,
-                    player_teams.c.team_id == team_id
-                )
-            ).first()
-
+            result = row_by_player.get(player.id)
             if result:
                 pos = result.position if result.position else 'bench'
+                # Real persisted order, falling back to roster index for rows
+                # written before position_order existed. This used to always be
+                # the enumeration index, so a reorder could never survive a
+                # reload.
+                order = result.position_order
                 positions.append({
                     'player_id': player.id,
                     'position': pos,
-                    'order': i
+                    'order': i if order is None else order,
                 })
 
         roster = build_roster_response(players, match=None, session_db=session_db)
@@ -314,7 +318,7 @@ def get_team_draft_pitch(team_id):
             'pitch': {
                 'id': None,
                 'positions': positions,
-                'notes': None,
+                'notes': team.draft_notes,
                 'version': 1
             },
             'roster': roster,
@@ -349,17 +353,20 @@ def update_team_draft_pitch(team_id):
         data = request.get_json(silent=True) or {}
         positions = data.get('positions', [])
 
-        # Update player_teams position column for each player
-        for pos_entry in positions:
+        # Update player_teams position + ordering for each player
+        for idx, pos_entry in enumerate(positions):
             player_id = pos_entry.get('player_id')
             position = pos_entry.get('position', 'bench')
+            # Fall back to list index so a client that omits 'order' still gets
+            # a stable, persisted ordering rather than silently losing it.
+            order = pos_entry.get('order', idx)
 
             if player_id:
                 session_db.execute(
                     player_teams.update().where(
                         player_teams.c.player_id == player_id,
                         player_teams.c.team_id == team_id
-                    ).values(position=position)
+                    ).values(position=position, position_order=order)
                 )
 
         session_db.commit()
@@ -380,6 +387,7 @@ def update_team_draft_position(team_id):
     Expected JSON:
         player_id: Player ID
         position: New position code
+        order: Slot ordering within that position (optional)
     """
     current_user_id = int(get_jwt_identity())
 
@@ -390,22 +398,105 @@ def update_team_draft_position(team_id):
         data = request.get_json(silent=True) or {}
         player_id = data.get('player_id')
         position = data.get('position', 'bench')
+        order = data.get('order')
 
         if not player_id:
             return jsonify({'msg': 'Missing player_id'}), 400
+
+        values = {'position': position}
+        # The incoming order used to be ignored outright, so a rotation reorder
+        # was accepted and then lost.
+        if order is not None:
+            values['position_order'] = order
 
         session_db.execute(
             player_teams.update().where(
                 player_teams.c.player_id == player_id,
                 player_teams.c.team_id == team_id
-            ).values(position=position)
+            ).values(**values)
         )
         session_db.commit()
 
+        # 'order' must be in the response: the match-mode twin returns it, and
+        # the client treats its absence as a malformed reply — every drag,
+        # tap-to-place, position-picker change and swap on the Draft -> Pitch
+        # screen threw, rolled back the optimistic move, and rendered
+        # "Failed to load formation" despite the server having saved the change.
         return jsonify({
             'msg': 'Position updated',
             'player_id': player_id,
             'position': position,
+            'order': order,
+            'version': 1
+        }), 200
+
+
+@mobile_api_v2.route('/teams/<int:team_id>/draft/pitch/position/<int:player_id>', methods=['DELETE'])
+@jwt_required()
+def remove_from_team_draft_pitch(team_id, player_id):
+    """
+    Remove a player from the draft pitch (back to the bench).
+
+    Draft-mode twin of the match-mode
+    DELETE /matches/<id>/teams/<id>/lineup/position/<player_id>. The client
+    called this and got a 404 because it did not exist.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        result = session_db.execute(
+            player_teams.update().where(
+                player_teams.c.player_id == player_id,
+                player_teams.c.team_id == team_id
+            ).values(position='bench', position_order=None)
+        )
+
+        if result.rowcount == 0:
+            return jsonify({'msg': 'Player not on this team'}), 404
+
+        session_db.commit()
+
+        return jsonify({
+            'msg': 'Player removed from pitch',
+            'player_id': player_id,
+            'position': 'bench',
+            'version': 1
+        }), 200
+
+
+@mobile_api_v2.route('/teams/<int:team_id>/draft/pitch/notes', methods=['PUT'])
+@jwt_required()
+def update_team_draft_notes(team_id):
+    """
+    Update the draft pitch notes for a team.
+
+    Draft-mode twin of PUT /matches/<id>/teams/<id>/lineup/notes. Previously
+    missing entirely, and the draft GET hardcoded notes=None, so even a
+    successful write could not have round-tripped.
+
+    Expected JSON:
+        notes: Free text (null or "" clears)
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        team = session_db.query(Team).filter_by(id=team_id).first()
+        if not team:
+            return jsonify({'msg': 'Team not found'}), 404
+
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        data = request.get_json(silent=True) or {}
+        team.draft_notes = data.get('notes')
+        session_db.commit()
+
+        return jsonify({
+            'msg': 'Notes updated',
+            'notes': team.draft_notes,
             'version': 1
         }), 200
 
