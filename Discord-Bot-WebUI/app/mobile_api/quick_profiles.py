@@ -27,7 +27,7 @@ from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import Player, User, QuickProfile, QuickProfileStatus
 from app.players_helpers import save_quick_profile_picture
-from app.utils.log_sanitizer import mask_code
+from app.utils.log_sanitizer import mask_code, mask_email
 
 logger = logging.getLogger(__name__)
 
@@ -450,7 +450,37 @@ def get_quick_profile(profile_id: int):
                 }
             }), 404
 
-        data = profile.to_dict()
+        # Coaches get the scouting view only. The prospect-review privacy rule
+        # says a coach must never see a prospect's contact details, and an
+        # unredeemed claim_code would let them claim the profile themselves.
+        caller_id = int(get_jwt_identity())
+        caller = session.query(User).get(caller_id)
+        caller_roles = {r.name for r in (caller.roles or [])} if caller else set()
+        is_admin = bool(caller_roles & set(ADMIN_ROLES))
+
+        data = profile.to_dict(include_contact=is_admin)
+
+        # claim_url, so the detail screen can render a QR that points at THIS
+        # environment. Without it the client fell back to a hardcoded production
+        # URL, meaning a QR generated on dev/staging sent the prospect to prod.
+        # build_claim_url reads WEBUI_BASE_URL, so it is environment-correct and
+        # needs no request context.
+        #
+        # ADMIN-ONLY, and only while unclaimed — deliberately matching
+        # to_dict(include_contact=...) rather than being a plain serializer key.
+        # The URL embeds the claim code, so handing it to a coach would defeat
+        # the privacy rule documented above: an unredeemed code lets the holder
+        # claim the profile themselves. A claimed profile's code is spent, so
+        # there is nothing useful to return.
+        if is_admin and not profile.claimed_by_player and profile.claim_code:
+            try:
+                from app.services.quick_profile_notifications import build_claim_url
+                data['claim_url'] = build_claim_url(profile)
+            except Exception as _url_err:
+                # Never fail the detail read over a convenience field.
+                logger.warning(
+                    f"Could not build claim_url for quick profile "
+                    f"{profile_id}: {_url_err}")
 
         if profile.claimed_by_player:
             data['linked_player'] = {
@@ -891,7 +921,7 @@ def send_claim_code_email(profile_id: int):
         from app.services.quick_profile_notifications import defer_claim_code_send
         defer_claim_code_send(profile.id, via_email=True, via_sms=False)
 
-        logger.info(f"Claim code email queued to {email} for profile {profile_id}")
+        logger.info(f"Claim code email queued to {mask_email(email)} for profile {profile_id}")
         return jsonify({
             'success': True,
             'message': f'Claim code queued to {email}'

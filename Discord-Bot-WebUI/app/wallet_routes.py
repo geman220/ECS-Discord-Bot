@@ -15,6 +15,7 @@ from app.models import Player, User
 from app.wallet_pass import create_pass_for_player, validate_pass_configuration
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
+from app.utils.log_sanitizer import mask_email
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ def get_wallet_pass(user_id):
             return redirect(url_for('account.settings'))
         
         # Generate the pass
-        logger.info(f"Generating wallet pass for user {user.email} (player: {player.name})")
+        logger.info(f"Generating wallet pass for user {mask_email(user.email)} (player: {player.name})")
         
         pass_data = create_pass_for_player(player.id)
         
@@ -156,10 +157,11 @@ def validate_pass_eligibility(player_id):
         
         if not player.user:
             eligibility['reasons'].append('Player has no associated user account')
-        
-        if not player.primary_team:
-            eligibility['reasons'].append('Player is not assigned to a team')
-        
+
+        # NOT gated on a team — a paid, undrafted player is eligible, and the
+        # pass renders them as "Unassigned". Must stay in step with
+        # WalletPassGenerator._is_player_eligible().
+
         if len(eligibility['reasons']) == 0:
             eligibility['eligible'] = True
             eligibility['team_name'] = player.primary_team.name if player.primary_team else None

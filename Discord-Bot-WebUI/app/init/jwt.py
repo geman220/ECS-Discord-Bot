@@ -12,6 +12,34 @@ from flask import jsonify, current_app
 logger = logging.getLogger(__name__)
 
 
+def jwt_claims_revoked(claims) -> bool:
+    """True if these JWT claims have been revoked by jti or by session id.
+
+    decode_token() checks signature and expiry only — the @token_in_blocklist_loader
+    below runs exclusively inside verify_jwt_in_request(). Socket namespaces
+    authenticate with decode_token(), so without this they never saw a logout or a
+    session revoke: a revoked device kept its /live subscription and went on
+    receiving DMs and match broadcasts until it happened to disconnect.
+
+    Fails OPEN when Redis is unreachable, matching check_if_token_in_blocklist().
+    """
+    if not claims:
+        return False
+    try:
+        redis_client = current_app.redis
+        if not redis_client:
+            return False
+        jti = claims.get('jti')
+        if jti and redis_client.exists(f"jwt_blocklist:{jti}") > 0:
+            return True
+        sid = claims.get('sid')
+        if sid and redis_client.exists(f"session_revoked:{sid}") > 0:
+            return True
+    except Exception as e:
+        logger.error(f"Error checking socket token revocation: {e}")
+    return False
+
+
 def init_jwt(app):
     """
     Initialize JWT for API authentication.

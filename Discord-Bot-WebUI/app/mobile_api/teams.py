@@ -27,6 +27,7 @@ from app.core.session_manager import managed_session
 from app.models import Team, League, Season, Match, Player, player_teams, Availability
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
+from app.utils.pacific_time import pacific_today
 from app.app_api_helpers import (
     build_match_response,
     get_team_players_availability,
@@ -305,7 +306,7 @@ def get_team_matches(team_id: int):
             )
 
             # Apply upcoming/completed filters
-            today = datetime.now().date()
+            today = pacific_today()
             if upcoming:
                 query = query.filter(EcsFcMatch.match_date >= today)
                 query = query.order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc())
@@ -382,11 +383,15 @@ def get_team_matches(team_id: int):
                 or_(Match.home_team_id == team_id, Match.away_team_id == team_id)
             )
 
-            # Apply upcoming/completed filters
+            # Apply upcoming/completed filters.
+            # pacific_today(), not date.today(): Match.date holds a Pacific
+            # calendar date, but this runs in a UTC container — so from 5pm
+            # Pacific onward "today" was already tomorrow and TONIGHT'S MATCH
+            # dropped out of `upcoming`, during exactly the hours players check.
             if upcoming:
-                query = query.filter(Match.date >= datetime.now().date())
+                query = query.filter(Match.date >= pacific_today())
             if completed:
-                query = query.filter(Match.date < datetime.now().date())
+                query = query.filter(Match.date < pacific_today())
 
             # Order by date
             query = query.order_by(Match.date.desc() if completed else Match.date.asc())

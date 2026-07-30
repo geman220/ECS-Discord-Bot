@@ -24,6 +24,7 @@ from app.core.session_manager import managed_session
 from app.models import User, Player, Season
 from app.models.wallet import WalletPass
 from app.services.team_visibility import reveal_gated_league_names
+from app.utils.log_sanitizer import mask_email
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +63,10 @@ def _resolve_member_barcode(session_db, user_id, player, team_name, season_name)
     return f"ECS2025{barcode_hash}"
 
 
-def _pass_team_name(session_db, player, viewer_user_id, default="ECS FC"):
+def _pass_team_name(session_db, player, viewer_user_id, default="Unassigned"):
+    # "Unassigned", not "ECS FC": an undrafted player has no team, and the
+    # installed pkpass says "Unassigned" (generate_pass.py). Defaulting to a
+    # club name here made the app and the pass disagree for the same player.
     """Team name for pass display, honoring the make_teams_public reveal gate:
     a hidden current Premier/Classic team reads as 'Unassigned' for
     non-coach/non-admin viewers."""
@@ -99,12 +103,17 @@ def get_membership_pass_info():
             if not player:
                 return jsonify({"msg": "No membership pass found"}), 404
 
-            # Check eligibility
-            eligible = player.is_current_player and player.user and player.user.is_authenticated
-            has_team = (player.primary_team is not None) or (hasattr(player, 'teams') and player.teams and len(player.teams) > 0)
-
-            if not (eligible and has_team):
-                return jsonify({"msg": "User must be assigned to a team"}), 400
+            # Eligibility is PAYMENT, not roster placement. This used to also
+            # require a team, which 400'd every player who had paid but not yet
+            # been drafted -- i.e. every buyer in the window between purchase and
+            # draft night, and every Summer Sprint buyer. The app retries the
+            # call, so they saw a hard "pass not available" error while the web
+            # download link (which has no such check) served them fine.
+            # `_pass_team_name` already renders teamless players as "ECS FC",
+            # and create_pub_league_pass accepts team_name=None, so nothing
+            # downstream needs a team.
+            if not (player.is_current_player and player.user):
+                return jsonify({"msg": "No active membership for this season"}), 400
 
             # Get team and league info
             team_name = _pass_team_name(session_db, player, current_user_id)
@@ -221,9 +230,11 @@ def reset_membership_pass_code():
             base_url = request.host_url.rstrip('/')
             new_apple_url = f"{base_url}/wallet/pass/by-token/{wallet_pass.download_token}"
 
+            # Never log barcode_data: it IS the check-in credential that
+            # /check-in/<venueToken> and .../attendance accept as identity, so
+            # writing it to the log defeats the rotation we just performed.
             logger.info(
-                f"Reset Code: rotated wallet pass {wallet_pass.id} for user {current_user_id} — "
-                f"new barcode {wallet_pass.barcode_data}"
+                f"Reset Code: rotated wallet pass {wallet_pass.id} for user {current_user_id}"
             )
 
             return jsonify({
@@ -271,13 +282,11 @@ def generate_membership_pass():
             if not player:
                 return jsonify({"msg": "No membership pass found"}), 404
 
-            # Check eligibility
+            # Payment gates the pass, not roster placement -- see the note on
+            # get_membership_pass_info(). A pre-draft buyer has no team and must
+            # still be able to mint their pass.
             if not player.is_current_player:
-                return jsonify({"msg": "User must be assigned to a team"}), 400
-
-            has_team = (player.primary_team is not None) or (hasattr(player, 'teams') and player.teams and len(player.teams) > 0)
-            if not has_team:
-                return jsonify({"msg": "User must be assigned to a team"}), 400
+                return jsonify({"msg": "No active membership for this season"}), 400
 
             # Get team and league info
             team_name = _pass_team_name(session_db, player, current_user_id)
@@ -315,7 +324,7 @@ def generate_membership_pass():
             # Generate Apple Wallet pass in background
             try:
                 from app.wallet_pass import create_pass_for_player
-                logger.info(f"Generating wallet pass via mobile API for user {user.email} (player: {player.name})")
+                logger.info(f"Generating wallet pass via mobile API for user {mask_email(user.email)} (player: {player.name})")
                 create_pass_for_player(player.id)  # Generate but don't return file here
             except Exception as wallet_error:
                 logger.warning(f"Apple Wallet pass generation failed (continuing with mobile pass): {str(wallet_error)}")
@@ -323,7 +332,11 @@ def generate_membership_pass():
             # Return new pass data in Flutter format (Status 201 for created)
             now = datetime.utcnow()
             response_data = {
-                "id": str(player.id + 1000),  # New ID for generated pass
+                # Same id GET /membership/pass returns (:154). This was
+                # player.id + 1000, so generating a pass and then fetching it
+                # gave two different ids for the same pass and the client
+                # treated them as distinct records.
+                "id": str(player.id),
                 "userId": str(current_user_id),
                 "playerName": player.name,
                 "teamName": team_name,
@@ -379,7 +392,7 @@ def download_membership_pass():
 
             # Generate and return the pass file
             from app.wallet_pass import create_pass_for_player
-            logger.info(f"Downloading wallet pass via mobile API for user {user.email} (player: {player.name})")
+            logger.info(f"Downloading wallet pass via mobile API for user {mask_email(user.email)} (player: {player.name})")
 
             pass_data = create_pass_for_player(player.id)
             filename = f"{player.name.replace(' ', '_')}_ecsfc_membership.pkpass"
@@ -523,7 +536,7 @@ def download_wallet_pass_file():
 
             # Generate and return the Apple Wallet .pkpass file
             from app.wallet_pass import create_pass_for_player
-            logger.info(f"Downloading Apple Wallet pass for user {user.email} (player: {player.name})")
+            logger.info(f"Downloading Apple Wallet pass for user {mask_email(user.email)} (player: {player.name})")
 
             pass_data = create_pass_for_player(player.id)
             filename = f"{player.name.replace(' ', '_')}_ecsfc_membership.pkpass"
@@ -560,8 +573,9 @@ def trigger_wallet_pass_refresh_push():
                 return jsonify({"msg": "No active wallet pass for user"}), 404
 
             from app.wallet_pass.services.push_service import trigger_wallet_refresh
-            result = trigger_wallet_refresh(wallet_pass, commit=False)
-            session_db.commit()
+            # Commit on the session that owns the row, and BEFORE the push —
+            # trigger_wallet_refresh handles the ordering.
+            result = trigger_wallet_refresh(wallet_pass, session=session_db)
             return jsonify({
                 'success': bool(result.get('any_success')),
                 'apple': result.get('apple'),
@@ -669,6 +683,15 @@ def validate_membership_pass():
     """
     try:
         with managed_session() as session_db:
+            # Coach/admin only — validating a barcode returns the member's
+            # identity, so this must match the gate on POST .../attendance.
+            from app.check_in.service import can_operate_scanner
+            caller_id = int(get_jwt_identity())
+            caller_user = session_db.query(User).get(caller_id)
+            caller_player = session_db.query(Player).filter_by(user_id=caller_id).first()
+            if not can_operate_scanner(session_db, caller_user, caller_player):
+                return jsonify({"msg": "Not authorized"}), 403
+
             data = request.get_json()
             if not data or 'barcode' not in data:
                 return jsonify({"msg": "Missing barcode"}), 400
@@ -860,52 +883,17 @@ def serve_apple_wallet_pass_by_token(token):
         return "Internal server error", 500
 
 
-@mobile_api_v2.route('/wallet/pass/<int:user_id>', methods=['GET'])
-def serve_apple_wallet_pass(user_id):
-    """
-    LEGACY user_id-keyed route. Kept alive temporarily so already-installed passes
-    can still update — Apple Wallet apps re-fetch from the URL embedded in the
-    pass at install time, and rotating that URL would orphan existing passes.
-
-    New passes should use /wallet/pass/by-token/<token>. Plan: deprecate after one
-    season's worth of passes have rotated through.
-    """
-    try:
-        with managed_session() as session_db:
-            # Get user and player (without JWT - Apple Wallet can't authenticate)
-            user = session_db.query(User).get(user_id)
-            if not user:
-                logger.warning(f"Apple Wallet requested pass for non-existent user {user_id}")
-                return "Pass not found", 404
-
-            player = session_db.query(Player).filter_by(user_id=user_id).first()
-            if not player:
-                logger.warning(f"Apple Wallet requested pass for user {user_id} with no player profile")
-                return "Pass not available", 404
-
-            # Check if player is eligible (basic check for public route)
-            if not player.is_current_player:
-                logger.warning(f"Apple Wallet requested pass for inactive player {player.name} (user {user_id})")
-                return "Pass expired", 410  # Gone - pass no longer valid
-
-            # Generate and serve the .pkpass file
-            from app.wallet_pass import create_pass_for_player
-            logger.info(f"Serving Apple Wallet pass to Apple Wallet for user {user.email} (player: {player.name})")
-
-            pass_data = create_pass_for_player(player.id)
-
-            # Create response with proper headers for Apple Wallet
-            response = make_response(pass_data.getvalue())
-            response.headers['Content-Type'] = 'application/vnd.apple.pkpass'
-            response.headers['Content-Disposition'] = f'attachment; filename="{player.name.replace(" ", "_")}_ecsfc_membership.pkpass"'
-
-            # Add caching headers for Apple Wallet
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-
-            return response
-
-    except Exception as e:
-        logger.error(f"Error serving Apple Wallet pass for user {user_id}: {str(e)}")
-        return "Internal server error", 500
+# REMOVED: GET /wallet/pass/<int:user_id>
+#
+# An unauthenticated, sequentially-enumerable route that served a full .pkpass for
+# any current player. The pass embeds the barcode value that /check-in/<venueToken>
+# and /matches/<lt>/<id>/attendance accept as identity, so this let anyone harvest
+# check-in credentials for the whole membership by counting up from 1. It also
+# skipped _wallet_passes_disabled_response(), so it kept serving after an admin
+# turned the feature off.
+#
+# Its docstring claimed installed passes needed it to re-fetch. They don't: Apple
+# updates installed passes through the PassKit web service
+# (app/wallet_pass/routes/passkit_web_service.py :219 get_pass), which authenticates
+# with the pass's own authentication_token. The app is handed only the token URL
+# (/wallet/pass/by-token/<token>, 256 bits of entropy) — see :454-457 above.

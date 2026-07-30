@@ -240,8 +240,8 @@ def get_ecs_fc_matches():
                 "time": match.match_time.isoformat() if match.match_time else None,
                 "location": match.location,
                 "field_name": match.field_name,
-                "latitude": match.latitude or 0.0,
-                "longitude": match.longitude or 0.0,
+                "latitude": match.latitude,
+                "longitude": match.longitude,
                 "is_home_match": match.is_home_match,
                 "status": match.status,
                 "is_completed": match.status == 'COMPLETED',
@@ -311,8 +311,8 @@ def get_ecs_fc_match_details(match_id: int):
             "time": match.match_time.isoformat() if match.match_time else None,
             "location": match.location,
             "field_name": match.field_name,
-            "latitude": match.latitude or 0.0,
-            "longitude": match.longitude or 0.0,
+            "latitude": match.latitude,
+            "longitude": match.longitude,
             "is_home_match": match.is_home_match,
             "home_shirt_color": match.home_shirt_color,
             "away_shirt_color": match.away_shirt_color,
@@ -1811,7 +1811,9 @@ def get_ecs_fc_substitute_request(request_id: int):
             "gender_preference": sub_request.gender_preference,
             "substitutes_needed": sub_request.substitutes_needed,
             "notes": sub_request.notes,
-            "status": sub_request.status,
+            # Lowercase, matching the two list endpoints. This route was the odd
+            # one out, so the same request read as "OPEN" here and "open" there.
+            "status": sub_request.status.lower() if sub_request.status else "open",
             "responses": responses_data,
             "created_at": sub_request.created_at.isoformat() if sub_request.created_at else None,
         }), 200
@@ -1948,6 +1950,10 @@ def get_available_ecs_fc_substitute_requests():
                 "positions_needed": req.positions_needed,
                 "substitutes_needed": req.substitutes_needed,
                 "notes": req.notes,
+                # Required by the client model. Lowercased to match the
+                # available-requests list at :1513 — the detail route at :1814
+                # returns it uppercase, so lowercase is the majority form.
+                "status": req.status.lower() if req.status else "open",
                 "created_at": req.created_at.isoformat() if req.created_at else None,
             })
 
@@ -2239,13 +2245,19 @@ def get_ecs_fc_pool_status():
             return jsonify({"in_pool": False}), 200
 
         membership_data = {
+            # The client model requires an id; omitting it made every pool
+            # membership unaddressable.
+            "id": membership.id,
             "is_active": membership.is_active,
             "preferred_positions": membership.preferred_positions,
             "max_matches_per_week": membership.max_matches_per_week,
             "sms_for_sub_requests": membership.sms_for_sub_requests,
             "discord_for_sub_requests": membership.discord_for_sub_requests,
             "email_for_sub_requests": membership.email_for_sub_requests,
-            "push_for_sub_requests": True,  # Push handled via user-level FCM preference
+            # Return the persisted value. This was hardcoded True while the PUT
+            # below (:2300) writes the column, so turning push off saved fine and
+            # then read back as on.
+            "push_for_sub_requests": membership.push_for_sub_requests,
             "requests_received": membership.requests_received,
             "requests_accepted": membership.requests_accepted,
             "matches_played": membership.matches_played,

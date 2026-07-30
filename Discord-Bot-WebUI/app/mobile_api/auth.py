@@ -541,6 +541,27 @@ def logout():
         ttl = 30 * 24 * 60 * 60
 
     if add_token_to_blocklist(jti, ttl):
+        # Also close out the UserSession this token belongs to. Blocklisting the
+        # jti alone left the row is_active=True forever, and every login inserts
+        # a new one — so Active Sessions accumulated a dead entry per logout and
+        # the user could never tell which devices were really signed in.
+        sid = jwt_data.get('sid')
+        if sid:
+            try:
+                from app.core.session_manager import managed_session
+                from app.models import UserSession
+                from app.utils.session_utils import revoke_user_session
+                revoke_user_session(sid)
+                with managed_session() as session_db:
+                    row = session_db.query(UserSession).filter_by(id=sid).first()
+                    if row and row.is_active:
+                        row.is_active = False
+                        session_db.commit()
+            except Exception as exc:
+                # Never fail the logout over session bookkeeping — the token is
+                # already revoked, which is the part that matters.
+                logger.warning(f"Could not deactivate UserSession {sid}: {exc}")
+
         logger.info(f"Token revoked: type={token_type}, jti={jti}")
         return jsonify({"msg": "Token revoked successfully"}), 200
     else:

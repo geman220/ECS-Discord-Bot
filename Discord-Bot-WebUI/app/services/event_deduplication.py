@@ -95,7 +95,7 @@ def find_near_duplicate_match_events(
     match_id: int,
     player_id: Optional[int],
     event_type: str,
-    minute: Optional[int],
+    minute: Optional[str],
     exclude_idempotency_key: Optional[str] = None
 ) -> List[MatchEvent]:
     """
@@ -124,12 +124,24 @@ def find_near_duplicate_match_events(
     if player_id is not None:
         query = query.filter(MatchEvent.player_id == player_id)
 
-    # Filter by minute range (±NEAR_DUPLICATE_MINUTE_WINDOW) if provided
+    # Filter by minute range (±NEAR_DUPLICATE_MINUTE_WINDOW) if provided.
+    #
+    # MatchEvent.minute is VARCHAR(10) — widened by
+    # 2026_04_20_widen_match_events_minute.sql specifically to keep stoppage-time
+    # notation like "45+2". So compare against STRINGS, and guard the int()
+    # conversion: an unguarded int("45+2") raised ValueError, and V2's
+    # _handle_add_event_core has no try/except around this call, so the handler
+    # died and the client got neither event_ack nor error — the event vanished.
+    # Mirrors find_near_duplicate_player_events below.
     if minute is not None:
-        minute = int(minute)
-        minute_conditions = [MatchEvent.minute == minute + offset
-                           for offset in range(-NEAR_DUPLICATE_MINUTE_WINDOW, NEAR_DUPLICATE_MINUTE_WINDOW + 1)]
-        query = query.filter(or_(*minute_conditions))
+        try:
+            minute_int = int(minute)
+            minute_conditions = [MatchEvent.minute == str(minute_int + offset)
+                               for offset in range(-NEAR_DUPLICATE_MINUTE_WINDOW, NEAR_DUPLICATE_MINUTE_WINDOW + 1)]
+            query = query.filter(or_(*minute_conditions))
+        except (ValueError, TypeError):
+            # Not a plain integer (e.g. "45+2") — fall back to an exact match.
+            query = query.filter(MatchEvent.minute == str(minute))
 
     # Exclude specific idempotency_key if provided
     if exclude_idempotency_key:
