@@ -24,6 +24,7 @@ from app.constants.positions import label_for
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, Availability, player_teams
 from app.engagement_service import record_coach_engagement
+from app.utils.pacific_time import pacific_today
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +215,7 @@ def get_team_rsvp_overview(team_id: int):
             return jsonify({"msg": "Team not found"}), 404
 
         # Get upcoming matches where this team is playing
-        now = datetime.utcnow().date()
+        now = pacific_today()
         matches = session.query(Match).filter(
             Match.date >= now,
             ((Match.home_team_id == team_id) | (Match.away_team_id == team_id))

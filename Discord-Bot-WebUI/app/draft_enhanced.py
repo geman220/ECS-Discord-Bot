@@ -21,6 +21,7 @@ from sqlalchemy import text, desc
 from sqlalchemy.exc import IntegrityError
 
 from app.core import socketio, db
+from app.constants.positions import label_for, to_label_array
 from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.db_utils import mark_player_for_discord_update
@@ -708,9 +709,14 @@ class DraftService:
                 # to its own column and only these two keys change.
                 'notes': player.player_notes or None,
                 'draft_notes': player.player_notes or None,
-                'favorite_position': player.favorite_position or 'Any',
-                'other_positions': player.other_positions or '',
-                'positions_not_to_play': player.positions_not_to_play or '',
+                # Labels, not raw slugs. Every other surface converts —
+                # auth.py:678, pitch_view.py:230, classic_board_service.py:150 and
+                # draft's own /status (draft.py:372) — so /available and
+                # /team/<id>/roster were the only places handing the client
+                # `{attacking_midfielder,...}` to render.
+                'favorite_position': label_for(player.favorite_position) or 'Any',
+                'other_positions': to_label_array(player.other_positions),
+                'positions_not_to_play': to_label_array(player.positions_not_to_play),
                 'expected_weeks_available': player.expected_weeks_available,
                 'unavailable_dates': player.unavailable_dates or '',
                 'jersey_number': player.jersey_number,
@@ -2142,7 +2148,7 @@ def api_draft_player():
                 'name': player.name,
                 'profile_picture_url': player.profile_picture_url,
                 'experience_level': player.experience_level,
-                'position': player.favorite_position
+                'position': label_for(player.favorite_position)
             },
             'team_id': team.id,
             'team_name': team.name,
@@ -2225,7 +2231,7 @@ def api_position_analysis(league_name: str, team_id: int):
                 player_fit_scores[player.id] = {
                     'player_id': player.id,
                     'player_name': player.name,
-                    'favorite_position': player.favorite_position,
+                    'favorite_position': label_for(player.favorite_position),
                     'fit_score': fit_score,
                     'fit_category': PositionAnalyzer.get_fit_category(fit_score)
                 }

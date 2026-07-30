@@ -637,12 +637,36 @@ def ispy_category_stats(category_key):
 
 
 # Admin I-Spy endpoints for Discord bot
+#
+# These are moderator actions (strip points, jail a player) whose only caller is
+# the bot, which already gates them on a Discord moderator role. Server-side the
+# moderator id arrives in X-Discord-User, which is just a header — so require the
+# shared bot secret to prove the request really came from the bot. Without it,
+# `moderator_discord_id` was an audit field on an action anyone could invoke.
+def _deny_unless_bot():
+    """Return an error tuple unless this request carries the bot secret."""
+    import os
+    expected = os.getenv('FLASK_TOKEN')
+    token = request.headers.get('X-Bot-Token', '')
+    if not (expected and token and token == expected):
+        logger.warning(
+            "Rejected I-Spy moderator action on %s without a valid X-Bot-Token",
+            request.path,
+        )
+        return jsonify({'error': 'Not authorized'}), 403
+    return None
+
+
 @user_bp.route('/ispy/admin/disallow/<int:shot_id>', methods=['POST'])
 def ispy_admin_disallow(shot_id):
     """Disallow an I-Spy shot (admin only) for Discord bot."""
     try:
         from app.ispy_helpers import disallow_shot
         
+        denied = _deny_unless_bot()
+        if denied:
+            return denied
+
         # Get Discord user ID from request headers
         moderator_discord_id = request.headers.get('X-Discord-User')
         if not moderator_discord_id:
@@ -683,6 +707,10 @@ def ispy_admin_recategorize(shot_id):
     try:
         from app.ispy_helpers import recategorize_shot
         
+        denied = _deny_unless_bot()
+        if denied:
+            return denied
+
         # Get Discord user ID from request headers
         moderator_discord_id = request.headers.get('X-Discord-User')
         if not moderator_discord_id:
@@ -718,6 +746,10 @@ def ispy_admin_jail():
     try:
         from app.ispy_helpers import jail_user
         
+        denied = _deny_unless_bot()
+        if denied:
+            return denied
+
         # Get Discord user ID from request headers
         moderator_discord_id = request.headers.get('X-Discord-User')
         if not moderator_discord_id:
@@ -773,6 +805,10 @@ def ispy_admin_reset_cooldowns():
     try:
         from app.ispy_helpers import reset_user_cooldowns
         
+        denied = _deny_unless_bot()
+        if denied:
+            return denied
+
         # Get Discord user ID from request headers
         moderator_discord_id = request.headers.get('X-Discord-User')
         if not moderator_discord_id:

@@ -190,35 +190,42 @@ class ApplePassGenerator(BasePassGenerator):
             if field.field_location in fields_by_location:
                 fields_by_location[field.field_location].append(field)
 
+        # Drop fields whose value resolves to nothing rather than baking a
+        # dangling label into the pass. An undrafted player has no team, so a
+        # configured TEAM field renders as the label "TEAM" over blank space
+        # until draft night. Wallet has no notion of a hidden field, so the only
+        # way to "show it once they have a team" is to omit it now and let the
+        # auto-refresh push re-add it when primary_team_id changes.
+        def _add_if_valued(field, bucket):
+            if not (self._resolve_field_value(field, template_data) or '').strip():
+                logger.debug(f"Skipping empty field {field.field_key} on pass type {self.pass_type.code}")
+                return
+            bucket.append(self._create_pass_field(field, template_data))
+
         # Add header fields
         for field in fields_by_location['header']:
-            pass_field = self._create_pass_field(field, template_data)
-            card_info.headerFields.append(pass_field)
+            _add_if_valued(field, card_info.headerFields)
 
         # Add primary fields
         # NOTE: For eventTicket, we skip primary fields to keep the strip image clean
         # Primary fields on eventTicket would overlay on the strip, so we use secondary/auxiliary instead
         if pass_style != 'eventTicket':
             for field in fields_by_location['primary']:
-                pass_field = self._create_pass_field(field, template_data)
-                card_info.primaryFields.append(pass_field)
+                _add_if_valued(field, card_info.primaryFields)
         else:
             # For eventTicket, move any primary fields to secondary to display below strip
             if fields_by_location['primary']:
                 logger.info(f"EventTicket: Moving {len(fields_by_location['primary'])} primary field(s) to secondary")
             for field in fields_by_location['primary']:
-                pass_field = self._create_pass_field(field, template_data)
-                card_info.secondaryFields.append(pass_field)
+                _add_if_valued(field, card_info.secondaryFields)
 
         # Add secondary fields
         for field in fields_by_location['secondary']:
-            pass_field = self._create_pass_field(field, template_data)
-            card_info.secondaryFields.append(pass_field)
+            _add_if_valued(field, card_info.secondaryFields)
 
         # Add auxiliary fields
         for field in fields_by_location['auxiliary']:
-            pass_field = self._create_pass_field(field, template_data)
-            card_info.auxiliaryFields.append(pass_field)
+            _add_if_valued(field, card_info.auxiliaryFields)
 
         # If no fields configured in database, use defaults
         if not field_configs:
@@ -314,6 +321,14 @@ class ApplePassGenerator(BasePassGenerator):
         if loc_dicts:
             pass_obj.locations = loc_dicts
             logger.debug(f"Added {len(loc_dicts)} locations to pass")
+
+        # A revoked pass must SAY so. Without this the regenerated pkpass looks
+        # identical to a live one, so voiding a player's membership pushed an
+        # update that changed nothing and left a valid-looking pass on their
+        # phone forever. Wallet greys it out and blocks the barcode when true.
+        if getattr(wallet_pass, 'status', None) == 'voided':
+            pass_obj.voided = True
+            logger.info(f"Marking pass {wallet_pass.id} voided in pass.json")
 
         # Web service configuration for push updates
         if self.config.web_service_url:

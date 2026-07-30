@@ -187,15 +187,97 @@ def ispy_leaderboard():
         return jsonify({'error': 'Internal server error'}), 500
 
 
-@mobile_api_v2.route('/ispy/me', methods=['GET'])
 @mobile_api_v2.route('/ispy/history', methods=['GET'])
 @jwt_or_discord_auth_required
-def ispy_personal_stats():
-    """Get personal I-Spy statistics for current user.
+def ispy_history():
+    """List the caller's own I-Spy shots, newest first.
 
-    /ispy/history is kept as an alias so older mobile app builds
-    (which call /ispy/history) continue to work without a store release.
+    This used to be a second @route decorator on ispy_personal_stats(), so it
+    returned aggregate season stats and ignored limit/offset/status entirely —
+    the app's "MY SHOTS" tab has therefore never rendered a single shot.
+
+    Query params:
+        limit:  page size (default 20, capped at 100)
+        offset: page offset (default 0)
+        status: filter by shot status (approved / disallowed / deleted)
+
+    Returns:
+        {"shots": [...], "total": int, "limit": int, "offset": int}
     """
+    try:
+        discord_id = get_current_discord_id()
+        if not discord_id:
+            return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        limit = min(max(request.args.get('limit', 20, type=int), 1), 100)
+        offset = max(request.args.get('offset', 0, type=int), 0)
+        status = (request.args.get('status') or '').strip().lower()
+
+        with managed_session() as session:
+            from app.models.ispy import ISpyShot, ISpyShotTarget
+
+            query = session.query(ISpyShot).options(
+                joinedload(ISpyShot.category)
+            ).filter(ISpyShot.author_discord_id == discord_id)
+
+            if status:
+                query = query.filter(ISpyShot.status == status)
+            else:
+                # Soft-deleted shots are gone from the user's point of view.
+                query = query.filter(ISpyShot.status != 'deleted')
+
+            total = query.count()
+            shots = query.order_by(ISpyShot.submitted_at.desc()) \
+                .offset(offset).limit(limit).all()
+
+            # Resolve every target's display name in one pass rather than a
+            # lookup per shot — a full page is otherwise 20+ extra queries.
+            shot_ids = [s.id for s in shots]
+            targets_by_shot = {}
+            if shot_ids:
+                target_rows = session.query(ISpyShotTarget).filter(
+                    ISpyShotTarget.shot_id.in_(shot_ids)
+                ).all()
+                target_discord_ids = {t.target_discord_id for t in target_rows}
+                players = session.query(Player).filter(
+                    Player.discord_id.in_(target_discord_ids)
+                ).all() if target_discord_ids else []
+                name_by_discord = {str(p.discord_id): p.name for p in players}
+                player_id_by_discord = {str(p.discord_id): p.id for p in players}
+                for t in target_rows:
+                    targets_by_shot.setdefault(t.shot_id, []).append({
+                        'discord_id': t.target_discord_id,
+                        'player_id': player_id_by_discord.get(t.target_discord_id),
+                        'name': name_by_discord.get(t.target_discord_id, 'Unknown'),
+                    })
+
+            return jsonify({
+                'shots': [{
+                    'id': s.id,
+                    'category_key': s.category.key if s.category else None,
+                    'category_name': s.category.display_name if s.category else None,
+                    'location': s.location,
+                    'image_url': s.image_url,
+                    'points': s.total_points,
+                    'status': s.status,
+                    'created_at': s.submitted_at.isoformat() + 'Z' if s.submitted_at else None,
+                    'disallow_reason': s.disallow_reason,
+                    'targets': targets_by_shot.get(s.id, []),
+                } for s in shots],
+                'total': total,
+                'limit': limit,
+                'offset': offset,
+            })
+
+    except Exception as e:
+        logger.error(f"Error getting I-Spy history: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+
+@mobile_api_v2.route('/ispy/me', methods=['GET'])
+@jwt_or_discord_auth_required
+def ispy_personal_stats():
+    """Get personal I-Spy statistics for current user."""
     try:
         discord_id = get_current_discord_id()
 
@@ -282,6 +364,24 @@ def ispy_category_stats(category_key):
 
 # Admin I-Spy endpoints (for moderators)
 
+
+def _deny_if_not_ispy_admin(discord_id: str):
+    """Return an error response tuple unless `discord_id` has iSpy admin authority.
+
+    The helpers behind these routes take `moderator_discord_id` purely as an audit
+    field — they do not authorize. Without this check any authenticated caller
+    could disallow shots, recategorize them, or jail other players.
+    """
+    with managed_session() as session:
+        caller = session.query(Player).filter_by(discord_id=discord_id).first()
+        if not _is_ispy_admin(caller):
+            return jsonify({
+                'error_code': 'NOT_AUTHORIZED',
+                'error': 'Not authorized',
+            }), 403
+    return None
+
+
 @mobile_api_v2.route('/ispy/admin/disallow/<int:shot_id>', methods=['POST'])
 @jwt_or_discord_auth_required
 def ispy_admin_disallow(shot_id):
@@ -291,6 +391,10 @@ def ispy_admin_disallow(shot_id):
 
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        denied = _deny_if_not_ispy_admin(discord_id)
+        if denied:
+            return denied
 
         data = request.get_json(silent=True) or {}
         reason = data.get('reason', 'No reason provided')
@@ -317,6 +421,10 @@ def ispy_admin_recategorize(shot_id):
 
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        denied = _deny_if_not_ispy_admin(discord_id)
+        if denied:
+            return denied
 
         data = request.get_json()
 
@@ -349,6 +457,10 @@ def ispy_admin_jail():
 
         if not discord_id:
             return jsonify({'error': 'User does not have a linked Discord account'}), 400
+
+        denied = _deny_if_not_ispy_admin(discord_id)
+        if denied:
+            return denied
 
         data = request.get_json()
 

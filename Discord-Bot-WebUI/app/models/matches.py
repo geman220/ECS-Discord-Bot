@@ -128,8 +128,12 @@ class Match(db.Model):
             'venue_display': (f"{self.venue} – {self.location}"
                               if self.venue and self.location else
                               (self.venue or self.location)),
-            'latitude': self.latitude or 0.0,
-            'longitude': self.longitude or 0.0,
+            # Real null, not `or 0.0`: the columns are nullable, and coalescing
+            # made "no coordinates" indistinguishable from Null Island — the app
+            # rendered a Directions button that navigated to 0°N 0°E and fetched
+            # the weather forecast for the Gulf of Guinea.
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'home_team_id': self.home_team_id,
             'away_team_id': self.away_team_id,
             'home_team_score': self.home_team_score,
