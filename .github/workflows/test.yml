@@ -61,15 +61,15 @@ jobs:
         python-version: [3.11]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v6
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
@@ -137,7 +137,7 @@ jobs:
         JWT_SECRET_KEY: test-jwt-secret
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v7
       with:
         file: ./coverage.xml
         flags: unittests
@@ -155,7 +155,7 @@ jobs:
         coverage report
 
     - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-report
         path: Discord-Bot-WebUI/htmlcov/
@@ -164,10 +164,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.11'
     
@@ -251,7 +251,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     # No `cache: 'npm'` and no `npm ci`, both for the same reason:
     # package-lock.json is GITIGNORED (.gitignore:49), so a CI checkout never
@@ -265,7 +265,7 @@ jobs:
     # that and let `npm ci` + caching work -- a deliberate decision, not
     # something to change as a side effect of adding a test job.
     - name: Set up Node
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: '22'
 
@@ -284,10 +284,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v7
       with:
         python-version: '3.11'
     
@@ -309,7 +309,7 @@ jobs:
       continue-on-error: true
     
     - name: Upload security reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: security-reports
         path: |
