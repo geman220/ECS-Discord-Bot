@@ -565,7 +565,7 @@ async def trigger_new_player_notification(
             )
             message = thread.message  # The initial message of the thread
         else:
-            logger.error(f"Channel {NEW_PLAYERS_CHANNEL_ID} is not a supported channel type: {type(channel)}")
+            logger.error(f"Channel {NEW_PLAYERS_CHANNEL_NAME} is not a supported channel type: {type(channel)}")
             return {"success": False, "error": f"Unsupported channel type: {type(channel).__name__}"}
         
         # Record notification in Flask API

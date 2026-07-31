@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 import random
+import discord   # discord.Embed is used below (lines ~320, ~355)
 
 from shared_states import get_bot_instance
 

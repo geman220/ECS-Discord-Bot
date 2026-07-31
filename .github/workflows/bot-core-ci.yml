@@ -87,7 +87,19 @@ jobs:
       continue-on-error: true
     
     - name: Run flake8 (Linting)
-      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      # Scoped like the bandit step: this workflow lints the BOT. Discord-Bot-WebUI
+      # has its own pipeline (test.yml), and unscoped `flake8 .` reported 12 web-app
+      # findings here that the web CI already owns. bot_rest_api_original_backup.py is
+      # a dead, unreferenced backup carrying a UTF-8 BOM -- excluded rather than edited.
+      #
+      # F821 (undefined name), not the F82 PREFIX: F82 also pulls in F824 ("global X
+      # unused"), which is a harmless no-op statement, not an error. Those 14 hits were
+      # incidental. F821 is the one that matters -- it caught three genuine NameErrors
+      # on first run (a wrong constant name, and discord.Embed used without the import).
+      run: |
+        flake8 . --count --select=E9,F63,F7,F821 \
+          --exclude=.git,__pycache__,Discord-Bot-WebUI,venv,node_modules,bot_rest_api_original_backup.py \
+          --show-source --statistics
     
     - name: Run mypy (Type Checking)
       run: mypy . --ignore-missing-imports
