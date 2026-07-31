@@ -23,7 +23,7 @@
     --onboard-danger: var(--color-danger-700);
 
     /* Pitch Neutrals */
-    --onboard-surface: var(--color-white);
+    --onboard-surface: var(--ecs-color-white);
     --onboard-surface-alt: var(--color-secondary-50);
     --onboard-border-color: var(--color-border);
     --onboard-border-strong: var(--color-secondary-300);

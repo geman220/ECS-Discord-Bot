@@ -48,12 +48,12 @@
 .welcome-header {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   transition: var(--transition-all);
 }
 
 .welcome-header:hover {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
 }
 
 .welcome-header-content {
@@ -64,7 +64,7 @@
 
 .welcome-content h2 {
   color: var(--color-text-primary);
-  font-size: var(--text-2xl);
+  font-size: var(--ecs-text-2xl);
   font-weight: var(--font-bold);
   margin-bottom: var(--space-2);
 }
@@ -78,13 +78,13 @@
 
 .team-info .text-muted {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 .team-info .badge {
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
   font-weight: var(--font-semibold);
 }
 
@@ -96,7 +96,7 @@
 .announcements-carousel-wrapper {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   padding: var(--space-4);
   margin-bottom: var(--space-4);
 }
@@ -107,21 +107,21 @@
 
 .announcements-carousel-wrapper h5 {
   color: var(--color-primary);
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   font-weight: var(--font-semibold);
   margin-bottom: var(--space-2);
 }
 
 .announcements-carousel-wrapper p {
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
+  font-size: var(--ecs-text-sm);
+  line-height: var(--ecs-leading-relaxed);
   margin-bottom: var(--space-2);
 }
 
 .announcements-carousel-wrapper small {
   color: var(--color-text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
 }
 
 .announcements-carousel-wrapper .icon-2xl {
@@ -144,7 +144,7 @@
   border-radius: var(--radius-full);
   color: var(--color-neutral-0);
   font-weight: var(--font-bold);
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   flex-shrink: 0;
 }
 
@@ -163,17 +163,17 @@
 
 .match-card-wrapper:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
 }
 
 /* Match details text */
 .match-details .text-muted {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 .match-details .small {
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   color: var(--color-text-muted);
 }
 
@@ -193,7 +193,7 @@
 .rsvp-controls .btn-group {
   display: flex;
   width: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   overflow: hidden;
 }
 
@@ -214,7 +214,7 @@
   justify-content: center;
   flex: 1;
   padding: var(--space-3) var(--space-2);
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
   border-radius: 0;
   transition: var(--transition-all);
 }
@@ -226,25 +226,25 @@
 
 /* First button rounded left */
 .rsvp-controls .btn-group label.btn:first-child {
-  border-top-left-radius: var(--radius-md);
-  border-bottom-left-radius: var(--radius-md);
+  border-top-left-radius: var(--ecs-radius-md);
+  border-bottom-left-radius: var(--ecs-radius-md);
 }
 
 /* Last button rounded right */
 .rsvp-controls .btn-group label.btn:last-child {
-  border-top-right-radius: var(--radius-md);
-  border-bottom-right-radius: var(--radius-md);
+  border-top-right-radius: var(--ecs-radius-md);
+  border-bottom-right-radius: var(--ecs-radius-md);
 }
 
 /* Icon sizing within RSVP buttons */
 .rsvp-controls .btn-group label.btn i {
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
 }
 
 /* Active/checked state */
 .rsvp-controls .btn-check:checked + .btn {
   transform: scale(1.05);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
 }
 
 /* Hover states for touch devices */
@@ -278,15 +278,15 @@
 }
 
 .team-nav-tabs::-webkit-scrollbar-thumb {
-  background-color: var(--color-neutral-400);
+  background-color: var(--ecs-color-neutral-400);
   border-radius: var(--radius-full);
 }
 
 .team-nav-tabs .nav-link {
   white-space: nowrap;
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  border-radius: var(--ecs-radius-md);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
   background-color: transparent;
@@ -303,7 +303,7 @@
   background-color: var(--color-primary);
   color: var(--color-neutral-0);
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
 }
 
 /* ============================================================================
@@ -330,14 +330,14 @@
 
 .empty-state-container h5 {
   color: var(--color-text-primary);
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   font-weight: var(--font-semibold);
   margin-bottom: var(--space-2);
 }
 
 .empty-state-container p {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   max-width: 400px;
 }
 
@@ -404,12 +404,12 @@ body.modal-open-ios.home-page {
   }
 
   .welcome-content h2 {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
   }
 
   .team-info {
     justify-content: center;
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /* Compact match cards on mobile */
@@ -420,7 +420,7 @@ body.modal-open-ios.home-page {
   .match-badge {
     width: 24px;
     height: 24px;
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /* Stack RSVP controls and details button vertically
@@ -442,7 +442,7 @@ body.modal-open-ios.home-page {
   /* Larger touch targets for mobile RSVP */
   .rsvp-controls .btn-group label.btn {
     min-height: 48px;
-    font-size: var(--text-lg);
+    font-size: var(--ecs-text-lg);
   }
 
   /* Team tabs on mobile */
@@ -453,7 +453,7 @@ body.modal-open-ios.home-page {
 
   .team-nav-tabs .nav-link {
     padding: var(--space-3) var(--space-3);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
   }
 
   /* Empty states on mobile */
@@ -482,7 +482,7 @@ body.modal-open-ios.home-page {
 
   /* Match details text sizing */
   .match-details .text-muted {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /* NOTE: .btn and .btn-sm base mobile sizing in mobile/buttons.css (source of truth) */
@@ -495,11 +495,11 @@ body.modal-open-ios.home-page {
 /* Small mobile devices (< 576px) */
 @media (max-width: 575.98px) {
   .welcome-content h2 {
-    font-size: var(--text-lg);
+    font-size: var(--ecs-text-lg);
   }
 
   .team-info {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   .rsvp-controls .btn-group label.btn {
@@ -620,7 +620,7 @@ body.modal-open-ios.home-page {
 [data-style="dark"] .rsvp-controls .btn-check:checked + .btn-outline-warning {
   background-color: var(--color-warning);
   border-color: var(--color-warning);
-  color: var(--color-neutral-900);
+  color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .rsvp-controls .btn-outline-danger {
@@ -646,7 +646,7 @@ body.modal-open-ios.home-page {
 .match-card-wrapper a:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 /* Reduced motion preferences */

@@ -320,16 +320,16 @@
 
 .pass-studio-page .google-pass-card {
     width: 320px;
-    border-radius: var(--radius-lg, 12px);
+    border-radius: var(--ecs-radius-lg, 12px);
     margin: 0 auto;
-    box-shadow: var(--shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.15));
+    box-shadow: var(--ecs-shadow-lg, 0 4px 20px rgba(0, 0, 0, 0.15));
     overflow: hidden;
-    background: var(--color-neutral-0, var(--color-white));
+    background: var(--color-neutral-0, var(--ecs-color-white));
 }
 
 .pass-studio-page .google-hero-image {
     height: 100px;
-    background-color: var(--color-neutral-100, var(--color-neutral-100));
+    background-color: var(--ecs-color-neutral-100, var(--ecs-color-neutral-100));
     background-size: cover;
     background-position: center;
     display: flex;
@@ -343,12 +343,12 @@
 }
 
 .pass-studio-page .google-hero-placeholder i {
-    font-size: var(--text-2xl, 2rem);
+    font-size: var(--ecs-text-2xl, 2rem);
 }
 
 .pass-studio-page .google-hero-placeholder span {
     display: block;
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     margin-top: var(--space-1, 4px);
 }
 
@@ -365,13 +365,13 @@
 .pass-studio-page .google-logo {
     width: 40px;
     height: 40px;
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     overflow: hidden;
     margin-right: var(--space-3, 12px);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-neutral-100);
+    background: var(--ecs-color-neutral-100);
 }
 
 .pass-studio-page .google-logo img {
@@ -389,19 +389,19 @@
 }
 
 .pass-studio-page .google-card-title {
-    font-size: var(--text-base, 1rem);
+    font-size: var(--ecs-text-base, 1rem);
     font-weight: var(--font-semibold, 600);
     color: var(--color-text-primary);
 }
 
 .pass-studio-page .google-card-subtitle {
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     opacity: 0.7;
     color: var(--color-text-secondary);
 }
 
 .pass-studio-page .google-primary-value {
-    font-size: var(--text-xl, 1.5rem);
+    font-size: var(--ecs-text-xl, 1.5rem);
     font-weight: var(--font-bold, bold);
     margin-bottom: var(--space-4, 16px);
     color: var(--color-text-primary);
@@ -419,13 +419,13 @@
 }
 
 .pass-studio-page .google-info-label {
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     color: var(--color-text-secondary);
     opacity: 0.7;
 }
 
 .pass-studio-page .google-info-value {
-    font-size: var(--text-sm, 0.85rem);
+    font-size: var(--ecs-text-sm, 0.85rem);
     font-weight: var(--font-medium, 500);
     color: var(--color-text-primary);
 }
@@ -435,7 +435,7 @@
     text-align: center;
     padding: var(--space-4, 16px);
     background: var(--color-bg-secondary);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
 }
 
 /* ============================================================================
@@ -444,7 +444,7 @@
 
 .pass-studio-page .asset-upload-card {
     border: 2px dashed var(--color-border-primary);
-    border-radius: var(--radius-lg, 12px);
+    border-radius: var(--ecs-radius-lg, 12px);
     padding: var(--space-4, 16px);
     text-align: center;
     cursor: pointer;
@@ -466,7 +466,7 @@
     margin-bottom: var(--space-2, 8px);
     position: relative;
     overflow: hidden;
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     background: var(--color-bg-tertiary);
 }
 
@@ -482,7 +482,7 @@
 
 .pass-studio-page .asset-info strong {
     display: block;
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     color: var(--color-text-primary);
 }
 
@@ -501,7 +501,7 @@
 .pass-studio-page .color-swatch {
     width: 40px;
     height: 40px;
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     cursor: pointer;
     border: 2px solid var(--color-border-primary);
 }
@@ -514,7 +514,7 @@
 .pass-studio-page .pass-layout-diagram .layout-card {
     background: var(--color-bg-tertiary);
     border: 2px solid var(--color-border-primary);
-    border-radius: var(--radius-lg, 12px);
+    border-radius: var(--ecs-radius-lg, 12px);
     overflow: hidden;
     font-size: 0.65rem;
     min-height: 280px;
@@ -537,7 +537,7 @@
     display: flex;
     align-items: center;
     padding: var(--space-2, 8px);
-    background: var(--color-neutral-100);
+    background: var(--ecs-color-neutral-100);
     gap: var(--space-1, 4px);
     min-height: 36px;
 }
@@ -546,7 +546,7 @@
     background: var(--color-secondary);
     color: var(--color-neutral-0);
     padding: var(--space-1, 2px) var(--space-2, 6px);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--ecs-radius-sm, 4px);
     font-size: 0.6rem;
 }
 
@@ -560,7 +560,7 @@
     background: var(--color-info);
     color: var(--color-neutral-0);
     padding: var(--space-1, 2px) var(--space-2, 6px);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--ecs-radius-sm, 4px);
     font-size: 0.6rem;
 }
 
@@ -568,12 +568,12 @@
     background: var(--color-primary);
     color: var(--color-neutral-0);
     padding: var(--space-1, 4px) var(--space-2, 6px);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--ecs-radius-sm, 4px);
     font-size: 0.55rem;
 }
 
 .pass-studio-page .layout-card .layout-strip {
-    background: linear-gradient(135deg, var(--color-neutral-600) 0%, var(--color-neutral-700) 100%);
+    background: linear-gradient(135deg, var(--ecs-color-neutral-600) 0%, var(--ecs-color-neutral-700) 100%);
     color: var(--color-neutral-0);
     padding: var(--space-4, 16px) var(--space-2, 8px);
     text-align: center;
@@ -597,7 +597,7 @@
 .pass-studio-page .layout-card .layout-primary-overlay {
     background: var(--color-danger-subtle);
     padding: var(--space-1, 4px) var(--space-2, 8px);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--ecs-radius-sm, 4px);
     margin-top: var(--space-1, 4px);
     font-size: 0.6rem;
     color: var(--color-danger);
@@ -641,14 +641,14 @@
 .pass-studio-page .field-card {
     background: var(--color-bg-card);
     border: var(--border-width, 1px) solid var(--color-border-primary);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-3, 12px);
     margin-bottom: var(--space-2, 8px);
     transition: var(--transition-all, all 0.2s);
 }
 
 .pass-studio-page .field-card:hover {
-    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
+    box-shadow: var(--ecs-shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.08));
     border-color: var(--color-primary);
 }
 
@@ -664,7 +664,7 @@
     padding: var(--space-2, 8px) var(--space-3, 12px);
     border-bottom: var(--border-width, 1px) solid var(--color-border-primary);
     background: var(--color-bg-tertiary);
-    border-radius: calc(var(--radius-md, 8px) - 1px) calc(var(--radius-md, 8px) - 1px) 0 0;
+    border-radius: calc(var(--ecs-radius-md, 8px) - 1px) calc(var(--ecs-radius-md, 8px) - 1px) 0 0;
 }
 
 .pass-studio-page .field-card-body {
@@ -686,11 +686,11 @@
 .pass-studio-page .variable-chip {
     display: inline-flex;
     align-items: center;
-    font-family: var(--font-mono, monospace);
-    font-size: var(--text-xs, 0.75rem);
+    font-family: var(--ecs-font-mono, monospace);
+    font-size: var(--ecs-text-xs, 0.75rem);
     padding: var(--space-1, 4px) var(--space-2, 8px);
     background: var(--color-bg-tertiary);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--ecs-radius-sm, 4px);
     margin: var(--space-1, 2px);
     cursor: pointer;
     transition: var(--transition-all, all 0.2s);
@@ -732,7 +732,7 @@
 .pass-studio-page .field-limits-bar {
     background: var(--color-bg-card);
     border: var(--border-width, 1px) solid var(--color-border-primary);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-3, 12px) var(--space-4, 16px);
 }
 
@@ -743,7 +743,7 @@
     padding: var(--space-2, 6px) var(--space-3, 12px);
     background: var(--color-bg-tertiary);
     border-radius: var(--radius-full, 20px);
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 .pass-studio-page .field-limit-item .limit-label {
@@ -784,7 +784,7 @@
 /* Field location sections */
 .pass-studio-page .field-location-section {
     border: var(--border-width, 1px) solid var(--color-border-primary);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-3, 12px);
     background: var(--color-bg-tertiary);
 }
@@ -797,7 +797,7 @@
 /* Sortable containers */
 .pass-studio-page .fields-sortable-container {
     min-height: 60px;
-    border-radius: var(--radius-sm, 6px);
+    border-radius: var(--ecs-radius-sm, 6px);
     padding: var(--space-2, 8px);
     background: var(--color-bg-card);
     margin-top: var(--space-2, 8px);
@@ -808,7 +808,7 @@
     display: block;
     text-align: center;
     color: var(--color-text-muted);
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     padding: var(--space-4, 16px);
 }
 
@@ -821,7 +821,7 @@
     cursor: grab;
     color: var(--color-text-muted);
     padding: var(--space-1, 4px);
-    border-radius: var(--radius-sm, 4px);
+    border-radius: var(--ecs-radius-sm, 4px);
     transition: var(--transition-all, all 0.2s);
 }
 
@@ -842,15 +842,15 @@
 
 .pass-studio-page .sortable-drag {
     opacity: 1;
-    box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.15));
+    box-shadow: var(--ecs-shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.15));
 }
 
 /* Field preview */
 .pass-studio-page .field-preview {
     background: var(--color-bg-tertiary);
     padding: var(--space-2, 6px) var(--space-2, 10px);
-    border-radius: var(--radius-sm, 4px);
-    font-size: var(--text-sm, 0.875rem);
+    border-radius: var(--ecs-radius-sm, 4px);
+    font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 .pass-studio-page .field-preview .preview-value {
@@ -924,12 +924,12 @@
 
 [data-style="dark"] .pass-studio-page .google-hero-image,
 [data-style="dark"] .pass-studio-page .google-hero-image {
-    background-color: var(--color-neutral-200);
+    background-color: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .pass-studio-page .google-logo,
 [data-style="dark"] .pass-studio-page .google-logo {
-    background: var(--color-neutral-200);
+    background: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .pass-studio-page .google-card-title,
@@ -966,7 +966,7 @@
 
 [data-style="dark"] .pass-studio-page .layout-card .layout-header,
 [data-style="dark"] .pass-studio-page .layout-card .layout-header {
-    background: var(--color-neutral-200);
+    background: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .pass-studio-page .layout-card .layout-barcode,
@@ -985,7 +985,7 @@
 
 [data-style="dark"] .pass-studio-page .field-card:hover,
 [data-style="dark"] .pass-studio-page .field-card:hover {
-    box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.3));
+    box-shadow: var(--ecs-shadow-md, 0 2px 8px rgba(0, 0, 0, 0.3));
 }
 
 [data-style="dark"] .pass-studio-page .field-card.inactive,

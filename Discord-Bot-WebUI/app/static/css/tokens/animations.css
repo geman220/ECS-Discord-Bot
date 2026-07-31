@@ -43,9 +43,9 @@
      ======================================================================== */
   /* Standard easing */
   --ease-linear: linear;
-  --ease-in: cubic-bezier(0.4, 0, 1, 1);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ecs-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ecs-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ecs-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   /* Sharp easing (quick start/stop) */
   --ease-sharp: cubic-bezier(0.4, 0, 0.6, 1);
   /* Smooth easing (gentle, natural) */
@@ -78,11 +78,11 @@
   /* Alias for commonly expected naming */
   --transition-base: var(--transition-all);
   /* Semantic transitions */
-  --transition-button: background-color var(--duration-hover) var(--ease-out),
-                       border-color var(--duration-hover) var(--ease-out),
-                       color var(--duration-hover) var(--ease-out),
-                       box-shadow var(--duration-hover) var(--ease-out),
-                       transform var(--duration-hover) var(--ease-out);
+  --transition-button: background-color var(--duration-hover) var(--ecs-ease-out),
+                       border-color var(--duration-hover) var(--ecs-ease-out),
+                       color var(--duration-hover) var(--ecs-ease-out),
+                       box-shadow var(--duration-hover) var(--ecs-ease-out),
+                       transform var(--duration-hover) var(--ecs-ease-out);
   --transition-input: border-color var(--duration-normal) var(--ease-smooth),
                       box-shadow var(--duration-normal) var(--ease-smooth);
   --transition-modal: opacity var(--duration-slow) var(--ease-smooth),
@@ -377,7 +377,7 @@
 }
 
 .animate-pulse {
-  animation: pulse 2s var(--ease-in-out) infinite;
+  animation: pulse 2s var(--ecs-ease-in-out) infinite;
 }
 
 .animate-shake {
@@ -389,7 +389,7 @@
 }
 
 .animate-ping {
-  animation: ping 1s var(--ease-in-out) infinite;
+  animation: ping 1s var(--ecs-ease-in-out) infinite;
 }
 
 /* Transition properties */
@@ -469,15 +469,15 @@
 }
 
 .ease-in {
-  transition-timing-function: var(--ease-in);
+  transition-timing-function: var(--ecs-ease-in);
 }
 
 .ease-out {
-  transition-timing-function: var(--ease-out);
+  transition-timing-function: var(--ecs-ease-out);
 }
 
 .ease-in-out {
-  transition-timing-function: var(--ease-in-out);
+  transition-timing-function: var(--ecs-ease-in-out);
 }
 
 /* ============================================================================
@@ -563,21 +563,21 @@
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-neutral-200) 0%,
-    var(--color-neutral-100) 50%,
-    var(--color-neutral-200) 100%
+    var(--ecs-color-neutral-200) 0%,
+    var(--ecs-color-neutral-100) 50%,
+    var(--ecs-color-neutral-200) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 [data-style="dark"] .skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-neutral-100) 0%,
-    var(--color-neutral-200) 50%,
-    var(--color-neutral-100) 100%
+    var(--ecs-color-neutral-100) 0%,
+    var(--ecs-color-neutral-200) 50%,
+    var(--ecs-color-neutral-100) 100%
   );
   background-size: 200% 100%;
 }

@@ -22,7 +22,7 @@
 
 .season-section {
     border-left: 4px solid var(--bs-info);
-    background: linear-gradient(135deg, var(--ecs-neutral-5, var(--color-neutral-50)) 0%, var(--ecs-neutral-10, var(--color-neutral-200)) 100%);
+    background: linear-gradient(135deg, var(--ecs-neutral-5, var(--ecs-color-neutral-50)) 0%, var(--ecs-neutral-10, var(--ecs-color-neutral-200)) 100%);
 }
 
 .league-section {

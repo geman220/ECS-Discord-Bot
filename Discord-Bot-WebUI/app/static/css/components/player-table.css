@@ -16,7 +16,7 @@
 .c-player-table {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   overflow: hidden;
 }
 
@@ -31,7 +31,7 @@
   gap: var(--space-2, 8px);
   padding: var(--space-4, 16px) var(--space-5, 20px);
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
@@ -74,7 +74,7 @@
 .c-player-table__th,
 .c-player-table__header {
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-align: left;
@@ -96,7 +96,7 @@
 
 .c-player-table__td {
   padding: var(--space-3, 12px) var(--space-4, 16px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   vertical-align: middle;
 }
@@ -110,8 +110,8 @@
 }
 
 .c-player-table__td--phone {
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-xs, 0.75rem);
+  font-family: var(--ecs-font-mono, monospace);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -162,7 +162,7 @@
   padding: var(--space-2, 8px);
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
@@ -172,11 +172,11 @@
   gap: var(--space-2, 8px);
   width: 100%;
   padding: var(--space-2, 8px) var(--space-3, 12px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   cursor: pointer;
   transition: background-color var(--duration-fast, 150ms) ease;
 }
@@ -198,7 +198,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-player-table {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
@@ -233,7 +233,7 @@
 }
 
 [data-style="light"] .c-player-table__menu {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 

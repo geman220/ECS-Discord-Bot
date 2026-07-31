@@ -28,16 +28,16 @@
 
 :root {
     /* Purple color scale for bonus weeks */
-    --color-purple-50: #F5F3FF;
-    --color-purple-400: var(--color-primary-400, var(--color-primary-400));
-    --color-purple-500: var(--color-primary-500);
-    --color-purple-600: var(--color-primary-600, var(--color-primary-600));
-    --color-purple-700: var(--color-primary-700);
+    --ecs-color-purple-50: #F5F3FF;
+    --ecs-color-purple-400: var(--color-primary-400, var(--color-primary-400));
+    --ecs-color-purple-500: var(--color-primary-500);
+    --ecs-color-purple-600: var(--color-primary-600, var(--color-primary-600));
+    --ecs-color-purple-700: var(--color-primary-700);
     --color-purple-rgb: 139, 92, 246;
 
     /* Legacy compatibility */
-    --ecs-purple: var(--color-purple-600);
-    --ecs-purple-subtle: var(--color-purple-50);
+    --ecs-purple: var(--ecs-color-purple-600);
+    --ecs-purple-subtle: var(--ecs-color-purple-50);
 }
 
 /* ============================================================================
@@ -65,7 +65,7 @@
     right: -50%;
     width: 100%;
     height: 2px;
-    background: var(--color-neutral-200);
+    background: var(--ecs-color-neutral-200);
     z-index: 1;
 }
 
@@ -79,8 +79,8 @@
     width: 40px;
     height: 40px;
     border-radius: var(--radius-full);
-    background: var(--color-neutral-200);
-    color: var(--color-neutral-500);
+    background: var(--ecs-color-neutral-200);
+    color: var(--ecs-color-neutral-500);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -94,7 +94,7 @@
 .step.active .step-circle {
     background: var(--color-primary);
     color: var(--color-neutral-0);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .step.completed .step-circle {
@@ -103,7 +103,7 @@
 }
 
 .step-label {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     font-weight: var(--font-medium);
     color: var(--color-text-secondary);
 }
@@ -179,7 +179,7 @@
 .week-item {
     background: var(--color-bg-secondary);
     border: var(--border-width) solid var(--color-border-primary);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     padding: var(--space-2) var(--space-3);
     margin-bottom: var(--space-2);
     cursor: move;
@@ -191,10 +191,10 @@
 }
 
 .week-item:hover {
-    background: var(--color-neutral-100);
+    background: var(--ecs-color-neutral-100);
     border-color: var(--color-primary);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .week-item[draggable="true"]:active {
@@ -226,9 +226,9 @@
 }
 
 .week-item.bonus-week {
-    border-left: 4px solid var(--color-purple-600);
-    border-color: var(--color-purple-600);
-    background: var(--color-purple-50);
+    border-left: 4px solid var(--ecs-color-purple-600);
+    border-color: var(--ecs-color-purple-600);
+    background: var(--ecs-color-purple-50);
 }
 
 .week-item.bye-week {
@@ -239,7 +239,7 @@
 /* Week type text colors */
 .week-type {
     color: var(--color-text-primary);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     font-weight: var(--font-medium);
 }
 
@@ -260,7 +260,7 @@
 }
 
 .bonus-week .week-type {
-    color: var(--color-purple-700);
+    color: var(--ecs-color-purple-700);
 }
 
 .bye-week .week-type {
@@ -272,13 +272,13 @@
     font-weight: var(--font-bold);
     min-width: 70px;
     color: var(--color-text-primary);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 .week-date {
     flex: 1;
     color: var(--color-text-secondary);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 /* ============================================================================
@@ -294,7 +294,7 @@
 
 .badge[draggable="true"]:hover {
     transform: scale(1.05);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .badge[draggable="true"].dragging {
@@ -306,7 +306,7 @@
 .week-item.dragging {
     opacity: 0.5;
     transform: rotate(5deg);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
 }
 
 /* Drop zone indicators */
@@ -375,7 +375,7 @@
 
 .week-item.shared-week:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
     border-color: rgba(var(--color-primary-rgb), 0.5);
 }
 
@@ -414,7 +414,7 @@
 .practice-config {
     padding: var(--space-3);
     background-color: var(--color-bg-secondary);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     margin-top: var(--space-3);
 }
 
@@ -433,7 +433,7 @@
 .season-breakdown {
     padding: var(--space-3);
     background-color: var(--color-bg-secondary);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     margin-top: var(--space-4);
 }
 
@@ -472,13 +472,13 @@
 
 @media (max-width: 767.98px) {
     .wizard-progress .step {
-        font-size: var(--text-xs);
+        font-size: var(--ecs-text-xs);
     }
 
     .step-circle {
         width: 32px;
         height: 32px;
-        font-size: var(--text-sm);
+        font-size: var(--ecs-text-sm);
     }
 
     /* NOTE: .step-label mobile font-size in mobile/forms.css (source of truth) */
@@ -508,17 +508,17 @@
 [data-style="dark"] {
     /* Wizard progress */
     .wizard-progress {
-        background-color: var(--color-neutral-900);
-        border-bottom-color: var(--color-neutral-700);
+        background-color: var(--ecs-color-neutral-900);
+        border-bottom-color: var(--ecs-color-neutral-700);
     }
 
     .wizard-progress .step:not(:last-child)::after {
-        background: var(--color-neutral-700);
+        background: var(--ecs-color-neutral-700);
     }
 
     .step-circle {
-        background: var(--color-neutral-800);
-        color: var(--color-neutral-400);
+        background: var(--ecs-color-neutral-800);
+        color: var(--ecs-color-neutral-400);
     }
 
     .step.active .step-circle {
@@ -532,7 +532,7 @@
     }
 
     .step-label {
-        color: var(--color-neutral-400);
+        color: var(--ecs-color-neutral-400);
     }
 
     .step.active .step-label {
@@ -541,19 +541,19 @@
 
     /* Week items */
     .week-item {
-        background: var(--color-neutral-900);
-        border-color: var(--color-neutral-700);
+        background: var(--ecs-color-neutral-900);
+        border-color: var(--ecs-color-neutral-700);
     }
 
     .week-item:hover {
-        background: var(--color-neutral-800);
+        background: var(--ecs-color-neutral-800);
         border-color: var(--color-primary-500);
         box-shadow: 0 4px 8px rgba(var(--color-primary-rgb), 0.3);
     }
 
     /* Week type backgrounds */
     .week-item.regular-week {
-        background: var(--color-neutral-900);
+        background: var(--ecs-color-neutral-900);
         border-left-color: var(--color-secondary-500);
     }
 
@@ -574,25 +574,25 @@
 
     .week-item.bonus-week {
         background: rgba(var(--color-purple-rgb), 0.15);
-        border-color: var(--color-purple-500);
+        border-color: var(--ecs-color-purple-500);
     }
 
     .week-item.bye-week {
-        background: var(--color-neutral-900);
+        background: var(--ecs-color-neutral-900);
         border-left-color: var(--color-secondary-500);
     }
 
     /* Week text colors */
     .week-number {
-        color: var(--color-neutral-100);
+        color: var(--ecs-color-neutral-100);
     }
 
     .week-date {
-        color: var(--color-neutral-400);
+        color: var(--ecs-color-neutral-400);
     }
 
     .week-type {
-        color: var(--color-neutral-200);
+        color: var(--ecs-color-neutral-200);
     }
 
     .regular-week .week-type {
@@ -612,7 +612,7 @@
     }
 
     .bonus-week .week-type {
-        color: var(--color-purple-400);
+        color: var(--ecs-color-purple-400);
     }
 
     .bye-week .week-type {
@@ -631,17 +631,17 @@
 
     /* Season breakdown */
     .season-breakdown {
-        background-color: var(--color-neutral-900);
+        background-color: var(--ecs-color-neutral-900);
     }
 
     .season-breakdown h6,
     .season-breakdown strong {
-        color: var(--color-neutral-100);
+        color: var(--ecs-color-neutral-100);
     }
 
     /* Practice config */
     .practice-config {
-        background-color: var(--color-neutral-900);
+        background-color: var(--ecs-color-neutral-900);
     }
 
     /* Drop zone */
@@ -651,7 +651,7 @@
 
     /* Calendar container */
     .calendar-container {
-        background-color: var(--color-neutral-900);
+        background-color: var(--ecs-color-neutral-900);
     }
 }
 
@@ -711,7 +711,7 @@
 
 [data-style="dark"] .schedule-manager-feature .bg-light,
 [data-style="dark"] .wizard-content .bg-light {
-    background-color: var(--color-neutral-900);
+    background-color: var(--ecs-color-neutral-900);
 }
 
 /* ============================================================================
@@ -730,17 +730,17 @@
 }
 
 .week-section {
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
-    border-radius: var(--radius-md, 0.5rem);
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
+    border-radius: var(--ecs-radius-md, 0.5rem);
     padding: var(--space-4, 1rem);
-    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
+    background-color: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
 }
 
 .week-header {
     color: var(--ecs-neutral-60, var(--color-secondary-700));
     margin-bottom: var(--space-4, 1rem);
     padding-bottom: var(--space-2, 0.5rem);
-    border-bottom: 2px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    border-bottom: 2px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
 }
 
 .team-name {
@@ -749,13 +749,13 @@
 
 .btn-xs {
     padding: 0.25rem 0.5rem;
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
 }
 
 .selected-match {
     padding: var(--space-2, 0.5rem);
     background-color: var(--ecs-primary-subtle, #e7f3ff);
-    border-radius: var(--radius-sm, 0.25rem);
+    border-radius: var(--ecs-radius-sm, 0.25rem);
 }
 
 /* Dark mode support for preview schedule */
@@ -784,13 +784,13 @@
    ============================================================================ */
 
 #ecs-fc-create-match-btn {
-    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
+    box-shadow: var(--ecs-shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
     transition: transform var(--duration-fast, 0.15s) ease, box-shadow var(--duration-fast, 0.15s) ease;
 }
 
 #ecs-fc-create-match-btn:hover {
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md, 0 4px 8px rgba(0,0,0,0.15));
+    box-shadow: var(--ecs-shadow-md, 0 4px 8px rgba(0,0,0,0.15));
 }
 
 #ecsFcCreateMatchModal .modal-header {
@@ -817,25 +817,25 @@
     flex-wrap: wrap;
     gap: var(--space-3, 10px);
     min-height: 60px;
-    border: 2px dashed var(--ecs-neutral-20, var(--color-neutral-300));
-    border-radius: var(--radius-sm, 5px);
+    border: 2px dashed var(--ecs-neutral-20, var(--ecs-color-neutral-300));
+    border-radius: var(--ecs-radius-sm, 5px);
     padding: var(--space-4, 15px);
-    background: var(--ecs-neutral-5, var(--color-neutral-50));
+    background: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
 }
 
 .week-card {
-    background: var(--ecs-neutral-0, var(--color-white));
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
-    border-radius: var(--radius-md, 8px);
+    background: var(--ecs-neutral-0, var(--ecs-color-white));
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-3, 10px);
     min-width: 120px;
     cursor: move;
     transition: all var(--duration-fast, 0.2s) ease;
-    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+    box-shadow: var(--ecs-shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
 }
 
 .week-card:hover {
-    box-shadow: var(--shadow-md, 0 2px 6px rgba(0,0,0,0.15));
+    box-shadow: var(--ecs-shadow-md, 0 2px 6px rgba(0,0,0,0.15));
     transform: translateY(-1px);
 }
 
@@ -848,12 +848,12 @@
 
 .week-card .week-header {
     font-weight: var(--font-bold, bold);
-    font-size: var(--text-sm, 0.9em);
+    font-size: var(--ecs-text-sm, 0.9em);
     color: var(--ecs-neutral-60, var(--color-secondary-600));
 }
 
 .week-type {
-    font-size: var(--text-xs, 0.8em);
+    font-size: var(--ecs-text-xs, 0.8em);
     text-transform: uppercase;
     margin-top: var(--space-2, 5px);
 }
@@ -867,7 +867,7 @@
 }
 
 .js-remove-week-card {
-    font-size: var(--text-xs, 0.7em);
+    font-size: var(--ecs-text-xs, 0.7em);
 }
 
 /* Dark mode support for week timeline */
@@ -877,7 +877,7 @@
 }
 
 [data-style="dark"] .week-card {
-    background: var(--ecs-dark-bg-elevated, var(--color-neutral-800));
+    background: var(--ecs-dark-bg-elevated, var(--ecs-color-neutral-800));
     border-color: var(--ecs-dark-border, #374151);
 }
 
@@ -909,7 +909,7 @@
 }
 
 [data-style="dark"] .card-header[data-bs-toggle="collapse"]:hover {
-    background-color: var(--ecs-dark-bg-elevated, var(--color-neutral-800));
+    background-color: var(--ecs-dark-bg-elevated, var(--ecs-color-neutral-800));
 }
 
 @media print {
@@ -931,7 +931,7 @@
     }
 
     .week-item {
-        border: 1px solid var(--color-neutral-900);
+        border: 1px solid var(--ecs-color-neutral-900);
         background: var(--color-neutral-0);
         box-shadow: none;
     }

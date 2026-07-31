@@ -1270,7 +1270,7 @@ progress {
 }
 
 .modal-content {
-  --bs-modal-bg: var(--color-white, #ffffff);
+  --bs-modal-bg: var(--ecs-color-white, #ffffff);
   --bs-modal-border-color: rgba(0, 0, 0, 0.175);
   --bs-modal-border-width: 1px;
   --bs-modal-border-radius: 0.5rem;
@@ -1418,7 +1418,7 @@ progress {
   --bs-dropdown-min-width: 10rem;
   --bs-dropdown-padding-x: 0;
   --bs-dropdown-padding-y: 0.5rem;
-  --bs-dropdown-bg: var(--color-white, #ffffff);
+  --bs-dropdown-bg: var(--ecs-color-white, #ffffff);
   --bs-dropdown-border-color: rgba(0, 0, 0, 0.15);
   --bs-dropdown-border-radius: 0.375rem;
   --bs-dropdown-box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);

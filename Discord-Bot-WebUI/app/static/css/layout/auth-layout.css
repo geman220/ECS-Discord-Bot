@@ -112,9 +112,9 @@
 [data-style="dark"] .auth-page {
   background: linear-gradient(
     135deg,
-    var(--color-neutral-100) 0%,
-    var(--color-neutral-50) 50%,
-    var(--color-neutral-100) 100%
+    var(--ecs-color-neutral-100) 0%,
+    var(--ecs-color-neutral-50) 50%,
+    var(--ecs-color-neutral-100) 100%
   );
 }
 

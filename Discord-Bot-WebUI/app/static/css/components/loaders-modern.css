@@ -178,7 +178,7 @@
     rgba(0, 0, 0, 0.06) 100%
   );
   background-size: 200% 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   animation: shimmer 2s infinite;
 }
 
@@ -235,18 +235,18 @@
 .c-skeleton-modern--button {
   height: 2.5rem;
   width: 100px;
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
 }
 
 .c-skeleton-modern--card {
   height: 200px;
-  border-radius: var(--radius-xl);
+  border-radius: var(--ecs-radius-xl);
 }
 
 .c-skeleton-modern--image {
   width: 100%;
   padding-bottom: 56.25%; /* 16:9 aspect ratio */
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
 }
 
 /* ============================================================================
@@ -359,7 +359,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
@@ -398,7 +398,7 @@
 }
 
 .c-loader-modern__overlay-text {
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
 }

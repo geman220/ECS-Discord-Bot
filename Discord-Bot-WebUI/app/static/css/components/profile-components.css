@@ -27,7 +27,7 @@
 .c-info-card {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   overflow: hidden;
   margin-bottom: var(--space-5, 20px);
 }
@@ -48,7 +48,7 @@
   gap: var(--space-2, 8px);
   margin: 0;
   font-family: var(--font-display, 'Barlow', sans-serif);
-  font-size: var(--text-base, 1rem);
+  font-size: var(--ecs-text-base, 1rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -81,7 +81,7 @@
   padding: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid transparent;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
@@ -108,7 +108,7 @@
 .c-profile-tabs {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   overflow: hidden;
   margin-bottom: var(--space-5, 20px);
 }
@@ -154,7 +154,7 @@
 .c-profile-section {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   margin-bottom: var(--space-4, 16px);
   overflow: hidden;
 }
@@ -181,7 +181,7 @@
   gap: var(--space-2, 8px);
   margin: 0;
   font-family: var(--font-body, 'Barlow', sans-serif);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -229,7 +229,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -249,12 +249,12 @@
   padding: var(--space-2, 8px) var(--space-3, 12px);
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   min-height: 40px;
 }
 
 .c-form-field__value {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   word-break: break-word;
 }
@@ -273,7 +273,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--ecs-radius-sm, 6px);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   cursor: pointer;
   opacity: 0;
@@ -312,11 +312,11 @@
   flex: 1;
   padding: var(--space-2, 8px) var(--space-3, 12px);
   font-family: inherit;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   transition: all var(--duration-fast, 150ms) ease;
 }
 
@@ -353,14 +353,14 @@
   height: 32px;
   padding: 0;
   border: none;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--ecs-radius-sm, 6px);
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
 }
 
 .c-form-field__save {
   background: var(--color-success, var(--color-success-500, var(--color-success-500)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-form-field__save:hover {
@@ -388,7 +388,7 @@
   padding: var(--space-3, 12px) var(--space-4, 16px);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.08));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   margin-bottom: var(--space-3, 12px);
   cursor: pointer;
 }
@@ -406,7 +406,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   cursor: pointer;
@@ -420,13 +420,13 @@
 }
 
 .c-toggle-field__title {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-toggle-field__description {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -461,7 +461,7 @@ input[type="checkbox"].c-toggle-field__input::before {
   left: 2px;
   width: 20px;
   height: 20px;
-  background: var(--color-white, var(--color-white));
+  background: var(--ecs-color-white, var(--ecs-color-white));
   border-radius: 50%;
   transition: transform var(--duration-fast, 150ms) ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -503,7 +503,7 @@ input.c-toggle-field__input:focus-visible {
   padding: var(--space-3, 12px) var(--space-4, 16px);
   background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   transition: all var(--duration-fast, 150ms) ease;
 }
 
@@ -521,7 +521,7 @@ input.c-toggle-field__input:focus-visible {
 }
 
 .c-match-stat__title {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   white-space: nowrap;
@@ -533,7 +533,7 @@ input.c-toggle-field__input:focus-visible {
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -548,10 +548,10 @@ input.c-toggle-field__input:focus-visible {
   min-width: 40px;
   padding: var(--space-1, 4px) var(--space-2, 8px);
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  border-radius: var(--radius-sm, 6px);
-  font-size: var(--text-sm, 0.875rem);
+  border-radius: var(--ecs-radius-sm, 6px);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 700;
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-match-stat__value--goals {
@@ -577,7 +577,7 @@ input.c-toggle-field__input:focus-visible {
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--ecs-radius-sm, 6px);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   cursor: pointer;
   opacity: 0;
@@ -609,7 +609,7 @@ input.c-toggle-field__input:focus-visible {
   padding: var(--space-3, 12px);
   background: rgba(59, 130, 246, 0.08);
   border: 1px dashed var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   margin-top: var(--space-3, 12px);
 }
 
@@ -621,9 +621,9 @@ input.c-toggle-field__input:focus-visible {
   padding: var(--space-3, 12px);
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
@@ -660,7 +660,7 @@ input.c-toggle-field__input:focus-visible {
 }
 
 .c-add-stat__label {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 500;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
@@ -669,11 +669,11 @@ input.c-toggle-field__input:focus-visible {
 .c-add-stat__select {
   padding: var(--space-2, 8px) var(--space-3, 12px);
   font-family: inherit;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   transition: all var(--duration-fast, 150ms) ease;
 }
 
@@ -729,7 +729,7 @@ input.c-toggle-field__input:focus-visible {
   padding: var(--space-5, 20px);
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   margin-bottom: var(--space-5, 20px);
 }
 
@@ -758,7 +758,7 @@ input.c-toggle-field__input:focus-visible {
   background: var(--color-success, var(--color-success-500, var(--color-success-500)));
   border: 2px solid var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border-radius: 50%;
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   font-size: 0.75rem;
 }
 
@@ -770,7 +770,7 @@ input.c-toggle-field__input:focus-visible {
 .c-profile-header__name {
   margin: 0 0 var(--space-1, 4px);
   font-family: var(--font-display, 'Barlow', sans-serif);
-  font-size: var(--text-xl, 1.25rem);
+  font-size: var(--ecs-text-xl, 1.25rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -779,7 +779,7 @@ input.c-toggle-field__input:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3, 12px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -827,14 +827,14 @@ input.c-toggle-field__input:focus-visible {
 
 .c-empty-state__title {
   margin: 0;
-  font-size: var(--text-base, 1rem);
+  font-size: var(--ecs-text-base, 1rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-empty-state__description {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   max-width: 280px;
 }
@@ -844,7 +844,7 @@ input.c-toggle-field__input:focus-visible {
    ============================================================================ */
 
 [data-style="light"] .c-info-card {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
@@ -873,7 +873,7 @@ input.c-toggle-field__input:focus-visible {
 
 [data-style="light"] .c-profile-tabs,
 [data-style="light"] .c-profile-section {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
@@ -900,7 +900,7 @@ input.c-toggle-field__input:focus-visible {
 }
 
 [data-style="light"] .c-form-field__input {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.15));
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
@@ -937,13 +937,13 @@ input.c-toggle-field__input:focus-visible {
 
 [data-style="light"] .c-add-stat__input,
 [data-style="light"] .c-add-stat__select {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.15));
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 [data-style="light"] .c-profile-header {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 

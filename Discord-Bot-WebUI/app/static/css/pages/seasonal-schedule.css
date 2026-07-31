@@ -168,7 +168,7 @@
 }
 
 .team-edit {
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 /* ==========================================================================
@@ -193,7 +193,7 @@
 
 .edit-controls input,
 .edit-controls select {
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     padding: var(--space-1) var(--space-2);
 }
 
@@ -203,7 +203,7 @@
 button.btn.edit-mode-active.edit-mode-active {
     background-color: var(--color-warning);
     border-color: var(--color-warning);
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .seasonal-schedule-page .btn.edit-mode-active,
@@ -211,7 +211,7 @@ button.btn.edit-mode-active.edit-mode-active {
 [data-style="dark"] button.btn.edit-mode-active.edit-mode-active {
     background-color: var(--color-warning);
     border-color: var(--color-warning);
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 /* ==========================================================================
@@ -272,7 +272,7 @@ button.btn.edit-mode-active.edit-mode-active {
 
     .edit-controls .btn {
         padding: var(--space-1) var(--space-2);
-        font-size: var(--text-xs, 0.75rem);
+        font-size: var(--ecs-text-xs, 0.75rem);
     }
 
     .alert.alert-dismissible {
@@ -342,12 +342,12 @@ button.btn.edit-mode-active.edit-mode-active {
 /* High Contrast Mode */
 @media (prefers-contrast: more) {
     .match-row:hover {
-        background-color: var(--color-neutral-200);
+        background-color: var(--ecs-color-neutral-200);
         outline: 2px solid var(--color-text-primary);
     }
 
     [data-style="dark"] .match-row:hover {
-        background-color: var(--color-neutral-200);
+        background-color: var(--ecs-color-neutral-200);
         outline: 2px solid var(--color-text-primary);
     }
 
@@ -428,7 +428,7 @@ button.btn.edit-mode-active.edit-mode-active {
  * Backgrounds: var(--color-bg-card), var(--color-hover-bg)
  * Borders: var(--color-border-primary)
  * Spacing: var(--space-1) through var(--space-5)
- * Text: var(--text-xs), var(--text-sm)
+ * Text: var(--ecs-text-xs), var(--ecs-text-sm)
  * Z-index: var(--z-toast)
  *
  * ============================================================================

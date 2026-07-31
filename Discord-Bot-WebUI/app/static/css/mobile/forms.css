@@ -333,7 +333,7 @@ body:not(.auth-page) .form-select {
     padding: var(--mobile-space-base) var(--mobile-space-lg);
     padding-bottom: calc(var(--mobile-space-base) + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-sticky);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--ecs-shadow-sm);
   }
 
   .form-actions-sticky .btn {
@@ -423,8 +423,8 @@ input:-webkit-autofill:hover {
 [data-style="dark"] input:-webkit-autofill,
 [data-style="dark"] input:-webkit-autofill:focus,
 [data-style="dark"] input:-webkit-autofill:hover {
-  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-elevated, var(--color-neutral-800)) inset;
-  -webkit-text-fill-color: var(--color-text-primary, var(--color-neutral-50));
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-bg-elevated, var(--ecs-color-neutral-800)) inset;
+  -webkit-text-fill-color: var(--color-text-primary, var(--ecs-color-neutral-50));
 }
 
 /* ============================================================================

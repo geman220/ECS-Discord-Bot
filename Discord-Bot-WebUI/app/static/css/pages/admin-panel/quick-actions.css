@@ -32,9 +32,9 @@
   --qa-purple: var(--color-primary-500);
   --qa-secondary: var(--color-secondary-500, var(--color-secondary-600));
 
-  --qa-bg-base: var(--color-neutral-50);
-  --qa-bg-card: var(--color-white, var(--color-white));
-  --qa-bg-elevated: var(--color-white, var(--color-white));
+  --qa-bg-base: var(--ecs-color-neutral-50);
+  --qa-bg-card: var(--ecs-color-white, var(--ecs-color-white));
+  --qa-bg-elevated: var(--ecs-color-white, var(--ecs-color-white));
   --qa-border: var(--color-secondary-200, #e5e7eb);
   --qa-border-hover: var(--color-secondary-300, var(--color-secondary-300));
 
@@ -682,7 +682,7 @@
 
   .c-action-card {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, var(--color-neutral-300));
+    border: 1px solid var(--color-secondary-300, var(--ecs-color-neutral-300));
   }
 
   .c-action-card__button {

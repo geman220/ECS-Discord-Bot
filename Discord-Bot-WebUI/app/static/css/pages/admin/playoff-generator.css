@@ -147,12 +147,12 @@
 
 .c-playoff-matches-table__input,
 .c-playoff-matches-table__select {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-input);
   transition: all var(--duration-normal, 0.2s) var(--ease-smooth, ease);
-  border-radius: var(--radius-sm, 0.25rem);
+  border-radius: var(--ecs-radius-sm, 0.25rem);
   padding: var(--space-2, 0.5rem);
 }
 
@@ -390,7 +390,7 @@
   .playoff-matches-table td,
   .playoff-matches-table th {
     padding: var(--space-2, 0.5rem);
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
   }
 
   /* Stack action buttons vertically */
@@ -409,7 +409,7 @@
 
   .c-playoff-matches-table__input,
   .c-playoff-matches-table__select {
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     padding: var(--space-1, 0.25rem);
   }
 
@@ -429,7 +429,7 @@
   .playoff-matches-table td,
   .playoff-matches-table th {
     padding: var(--space-2, 0.5rem);
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
   }
 }
 

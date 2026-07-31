@@ -43,10 +43,10 @@
   width: 100%;
 
   /* Visual - Light mode defaults */
-  background-color: var(--color-bg-elevated, var(--color-white)fff);
-  border: var(--border-width, 1px) solid var(--color-border-primary, var(--color-neutral-200));
-  border-radius: var(--radius-lg, 0.5rem);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
+  background-color: var(--color-bg-elevated, var(--ecs-color-white)fff);
+  border: var(--border-width, 1px) solid var(--color-border-primary, var(--ecs-color-neutral-200));
+  border-radius: var(--ecs-radius-lg, 0.5rem);
+  box-shadow: var(--ecs-shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.05));
 
   /* Spacing */
   padding: var(--space-3, 0.75rem);
@@ -63,8 +63,8 @@
 /* Modern Theme - Light Mode */
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav {
-  background-color: var(--ecs-neutral-0, var(--color-white)fff);
-  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
+  background-color: var(--ecs-neutral-0, var(--ecs-color-white)fff);
+  border-color: var(--ecs-neutral-20, var(--ecs-color-neutral-200));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -164,7 +164,7 @@ body[data-style="dark"] .c-admin-nav {
   padding: var(--space-3) var(--space-4);
 
   /* Typography */
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-secondary);
   text-decoration: none;
@@ -172,7 +172,7 @@ body[data-style="dark"] .c-admin-nav {
 
   /* Visual */
   background-color: transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   border: 1px solid transparent;
 
   /* Reset any button styles that might conflict */
@@ -193,7 +193,7 @@ body[data-style="dark"] .c-admin-nav {
 @media (min-width: 992px) {
   .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
     padding: var(--space-2) var(--space-3);
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 }
 
@@ -206,7 +206,7 @@ body[data-style="dark"] .c-admin-nav {
 /* Active state */
 .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
   background-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-text-on-primary, var(--color-white)fff);
+  color: var(--color-text-on-primary, var(--ecs-color-white)fff);
   font-weight: var(--font-semibold, 600);
 }
 
@@ -218,12 +218,12 @@ body[data-style="dark"] .c-admin-nav {
 
 /* ============================================================================
    NAVIGATION LINKS - Modern Theme Light Mode
-   Improved contrast: var(--color-neutral-700) gives 9.6:1 ratio (WCAG AAA compliant)
+   Improved contrast: var(--ecs-color-neutral-700) gives 9.6:1 ratio (WCAG AAA compliant)
    ============================================================================ */
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
-  color: var(--color-text-secondary, var(--color-neutral-700));
+  color: var(--color-text-secondary, var(--ecs-color-neutral-700));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
@@ -235,7 +235,7 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
   background-color: var(--ecs-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--ecs-neutral-0, var(--color-white)fff);
+  color: var(--ecs-neutral-0, var(--ecs-color-white)fff);
 }
 
 /* ============================================================================
@@ -244,7 +244,7 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
@@ -256,7 +256,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
   background-color: var(--ecs-primary-light, var(--color-primary-400, var(--color-primary-400)));
-  color: var(--ecs-dark-bg-body, var(--color-neutral-950));
+  color: var(--ecs-dark-bg-body, var(--ecs-color-neutral-950));
 }
 
 /* Generic dark mode fallbacks */
@@ -264,7 +264,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link {
-  color: var(--color-neutral-400, var(--color-neutral-400));
+  color: var(--ecs-color-neutral-400, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover,
@@ -280,7 +280,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link:hover
 .dark-mode .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-active {
   background-color: var(--color-primary-600, var(--color-primary-400, var(--color-primary-400)));
-  color: var(--color-text-on-primary, var(--color-white)fff);
+  color: var(--color-text-on-primary, var(--ecs-color-white)fff);
 }
 
 /* ============================================================================
@@ -311,7 +311,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-ac
 .c-admin-nav__text {
   /* Typography */
   font-size: inherit;
-  line-height: var(--leading-tight);
+  line-height: var(--ecs-leading-tight);
 }
 
 /* Hide text on small tablets to save space */
@@ -371,9 +371,9 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__link.is-ac
   max-width: 22rem;
 
   /* Visual - Light mode defaults */
-  background-color: var(--color-bg-elevated, var(--color-white)fff);
-  border: var(--border-width, 1px) solid var(--color-border-primary, var(--color-neutral-200));
-  border-radius: var(--radius-md, 0.375rem);
+  background-color: var(--color-bg-elevated, var(--ecs-color-white)fff);
+  border: var(--border-width, 1px) solid var(--color-border-primary, var(--ecs-color-neutral-200));
+  border-radius: var(--ecs-radius-md, 0.375rem);
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.1),
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -420,8 +420,8 @@ nav.c-admin-nav .c-admin-nav__list .c-admin-nav__item.is-open > ul.c-admin-nav__
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
-  background-color: var(--ecs-neutral-0, var(--color-white)fff);
-  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
+  background-color: var(--ecs-neutral-0, var(--ecs-color-white)fff);
+  border-color: var(--ecs-neutral-20, var(--ecs-color-neutral-200));
   box-shadow:
     0 10px 15px -3px rgba(0, 0, 0, 0.1),
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -493,9 +493,9 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
   padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
 
   /* Typography */
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-normal, 400);
-  color: var(--color-text-primary, var(--color-neutral-900));
+  color: var(--color-text-primary, var(--ecs-color-neutral-900));
   text-decoration: none;
   white-space: nowrap;
 
@@ -524,7 +524,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
 /* Active state */
 .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active {
   background-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-text-on-primary, var(--color-white)fff);
+  color: var(--color-text-on-primary, var(--ecs-color-white)fff);
 }
 
 /* ============================================================================
@@ -533,7 +533,7 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__item .c-admin-nav__dropdown {
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item {
-  color: var(--ecs-neutral-70, var(--color-neutral-700));
+  color: var(--ecs-neutral-70, var(--ecs-color-neutral-700));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
@@ -549,7 +549,7 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav .c-admin
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item {
-  color: var(--color-text-secondary, var(--color-neutral-300));
+  color: var(--color-text-secondary, var(--ecs-color-neutral-300));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
@@ -561,7 +561,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item.is-active {
   background-color: var(--color-primary-400, var(--color-primary-400, var(--color-primary-400)));
-  color: var(--color-bg-primary, var(--color-neutral-950));
+  color: var(--color-bg-primary, var(--ecs-color-neutral-950));
 }
 
 /* Generic dark mode fallbacks - use semantic tokens NOT inverted neutral scale */
@@ -569,7 +569,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__
 [data-theme="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 .dark-mode .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item,
 body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item {
-  color: var(--color-text-secondary, var(--color-neutral-300));
+  color: var(--color-text-secondary, var(--ecs-color-neutral-300));
 }
 
 [data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdown-item:hover,
@@ -591,26 +591,26 @@ body[data-style="dark"] .c-admin-nav .c-admin-nav__dropdown .c-admin-nav__dropdo
   margin: var(--space-2, 0.5rem) 0;
 
   /* Visual */
-  background-color: var(--color-border-primary, var(--color-neutral-200));
+  background-color: var(--color-border-primary, var(--ecs-color-neutral-200));
   border: none;
 }
 
 /* Modern Theme Light Mode divider */
 [data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav__dropdown-divider,
 html[data-theme-variant="modern"]:not([data-style="dark"]) .c-admin-nav__dropdown-divider {
-  background-color: var(--ecs-neutral-20, var(--color-neutral-200));
+  background-color: var(--ecs-neutral-20, var(--ecs-color-neutral-200));
 }
 
 /* Modern Theme Dark Mode divider */
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divider,
 html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divider {
-  background-color: var(--color-border-primary, var(--color-neutral-600));
+  background-color: var(--color-border-primary, var(--ecs-color-neutral-600));
 }
 
 /* Generic dark mode fallback - use semantic tokens */
 [data-style="dark"] .c-admin-nav__dropdown-divider,
 [data-theme="dark"] .c-admin-nav__dropdown-divider {
-  background-color: var(--color-border-primary, var(--color-neutral-700));
+  background-color: var(--color-border-primary, var(--ecs-color-neutral-700));
 }
 
 /* ============================================================================
@@ -626,7 +626,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   /* Typography */
   font-size: 0.6875rem;
   font-weight: var(--font-bold, 700);
-  color: var(--color-text-muted, var(--color-neutral-500));
+  color: var(--color-text-muted, var(--ecs-color-neutral-500));
   text-transform: uppercase;
   letter-spacing: 0.05em;
 
@@ -643,7 +643,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 /* Dark mode dropdown headers */
 [data-style="dark"] .c-admin-nav__dropdown-header,
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-header {
-  color: var(--color-text-muted, var(--color-neutral-400));
+  color: var(--color-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* ============================================================================
@@ -668,12 +668,12 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 }
 
 .c-admin-nav__dropdown--wide::-webkit-scrollbar-thumb {
-  background-color: var(--color-border-primary, var(--color-neutral-200));
+  background-color: var(--color-border-primary, var(--ecs-color-neutral-200));
   border-radius: 3px;
 }
 
 [data-style="dark"] .c-admin-nav__dropdown--wide::-webkit-scrollbar-thumb {
-  background-color: var(--color-border-primary, var(--color-neutral-600));
+  background-color: var(--color-border-primary, var(--ecs-color-neutral-600));
 }
 
 /* ============================================================================
@@ -708,7 +708,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   background: var(--color-primary);
   color: white;
   text-decoration: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   z-index: var(--z-tooltip);
 }
 
@@ -780,7 +780,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   background-color: transparent;
   background-image: none;
   border: 1px solid transparent;
-  border-radius: var(--radius-md, 0.375rem);
+  border-radius: var(--ecs-radius-md, 0.375rem);
   box-shadow: none;
   text-transform: none;
   letter-spacing: normal;
@@ -792,9 +792,9 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   align-items: center;
   gap: var(--space-2, 0.5rem);
   padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
-  color: var(--color-text-secondary, var(--color-neutral-600));
+  color: var(--color-text-secondary, var(--ecs-color-neutral-600));
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) var(--ease-smooth, ease-out);
 }
@@ -806,7 +806,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
   .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.btn,
   .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link {
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
   }
 }
 
@@ -830,7 +830,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-nav__dropdown-divi
 [data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item button.c-admin-nav__link {
   background-color: transparent;
   border-color: transparent;
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 [data-theme-variant="modern"][data-style="dark"] .c-admin-nav .c-admin-nav__list .c-admin-nav__item .c-admin-nav__dropdown-toggle.ecs-btn:hover,

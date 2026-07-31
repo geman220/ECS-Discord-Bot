@@ -26,16 +26,16 @@
   padding: var(--space-4);
   margin-bottom: var(--space-4);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--text-base);
-  line-height: var(--leading-relaxed);
+  border-radius: var(--ecs-radius-md);
+  font-size: var(--ecs-text-base);
+  line-height: var(--ecs-leading-relaxed);
 }
 
 .alert-heading {
   margin-top: 0;
   margin-bottom: var(--space-2);
   font-weight: var(--font-semibold);
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   color: inherit;
 }
 
@@ -98,14 +98,14 @@
 }
 
 .alert-light {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
+  color: var(--ecs-color-neutral-900);
 }
 
 .alert-dark {
-  background-color: var(--color-neutral-800);
-  border-color: var(--color-neutral-700);
+  background-color: var(--ecs-color-neutral-800);
+  border-color: var(--ecs-color-neutral-700);
   color: white;
 }
 
@@ -134,7 +134,7 @@
 .alert-solid-warning {
   background-color: var(--color-warning-600);
   border-color: var(--color-warning-600);
-  color: var(--color-neutral-900);
+  color: var(--ecs-color-neutral-900);
 }
 
 .alert-solid-info {
@@ -160,7 +160,7 @@
 .alert-icon i,
 .alert-icon svg {
   flex-shrink: 0;
-  font-size: var(--text-xl);
+  font-size: var(--ecs-text-xl);
   margin-top: 2px;
 }
 
@@ -201,7 +201,7 @@
   padding: var(--space-2);
   background: transparent;
   border: none;
-  font-size: var(--text-xl);
+  font-size: var(--ecs-text-xl);
   line-height: 1;
   color: inherit;
   opacity: 0.5;
@@ -219,7 +219,7 @@
   outline: none;
   opacity: 1;
   box-shadow: 0 0 0 2px currentColor;
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
 }
 
 /* ============================================================================
@@ -228,12 +228,12 @@
 
 .alert-sm {
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 .alert-lg {
   padding: var(--space-6) var(--space-8);
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
 }
 
 /* ============================================================================
@@ -274,7 +274,7 @@
   right: var(--space-4);
   min-width: 300px;
   max-width: 400px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--ecs-shadow-lg);
   z-index: var(--z-toast);
   animation: slide-in-right var(--duration-slow) var(--ease-deceleration);
 }
@@ -307,7 +307,7 @@
 }
 
 .alert-actions .btn {
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   padding: var(--space-1) var(--space-3);
 }
 
@@ -336,7 +336,7 @@
 
 .alert-inline {
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -389,15 +389,15 @@
 }
 
 [data-style="dark"] .alert-light {
-  background-color: var(--color-neutral-800);
-  border-color: var(--color-neutral-700);
-  color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-800);
+  border-color: var(--ecs-color-neutral-700);
+  color: var(--ecs-color-neutral-100);
 }
 
 [data-style="dark"] .alert-dark {
-  background-color: var(--color-neutral-100);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-100);
+  border-color: var(--ecs-color-neutral-200);
+  color: var(--ecs-color-neutral-900);
 }
 
 /* ============================================================================
@@ -428,6 +428,6 @@
 .alert code {
   background-color: rgba(0, 0, 0, 0.1);
   padding: 2px var(--space-1);
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
   font-size: 0.9em;
 }

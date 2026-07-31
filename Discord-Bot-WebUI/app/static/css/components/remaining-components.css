@@ -17,13 +17,13 @@
   flex-direction: column;
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   overflow: hidden;
 }
 
 .c-settings-sidebar__title {
   padding: var(--space-4, 16px);
-  font-size: var(--text-base, 1rem);
+  font-size: var(--ecs-text-base, 1rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   border-bottom: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
@@ -34,7 +34,7 @@
 }
 
 .c-settings-sidebar__section-title {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -60,7 +60,7 @@
   text-decoration: none;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   cursor: pointer;
   transition: background-color var(--duration-fast, 150ms) ease;
   width: 100%;
@@ -73,7 +73,7 @@
 
 .c-settings-sidebar__action.active {
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-settings-sidebar__actions {
@@ -91,7 +91,7 @@
 }
 
 .c-settings-sidebar__text {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 /* ============================================================================
@@ -105,7 +105,7 @@
 .c-settings-teams__label {
   display: block;
   margin-bottom: var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -156,7 +156,7 @@
 
 .empty-state__text,
 .c-empty-state-modern__message {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-align: center;
 }
@@ -186,7 +186,7 @@
   max-height: 90vh;
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -202,7 +202,7 @@
 
 .c-markdown-editor-modal__title {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -216,7 +216,7 @@
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
@@ -251,12 +251,12 @@
 }
 
 .c-review-item__label {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 .c-review-item__value {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -271,7 +271,7 @@
 
 .c-season-section__title {
   margin: 0 0 var(--space-3, 12px);
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -286,7 +286,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -301,7 +301,7 @@
 .c-schedule-manager__bulk-form {
   padding: var(--space-4, 16px);
   background: rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
 }
 
 .c-schedule-wizard__step--configuration,
@@ -314,7 +314,7 @@
    ============================================================================ */
 
 .c-onboarding-step__button--primary {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
@@ -386,7 +386,7 @@
 }
 
 .c-add-stat__title {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -403,12 +403,12 @@
 /* Admin panel base */
 .c-admin-panel-base__role-text,
 .c-admin-panel-base__user-label {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 .c-admin-panel-base__user-name {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -418,15 +418,15 @@
 .c-notes-display {
   padding: var(--space-3, 12px);
   background: rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-md, 8px);
-  font-size: var(--text-sm, 0.875rem);
+  border-radius: var(--ecs-radius-md, 8px);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 /* Navbar extensions */
 .c-navbar-modern__badge--primary {
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-navbar-modern__dropdown--auth {
@@ -484,7 +484,7 @@
 }
 
 .c-messages-chat__typing-text {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-style: italic;
 }
@@ -517,7 +517,7 @@
 
 /* Playoff management buttons */
 .c-playoff-mgmt__button--primary {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
@@ -541,7 +541,7 @@
 .c-sms-setup {
   padding: var(--space-4, 16px);
   background: rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
 }
 
 /* NOTE: .c-status-indicator--* variants moved to c-status-indicator.css */
@@ -559,7 +559,7 @@
   padding: var(--space-3, 12px);
   background: rgba(0, 0, 0, 0.2);
   border: 2px dashed var(--color-border-subtle, rgba(255, 255, 255, 0.15));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
 }
 
 /* Users container */
@@ -595,12 +595,12 @@
 .c-match-card__icon--away { color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400)))); }
 
 .c-match-stat__date {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 .c-match-stat__opponent {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
@@ -661,7 +661,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-settings-sidebar {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
@@ -679,7 +679,7 @@
 }
 
 [data-style="light"] .c-markdown-editor-modal__content {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 

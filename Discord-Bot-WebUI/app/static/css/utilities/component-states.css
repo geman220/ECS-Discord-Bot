@@ -28,7 +28,7 @@
  */
 .drop-zone {
     position: relative;
-    border: 2px dashed var(--color-secondary-300, var(--color-neutral-300));
+    border: 2px dashed var(--color-secondary-300, var(--ecs-color-neutral-300));
     border-radius: 0.375rem;
     padding: 2rem;
     text-align: center;
@@ -156,14 +156,14 @@
 }
 
 .status-notification-warning {
-    background-color: var(--color-warning-bg, var(--color-white)3cd);
+    background-color: var(--color-warning-bg, var(--ecs-color-white)3cd);
     border-left: 4px solid var(--color-warning, var(--color-warning));
     color: var(--color-warning-900, #664d03);
 }
 
 [data-style="dark"] .status-notification-warning {
     background-color: var(--color-warning-800, #997404);
-    color: var(--color-warning-bg, var(--color-white)3cd);
+    color: var(--color-warning-bg, var(--ecs-color-white)3cd);
 }
 
 .status-notification-info {
@@ -294,7 +294,7 @@
 }
 
 .border-light {
-    border-color: var(--color-secondary-100, var(--color-neutral-50));
+    border-color: var(--color-secondary-100, var(--ecs-color-neutral-50));
 }
 
 .border-dark {
@@ -612,14 +612,14 @@
  * Skeleton loader
  */
 .skeleton {
-    background: linear-gradient(90deg, var(--color-secondary-100, var(--color-neutral-100)) 25%, var(--color-secondary-200, var(--color-neutral-200)) 50%, var(--color-secondary-100, var(--color-neutral-100)) 75%);
+    background: linear-gradient(90deg, var(--color-secondary-100, var(--ecs-color-neutral-100)) 25%, var(--color-secondary-200, var(--ecs-color-neutral-200)) 50%, var(--color-secondary-100, var(--ecs-color-neutral-100)) 75%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s ease-in-out infinite;
     border-radius: 0.25rem;
 }
 
 [data-style="dark"] .skeleton {
-    background: linear-gradient(90deg, var(--color-secondary-800, var(--color-neutral-900)) 25%, var(--color-secondary-700, #3a3a3a) 50%, var(--color-secondary-800, var(--color-neutral-900)) 75%);
+    background: linear-gradient(90deg, var(--color-secondary-800, var(--ecs-color-neutral-900)) 25%, var(--color-secondary-700, #3a3a3a) 50%, var(--color-secondary-800, var(--ecs-color-neutral-900)) 75%);
     background-size: 200% 100%;
 }
 

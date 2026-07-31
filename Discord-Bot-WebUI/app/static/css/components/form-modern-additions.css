@@ -18,7 +18,7 @@
   flex-direction: column;
   gap: var(--space-4, 16px);
   background: var(--color-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   padding: var(--space-4, 16px);
 }
 
@@ -73,7 +73,7 @@
 
 .c-form-modern__help {
   margin-top: var(--space-1, 4px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -104,7 +104,7 @@
 
 .c-form-field__error {
   margin-top: var(--space-1, 4px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-danger-light, var(--color-danger-400));
 }
 
@@ -129,7 +129,7 @@
 .c-filter-section__label {
   display: block;
   margin-bottom: var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -141,7 +141,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-2, 8px);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   cursor: pointer;
   transition: background-color var(--duration-fast, 150ms) ease;
 }
@@ -155,7 +155,7 @@
 }
 
 .c-filter-option__label {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
@@ -186,14 +186,14 @@
 
 .c-toggle-row__label {
   display: block;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--bs-body-color, var(--color-text-primary));
   margin: 0;
 }
 
 .c-toggle-row__description {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--bs-secondary-color, var(--color-text-secondary));
   margin: 0;
 }
@@ -203,7 +203,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-form-modern {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
 }
 
 [data-style="light"] .c-form-modern__group--actions {

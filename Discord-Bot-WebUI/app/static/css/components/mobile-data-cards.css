@@ -66,14 +66,14 @@
     flex-direction: column;
     background: var(--color-bg-card);
     border: 1px solid var(--color-border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     overflow: hidden;
     transition: box-shadow var(--duration-fast) var(--ease-smooth),
                 border-color var(--duration-fast) var(--ease-smooth);
   }
 
   .c-table--mobile-enhanced tbody tr:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
   }
 
   /* ==========================================================================
@@ -101,7 +101,7 @@
     min-width: 100px;
     max-width: 140px;
     padding-right: var(--space-3);
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
     font-weight: var(--font-semibold);
     color: var(--color-text-tertiary);
     text-transform: uppercase;
@@ -131,7 +131,7 @@
   /* Secondary cells - standard styling */
   .c-table--mobile-enhanced .c-table__cell--secondary {
     background: var(--color-bg-card);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
   }
 
   /* ==========================================================================
@@ -173,7 +173,7 @@
   /* Expanded state */
   .c-table--mobile-enhanced .c-table__row--expanded {
     border-color: var(--color-primary);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
   }
 
   .c-table--mobile-enhanced .c-table__row--expanded::after {
@@ -227,7 +227,7 @@
 
   .c-table--mobile-enhanced .badge,
   .c-table--mobile-enhanced .c-badge {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
     padding: var(--space-1) var(--space-2);
   }
 
@@ -238,7 +238,7 @@
   .c-table--mobile-enhanced img {
     max-width: 60px;
     max-height: 60px;
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
   }
 
   /* User avatars */
@@ -352,8 +352,8 @@
 
   /* Timestamp prominent */
   .c-table--mobile-enhanced[data-table-type="logs"] .c-table__cell--timestamp {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-family: var(--ecs-font-mono);
+    font-size: var(--ecs-text-xs);
   }
 
   /* Message full width */

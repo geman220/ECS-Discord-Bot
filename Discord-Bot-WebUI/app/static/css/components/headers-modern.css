@@ -32,7 +32,7 @@
   position: relative;
   padding: var(--space-6, 24px) 0;
   margin-bottom: var(--space-6, 24px);
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-bottom: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.06));
   animation: header-fade-in var(--duration-normal, 200ms) ease-out;
 }
@@ -42,7 +42,7 @@
 .c-header-modern--gradient {
   background: linear-gradient(
     135deg,
-    var(--color-bg-primary, var(--color-white)) 0%,
+    var(--color-bg-primary, var(--ecs-color-white)) 0%,
     var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50)))) 100%
   );
 }
@@ -96,7 +96,7 @@
 .c-header-modern__title {
   margin: 0;
   font-family: var(--font-display, 'Barlow', sans-serif);
-  font-size: var(--text-2xl, 1.5rem);
+  font-size: var(--ecs-text-2xl, 1.5rem);
   font-weight: var(--font-bold, 700);
   line-height: 1.2;
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
@@ -114,13 +114,13 @@
 /* Large title variant */
 
 .c-header-modern__title--lg {
-  font-size: var(--text-3xl, 1.875rem);
+  font-size: var(--ecs-text-3xl, 1.875rem);
 }
 
 /* Small title variant */
 
 .c-header-modern__title--sm {
-  font-size: var(--text-xl, 1.25rem);
+  font-size: var(--ecs-text-xl, 1.25rem);
   font-weight: var(--font-semibold, 600);
 }
 
@@ -131,7 +131,7 @@
 .c-header-modern__subtitle {
   margin: var(--space-1, 4px) 0 0;
   font-family: var(--font-body, 'Barlow', sans-serif);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-normal, 400);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   line-height: 1.5;
@@ -170,7 +170,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1, 4px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -189,7 +189,7 @@
   align-items: center;
   gap: var(--space-1, 4px);
   margin-bottom: var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
 }
 
 .c-header-modern__breadcrumb-item {
@@ -238,11 +238,11 @@
   }
 
   .c-header-modern__title {
-    font-size: var(--text-xl, 1.25rem);
+    font-size: var(--ecs-text-xl, 1.25rem);
   }
 
   .c-header-modern__title--lg {
-    font-size: var(--text-2xl, 1.5rem);
+    font-size: var(--ecs-text-2xl, 1.5rem);
   }
 
   .c-header-modern__actions {
@@ -256,7 +256,7 @@
 
 @media (max-width: 480px) {
   .c-header-modern__title {
-    font-size: var(--text-lg, 1.125rem);
+    font-size: var(--ecs-text-lg, 1.125rem);
   }
 
   .c-header-modern__actions {

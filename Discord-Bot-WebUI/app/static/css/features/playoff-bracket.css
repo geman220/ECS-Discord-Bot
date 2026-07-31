@@ -49,7 +49,7 @@
     align-items: center;
     justify-content: center;
     padding: var(--space-4);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     background-color: var(--color-warning-subtle);
     border: var(--border-width) solid var(--color-warning-300);
     color: var(--color-warning-900);
@@ -77,9 +77,9 @@
 }
 
 .playoff-bracket-container .bracket-header .badge {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
 }
 
 /* ============================================================================
@@ -101,7 +101,7 @@
 /* Round labels */
 .playoff-bracket-container .round-label {
     text-align: center;
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     font-weight: var(--font-semibold);
     color: var(--color-primary);
     text-transform: uppercase;
@@ -109,7 +109,7 @@
     margin-bottom: var(--space-2);
     padding: var(--space-2);
     background-color: var(--color-primary-subtle);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
 }
 
 [data-style="dark"] .playoff-bracket-container .round-label {
@@ -125,23 +125,23 @@
     position: relative;
     padding: var(--space-4);
     border: 2px solid var(--border-color-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     background: var(--color-bg-card);
     transition: var(--transition-all);
     cursor: pointer;
     color: var(--color-text-primary);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--ecs-shadow-sm);
 }
 
 [data-style="dark"] .playoff-bracket-container .bracket-match-card {
-    background: var(--color-neutral-100);
-    border-color: var(--color-neutral-200);
-    color: var(--color-neutral-900);
+    background: var(--ecs-color-neutral-100);
+    border-color: var(--ecs-color-neutral-200);
+    color: var(--ecs-color-neutral-900);
 }
 
 .playoff-bracket-container .bracket-match-card:hover {
     border-color: var(--color-primary);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
     transform: translateY(-2px);
 }
 
@@ -184,13 +184,13 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-3);
-    border-radius: var(--radius-md);
-    background-color: var(--color-neutral-50);
+    border-radius: var(--ecs-radius-md);
+    background-color: var(--ecs-color-neutral-50);
     transition: var(--transition-all);
 }
 
 [data-style="dark"] .playoff-bracket-container .bracket-match-card .team {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
 }
 
 .playoff-bracket-container .bracket-match-card .team.winner {
@@ -206,17 +206,17 @@
 }
 
 .playoff-bracket-container .bracket-match-card .team-name {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     flex: 1;
     color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-bracket-container .bracket-match-card .team-name {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 .playoff-bracket-container .bracket-match-card .team-score {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
     font-weight: var(--font-bold);
     min-width: 40px;
     text-align: right;
@@ -229,7 +229,7 @@
 
 .playoff-bracket-container .bracket-match-card .match-divider {
     text-align: center;
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     color: var(--color-text-muted);
     margin: var(--space-1) 0;
     font-weight: var(--font-medium);
@@ -240,7 +240,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     color: var(--color-text-secondary);
     margin-bottom: var(--space-3);
     gap: var(--space-2);
@@ -253,16 +253,16 @@
 }
 
 .playoff-bracket-container .bracket-match-card .match-info i {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     color: var(--color-text-muted);
 }
 
 [data-style="dark"] .playoff-bracket-container .bracket-match-card .match-info {
-    color: var(--color-neutral-700);
+    color: var(--ecs-color-neutral-700);
 }
 
 [data-style="dark"] .playoff-bracket-container .bracket-match-card .match-info i {
-    color: var(--color-neutral-600);
+    color: var(--ecs-color-neutral-600);
 }
 
 /* Match report button */
@@ -275,7 +275,7 @@
 
 .playoff-bracket-container .bracket-match-card .match-report-btn:hover {
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 /* Status badge */
@@ -283,9 +283,9 @@
     position: absolute;
     top: var(--space-2);
     right: var(--space-2);
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
     padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 /* ============================================================================
@@ -299,7 +299,7 @@
 }
 
 [data-style="dark"] .playoff-bracket-container .group-standings {
-    border-top-color: var(--color-neutral-200);
+    border-top-color: var(--ecs-color-neutral-200);
 }
 
 .playoff-bracket-container .group-standings h6 {
@@ -320,25 +320,25 @@
     justify-content: space-between;
     align-items: center;
     padding: var(--space-3);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     border: var(--border-width) solid var(--border-color-primary);
     transition: var(--transition-all);
     background-color: var(--color-bg-card);
 }
 
 [data-style="dark"] .playoff-bracket-container .standings-row {
-    border-color: var(--color-neutral-200);
-    background-color: var(--color-neutral-100);
+    border-color: var(--ecs-color-neutral-200);
+    background-color: var(--ecs-color-neutral-100);
 }
 
 .playoff-bracket-container .standings-row:hover {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
     border-color: var(--color-primary-300);
     transform: translateX(4px);
 }
 
 [data-style="dark"] .playoff-bracket-container .standings-row:hover {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
 }
 
 .playoff-bracket-container .standings-row.current-team {
@@ -363,27 +363,27 @@
     color: var(--color-neutral-0);
     border-radius: var(--radius-full);
     font-weight: var(--font-bold);
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     flex-shrink: 0;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--ecs-shadow-sm);
 }
 
 /* Medal colors for top 3 positions - Using design tokens with custom medal colors */
 .playoff-bracket-container .standings-row.position-1 .position {
     /* Gold gradient using warm accent colors */
     background: linear-gradient(135deg, var(--color-accent-300) 0%, var(--color-accent-600) 100%);
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 .playoff-bracket-container .standings-row.position-2 .position {
     /* Silver gradient using neutral colors */
-    background: linear-gradient(135deg, var(--color-neutral-200) 0%, var(--color-neutral-400) 100%);
-    color: var(--color-neutral-900);
+    background: linear-gradient(135deg, var(--ecs-color-neutral-200) 0%, var(--ecs-color-neutral-400) 100%);
+    color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .playoff-bracket-container .standings-row.position-2 .position {
-    background: linear-gradient(135deg, var(--color-neutral-700) 0%, var(--color-neutral-500) 100%);
-    color: var(--color-neutral-900);
+    background: linear-gradient(135deg, var(--ecs-color-neutral-700) 0%, var(--ecs-color-neutral-500) 100%);
+    color: var(--ecs-color-neutral-900);
 }
 
 .playoff-bracket-container .standings-row.position-3 .position {
@@ -395,18 +395,18 @@
 .playoff-bracket-container .standings-row .team-name {
     flex: 1;
     margin-left: var(--space-3);
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-bracket-container .standings-row .team-name {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 .playoff-bracket-container .standings-row .stats {
     display: flex;
     gap: var(--space-4);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 .playoff-bracket-container .standings-row .stat {
@@ -418,24 +418,24 @@
 
 .playoff-bracket-container .standings-row .stat-label {
     color: var(--color-text-muted);
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
     text-transform: uppercase;
     font-weight: var(--font-medium);
     letter-spacing: 0.05em;
 }
 
 [data-style="dark"] .playoff-bracket-container .standings-row .stat-label {
-    color: var(--color-neutral-600);
+    color: var(--ecs-color-neutral-600);
 }
 
 .playoff-bracket-container .standings-row .stat-value {
     font-weight: var(--font-bold);
     color: var(--color-text-primary);
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
 }
 
 [data-style="dark"] .playoff-bracket-container .standings-row .stat-value {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 /* ============================================================================
@@ -449,20 +449,20 @@
 .playoff-bracket-container .placement-match {
     padding: var(--space-4);
     border: 2px solid var(--border-color-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     background: var(--color-bg-card);
     height: 100%;
     transition: var(--transition-all);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--ecs-shadow-sm);
 }
 
 [data-style="dark"] .playoff-bracket-container .placement-match {
-    background: var(--color-neutral-100);
-    border-color: var(--color-neutral-200);
+    background: var(--ecs-color-neutral-100);
+    border-color: var(--ecs-color-neutral-200);
 }
 
 .playoff-bracket-container .placement-match:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .playoff-bracket-container .placement-match.championship-match {
@@ -486,26 +486,26 @@
 }
 
 [data-style="dark"] .playoff-bracket-container .placement-match .placement-label {
-    border-bottom-color: var(--color-neutral-200);
+    border-bottom-color: var(--ecs-color-neutral-200);
 }
 
 .playoff-bracket-container .placement-match .placement-label i {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
 }
 
 .playoff-bracket-container .placement-match .placement-label strong {
     flex: 1;
-    font-size: var(--text-lg);
+    font-size: var(--ecs-text-lg);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
 }
 
 [data-style="dark"] .playoff-bracket-container .placement-match .placement-label strong {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 .playoff-bracket-container .placement-match .placement-label .small {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     color: var(--color-text-muted);
 }
 
@@ -530,7 +530,7 @@
 }
 
 [data-style="dark"] .playoff-bracket-container .placement-match .tbd-message {
-    color: var(--color-neutral-600);
+    color: var(--ecs-color-neutral-600);
 }
 
 /* ============================================================================
@@ -559,21 +559,21 @@
     height: 180px;
     background: linear-gradient(
         90deg,
-        var(--color-neutral-50) 25%,
-        var(--color-neutral-100) 50%,
-        var(--color-neutral-50) 75%
+        var(--ecs-color-neutral-50) 25%,
+        var(--ecs-color-neutral-100) 50%,
+        var(--ecs-color-neutral-50) 75%
     );
     background-size: 200% 100%;
     animation: loading var(--duration-slow) var(--ease-smooth) infinite;
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
 }
 
 [data-style="dark"] .playoff-bracket-container .bracket-match-skeleton {
     background: linear-gradient(
         90deg,
-        var(--color-neutral-50) 25%,
-        var(--color-neutral-100) 50%,
-        var(--color-neutral-50) 75%
+        var(--ecs-color-neutral-50) 25%,
+        var(--ecs-color-neutral-100) 50%,
+        var(--ecs-color-neutral-50) 75%
     );
 }
 
@@ -611,11 +611,11 @@
     }
 
     .playoff-bracket-container .bracket-match-card .team-name {
-        font-size: var(--text-sm);
+        font-size: var(--ecs-text-sm);
     }
 
     .playoff-bracket-container .bracket-match-card .team-score {
-        font-size: var(--text-lg);
+        font-size: var(--ecs-text-lg);
         min-width: 36px;
     }
 
@@ -632,7 +632,7 @@
     }
 
     .playoff-bracket-container .placement-match .placement-label strong {
-        font-size: var(--text-base);
+        font-size: var(--ecs-text-base);
     }
 }
 
@@ -647,7 +647,7 @@
     }
 
     .playoff-bracket-container .bracket-header h3 {
-        font-size: var(--text-xl);
+        font-size: var(--ecs-text-xl);
     }
 
     .playoff-bracket-container .bracket-match-card {
@@ -661,7 +661,7 @@
     }
 
     .playoff-bracket-container .bracket-match-card .match-info span {
-        font-size: var(--text-xs);
+        font-size: var(--ecs-text-xs);
     }
 
     .playoff-bracket-container .standings-row {
@@ -683,11 +683,11 @@
     .playoff-bracket-container .standings-row .position {
         width: 32px;
         height: 32px;
-        font-size: var(--text-sm);
+        font-size: var(--ecs-text-sm);
     }
 
     .playoff-bracket-container .standings-row .team-name {
-        font-size: var(--text-sm);
+        font-size: var(--ecs-text-sm);
         margin-left: var(--space-2);
     }
 
@@ -702,11 +702,11 @@
     }
 
     .playoff-bracket-container .placement-match .placement-label strong {
-        font-size: var(--text-base);
+        font-size: var(--ecs-text-base);
     }
 
     .playoff-bracket-container .placement-match .placement-label .small {
-        font-size: var(--text-xs);
+        font-size: var(--ecs-text-xs);
     }
 
     .playoff-bracket-container .placement-match .match-detail,
@@ -726,16 +726,16 @@
     }
 
     .playoff-bracket-container .bracket-match-card .team-name {
-        font-size: var(--text-xs);
+        font-size: var(--ecs-text-xs);
     }
 
     .playoff-bracket-container .bracket-match-card .team-score {
-        font-size: var(--text-base);
+        font-size: var(--ecs-text-base);
         min-width: 32px;
     }
 
     .playoff-bracket-container .round-label {
-        font-size: var(--text-xs);
+        font-size: var(--ecs-text-xs);
         padding: var(--space-1) var(--space-2);
     }
 }
@@ -766,7 +766,7 @@
 
     .playoff-bracket-container .bracket-match-card {
         page-break-inside: avoid;
-        border-color: var(--color-neutral-900);
+        border-color: var(--ecs-color-neutral-900);
         /* Remove shadows for clean print output */
         box-shadow: none;
     }
@@ -781,13 +781,13 @@
     }
 
     .playoff-bracket-container .standings-row {
-        border-color: var(--color-neutral-900);
+        border-color: var(--ecs-color-neutral-900);
         /* Remove shadows for clean print output */
         box-shadow: none;
     }
 
     .playoff-bracket-container .placement-match {
-        border-color: var(--color-neutral-900);
+        border-color: var(--ecs-color-neutral-900);
         /* Remove shadows for clean print output */
         box-shadow: none;
     }

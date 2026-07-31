@@ -8,9 +8,9 @@
    League Header
    =================== */
 .league-pool-header {
-    color: var(--color-neutral-0, var(--color-white));
+    color: var(--color-neutral-0, var(--ecs-color-white));
     padding: var(--space-8, 2rem);
-    border-radius: var(--radius-lg, 10px);
+    border-radius: var(--ecs-radius-lg, 10px);
     margin-bottom: var(--space-8, 2rem);
 }
 
@@ -28,23 +28,23 @@
 }
 
 .league-pool-stat-card {
-    background: var(--color-bg-card, var(--color-white));
+    background: var(--color-bg-card, var(--ecs-color-white));
     padding: var(--space-5, 1.25rem);
-    border-radius: var(--radius-lg, 10px);
-    box-shadow: var(--shadow-md, 0 2px 10px rgba(0,0,0,0.1));
+    border-radius: var(--ecs-radius-lg, 10px);
+    box-shadow: var(--ecs-shadow-md, 0 2px 10px rgba(0,0,0,0.1));
     text-align: center;
     border-left: 4px solid currentColor;
 }
 
 .league-pool-stat-number {
-    font-size: var(--text-4xl, 2.5rem);
+    font-size: var(--ecs-text-4xl, 2.5rem);
     font-weight: var(--font-bold, 700);
     margin-bottom: var(--space-3, 0.75rem);
 }
 
 .league-pool-stat-label {
-    color: var(--color-text-muted, var(--color-neutral-600));
-    font-size: var(--text-sm, 0.9rem);
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
+    font-size: var(--ecs-text-sm, 0.9rem);
 }
 
 /* ===================
@@ -58,16 +58,16 @@
 }
 
 .league-pool-section {
-    background: var(--color-bg-card, var(--color-white));
-    border-radius: var(--radius-lg, 10px);
+    background: var(--color-bg-card, var(--ecs-color-white));
+    border-radius: var(--ecs-radius-lg, 10px);
     padding: var(--space-5, 1.25rem);
-    box-shadow: var(--shadow-md, 0 2px 10px rgba(0,0,0,0.1));
+    box-shadow: var(--ecs-shadow-md, 0 2px 10px rgba(0,0,0,0.1));
 }
 
 .league-pool-section h3 {
     margin-bottom: var(--space-5, 1.25rem);
     padding-bottom: var(--space-3, 0.75rem);
-    border-bottom: 2px solid var(--border-color-primary, var(--color-neutral-200)eee);
+    border-bottom: 2px solid var(--border-color-primary, var(--ecs-color-neutral-200)eee);
 }
 
 /* ===================
@@ -79,16 +79,16 @@
 }
 
 .league-pool-player-card {
-    background: var(--color-neutral-50, var(--color-neutral-50));
-    border: 1px solid var(--border-color-primary, var(--color-neutral-300)ddd);
-    border-radius: var(--radius-md, 8px);
+    background: var(--ecs-color-neutral-50, var(--ecs-color-neutral-50));
+    border: 1px solid var(--border-color-primary, var(--ecs-color-neutral-300)ddd);
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-4, 1rem);
     transition: all var(--duration-normal, 0.3s) var(--ease-smooth, ease);
 }
 
 .league-pool-player-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg, 0 4px 12px rgba(0,0,0,0.15));
+    box-shadow: var(--ecs-shadow-lg, 0 4px 12px rgba(0,0,0,0.15));
 }
 
 .league-pool-player-card.league-pool-dragging {
@@ -109,13 +109,13 @@
 
 .league-pool-player-name {
     font-weight: var(--font-bold, 700);
-    font-size: var(--text-lg, 1.1rem);
+    font-size: var(--ecs-text-lg, 1.1rem);
     margin-bottom: var(--space-2, 0.5rem);
 }
 
 .league-pool-player-meta {
-    font-size: var(--text-sm, 0.9rem);
-    color: var(--color-text-muted, var(--color-neutral-600));
+    font-size: var(--ecs-text-sm, 0.9rem);
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
 }
 
 .league-pool-player-stats {
@@ -126,10 +126,10 @@
 
 .league-pool-player-stat {
     text-align: center;
-    background: var(--color-bg-card, var(--color-white));
+    background: var(--color-bg-card, var(--ecs-color-white));
     padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-    border-radius: var(--radius-sm, 6px);
-    border: 1px solid var(--border-color-primary, var(--color-neutral-300)ddd);
+    border-radius: var(--ecs-radius-sm, 6px);
+    border: 1px solid var(--border-color-primary, var(--ecs-color-neutral-300)ddd);
 }
 
 .league-pool-stat-value {
@@ -137,8 +137,8 @@
 }
 
 .league-pool-stat-value-label {
-    font-size: var(--text-xs, 0.8rem);
-    color: var(--color-text-muted, var(--color-neutral-600));
+    font-size: var(--ecs-text-xs, 0.8rem);
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
 }
 
 .league-pool-player-actions {
@@ -159,23 +159,23 @@
 .league-pool-notification-badge {
     padding: 3px var(--space-2, 0.5rem);
     border-radius: var(--radius-full, 12px);
-    font-size: var(--text-xs, 0.8rem);
+    font-size: var(--ecs-text-xs, 0.8rem);
     font-weight: var(--font-bold, 700);
 }
 
 .league-pool-notification-sms {
     background: var(--color-success, var(--color-success-500));
-    color: var(--color-neutral-0, var(--color-white));
+    color: var(--color-neutral-0, var(--ecs-color-white));
 }
 
 .league-pool-notification-discord {
     background: var(--discord-primary, var(--color-discord-600)); /* Discord brand color - intentional */
-    color: var(--color-neutral-0, var(--color-white));
+    color: var(--color-neutral-0, var(--ecs-color-white));
 }
 
 .league-pool-notification-email {
     background: var(--color-info, var(--color-info-600));
-    color: var(--color-neutral-0, var(--color-white));
+    color: var(--color-neutral-0, var(--ecs-color-white));
 }
 
 /* ===================
@@ -183,12 +183,12 @@
    =================== */
 .league-pool-drag-zone {
     min-height: 200px;
-    border: 2px dashed var(--border-color-primary, var(--color-neutral-300)ddd);
-    border-radius: var(--radius-md, 8px);
+    border: 2px dashed var(--border-color-primary, var(--ecs-color-neutral-300)ddd);
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-5, 1.25rem);
     text-align: center;
-    color: var(--color-text-muted, var(--color-neutral-600));
-    background: var(--color-neutral-50, #f9f9f9);
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
+    background: var(--ecs-color-neutral-50, #f9f9f9);
     transition: all var(--duration-normal, 0.3s) var(--ease-smooth, ease);
 }
 
@@ -199,7 +199,7 @@
 
 .league-pool-drag-zone.league-pool-has-players {
     border-style: solid;
-    border-color: var(--border-color-primary, var(--color-neutral-300)ddd);
+    border-color: var(--border-color-primary, var(--ecs-color-neutral-300)ddd);
 }
 
 /* ===================
@@ -208,13 +208,13 @@
 .league-pool-empty {
     text-align: center;
     padding: var(--space-10, 2.5rem);
-    color: var(--color-neutral-400, var(--color-neutral-500));
+    color: var(--ecs-color-neutral-400, var(--ecs-color-neutral-500));
 }
 
 .league-pool-empty i {
-    font-size: var(--text-5xl, 3rem);
+    font-size: var(--ecs-text-5xl, 3rem);
     margin-bottom: var(--space-5, 1.25rem);
-    color: var(--color-neutral-200, var(--color-neutral-300)ddd);
+    color: var(--ecs-color-neutral-200, var(--ecs-color-neutral-300)ddd);
 }
 
 /* ===================
@@ -227,7 +227,7 @@
 
 .league-pool-activity-item {
     padding: var(--space-3, 0.75rem) 0;
-    border-bottom: 1px solid var(--border-color-primary, var(--color-neutral-200)eee);
+    border-bottom: 1px solid var(--border-color-primary, var(--ecs-color-neutral-200)eee);
 }
 
 .league-pool-activity-item:last-child {
@@ -239,16 +239,16 @@
 }
 
 .league-pool-activity-time {
-    font-size: var(--text-sm, 0.9rem);
-    color: var(--color-text-muted, var(--color-neutral-600));
+    font-size: var(--ecs-text-sm, 0.9rem);
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
 }
 
 /* ===================
    Search Section
    =================== */
 .league-pool-search-section {
-    background: var(--color-neutral-50, var(--color-neutral-50));
-    border-radius: var(--radius-md, 8px);
+    background: var(--ecs-color-neutral-50, var(--ecs-color-neutral-50));
+    border-radius: var(--ecs-radius-md, 8px);
     padding: var(--space-5, 1.25rem);
     margin-bottom: var(--space-5, 1.25rem);
 }
@@ -256,22 +256,22 @@
 .league-pool-search-results {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid var(--border-color-primary, var(--color-neutral-300)ddd);
-    border-radius: var(--radius-sm, 4px);
-    background: var(--color-bg-card, var(--color-white));
+    border: 1px solid var(--border-color-primary, var(--ecs-color-neutral-300)ddd);
+    border-radius: var(--ecs-radius-sm, 4px);
+    background: var(--color-bg-card, var(--ecs-color-white));
     margin-top: var(--space-3, 0.75rem);
     display: none;
 }
 
 .league-pool-search-item {
     padding: var(--space-3, 0.75rem);
-    border-bottom: 1px solid var(--border-color-primary, var(--color-neutral-200)eee);
+    border-bottom: 1px solid var(--border-color-primary, var(--ecs-color-neutral-200)eee);
     cursor: pointer;
     transition: background var(--duration-fast, 0.2s) var(--ease-smooth, ease);
 }
 
 .league-pool-search-item:hover {
-    background: var(--color-neutral-50, var(--color-neutral-50));
+    background: var(--ecs-color-neutral-50, var(--ecs-color-neutral-50));
 }
 
 .league-pool-search-item:last-child {
@@ -289,7 +289,7 @@
 
 .league-pool-breadcrumb-item + .league-pool-breadcrumb-item::before {
     content: ">";
-    color: var(--color-text-muted, var(--color-neutral-600));
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
 }
 
 /* ===================
@@ -326,71 +326,71 @@
    Dark Mode Support
    =================== */
 [data-style="dark"] .league-pool-header {
-    color: var(--color-neutral-100, #f5f5f5);
+    color: var(--ecs-color-neutral-100, #f5f5f5);
 }
 
 [data-style="dark"] .league-pool-stat-card {
-    background: var(--color-bg-elevated, var(--color-neutral-900));
-    color: var(--color-text-primary, var(--color-white));
+    background: var(--color-bg-elevated, var(--ecs-color-neutral-900));
+    color: var(--color-text-primary, var(--ecs-color-white));
 }
 
 [data-style="dark"] .league-pool-stat-label {
-    color: var(--color-text-secondary, var(--color-neutral-400));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .league-pool-section {
-    background: var(--color-bg-elevated, var(--color-neutral-900));
-    color: var(--color-text-primary, var(--color-white));
+    background: var(--color-bg-elevated, var(--ecs-color-neutral-900));
+    color: var(--color-text-primary, var(--ecs-color-white));
 }
 
 [data-style="dark"] .league-pool-section h3 {
-    color: var(--color-text-primary, var(--color-white));
-    border-bottom-color: var(--border-color-primary, var(--color-neutral-700));
+    color: var(--color-text-primary, var(--ecs-color-white));
+    border-bottom-color: var(--border-color-primary, var(--ecs-color-neutral-700));
 }
 
 [data-style="dark"] .league-pool-player-card {
     background: var(--color-bg-card, #1e1e1e);
-    border-color: var(--border-color-primary, var(--color-neutral-700));
-    color: var(--color-text-primary, var(--color-white));
+    border-color: var(--border-color-primary, var(--ecs-color-neutral-700));
+    color: var(--color-text-primary, var(--ecs-color-white));
 }
 
 [data-style="dark"] .league-pool-player-name {
-    color: var(--color-text-primary, var(--color-white));
+    color: var(--color-text-primary, var(--ecs-color-white));
 }
 
 [data-style="dark"] .league-pool-player-meta {
-    color: var(--color-text-secondary, var(--color-neutral-400));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .league-pool-player-stat {
-    background: var(--color-bg-light, var(--color-neutral-900));
-    border-color: var(--border-color-primary, var(--color-neutral-700));
-    color: var(--color-text-primary, var(--color-white));
+    background: var(--color-bg-light, var(--ecs-color-neutral-900));
+    border-color: var(--border-color-primary, var(--ecs-color-neutral-700));
+    color: var(--color-text-primary, var(--ecs-color-white));
 }
 
 [data-style="dark"] .league-pool-stat-value-label {
-    color: var(--color-text-secondary, var(--color-neutral-400));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .league-pool-drag-zone {
-    background: var(--color-bg-light, var(--color-neutral-900));
-    border-color: var(--border-color-primary, var(--color-neutral-700));
-    color: var(--color-text-secondary, var(--color-neutral-400));
+    background: var(--color-bg-light, var(--ecs-color-neutral-900));
+    border-color: var(--border-color-primary, var(--ecs-color-neutral-700));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .league-pool-search-section {
-    background: var(--color-bg-light, var(--color-neutral-900));
-    color: var(--color-text-primary, var(--color-white));
+    background: var(--color-bg-light, var(--ecs-color-neutral-900));
+    color: var(--color-text-primary, var(--ecs-color-white));
 }
 
 [data-style="dark"] .league-pool-search-results {
-    background: var(--color-bg-elevated, var(--color-neutral-900));
-    border-color: var(--border-color-primary, var(--color-neutral-700));
+    background: var(--color-bg-elevated, var(--ecs-color-neutral-900));
+    border-color: var(--border-color-primary, var(--ecs-color-neutral-700));
 }
 
 [data-style="dark"] .league-pool-search-item {
-    color: var(--color-text-primary, var(--color-white));
-    border-bottom-color: var(--border-color-primary, var(--color-neutral-700));
+    color: var(--color-text-primary, var(--ecs-color-white));
+    border-bottom-color: var(--border-color-primary, var(--ecs-color-neutral-700));
 }
 
 [data-style="dark"] .league-pool-search-item:hover {
@@ -398,18 +398,18 @@
 }
 
 [data-style="dark"] .league-pool-activity-item {
-    color: var(--color-text-primary, var(--color-white));
-    border-bottom-color: var(--border-color-primary, var(--color-neutral-700));
+    color: var(--color-text-primary, var(--ecs-color-white));
+    border-bottom-color: var(--border-color-primary, var(--ecs-color-neutral-700));
 }
 
 [data-style="dark"] .league-pool-activity-time {
-    color: var(--color-text-secondary, var(--color-neutral-400));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .league-pool-empty {
-    color: var(--color-text-muted, var(--color-neutral-500));
+    color: var(--color-text-muted, var(--ecs-color-neutral-500));
 }
 
 [data-style="dark"] .league-pool-empty i {
-    color: var(--color-text-muted, var(--color-neutral-600));
+    color: var(--color-text-muted, var(--ecs-color-neutral-600));
 }

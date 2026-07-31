@@ -16,7 +16,7 @@
 .c-league-hero {
   position: relative;
   background: linear-gradient(135deg, var(--color-primary, var(--color-primary-600, var(--color-primary-600))) 0%, var(--color-primary-600, var(--color-primary-700)) 100%);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -35,8 +35,8 @@
 }
 
 .c-league-hero__title {
-  color: var(--color-white, var(--color-white));
-  font-size: var(--text-xl, 1.25rem);
+  color: var(--ecs-color-white, var(--ecs-color-white));
+  font-size: var(--ecs-text-xl, 1.25rem);
   font-weight: 600;
   margin: 0 0 var(--space-2, 8px);
   display: flex;
@@ -47,7 +47,7 @@
 .c-league-hero__description {
   color: rgba(255, 255, 255, 0.85);
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 /* Hero button - explicit white styling for visibility */
@@ -56,12 +56,12 @@
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-2, 8px) var(--space-4, 16px);
-  background: var(--color-white, var(--color-white));
+  background: var(--ecs-color-white, var(--ecs-color-white));
   color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   font-weight: 600;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   text-decoration: none;
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
@@ -107,11 +107,11 @@
   gap: var(--space-2, 8px);
   padding: var(--space-4, 16px) var(--space-3, 12px);
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   font-weight: 600;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   text-decoration: none;
   text-align: center;
   cursor: pointer;
@@ -122,7 +122,7 @@
   background: var(--color-primary-hover, var(--color-primary-700));
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-quick-action--outline {
@@ -133,7 +133,7 @@
 
 .c-quick-action--outline:hover {
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-quick-action__icon {
@@ -148,7 +148,7 @@
 }
 
 [data-style="dark"] .c-quick-action--outline:hover {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* ============================================================================
@@ -170,7 +170,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 600;
 }
 
@@ -178,7 +178,7 @@
 .c-division-stat {
   background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50)));
   border: 1px solid var(--color-border-light, var(--color-secondary-200, var(--color-secondary-200)));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   padding: var(--space-2, 8px);
   text-align: center;
 }
@@ -190,7 +190,7 @@
 
 .c-division-stat__label {
   display: block;
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   margin-bottom: var(--space-1, 4px);
 }
@@ -252,7 +252,7 @@
   align-items: center;
   gap: var(--space-2, 8px);
   color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   margin-bottom: var(--space-3, 12px);
 }
@@ -264,7 +264,7 @@
 }
 
 .c-legacy-card__help {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
   margin-top: var(--space-2, 8px);
   margin-bottom: 0;
@@ -282,19 +282,19 @@
 /* Ensure text is white on gradient backgrounds */
 .bg-gradient-primary,
 .bg-gradient-primary .c-card__body {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .bg-gradient-primary .text-white {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* Fix c-btn--light visibility on gradient backgrounds */
 .bg-gradient-primary .c-btn--light,
 [data-style="dark"] .bg-gradient-primary .c-btn--light {
-  background: var(--color-white, var(--color-white));
+  background: var(--ecs-color-white, var(--ecs-color-white));
   color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  border-color: var(--color-white, var(--color-white));
+  border-color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .bg-gradient-primary .c-btn--light:hover,
@@ -310,13 +310,13 @@
 /* Force primary button colors to ensure visibility */
 .c-card .c-btn--primary {
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
 [data-style="dark"] .c-card .c-btn--primary {
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
@@ -375,7 +375,7 @@
 
 .c-league-mgmt-page .c-match-stat__value {
   display: block;
-  font-size: var(--text-2xl, 1.5rem);
+  font-size: var(--ecs-text-2xl, 1.5rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900))));
 }
@@ -393,7 +393,7 @@
 }
 
 .c-league-mgmt-page .c-match-stat__label {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-500, var(--color-secondary-600)));
 }
 
@@ -423,8 +423,8 @@
 }
 
 [data-style="dark"] .form-switch .form-check-input {
-  background-color: var(--color-neutral-600, var(--color-secondary-600, var(--color-secondary-700)));
-  border-color: var(--color-neutral-500, var(--color-secondary-500, var(--color-secondary-600)));
+  background-color: var(--ecs-color-neutral-600, var(--color-secondary-600, var(--color-secondary-700)));
+  border-color: var(--ecs-color-neutral-500, var(--color-secondary-500, var(--color-secondary-600)));
 }
 
 [data-style="dark"] .form-switch .form-check-input:checked {

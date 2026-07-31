@@ -107,7 +107,7 @@
   width: 48px;
   height: 48px;
   background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   flex-shrink: 0;
 }
 
@@ -137,7 +137,7 @@
 .c-card__label {
   display: block;
   margin-bottom: var(--space-1, 4px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -152,7 +152,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -173,14 +173,14 @@
    ============================================================================ */
 
 .c-card__stat-number {
-  font-size: var(--text-3xl, 1.875rem);
+  font-size: var(--ecs-text-3xl, 1.875rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   line-height: 1.2;
 }
 
 .c-card__stat-sublabel {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 

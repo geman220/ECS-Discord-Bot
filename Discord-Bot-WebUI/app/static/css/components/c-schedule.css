@@ -81,7 +81,7 @@
 .c-schedule__date {
   flex: 1;
   font-weight: 600;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
@@ -169,14 +169,14 @@
   display: flex;
   align-items: center;
   gap: var(--space-1, 4px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   white-space: nowrap;
   min-width: 85px;
 }
 
 .c-schedule__time i {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 /* Details */
@@ -196,7 +196,7 @@
 }
 
 .c-schedule__teams {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   margin-bottom: var(--space-1, 4px);
@@ -204,7 +204,7 @@
 }
 
 .c-schedule__location {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   display: flex;
   align-items: center;
@@ -212,7 +212,7 @@
 }
 
 .c-schedule__location i {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 /* Result badge */

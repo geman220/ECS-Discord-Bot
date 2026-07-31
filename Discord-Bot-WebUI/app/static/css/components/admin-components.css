@@ -42,9 +42,9 @@
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-4, 16px);
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   text-decoration: none;
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   transition:
@@ -66,7 +66,7 @@
   width: 44px;
   height: 44px;
   background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-size: 1.25rem;
   flex-shrink: 0;
@@ -98,14 +98,14 @@
 }
 
 .c-quick-links__title {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-semibold, 600);
   margin: 0;
   line-height: 1.3;
 }
 
 .c-quick-links__description {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   margin: var(--space-1, 4px) 0 0;
   line-height: 1.4;
@@ -116,9 +116,9 @@
    ============================================================================ */
 
 .c-container-card {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.04),
     0 4px 12px rgba(0, 0, 0, 0.02);
@@ -136,7 +136,7 @@
 
 .c-container-card__title {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
@@ -169,7 +169,7 @@
 
 .c-button-group {
   display: inline-flex;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   overflow: hidden;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
@@ -180,13 +180,13 @@
 }
 
 .c-button-group > *:first-child {
-  border-top-left-radius: var(--radius-md, 8px);
-  border-bottom-left-radius: var(--radius-md, 8px);
+  border-top-left-radius: var(--ecs-radius-md, 8px);
+  border-bottom-left-radius: var(--ecs-radius-md, 8px);
 }
 
 .c-button-group > *:last-child {
-  border-top-right-radius: var(--radius-md, 8px);
-  border-bottom-right-radius: var(--radius-md, 8px);
+  border-top-right-radius: var(--ecs-radius-md, 8px);
+  border-bottom-right-radius: var(--ecs-radius-md, 8px);
 }
 
 .c-button-group > * + * {
@@ -199,11 +199,11 @@
 }
 
 .c-button-group--vertical > *:first-child {
-  border-radius: var(--radius-md, 8px) var(--radius-md, 8px) 0 0;
+  border-radius: var(--ecs-radius-md, 8px) var(--ecs-radius-md, 8px) 0 0;
 }
 
 .c-button-group--vertical > *:last-child {
-  border-radius: 0 0 var(--radius-md, 8px) var(--radius-md, 8px);
+  border-radius: 0 0 var(--ecs-radius-md, 8px) var(--ecs-radius-md, 8px);
 }
 
 .c-button-group--vertical > * + * {
@@ -278,7 +278,7 @@
 .c-code-block {
   position: relative;
   background: var(--color-bg-tertiary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -292,7 +292,7 @@
 }
 
 .c-code-block__language {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
   color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -301,18 +301,18 @@
 
 .c-code-block__copy {
   padding: var(--space-1, 4px) var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   background: rgba(255, 255, 255, 0.1);
   border: none;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--ecs-radius-sm, 4px);
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
 }
 
 .c-code-block__copy:hover {
   background: rgba(255, 255, 255, 0.2);
-  color: var(--color-text-on-primary, var(--color-white));
+  color: var(--color-text-on-primary, var(--ecs-color-white));
 }
 
 .c-code-block__content {
@@ -322,10 +322,10 @@
 
 .c-code-block__content pre {
   margin: 0;
-  font-family: var(--font-mono, 'JetBrains Mono', 'Fira Code', monospace);
-  font-size: var(--text-sm, 0.875rem);
+  font-family: var(--ecs-font-mono, 'JetBrains Mono', 'Fira Code', monospace);
+  font-size: var(--ecs-text-sm, 0.875rem);
   line-height: 1.6;
-  color: var(--color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
+  color: var(--ecs-color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
   white-space: pre;
 }
 
@@ -351,14 +351,14 @@
   width: 36px;
   height: 36px;
   background: var(--color-primary-soft, rgba(59, 130, 246, 0.1));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   font-size: 1.125rem;
 }
 
 .c-section-title__text {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
@@ -366,7 +366,7 @@
 .c-section-title__badge {
   margin-left: auto;
   padding: var(--space-1, 4px) var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
@@ -410,7 +410,7 @@
 }
 
 .c-divider__text {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
   color: var(--color-text-muted, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -439,7 +439,7 @@
   width: 32px;
   height: 32px;
   background: var(--color-bg-secondary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   font-size: 1rem;
   flex-shrink: 0;
@@ -452,14 +452,14 @@
 
 .c-info-item__label {
   display: block;
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: var(--font-medium, 500);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   margin-bottom: var(--space-1, 4px);
 }
 
 .c-info-item__value {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   word-break: break-word;
@@ -515,14 +515,14 @@
 
 .c-empty-state-modern__title {
   margin: 0 0 var(--space-2, 8px);
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
 }
 
 .c-empty-state-modern__description {
   margin: 0 0 var(--space-4, 16px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   max-width: 320px;
 }

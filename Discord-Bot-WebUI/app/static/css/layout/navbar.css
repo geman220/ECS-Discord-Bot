@@ -86,7 +86,7 @@
 .c-navbar__search-input {
   width: 100%;
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
   border: none;
   background: transparent;
   outline: none;
@@ -106,11 +106,11 @@
 }
 
 [data-style="dark"] .c-navbar__search-input {
-  color: var(--color-neutral-100);
+  color: var(--ecs-color-neutral-100);
 }
 
 [data-style="dark"] .c-navbar__search-input::placeholder {
-  color: var(--color-neutral-500);
+  color: var(--ecs-color-neutral-500);
 }
 
 /* Responsive search input widths */
@@ -135,10 +135,10 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--space-2) 0;
-  font-size: var(--text-base);
-  box-shadow: var(--shadow-lg);
+  font-size: var(--ecs-text-base);
+  box-shadow: var(--ecs-shadow-lg);
   border: var(--border-width) solid var(--border-color-primary);
-  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-radius: 0 0 var(--ecs-radius-md) var(--ecs-radius-md);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   z-index: var(--z-autocomplete, 1060);
@@ -158,12 +158,12 @@
 }
 
 [data-style="dark"] .ui-menu-item-wrapper {
-  color: var(--color-text-primary, var(--color-neutral-50));
+  color: var(--color-text-primary, var(--ecs-color-neutral-50));
 }
 
 .ui-menu-item-wrapper:hover,
 .ui-state-active {
-  background: var(--color-neutral-100);
+  background: var(--ecs-color-neutral-100);
 }
 
 [data-style="dark"] .ui-menu-item-wrapper:hover,
@@ -184,7 +184,7 @@
    ============================================================================ */
 
 .dropdown-role-impersonation .dropdown-menu {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--ecs-shadow-lg);
   min-width: 320px;
 }
 
@@ -235,7 +235,7 @@
   color: var(--color-neutral-0);
   border: none;
   padding: var(--space-2);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 .role-status-card.impersonating {
@@ -265,8 +265,8 @@
 /* Current role status styling */
 .c-navbar__current-role-status {
   padding: var(--space-2);
-  border-radius: var(--radius-md);
-  background-color: var(--color-neutral-100);
+  border-radius: var(--ecs-radius-md);
+  background-color: var(--ecs-color-neutral-100);
 }
 
 [data-style="dark"] .c-navbar__current-role-status {
@@ -340,7 +340,7 @@
 }
 
 .layout-menu-toggle .nav-link:hover {
-  background-color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-100);
   opacity: 0.9;
 }
 
@@ -349,12 +349,12 @@
 }
 
 .layout-menu-toggle .c-navbar__menu-toggle-icon {
-  font-size: var(--text-2xl);
+  font-size: var(--ecs-text-2xl);
   color: var(--color-text-primary);
 }
 
 [data-style="dark"] .layout-menu-toggle .c-navbar__menu-toggle-icon {
-  color: var(--color-text-primary, var(--color-neutral-50));
+  color: var(--color-text-primary, var(--ecs-color-neutral-50));
 }
 
 /* ============================================================================
@@ -399,13 +399,13 @@
 }
 
 .navbar-nav .nav-link:hover {
-  background-color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-100);
   color: var(--color-text-primary);
   transform: none; /* No transform on hover - keep stable */
 }
 
 [data-style="dark"] .navbar-nav .nav-link {
-  color: var(--color-text-secondary, var(--color-neutral-400));
+  color: var(--color-text-secondary, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .navbar-nav .nav-link:hover {
@@ -432,7 +432,7 @@
   align-items: center;
   padding: var(--space-3);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-semibold);
 }
 
@@ -461,7 +461,7 @@
 }
 
 .theme-switcher-icon {
-  font-size: var(--text-xl);
+  font-size: var(--ecs-text-xl);
 }
 
 /* ============================================================================
@@ -503,7 +503,7 @@
 }
 
 .dropdown-notifications-item:hover {
-  background-color: var(--color-neutral-50);
+  background-color: var(--ecs-color-neutral-50);
 }
 
 [data-style="dark"] .dropdown-notifications-item:hover {
@@ -539,8 +539,8 @@
 .toast {
   background-color: var(--color-bg-card);
   border: var(--border-width) solid var(--border-color-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xl);
+  border-radius: var(--ecs-radius-md);
+  box-shadow: var(--ecs-shadow-xl);
   pointer-events: auto;
   margin-bottom: var(--space-2);
   min-width: 250px;
@@ -560,7 +560,7 @@
 }
 
 [data-style="dark"] .toast-body {
-  color: var(--color-text-primary, var(--color-neutral-50));
+  color: var(--color-text-primary, var(--ecs-color-neutral-50));
 }
 
 /* ============================================================================
@@ -652,7 +652,7 @@
   background-color: var(--color-primary);
   color: var(--color-neutral-0);
   text-decoration: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 .skip-to-main:focus {

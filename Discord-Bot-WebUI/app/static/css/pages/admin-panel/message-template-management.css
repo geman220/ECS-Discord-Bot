@@ -27,8 +27,8 @@
   --tmpl-info: var(--color-info-500);
   --tmpl-danger: var(--color-danger-500, var(--color-danger-600));
 
-  --tmpl-bg-base: var(--color-neutral-50);
-  --tmpl-bg-card: var(--color-white, var(--color-white));
+  --tmpl-bg-base: var(--ecs-color-neutral-50);
+  --tmpl-bg-card: var(--ecs-color-white, var(--ecs-color-white));
   --tmpl-border-color: var(--color-border);
   --tmpl-border-hover: #d6d3d1;
 
@@ -47,7 +47,7 @@
 [data-style="dark"] {
   --tmpl-bg-base: #1c1917;
   --tmpl-bg-card: #292524;
-  --tmpl-border: var(--color-neutral-700)03c;
+  --tmpl-border: var(--ecs-color-neutral-700)03c;
   --tmpl-border-hover: #57534e;
 
   --tmpl-text-primary: #fafaf9;
@@ -370,7 +370,7 @@
   .c-template-stat,
   .c-template-actions {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, var(--color-neutral-300));
+    border: 1px solid var(--color-secondary-300, var(--ecs-color-neutral-300));
   }
 
   .c-template-btn {

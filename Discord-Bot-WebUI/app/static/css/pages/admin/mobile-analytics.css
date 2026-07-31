@@ -112,8 +112,8 @@
 }
 
 .mobile-analytics-metric small {
-    font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-muted, var(--color-neutral-500, var(--color-neutral-500)));
+    font-size: var(--ecs-text-sm, 0.875rem);
+    color: var(--color-text-muted, var(--ecs-color-neutral-500, var(--ecs-color-neutral-500)));
 }
 
 /**
@@ -180,7 +180,7 @@
     width: 12px;
     height: 12px;
     margin-right: var(--space-2, 0.5rem);
-    border-radius: var(--radius-sm, 0.25rem);
+    border-radius: var(--ecs-radius-sm, 0.25rem);
 }
 
 /* ============================================================================
@@ -195,14 +195,14 @@
 }
 
 .mobile-analytics-behavior-stat h4 {
-    font-size: var(--text-2xl, 1.5rem);
+    font-size: var(--ecs-text-2xl, 1.5rem);
     font-weight: var(--font-bold, 700);
     margin-bottom: var(--space-1, 0.25rem);
 }
 
 .mobile-analytics-behavior-stat small {
-    font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-muted, var(--color-neutral-500, var(--color-neutral-500)));
+    font-size: var(--ecs-text-sm, 0.875rem);
+    color: var(--color-text-muted, var(--ecs-color-neutral-500, var(--ecs-color-neutral-500)));
 }
 
 /* ============================================================================
@@ -213,19 +213,19 @@
  * Top screens table styling
  */
 .mobile-analytics-screens-table {
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 .mobile-analytics-screens-table th {
     font-weight: var(--font-semibold, 600);
-    color: var(--color-text-primary, var(--color-neutral-900, var(--color-neutral-900)));
+    color: var(--color-text-primary, var(--ecs-color-neutral-900, var(--ecs-color-neutral-900)));
     text-transform: uppercase;
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     letter-spacing: 0.5px;
 }
 
 .mobile-analytics-screens-table td {
-    color: var(--color-text-secondary, var(--color-neutral-600, var(--color-neutral-600)));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-600, var(--ecs-color-neutral-600)));
 }
 
 /* ============================================================================
@@ -243,15 +243,15 @@
 }
 
 .mobile-analytics-flow-item span:first-child {
-    font-size: var(--text-sm, 0.875rem);
-    color: var(--color-text-secondary, var(--color-neutral-600, var(--color-neutral-600)));
+    font-size: var(--ecs-text-sm, 0.875rem);
+    color: var(--color-text-secondary, var(--ecs-color-neutral-600, var(--ecs-color-neutral-600)));
 }
 
 .mobile-analytics-flow-badge {
     font-weight: var(--font-semibold, 600);
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     padding: 0.3rem 0.5rem;
-    border-radius: var(--radius-sm, 0.25rem);
+    border-radius: var(--ecs-radius-sm, 0.25rem);
 }
 
 /* ============================================================================
@@ -278,23 +278,23 @@
  * Dark mode overrides for mobile analytics components
  */
 [data-style="dark"] .mobile-analytics-metric small {
-    color: var(--color-text-muted, var(--color-neutral-400, var(--color-neutral-400)));
+    color: var(--color-text-muted, var(--ecs-color-neutral-400, var(--ecs-color-neutral-400)));
 }
 
 [data-style="dark"] .mobile-analytics-behavior-stat small {
-    color: var(--color-text-muted, var(--color-neutral-400, var(--color-neutral-400)));
+    color: var(--color-text-muted, var(--ecs-color-neutral-400, var(--ecs-color-neutral-400)));
 }
 
 [data-style="dark"] .mobile-analytics-screens-table th {
-    color: var(--color-text-primary, var(--color-neutral-900, var(--color-neutral-50)));
+    color: var(--color-text-primary, var(--ecs-color-neutral-900, var(--ecs-color-neutral-50)));
 }
 
 [data-style="dark"] .mobile-analytics-screens-table td {
-    color: var(--color-text-secondary, var(--color-neutral-500, var(--color-neutral-400)));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-500, var(--ecs-color-neutral-400)));
 }
 
 [data-style="dark"] .mobile-analytics-flow-item span:first-child {
-    color: var(--color-text-secondary, var(--color-neutral-500, var(--color-neutral-400)));
+    color: var(--color-text-secondary, var(--ecs-color-neutral-500, var(--ecs-color-neutral-400)));
 }
 
 /* Dark mode chart background adjustments */
@@ -338,11 +338,11 @@
 
     /* Reduce font sizes for mobile metrics */
     .mobile-analytics-metric .display-6 {
-        font-size: var(--text-2xl, 1.5rem);
+        font-size: var(--ecs-text-2xl, 1.5rem);
     }
 
     .mobile-analytics-behavior-stat h4 {
-        font-size: var(--text-xl, 1.25rem);
+        font-size: var(--ecs-text-xl, 1.25rem);
     }
 
     /* Stack behavior stat cards more compactly */
@@ -352,7 +352,7 @@
 
     /* Compact table text on mobile */
     .mobile-analytics-screens-table {
-        font-size: var(--text-xs, 0.75rem);
+        font-size: var(--ecs-text-xs, 0.75rem);
     }
 
     /* Reduce flow item padding on mobile */
@@ -372,7 +372,7 @@
 
     /* Adjust metric display sizes */
     .mobile-analytics-metric .display-6 {
-        font-size: var(--text-3xl, 1.875rem);
+        font-size: var(--ecs-text-3xl, 1.875rem);
     }
 }
 
@@ -391,12 +391,12 @@
 
     /* Enhanced hover states for desktop */
     .mobile-analytics-flow-item:hover {
-        background-color: var(--color-hover-bg, var(--color-neutral-100, var(--color-neutral-100)));
+        background-color: var(--color-hover-bg, var(--ecs-color-neutral-100, var(--ecs-color-neutral-100)));
         transition: background-color 0.2s ease;
     }
 
     [data-style="dark"] .mobile-analytics-flow-item:hover {
-        background-color: var(--color-hover-bg, var(--color-neutral-100, var(--color-neutral-800)));
+        background-color: var(--color-hover-bg, var(--ecs-color-neutral-100, var(--ecs-color-neutral-800)));
     }
 }
 
@@ -437,7 +437,7 @@
 }
 
 [data-style="dark"] .mobile-analytics-flow-badge {
-    border-color: var(--color-border-secondary, var(--color-neutral-300, var(--color-neutral-600)));
+    border-color: var(--color-border-secondary, var(--ecs-color-neutral-300, var(--ecs-color-neutral-600)));
 }
 
 /**
@@ -509,7 +509,7 @@
     .mobile-analytics-screens-table th,
     .mobile-analytics-screens-table td,
     .mobile-analytics-flow-item span {
-        color: var(--color-neutral-950, var(--color-neutral-950)000);
+        color: var(--ecs-color-neutral-950, var(--ecs-color-neutral-950)000);
     }
 
     /**
@@ -528,7 +528,7 @@
     /* Ensure progress bars are visible in print */
     .mobile-analytics-feature-progress,
     .mobile-analytics-performance-progress .progress {
-        border: 1px solid var(--color-neutral-950, var(--color-neutral-950)000);
+        border: 1px solid var(--ecs-color-neutral-950, var(--ecs-color-neutral-950)000);
     }
 }
 

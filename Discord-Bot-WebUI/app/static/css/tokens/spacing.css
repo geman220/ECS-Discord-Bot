@@ -107,28 +107,28 @@
      3. CONTAINER WIDTHS
      Max-width constraints for content areas
      ======================================================================== */
-  --container-xs: 20rem;
+  --ecs-container-xs: 20rem;
   /* 320px - Minimal container */
-  --container-sm: 36rem;
+  --ecs-container-sm: 36rem;
   /* 576px - Small container */
-  --container-md: 48rem;
+  --ecs-container-md: 48rem;
   /* 768px - Medium container */
-  --container-lg: 64rem;
+  --ecs-container-lg: 64rem;
   /* 1024px - Large container */
-  --container-xl: 80rem;
+  --ecs-container-xl: 80rem;
   /* 1280px - Extra large container */
-  --container-2xl: 96rem;
+  --ecs-container-2xl: 96rem;
   /* 1536px - 2XL container */
   --container-full: 100%;
   /* Full width container */
   /* Semantic Container Widths */
-  --container-content: var(--container-lg);
+  --container-content: var(--ecs-container-lg);
   /* Main content */
-  --container-form: var(--container-md);
+  --container-form: var(--ecs-container-md);
   /* Forms and inputs */
-  --container-modal: var(--container-md);
+  --container-modal: var(--ecs-container-md);
   /* Modal dialogs */
-  --container-navbar: var(--container-2xl);
+  --container-navbar: var(--ecs-container-2xl);
   /* Navigation bar */
   /* ========================================================================
      4. GRID GAPS

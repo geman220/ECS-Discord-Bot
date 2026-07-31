@@ -17,10 +17,10 @@
    Match Card Component (from snippets)
    ============================================ */
 .c-match-card {
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
     border-radius: 0.5rem;
     padding: 1rem;
-    background: var(--bs-white, var(--color-white));
+    background: var(--bs-white, var(--ecs-color-white));
     transition: box-shadow 0.2s ease;
 }
 
@@ -34,7 +34,7 @@
     gap: 0.5rem;
     margin-bottom: 0.75rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--ecs-neutral-10, var(--color-neutral-100));
+    border-bottom: 1px solid var(--ecs-neutral-10, var(--ecs-color-neutral-100));
 }
 
 .c-match-card__icon {
@@ -139,7 +139,7 @@
 }
 
 .c-match-card--regular {
-    border-left: 4px solid var(--ecs-neutral-30, var(--color-neutral-300));
+    border-left: 4px solid var(--ecs-neutral-30, var(--ecs-color-neutral-300));
 }
 
 /* ============================================
@@ -148,8 +148,8 @@
 .c-week-summary {
     padding: 1.5rem;
     border-radius: 0.5rem;
-    background: var(--bs-white, var(--color-white));
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    background: var(--bs-white, var(--ecs-color-white));
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
 }
 
 .c-week-summary__header {
@@ -183,8 +183,8 @@
 .c-week-summary__match-card {
     padding: 0.75rem;
     border-radius: 0.25rem;
-    background: var(--ecs-neutral-5, var(--color-neutral-50));
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    background: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
 }
 
 .c-week-summary__match-teams {
@@ -226,7 +226,7 @@
 }
 
 .c-playoff-mgmt__header {
-    background: var(--ecs-neutral-5, var(--color-neutral-50));
+    background: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
 }
 
 .c-playoff-mgmt__title {

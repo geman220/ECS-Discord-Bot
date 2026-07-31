@@ -59,7 +59,7 @@
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
   text-align: left;
@@ -151,7 +151,7 @@
 .c-disclosure--card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   overflow: hidden;
 }
 
@@ -231,7 +231,7 @@
 
 .c-accordion--bordered {
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   overflow: hidden;
   gap: 0;
 }
@@ -257,7 +257,7 @@
 }
 
 .c-data-summary__primary {
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
 }
@@ -266,7 +266,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   color: var(--color-text-secondary);
 }
 
@@ -277,7 +277,7 @@
 }
 
 .c-data-summary__meta-icon {
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   color: var(--color-text-tertiary);
 }
 
@@ -297,7 +297,7 @@
 }
 
 .c-detail-panel__label {
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   font-weight: var(--font-medium);
   color: var(--color-text-tertiary);
   text-transform: uppercase;
@@ -305,7 +305,7 @@
 }
 
 .c-detail-panel__value {
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   color: var(--color-text-primary);
 }
 

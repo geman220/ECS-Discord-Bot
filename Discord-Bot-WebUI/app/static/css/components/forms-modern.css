@@ -49,10 +49,10 @@
 .c-form-modern__label {
   display: block;
   margin-bottom: var(--space-2);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
-  line-height: var(--leading-tight);
+  line-height: var(--ecs-leading-tight);
 }
 
 .c-form-modern__label--required::after {
@@ -80,7 +80,7 @@
 .c-form-modern__input:focus ~ .c-form-modern__label--floating,
 .c-form-modern__input:not(:placeholder-shown) ~ .c-form-modern__label--floating {
   top: -0.625rem;
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   color: var(--color-primary);
 }
 
@@ -95,15 +95,15 @@
   /* Spacing */
   padding: var(--space-3) var(--space-4);
   /* Typography */
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-family: inherit;
   font-weight: var(--font-normal);
   color: var(--color-text-primary);
-  line-height: var(--leading-normal);
+  line-height: var(--ecs-leading-normal);
   /* Visual */
   background: var(--color-bg-elevated);
   border: 2px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   /* Interaction */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
@@ -127,7 +127,7 @@
 [data-style="dark"] .c-form-modern__input {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.1);
-  color: var(--color-neutral-200);
+  color: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .c-form-modern__input:focus {
@@ -148,7 +148,7 @@
 .c-form-modern__input--2fa {
   text-align: center;
   font-size: 1.5rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--ecs-font-mono, ui-monospace, monospace);
   letter-spacing: 0.5em;
   padding-right: 0;
 }
@@ -205,8 +205,8 @@
   align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-2);
-  font-size: var(--text-xs);
-  line-height: var(--leading-tight);
+  font-size: var(--ecs-text-xs);
+  line-height: var(--ecs-leading-tight);
 }
 
 .c-form-modern__feedback--invalid {
@@ -255,7 +255,7 @@
 }
 
 .c-form-modern__checkbox-box {
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
 }
 
 .c-form-modern__radio-box {
@@ -322,7 +322,7 @@
   align-items: flex-start;
   gap: var(--space-2, 8px);
   flex: 1;
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   color: var(--color-text-secondary);
   line-height: 1.5;
   cursor: pointer;
@@ -349,7 +349,7 @@
   padding: var(--space-4);
   background: var(--color-bg-elevated);
   border: 2px dashed var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -369,14 +369,14 @@
 }
 
 .c-form-modern__file-title {
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-medium);
   color: var(--color-text-primary);
   margin-bottom: var(--space-1);
 }
 
 .c-form-modern__file-subtitle {
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   color: var(--color-text-muted);
 }
 
@@ -400,29 +400,29 @@
   display: flex;
   align-items: center;
   padding: 0 var(--space-3);
-  background: var(--color-neutral-50);
+  background: var(--ecs-color-neutral-50);
   border: 2px solid var(--color-border-primary);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   white-space: nowrap;
 }
 
 .c-form-modern__input-prefix {
   border-right: none;
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  border-radius: var(--ecs-radius-lg) 0 0 var(--ecs-radius-lg);
 }
 
 .c-form-modern__input-suffix {
   border-left: none;
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  border-radius: 0 var(--ecs-radius-lg) var(--ecs-radius-lg) 0;
 }
 
 .c-form-modern__input-group .c-form-modern__input:first-child {
-  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  border-radius: var(--ecs-radius-lg) 0 0 var(--ecs-radius-lg);
 }
 
 .c-form-modern__input-group .c-form-modern__input:last-child {
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  border-radius: 0 var(--ecs-radius-lg) var(--ecs-radius-lg) 0;
 }
 
 [data-style="dark"] .c-form-modern__input-prefix,
@@ -488,8 +488,8 @@
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  border-radius: var(--ecs-radius-md);
+  font-size: var(--ecs-text-sm);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: var(--transition-all);
@@ -548,11 +548,11 @@
   .c-form-modern__input-prefix,
   .c-form-modern__input-suffix {
     border: 2px solid var(--color-border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
   }
 
   .c-form-modern__input-group .c-form-modern__input {
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
   }
 }
 

@@ -55,23 +55,23 @@
   padding: var(--space-3);
 
   /* Typography */
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
+  font-family: var(--ecs-font-mono);
+  font-size: var(--ecs-text-sm);
+  line-height: var(--ecs-leading-relaxed);
 
   /* Colors - Light Mode */
-  background-color: var(--color-neutral-900);
-  color: var(--color-neutral-50);
+  background-color: var(--ecs-color-neutral-900);
+  color: var(--ecs-color-neutral-50);
 
   /* Visual */
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 
   /* Smooth scrolling */
   scroll-behavior: smooth;
 
   /* Scrollbar styling */
   scrollbar-width: thin;
-  scrollbar-color: var(--color-neutral-600) var(--color-neutral-800);
+  scrollbar-color: var(--ecs-color-neutral-600) var(--ecs-color-neutral-800);
 }
 
 /* Webkit scrollbar styling (Chrome, Safari, Edge) */
@@ -80,37 +80,37 @@
 }
 
 .docker-logs-content::-webkit-scrollbar-track {
-  background-color: var(--color-neutral-800);
-  border-radius: var(--radius-sm);
+  background-color: var(--ecs-color-neutral-800);
+  border-radius: var(--ecs-radius-sm);
 }
 
 .docker-logs-content::-webkit-scrollbar-thumb {
-  background-color: var(--color-neutral-600);
-  border-radius: var(--radius-sm);
+  background-color: var(--ecs-color-neutral-600);
+  border-radius: var(--ecs-radius-sm);
   transition: background-color var(--duration-fast) var(--ease-smooth);
 }
 
 .docker-logs-content::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-neutral-500);
+  background-color: var(--ecs-color-neutral-500);
 }
 
 /* Dark mode adjustments */
 [data-style="dark"] .docker-logs-content {
-  background-color: var(--color-neutral-50);
-  color: var(--color-neutral-900);
-  border: 1px solid var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-50);
+  color: var(--ecs-color-neutral-900);
+  border: 1px solid var(--ecs-color-neutral-100);
 }
 
 [data-style="dark"] .docker-logs-content::-webkit-scrollbar-track {
-  background-color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-100);
 }
 
 [data-style="dark"] .docker-logs-content::-webkit-scrollbar-thumb {
-  background-color: var(--color-neutral-300);
+  background-color: var(--ecs-color-neutral-300);
 }
 
 [data-style="dark"] .docker-logs-content::-webkit-scrollbar-thumb:hover {
-  background-color: var(--color-neutral-400);
+  background-color: var(--ecs-color-neutral-400);
 }
 
 /* ============================================================================
@@ -123,9 +123,9 @@
  */
 .admin-dashboard pre {
   /* Typography */
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
+  font-family: var(--ecs-font-mono);
+  font-size: var(--ecs-text-sm);
+  line-height: var(--ecs-leading-relaxed);
 
   /* Spacing */
   padding: var(--space-3);
@@ -136,7 +136,7 @@
   word-wrap: break-word;
 
   /* Visual */
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   overflow-x: auto;
 }
 
@@ -161,20 +161,20 @@
 .docker-container-card {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   padding: var(--space-4);
   transition: all var(--duration-normal) var(--ease-smooth);
 }
 
 .docker-container-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
   border-color: var(--color-primary-300);
 }
 
 /* Dark mode container cards */
 [data-style="dark"] .docker-container-card {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .docker-container-card:hover {
@@ -201,7 +201,7 @@
  */
 .task-stat-card {
   padding: var(--space-4);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   text-align: center;
   color: var(--color-neutral-0);
   transition: transform var(--duration-fast) var(--ease-smooth);
@@ -209,7 +209,7 @@
 
 .task-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--ecs-shadow-lg);
 }
 
 /* Task stat card variants */
@@ -241,7 +241,7 @@
 .task-management-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 .task-management-table th {
@@ -265,12 +265,12 @@
 
 /* Dark mode table */
 [data-style="dark"] .task-management-table th {
-  background-color: var(--color-neutral-100);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-100);
+  color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .task-management-table td {
-  border-bottom-color: var(--color-neutral-200);
+  border-bottom-color: var(--ecs-color-neutral-200);
 }
 
 /**
@@ -278,8 +278,8 @@
  */
 .task-progress {
   height: 20px;
-  background-color: var(--color-neutral-200);
-  border-radius: var(--radius-md);
+  background-color: var(--ecs-color-neutral-200);
+  border-radius: var(--ecs-radius-md);
   overflow: hidden;
   position: relative;
 }
@@ -291,7 +291,7 @@
 
   /* Layout */
   height: 100%;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   overflow: hidden;
   position: relative;
 
@@ -306,7 +306,7 @@
 
   /* Typography */
   color: var(--color-neutral-0);
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
   font-weight: var(--font-semibold);
 
   /* Ensure text is visible even at low percentages */
@@ -315,7 +315,7 @@
 
 /* Dark mode progress */
 [data-style="dark"] .task-progress {
-  background-color: var(--color-neutral-200);
+  background-color: var(--ecs-color-neutral-200);
 }
 
 /* ============================================================================
@@ -347,9 +347,9 @@
 
 /* Dark mode permissions list */
 [data-style="dark"] .current-permissions-list .list-group-item {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
+  color: var(--ecs-color-neutral-900);
 }
 
 /* ============================================================================
@@ -366,7 +366,7 @@
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   background-color: var(--color-bg-card);
   transition: all var(--duration-normal) var(--ease-smooth);
   text-decoration: none;
@@ -377,7 +377,7 @@
   background-color: var(--color-primary-subtle);
   border-color: var(--color-primary);
   transform: translateX(4px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
 }
 
 .admin-quick-link i {
@@ -387,9 +387,9 @@
 
 /* Dark mode quick links */
 [data-style="dark"] .admin-quick-link {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
+  color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .admin-quick-link:hover {
@@ -420,7 +420,7 @@
 
 /* Dark mode loading */
 [data-style="dark"] .loading-container {
-  color: var(--color-neutral-400);
+  color: var(--ecs-color-neutral-400);
 }
 
 /* ============================================================================
@@ -454,7 +454,7 @@
 @media (max-width: 991.98px) {
   .docker-logs-content {
     max-height: 60vh;
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   .docker-container-grid {
@@ -484,7 +484,7 @@
   }
 
   .task-management-table {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   .task-management-table th,
@@ -544,7 +544,7 @@
  * Monospace text utility
  */
 .mono {
-  font-family: var(--font-mono);
+  font-family: var(--ecs-font-mono);
 }
 
 /**
@@ -575,7 +575,7 @@
       - OLD: <pre id="dockerLogsContent" class="bg-dark text-light p-3"
                   style="max-height: 70vh; overflow-y: auto; font-size: 0.85rem;"></pre>
       - NEW: <pre id="dockerLogsContent" class="docker-logs-content"></pre>
-      - CSS: .docker-logs-content { max-height: 70vh; overflow-y: auto; font-size: var(--text-sm); }
+      - CSS: .docker-logs-content { max-height: 70vh; overflow-y: auto; font-size: var(--ecs-text-sm); }
       - REASON: Separation of concerns, dark mode support, maintainability
 
    2. Progress Bar Container (Line 605 in original HTML):

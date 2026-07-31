@@ -479,7 +479,7 @@
 }
 
 .placeholder-shown:placeholder-shown {
-    border-color: var(--color-secondary-300, var(--color-neutral-300));
+    border-color: var(--color-secondary-300, var(--ecs-color-neutral-300));
 }
 
 /* ============================================

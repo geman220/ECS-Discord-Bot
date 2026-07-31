@@ -47,7 +47,7 @@
  * Canvas with light border
  */
 .canvas-border-light {
-    border: 2px solid var(--color-secondary-300, var(--color-neutral-300));
+    border: 2px solid var(--color-secondary-300, var(--ecs-color-neutral-300));
     border-radius: 8px;
 }
 
@@ -240,10 +240,10 @@
  */
 .canvas-bg-transparent {
     background-image:
-        linear-gradient(45deg, var(--color-secondary-100, var(--color-neutral-50)) 25%, transparent 25%),
-        linear-gradient(-45deg, var(--color-secondary-100, var(--color-neutral-50)) 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, var(--color-secondary-100, var(--color-neutral-50)) 75%),
-        linear-gradient(-45deg, transparent 75%, var(--color-secondary-100, var(--color-neutral-50)) 75%);
+        linear-gradient(45deg, var(--color-secondary-100, var(--ecs-color-neutral-50)) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--color-secondary-100, var(--ecs-color-neutral-50)) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--color-secondary-100, var(--ecs-color-neutral-50)) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--color-secondary-100, var(--ecs-color-neutral-50)) 75%);
     background-size: 20px 20px;
     background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
@@ -260,7 +260,7 @@
  * Canvas with light background
  */
 .canvas-bg-light {
-    background-color: var(--color-secondary-100, var(--color-neutral-50));
+    background-color: var(--color-secondary-100, var(--ecs-color-neutral-50));
 }
 
 [data-style="dark"] .canvas-bg-light {
@@ -271,7 +271,7 @@
  * Canvas with white background
  */
 .canvas-bg-white {
-    background-color: var(--color-white, var(--color-white));
+    background-color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 [data-style="dark"] .canvas-bg-white {

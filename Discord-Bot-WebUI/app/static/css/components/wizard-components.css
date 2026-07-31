@@ -45,7 +45,7 @@
   margin-bottom: var(--space-6, 24px);
   padding: var(--space-4, 16px);
   background: rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
 }
 
 .c-wizard-progress__step {
@@ -55,8 +55,8 @@
   flex: 1;
   padding: var(--space-2, 8px) var(--space-3, 12px);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
-  font-size: var(--text-sm, 0.875rem);
-  border-radius: var(--radius-md, 8px);
+  font-size: var(--ecs-text-sm, 0.875rem);
+  border-radius: var(--ecs-radius-md, 8px);
   transition: all var(--duration-fast, 150ms) ease;
 }
 
@@ -72,7 +72,7 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 700;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
@@ -126,16 +126,16 @@
   align-items: center;
   gap: var(--space-2, 8px);
   padding: var(--space-2, 8px) var(--space-4, 16px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   border: 1px solid transparent;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
 }
 
 .c-wizard-nav__btn--primary {
-  color: var(--color-text-on-primary, var(--color-white));
+  color: var(--color-text-on-primary, var(--ecs-color-white));
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
@@ -156,7 +156,7 @@
 }
 
 .c-wizard-nav__btn--success {
-  color: var(--color-text-on-success, var(--color-white));
+  color: var(--color-text-on-success, var(--ecs-color-white));
   background: var(--color-success, var(--color-success-500, var(--color-success-500)));
   border-color: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
@@ -176,7 +176,7 @@
 .c-wizard-card {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   overflow: hidden;
   margin-bottom: var(--space-5, 20px);
 }
@@ -206,8 +206,8 @@
   width: 40px;
   height: 40px;
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  border-radius: var(--radius-md, 8px);
-  color: var(--color-text-on-primary, var(--color-white));
+  border-radius: var(--ecs-radius-md, 8px);
+  color: var(--color-text-on-primary, var(--ecs-color-white));
   font-size: 1.25rem;
 }
 
@@ -217,14 +217,14 @@
 
 .c-wizard-card__title {
   margin: 0;
-  font-size: var(--text-base, 1rem);
+  font-size: var(--ecs-text-base, 1rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-wizard-card__intro {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -243,7 +243,7 @@
   padding: var(--space-5, 20px);
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-xl, 16px);
+  border-radius: var(--ecs-radius-xl, 16px);
   margin-bottom: var(--space-5, 20px);
 }
 
@@ -274,13 +274,13 @@
 
 .c-wizard-header__name {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-wizard-header__subtitle {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -295,7 +295,7 @@
 .c-wizard-field__label {
   display: block;
   margin-bottom: var(--space-2, 8px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -306,11 +306,11 @@
   width: 100%;
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-family: inherit;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   transition: all var(--duration-fast, 150ms) ease;
 }
 
@@ -333,7 +333,7 @@
 
 .c-wizard-field__help {
   margin-top: var(--space-1, 4px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -348,7 +348,7 @@
   padding: var(--space-4, 16px);
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   margin-bottom: var(--space-4, 16px);
 }
 
@@ -364,8 +364,8 @@
   width: 32px;
   height: 32px;
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  border-radius: var(--radius-md, 8px);
-  color: var(--color-text-on-primary, var(--color-white));
+  border-radius: var(--ecs-radius-md, 8px);
+  color: var(--color-text-on-primary, var(--ecs-color-white));
   font-size: 1rem;
   flex-shrink: 0;
 }
@@ -381,14 +381,14 @@
 
 .c-wizard-alert__title {
   margin: 0 0 var(--space-1, 4px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-wizard-alert__text {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -421,14 +421,14 @@
 
 .c-wizard-welcome__title {
   margin: 0 0 var(--space-2, 8px);
-  font-size: var(--text-xl, 1.25rem);
+  font-size: var(--ecs-text-xl, 1.25rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-wizard-welcome__text {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   line-height: 1.6;
 }
@@ -443,7 +443,7 @@
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px);
   background: rgba(255, 255, 255, 0.04);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   margin-top: var(--space-3, 12px);
 }
 
@@ -453,7 +453,7 @@
 }
 
 .c-wizard-hint__text {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   line-height: 1.5;
 }
@@ -471,7 +471,7 @@
 }
 
 [data-style="light"] .c-wizard-progress__step--active {
-  color: var(--color-text-on-primary, var(--color-white));
+  color: var(--color-text-on-primary, var(--ecs-color-white));
 }
 
 [data-style="light"] .c-wizard-nav {
@@ -489,7 +489,7 @@
 
 [data-style="light"] .c-wizard-card,
 [data-style="light"] .c-wizard-header {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 

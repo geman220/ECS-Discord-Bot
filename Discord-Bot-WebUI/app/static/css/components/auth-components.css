@@ -20,14 +20,14 @@
   padding: var(--space-8, 32px);
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-2xl, 20px);
+  border-radius: var(--ecs-radius-2xl, 20px);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .c-auth-panel__title {
   margin: 0 0 var(--space-2, 8px);
   font-family: var(--font-display, 'Archivo Black', sans-serif);
-  font-size: var(--text-2xl, 1.5rem);
+  font-size: var(--ecs-text-2xl, 1.5rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   text-align: center;
@@ -35,7 +35,7 @@
 
 .c-auth-panel__subtitle {
   margin: 0 0 var(--space-6, 24px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-align: center;
 }
@@ -144,14 +144,14 @@
 
 .c-auth-status__title {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-auth-status__description {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   max-width: 300px;
 }
@@ -183,14 +183,14 @@
 
 .c-auth-alternative__title {
   margin: 0 0 var(--space-2, 8px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
 .c-auth-alternative__description {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -203,12 +203,12 @@
   padding-top: var(--space-4, 16px);
   border-top: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.04));
   text-align: center;
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 .c-auth-help-text {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-align: center;
 }
@@ -224,13 +224,13 @@
   gap: var(--space-4, 16px);
   padding: var(--space-5, 20px);
   background: rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
 }
 
 .c-2fa-setup__qr {
   padding: var(--space-4, 16px);
-  background: var(--color-white, var(--color-white));
-  border-radius: var(--radius-md, 8px);
+  background: var(--ecs-color-white, var(--ecs-color-white));
+  border-radius: var(--ecs-radius-md, 8px);
 }
 
 /* ============================================================================
@@ -238,7 +238,7 @@
    ============================================================================ */
 
 [data-style="light"] .c-auth-panel {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 }
@@ -267,6 +267,6 @@
 @media (max-width: 480px) {
   .c-auth-panel {
     padding: var(--space-6, 24px) var(--space-4, 16px);
-    border-radius: var(--radius-xl, 16px);
+    border-radius: var(--ecs-radius-xl, 16px);
   }
 }

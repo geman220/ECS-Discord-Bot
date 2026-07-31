@@ -654,7 +654,7 @@
 /* Code/Log display */
 
 .code-display {
-  font-family: var(--font-mono);
+  font-family: var(--ecs-font-mono);
   font-size: 0.875rem;
   white-space: pre-wrap;
 }

@@ -25,21 +25,21 @@
   /* No shadow */
   --shadow-none: none;
   /* Extra Small - Subtle depth for hover states */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --ecs-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   /* Small - Cards, dropdowns */
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
+  --ecs-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1),
                0 1px 2px -1px rgba(0, 0, 0, 0.1);
   /* Medium - Raised components, popovers */
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  --ecs-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
                0 2px 4px -2px rgba(0, 0, 0, 0.1);
   /* Large - Modals, drawers */
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  --ecs-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
                0 4px 6px -4px rgba(0, 0, 0, 0.1);
   /* Extra Large - Major elevated surfaces */
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+  --ecs-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
                0 8px 10px -6px rgba(0, 0, 0, 0.1);
   /* 2XL - Maximum elevation */
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --ecs-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   /* Inner shadow - For inset/pressed states */
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
   /* ========================================================================
@@ -101,9 +101,9 @@
      5. TEXT SHADOWS
      Subtle shadows for text legibility
      ======================================================================== */
-  --text-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
-  --text-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --text-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
+  --ecs-text-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --ecs-text-shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --ecs-text-shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
   /* Text shadows for light text on dark backgrounds */
   --text-shadow-dark-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
   --text-shadow-dark-md: 0 2px 4px rgba(0, 0, 0, 0.8);
@@ -111,14 +111,14 @@
      6. DROP SHADOWS (for filters)
      Modern drop-shadow filter effects
      ======================================================================== */
-  --drop-shadow-sm: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  --ecs-drop-shadow-sm: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
   --drop-shadow-md: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
   --drop-shadow-lg: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
   --drop-shadow-xl: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.15));
-  --ecs-shadow-sm: var(--shadow-sm);
-  --ecs-shadow-md: var(--shadow-md);
-  --ecs-shadow-lg: var(--shadow-lg);
-  --ecs-shadow-xl: var(--shadow-xl);
+  --ecs-shadow-sm: var(--ecs-shadow-sm);
+  --ecs-shadow-md: var(--ecs-shadow-md);
+  --ecs-shadow-lg: var(--ecs-shadow-lg);
+  --ecs-shadow-xl: var(--ecs-shadow-xl);
 }
 
 /* ============================================================================
@@ -128,16 +128,16 @@
 
 [data-style="dark"] {
   /* Neutral shadows - Darker for visibility */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4),
+  --ecs-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --ecs-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4),
                0 1px 2px -1px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
+  --ecs-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4),
                0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4),
+  --ecs-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4),
                0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5),
+  --ecs-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5),
                0 8px 10px -6px rgba(0, 0, 0, 0.4);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  --ecs-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   /* Inner shadow */
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.2);
   /* Colored shadows - Adjusted for dark mode - Blue light (var(--color-primary-400, #60A5FA) = 96, 165, 250) */
@@ -169,27 +169,27 @@
 }
 
 .shadow-xs {
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--ecs-shadow-xs);
 }
 
 .shadow-sm {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
 }
 
 .shadow-md {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
 }
 
 .shadow-lg {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--ecs-shadow-lg);
 }
 
 .shadow-xl {
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--ecs-shadow-xl);
 }
 
 .shadow-2xl {
-  box-shadow: var(--shadow-2xl);
+  box-shadow: var(--ecs-shadow-2xl);
 }
 
 .shadow-inner {
@@ -228,31 +228,31 @@
 /* Text shadows */
 
 .text-shadow-sm {
-  text-shadow: var(--text-shadow-sm);
+  text-shadow: var(--ecs-text-shadow-sm);
 }
 
 .text-shadow-md {
-  text-shadow: var(--text-shadow-md);
+  text-shadow: var(--ecs-text-shadow-md);
 }
 
 .text-shadow-lg {
-  text-shadow: var(--text-shadow-lg);
+  text-shadow: var(--ecs-text-shadow-lg);
 }
 
 /* Hover shadow transitions */
 
 .hover-shadow-sm:hover {
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
   transition: box-shadow 150ms ease;
 }
 
 .hover-shadow-md:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
   transition: box-shadow 150ms ease;
 }
 
 .hover-shadow-lg:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--ecs-shadow-lg);
   transition: box-shadow 150ms ease;
 }
 

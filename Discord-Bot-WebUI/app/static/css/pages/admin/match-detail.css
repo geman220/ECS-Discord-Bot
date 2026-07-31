@@ -33,7 +33,7 @@
 }
 
 .c-match-header__title {
-    font-size: var(--text-2xl);
+    font-size: var(--ecs-text-2xl);
     font-weight: var(--font-bold);
     color: var(--color-text-primary);
     margin: 0;
@@ -58,7 +58,7 @@
 
 .c-teams-display {
     background: var(--color-bg-subtle);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     padding: var(--space-8);
     margin: var(--space-4) 0;
     transition: background-color var(--duration-normal) var(--ease-smooth);
@@ -76,7 +76,7 @@
 .c-team-section__title {
     color: var(--color-text-primary);
     margin-bottom: var(--space-2);
-    font-size: var(--text-2xl);
+    font-size: var(--ecs-text-2xl);
     font-weight: var(--font-semibold);
 }
 
@@ -93,13 +93,13 @@
 }
 
 .c-vs-separator__text {
-    font-size: var(--text-2xl);
+    font-size: var(--ecs-text-2xl);
     font-weight: var(--font-bold);
     color: var(--color-text-secondary);
 }
 
 .c-vs-separator__date {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     color: var(--color-text-muted);
     margin-top: var(--space-2);
 }
@@ -119,16 +119,16 @@
 
 .c-detail-section {
     background: var(--color-bg-card);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     padding: var(--space-6);
     margin-bottom: var(--space-6);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--ecs-shadow-sm);
     border: 1px solid var(--color-border-primary);
     transition: box-shadow var(--duration-normal) var(--ease-smooth);
 }
 
 .c-detail-section:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 [data-style="dark"] .c-detail-section {
@@ -141,7 +141,7 @@
 .c-detail-section__header {
     color: var(--color-primary);
     margin-bottom: var(--space-4);
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
     font-weight: var(--font-semibold);
     display: flex;
     align-items: center;
@@ -216,7 +216,7 @@
 
 .c-no-session-state__title {
     color: var(--color-text-secondary);
-    font-size: var(--text-lg);
+    font-size: var(--ecs-text-lg);
     font-weight: var(--font-semibold);
     margin-bottom: var(--space-2);
 }
@@ -254,14 +254,14 @@
     align-items: center;
     gap: var(--space-2);
     padding: var(--space-2) var(--space-4);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     font-weight: var(--font-medium);
     transition: all var(--duration-fast) var(--ease-smooth);
 }
 
 .c-match-actions .btn:hover {
     transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .c-match-actions .btn:active {
@@ -287,9 +287,9 @@
     background: var(--color-bg-subtle);
     color: var(--color-danger);
     padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     border: 1px solid var(--color-border-primary);
 }
 
@@ -338,7 +338,7 @@
 /* Mobile (< 768px) */
 @media (max-width: 767.98px) {
     .c-match-header__title {
-        font-size: var(--text-xl);
+        font-size: var(--ecs-text-xl);
     }
 
     .c-teams-display {
@@ -347,11 +347,11 @@
     }
 
     .c-team-section__title {
-        font-size: var(--text-lg);
+        font-size: var(--ecs-text-lg);
     }
 
     .c-vs-separator__text {
-        font-size: var(--text-xl);
+        font-size: var(--ecs-text-xl);
     }
 
     .c-detail-section {
@@ -360,7 +360,7 @@
     }
 
     .c-detail-section__header {
-        font-size: var(--text-lg);
+        font-size: var(--ecs-text-lg);
     }
 
     .c-match-actions {
@@ -402,7 +402,7 @@
     }
 
     .c-vs-separator {
-        font-size: var(--text-lg);
+        font-size: var(--ecs-text-lg);
         padding: var(--space-3) 0;
     }
 
@@ -426,7 +426,7 @@
 
 /* Focus States */
 .c-detail-section:focus-within {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
     border-color: var(--color-primary);
 }
 
@@ -472,12 +472,12 @@
 
     .c-detail-section {
         box-shadow: none;
-        border: 1px solid var(--color-black, var(--color-neutral-950));
+        border: 1px solid var(--color-black, var(--ecs-color-neutral-950));
         page-break-inside: avoid;
     }
 
     .c-teams-display {
         background: var(--color-secondary-100, #f5f5f5);
-        border: 1px solid var(--color-black, var(--color-neutral-950));
+        border: 1px solid var(--color-black, var(--ecs-color-neutral-950));
     }
 }

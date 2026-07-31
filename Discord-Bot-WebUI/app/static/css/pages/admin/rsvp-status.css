@@ -39,11 +39,11 @@
   margin-bottom: var(--space-3);
   padding: var(--space-2);
   background: var(--color-bg-secondary);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 .rsvp-response-time-label {
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
 }
 
 .rsvp-response-time-value {
@@ -75,7 +75,7 @@
 }
 
 .rsvp-card:hover {
-  box-shadow: 0 0.25rem 1rem rgba(var(--color-neutral-400), 0.25);
+  box-shadow: 0 0.25rem 1rem rgba(var(--ecs-color-neutral-400), 0.25);
 }
 
 /* ===================
@@ -116,7 +116,7 @@
 
 .rsvp-status-page .avatar.avatar-md img,
 .rsvp-status-page .avatar.avatar-sm img {
-  box-shadow: 0 2px 4px rgba(var(--color-neutral-900), 0.1);
+  box-shadow: 0 2px 4px rgba(var(--ecs-color-neutral-900), 0.1);
 }
 
 .rsvp-status-page .avatar-sm {
@@ -221,15 +221,15 @@
   .rsvp-mobile-card {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     margin-bottom: var(--space-3);
-    box-shadow: 0 1px 3px rgba(var(--color-neutral-900), 0.1);
+    box-shadow: 0 1px 3px rgba(var(--ecs-color-neutral-900), 0.1);
     transition: all var(--transition-base);
     overflow: hidden;
   }
 
   .rsvp-mobile-card:hover {
-    box-shadow: 0 2px 8px rgba(var(--color-neutral-900), 0.15);
+    box-shadow: 0 2px 8px rgba(var(--ecs-color-neutral-900), 0.15);
     transform: translateY(-1px);
   }
 
@@ -268,11 +268,11 @@
   .player-name-mobile {
     font-weight: var(--font-semibold);
     margin-bottom: var(--space-1);
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
   }
 
   .player-meta-mobile {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     color: var(--color-text-muted);
     display: flex;
     align-items: center;
@@ -284,7 +284,7 @@
     padding: var(--space-2) var(--space-3);
     border-radius: 20px;
     font-weight: var(--font-semibold);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     display: flex;
     align-items: center;
     gap: var(--space-1);
@@ -325,8 +325,8 @@
     flex: 1;
     min-width: 120px;
     padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
+    border-radius: var(--ecs-radius-md);
+    font-size: var(--ecs-text-sm);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -343,13 +343,13 @@
 
   .contact-action-btn {
     padding: var(--space-3);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     text-decoration: none;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     font-weight: var(--font-medium);
     transition: all var(--transition-base);
   }
@@ -363,10 +363,10 @@
 
   .rsvp-action-btn {
     padding: var(--space-3);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     border: none;
     cursor: pointer;
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     font-weight: var(--font-medium);
     display: flex;
     align-items: center;
@@ -424,15 +424,15 @@
   }
 
   .rsvp-status-page .dropdown-menu {
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 16px rgba(var(--color-neutral-900), 0.15);
+    border-radius: var(--ecs-radius-lg);
+    box-shadow: 0 4px 16px rgba(var(--ecs-color-neutral-900), 0.15);
     border: none;
     padding: var(--space-2) 0;
   }
 
   .rsvp-status-page .dropdown-item {
     padding: var(--space-2) var(--space-4);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
   }
 
   .rsvp-status-page .dropdown-item:hover {
@@ -489,7 +489,7 @@
    =================== */
 
 .rsvp-status-page .modal-content {
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   overflow: hidden;
 }
 

@@ -18,8 +18,8 @@
 /* Light mode navbar background - matches admin panel */
 [data-theme-variant="modern"]:not([data-style="dark"]) .navbar.bg-body-tertiary {
     background-color: var(--color-neutral-0);
-    border: var(--border-width-1) solid var(--color-neutral-200);
-    box-shadow: var(--shadow-xs);
+    border: var(--border-width-1) solid var(--ecs-color-neutral-200);
+    box-shadow: var(--ecs-shadow-xs);
 }
 
 /* Dark mode navbar background */
@@ -37,7 +37,7 @@
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: rgba(var(--color-neutral-900), 0.2) transparent;
+    scrollbar-color: rgba(var(--ecs-color-neutral-900), 0.2) transparent;
     max-width: 100%;
     padding-bottom: var(--space-1);
 }
@@ -51,8 +51,8 @@
 }
 
 .settings-nav-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(var(--color-neutral-900), 0.2);
-    border-radius: var(--radius-sm);
+    background-color: rgba(var(--ecs-color-neutral-900), 0.2);
+    border-radius: var(--ecs-radius-sm);
 }
 
 .settings-nav-scroll .navbar-nav {
@@ -76,7 +76,7 @@
     display: flex;
     align-items: center;
     padding: var(--space-2) var(--space-2);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     color: var(--color-text-muted);
     font-weight: 500;
     font-size: 0.8125rem;
@@ -104,7 +104,7 @@
    ============================================================================ */
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link {
-    color: var(--color-neutral-600);
+    color: var(--ecs-color-neutral-600);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-nav-scroll .nav-link:hover {
@@ -145,38 +145,38 @@
 
 .settings-card {
     transition: all 0.2s ease-in-out;
-    border-radius: var(--radius-xl);
+    border-radius: var(--ecs-radius-xl);
 }
 
 .settings-card:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 /* Light Mode - Settings Cards */
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-card {
     background-color: var(--color-neutral-0);
-    border: var(--border-width-1) solid var(--color-neutral-200);
+    border: var(--border-width-1) solid var(--ecs-color-neutral-200);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-header {
     background-color: transparent;
-    border-bottom: var(--border-width-1) solid var(--color-neutral-200);
+    border-bottom: var(--border-width-1) solid var(--ecs-color-neutral-200);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-title {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .card-body {
-    color: var(--color-neutral-600);
+    color: var(--ecs-color-neutral-600);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-label {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .settings-card .form-text {
-    color: var(--color-neutral-500);
+    color: var(--ecs-color-neutral-500);
 }
 
 /* Dark Mode - Settings Cards */
@@ -186,7 +186,7 @@
 }
 
 [data-style="dark"] .settings-card:hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
 }
 
 [data-style="dark"] .settings-card .card-header {
@@ -210,7 +210,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
 }
 
 /* Light Mode - Settings Icons */
@@ -265,7 +265,7 @@
 }
 
 [data-style="dark"] .settings-icon.bg-dark.bg-opacity-10 {
-    background-color: rgba(var(--color-neutral-600), 0.3);
+    background-color: rgba(var(--ecs-color-neutral-600), 0.3);
     color: var(--color-text-secondary);
 }
 
@@ -280,7 +280,7 @@
 
 .settings-card .form-control,
 .settings-card .form-select {
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
 }
 
 /* Dark Mode - Form Controls */
@@ -316,8 +316,8 @@
 }
 
 .wallet-badge svg {
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--ecs-radius-lg);
+    box-shadow: var(--ecs-shadow-sm);
 }
 
 /* Dark Mode - Wallet Badge */
@@ -349,9 +349,9 @@
 
 /* Light Mode - Alert Light */
 [data-theme-variant="modern"]:not([data-style="dark"]) .alert.alert-light {
-    background-color: var(--color-neutral-50);
-    border-color: var(--color-neutral-200);
-    color: var(--color-neutral-600);
+    background-color: var(--ecs-color-neutral-50);
+    border-color: var(--ecs-color-neutral-200);
+    color: var(--ecs-color-neutral-600);
 }
 
 /* Dark Mode - Alert Light */
@@ -367,11 +367,11 @@
 
 /* Light Mode - Quick Actions Card */
 [data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .card.border-0.bg-light h6 {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 /* Dark Mode - Quick Actions Card */
@@ -394,15 +394,15 @@
 
 /* Light Mode - Status boxes */
 [data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .text-muted {
-    color: var(--color-neutral-500);
+    color: var(--ecs-color-neutral-500);
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .bg-light.rounded .fw-semibold {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 /* Dark Mode - Status boxes */
@@ -462,7 +462,7 @@
 }
 
 [data-style="dark"] .channel-icon-lg {
-    background-color: rgba(var(--color-neutral-600), 0.15);
+    background-color: rgba(var(--ecs-color-neutral-600), 0.15);
 }
 
 /* ============================================================================
@@ -505,19 +505,19 @@
 
 .theme-selection-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 /* Dark Mode - Theme Selection */
 [data-style="dark"] .theme-selection-card:hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
 }
 
 /* Theme Preview Mockups */
 .theme-preview-mockup {
     height: 120px;
     position: relative;
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     overflow: hidden;
 }
 
@@ -539,7 +539,7 @@
     right: 10px;
     height: 20px;
     background: rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 .theme-preview-sidebar {
@@ -549,7 +549,7 @@
     width: 40px;
     height: 70px;
     background: rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 .theme-preview-card {
@@ -559,7 +559,7 @@
     right: 10px;
     height: 30px;
     background: rgba(255, 255, 255, 0.3);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 .theme-preview-button {
@@ -569,7 +569,7 @@
     right: 10px;
     height: 25px;
     background: rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 /* Emerald Coast specific button color */
@@ -779,7 +779,7 @@
 .c-settings-page .c-tabs-modern__container {
     background: var(--color-bg-card);
     border: var(--border-width-1) solid var(--color-border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     overflow: hidden;
 }
 
@@ -811,9 +811,9 @@
     padding: var(--space-2) var(--space-4);
     background: transparent;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     color: var(--color-text-muted);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     font-weight: var(--font-medium);
     cursor: pointer;
     transition: var(--transition-colors);
@@ -827,7 +827,7 @@
 
 .c-settings-page .c-tabs-modern__tab.is-active {
     background: var(--color-primary);
-    color: var(--color-text-on-primary, var(--color-white));
+    color: var(--color-text-on-primary, var(--ecs-color-white));
 }
 
 .c-settings-page .c-tabs-modern__tab i {
@@ -846,7 +846,7 @@
 
 [data-style="dark"] .c-tabs-modern__tab.is-active {
     background: var(--color-primary);
-    color: var(--color-text-on-primary, var(--color-white));
+    color: var(--color-text-on-primary, var(--ecs-color-white));
 }
 
 /* Mobile responsive - Settings page specific overrides */

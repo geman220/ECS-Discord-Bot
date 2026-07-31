@@ -60,7 +60,7 @@
     min-width: 32px;
     padding: 0.375rem 0.25rem;
     background-color: var(--bs-danger, var(--color-danger, var(--color-danger-600)));
-    color: var(--bs-white, var(--color-white));
+    color: var(--bs-white, var(--ecs-color-white));
     border: none;
 }
 
@@ -89,7 +89,7 @@
     min-width: 32px;
     padding: 0.375rem 0.25rem;
     background-color: var(--bs-success, var(--color-success, var(--color-success-600)));
-    color: var(--bs-white, var(--color-white));
+    color: var(--bs-white, var(--ecs-color-white));
 }
 
 /**
@@ -158,22 +158,22 @@
 
 [data-style="dark"] .card-indicator-yellow {
     background-color: var(--color-warning-400, #f0ad4e);
-    color: var(--color-black, var(--color-neutral-950)000);
+    color: var(--color-black, var(--ecs-color-neutral-950)000);
 }
 
 [data-style="dark"] .card-indicator-red {
     background-color: var(--color-danger-700, #c9302c);
-    color: var(--color-white, var(--color-white));
+    color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 [data-style="dark"] .goal-indicator {
     background-color: var(--color-success, var(--color-success-600));
-    color: var(--color-white, var(--color-white));
+    color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 [data-style="dark"] .assist-indicator {
     background-color: var(--color-info-600, var(--color-info-600));
-    color: var(--color-white, var(--color-white));
+    color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* ============================================

@@ -30,8 +30,8 @@
 
 .c-tabs-modern {
   position: relative;
-  background: var(--color-bg-primary, var(--color-white));
-  border-radius: var(--radius-lg, 12px);
+  background: var(--color-bg-primary, var(--ecs-color-white));
+  border-radius: var(--ecs-radius-lg, 12px);
   border: 1px solid var(--color-border-primary, rgba(0, 0, 0, 0.08));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
     0 4px 12px rgba(0, 0, 0, 0.02);
@@ -61,12 +61,12 @@
 
 .c-tabs-modern__container::before {
   left: 0;
-  background: linear-gradient(to right, var(--color-bg-primary, var(--color-white)), transparent);
+  background: linear-gradient(to right, var(--color-bg-primary, var(--ecs-color-white)), transparent);
 }
 
 .c-tabs-modern__container::after {
   right: 0;
-  background: linear-gradient(to left, var(--color-bg-primary, var(--color-white)), transparent);
+  background: linear-gradient(to left, var(--color-bg-primary, var(--ecs-color-white)), transparent);
 }
 
 /* Show gradients when scrollable */
@@ -126,13 +126,13 @@
   gap: var(--space-2, 8px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-family: var(--font-body, 'Barlow', sans-serif);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
   line-height: 1.4;
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--duration-fast, 150ms) ease,
@@ -211,7 +211,7 @@
 @media (max-width: 767.98px) {
   .c-tabs-modern__tab {
     padding: var(--space-2, 8px) var(--space-3, 12px);
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
   }
 
   .c-tabs-modern__tab i {

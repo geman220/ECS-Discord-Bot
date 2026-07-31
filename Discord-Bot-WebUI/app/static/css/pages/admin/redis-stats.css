@@ -3,8 +3,8 @@
  */
 
 .redis-stat-card {
-    background: var(--ecs-neutral-5, var(--color-neutral-50));
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    background: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
     border-radius: 0.375rem;
     padding: 1rem;
     margin-bottom: 1rem;
@@ -42,7 +42,7 @@
 }
 
 .redis-auto-refresh {
-    background: var(--ecs-neutral-10, var(--color-neutral-200));
+    background: var(--ecs-neutral-10, var(--ecs-color-neutral-200));
     padding: 10px;
     border-radius: 5px;
     margin-bottom: 20px;

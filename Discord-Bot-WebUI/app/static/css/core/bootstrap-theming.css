@@ -178,10 +178,10 @@ select:focus-visible,
 
   /* CRITICAL: Heading and text colors - override foundation.css #444050 */
   /* Updated for maximum readability - WCAG AAA compliant */
-  --bs-heading-color: var(--ecs-text-heading, var(--color-neutral-900));
-  --bs-body-color: var(--ecs-text-body, var(--color-neutral-700));
-  --bs-card-title-color: var(--ecs-text-heading, var(--color-neutral-900));
-  --bs-card-cap-color: var(--ecs-text-heading, var(--color-neutral-900));
+  --bs-heading-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --bs-body-color: var(--ecs-text-body, var(--ecs-color-neutral-700));
+  --bs-card-title-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --bs-card-cap-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 
   /* Component-specific Bootstrap variables */
   --bs-dropdown-link-active-color: var(--ecs-primary);
@@ -199,15 +199,15 @@ select:focus-visible,
      ============================================ */
 
   /* Gray scale - used for subtle backgrounds and text emphasis */
-  --bs-gray-100: var(--color-neutral-100);
-  --bs-gray-200: var(--color-neutral-200);
-  --bs-gray-300: var(--color-neutral-300);
-  --bs-gray-400: var(--color-neutral-400);
-  --bs-gray-500: var(--color-neutral-500);
-  --bs-gray-600: var(--color-neutral-600);
-  --bs-gray-700: var(--color-neutral-700);
-  --bs-gray-800: var(--color-neutral-800);
-  --bs-gray-900: var(--color-neutral-900);
+  --bs-gray-100: var(--ecs-color-neutral-100);
+  --bs-gray-200: var(--ecs-color-neutral-200);
+  --bs-gray-300: var(--ecs-color-neutral-300);
+  --bs-gray-400: var(--ecs-color-neutral-400);
+  --bs-gray-500: var(--ecs-color-neutral-500);
+  --bs-gray-600: var(--ecs-color-neutral-600);
+  --bs-gray-700: var(--ecs-color-neutral-700);
+  --bs-gray-800: var(--ecs-color-neutral-800);
+  --bs-gray-900: var(--ecs-color-neutral-900);
 
   /* Gray semantic variants */
   --bs-gray-bg-subtle: var(--bs-gray-100);
@@ -237,7 +237,7 @@ select:focus-visible,
   --bs-gray-600: var(--color-secondary-200);  /* Slate-200 - primary text */
   --bs-gray-700: var(--color-secondary-100);  /* Slate-100 - emphasized text */
   --bs-gray-800: var(--color-secondary-50);  /* Slate-50 - bright text */
-  --bs-gray-900: var(--color-white);  /* White - headings */
+  --bs-gray-900: var(--ecs-color-white);  /* White - headings */
 
   /* Gray semantic variants - dark mode */
   --bs-gray-bg-subtle: var(--bs-gray-100);
@@ -468,7 +468,7 @@ select[class*="field__select"].is-invalid {
 .btn-outline-primary:hover {
   background-color: var(--ecs-primary);
   border-color: var(--ecs-primary);
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .btn-outline-primary:focus {
@@ -541,7 +541,7 @@ select[class*="field__select"].is-invalid {
 /* Nav pills - Override active and hover states */
 .nav-pills .nav-link.active {
   background-color: var(--ecs-primary);
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* Nav pills hover - foundation.css line 9334 */
@@ -950,7 +950,7 @@ button .ti {
 /* ============================================
    23. TAB CONTENT BACKGROUNDS
    Fix foundation.css line 9612 which sets
-   background: var(--color-white, var(--color-white)) for tab-content elements
+   background: var(--ecs-color-white, var(--ecs-color-white)) for tab-content elements
    ============================================ */
 
 /* Nav tabs background - foundation.css line 9224 (slate palette) */
@@ -1125,7 +1125,7 @@ html[data-style="dark"] .list-group-item:hover,
 /* List group action items (clickable) */
 html[data-style="dark"] .list-group-item-action,
 [data-style="dark"] .list-group-item-action {
-  color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
   background-color: transparent;
 }
 
@@ -1133,7 +1133,7 @@ html[data-style="dark"] .list-group-item-action:hover,
 html[data-style="dark"] .list-group-item-action:focus,
 [data-style="dark"] .list-group-item-action:hover,
 [data-style="dark"] .list-group-item-action:focus {
-  color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
   background-color: rgba(255, 255, 255, 0.1);
 }
 
@@ -1174,12 +1174,12 @@ html[data-style="dark"] .card-body p,
 html[data-style="dark"] .card-body .card-text,
 [data-style="dark"] .card-body p,
 [data-style="dark"] .card-body .card-text {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 html[data-style="dark"] .text-muted,
 [data-style="dark"] .text-muted {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* Card titles and headings in dark mode */
@@ -1189,7 +1189,7 @@ html[data-style="dark"] .card-header h6,
 [data-style="dark"] .card-title,
 [data-style="dark"] .card-header h5,
 [data-style="dark"] .card-header h6 {
-  color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+  color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
 }
 
 /* Text center content (empty states, placeholders) */
@@ -1199,13 +1199,13 @@ html[data-style="dark"] .text-center small,
 [data-style="dark"] .text-center h6,
 [data-style="dark"] .text-center p,
 [data-style="dark"] .text-center small {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* Large icons in empty states */
 html[data-style="dark"] .text-center i[style*="font-size"],
 [data-style="dark"] .text-center i[style*="font-size"] {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* ============================================
@@ -1215,7 +1215,7 @@ html[data-style="dark"] .text-center i[style*="font-size"],
 
 html[data-style="dark"] .card i:not([class*="text-"]),
 [data-style="dark"] .card i:not([class*="text-"]) {
-  color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* Icons with text-* classes should keep their semantic colors */
@@ -1315,58 +1315,58 @@ html,
 html[data-style="light"] {
   /* CRITICAL: Override foundation.css inverted neutral scale (line 30534)
      Foundation.css sets --ecs-neutral-90: #f1f3f4 (light gray - WRONG!)
-     We need var(--color-neutral-900) (dark) for readable text in light mode */
-  --ecs-neutral-90: var(--color-neutral-900);
-  --ecs-neutral-80: var(--color-neutral-800);
-  --ecs-neutral-70: var(--color-neutral-700);
-  --ecs-neutral-60: var(--color-neutral-600);
-  --ecs-neutral-50: var(--color-neutral-500);
-  --ecs-neutral-40: var(--color-neutral-400);
-  --ecs-neutral-30: var(--color-neutral-300);
-  --ecs-neutral-20: var(--color-neutral-200);
-  --ecs-neutral-10: var(--color-neutral-100);
-  --ecs-neutral-5: var(--color-neutral-50);
-  --ecs-neutral-0: var(--color-white);
+     We need var(--ecs-color-neutral-900) (dark) for readable text in light mode */
+  --ecs-neutral-90: var(--ecs-color-neutral-900);
+  --ecs-neutral-80: var(--ecs-color-neutral-800);
+  --ecs-neutral-70: var(--ecs-color-neutral-700);
+  --ecs-neutral-60: var(--ecs-color-neutral-600);
+  --ecs-neutral-50: var(--ecs-color-neutral-500);
+  --ecs-neutral-40: var(--ecs-color-neutral-400);
+  --ecs-neutral-30: var(--ecs-color-neutral-300);
+  --ecs-neutral-20: var(--ecs-color-neutral-200);
+  --ecs-neutral-10: var(--ecs-color-neutral-100);
+  --ecs-neutral-5: var(--ecs-color-neutral-50);
+  --ecs-neutral-0: var(--ecs-color-white);
 
   /* Map foundation.css variables to admin-configurable colors */
   /* Admin configures: --ecs-bg-body, --ecs-bg-card, --ecs-bg-input */
   /* Foundation.css uses: --ecs-bg-primary, --ecs-bg-secondary, --ecs-bg-tertiary */
-  --ecs-bg-primary: var(--ecs-bg-card, var(--color-white));
-  --ecs-bg-secondary: var(--ecs-bg-body, var(--color-neutral-50));
-  --ecs-bg-tertiary: var(--color-neutral-100);
-  --ecs-bg-navbar: var(--ecs-bg-card, var(--color-white));
-  --ecs-bg-sidebar: var(--color-neutral-900);
-  --ecs-bg-content: var(--ecs-bg-card, var(--color-white));
+  --ecs-bg-primary: var(--ecs-bg-card, var(--ecs-color-white));
+  --ecs-bg-secondary: var(--ecs-bg-body, var(--ecs-color-neutral-50));
+  --ecs-bg-tertiary: var(--ecs-color-neutral-100);
+  --ecs-bg-navbar: var(--ecs-bg-card, var(--ecs-color-white));
+  --ecs-bg-sidebar: var(--ecs-color-neutral-900);
+  --ecs-bg-content: var(--ecs-bg-card, var(--ecs-color-white));
 
   /* Map foundation.css text variables to admin-configurable colors */
   /* Admin configures: --ecs-text-heading, --ecs-text-body, --ecs-text-muted */
   /* Foundation.css uses: --ecs-text-primary, --ecs-text-secondary */
-  --ecs-text-primary: var(--ecs-text-heading, var(--color-neutral-900));
-  --ecs-text-secondary: var(--ecs-text-body, var(--color-neutral-600));
+  --ecs-text-primary: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --ecs-text-secondary: var(--ecs-text-body, var(--ecs-color-neutral-600));
 
   /* Map border variables */
   /* Admin configures: --ecs-border, --ecs-border-input */
-  --ecs-border-primary: var(--ecs-border, var(--color-neutral-200));
-  --ecs-border-secondary: var(--ecs-border, var(--color-neutral-200));
+  --ecs-border-primary: var(--ecs-border, var(--ecs-color-neutral-200));
+  --ecs-border-secondary: var(--ecs-border, var(--ecs-color-neutral-200));
 
   /* Map form variables */
-  --ecs-form-bg: var(--ecs-bg-input, var(--color-white));
-  --ecs-form-border: var(--ecs-border-input, var(--color-neutral-300));
-  --ecs-form-text: var(--ecs-text-heading, var(--color-neutral-900));
-  --ecs-form-placeholder: var(--ecs-text-muted, var(--color-neutral-400));
+  --ecs-form-bg: var(--ecs-bg-input, var(--ecs-color-white));
+  --ecs-form-border: var(--ecs-border-input, var(--ecs-color-neutral-300));
+  --ecs-form-text: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --ecs-form-placeholder: var(--ecs-text-muted, var(--ecs-color-neutral-400));
 
   /* Legacy background variable */
-  --ecs-background: var(--ecs-bg-body, var(--color-neutral-50));
-  --ecs-card-bg: var(--ecs-bg-card, var(--color-white));
+  --ecs-background: var(--ecs-bg-body, var(--ecs-color-neutral-50));
+  --ecs-card-bg: var(--ecs-bg-card, var(--ecs-color-white));
 
   /* CRITICAL: These are used by foundation.css lines 30743-30744 */
   /* Foundation.css uses var(--ecs-bg-light) but never defines it */
-  --ecs-bg-light: var(--ecs-bg-card, var(--color-white));
-  --ecs-text-light: var(--ecs-text-heading, var(--color-neutral-900));
+  --ecs-bg-light: var(--ecs-bg-card, var(--ecs-color-white));
+  --ecs-text-light: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 
   /* Base bg/text variables used by components */
-  --ecs-bg: var(--ecs-bg-card, var(--color-white));
-  --ecs-text: var(--ecs-text-heading, var(--color-neutral-900));
+  --ecs-bg: var(--ecs-bg-card, var(--ecs-color-white));
+  --ecs-text: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 }
 
 /* Dark mode - modern slate palette for professional look */
@@ -1383,7 +1383,7 @@ html[data-style="dark"] {
 
   /* Map foundation.css text variables to admin-configurable colors */
   /* Admin configures: --ecs-text-heading, --ecs-text-body, --ecs-text-muted */
-  --ecs-text-primary: var(--ecs-text-heading, var(--color-white));
+  --ecs-text-primary: var(--ecs-text-heading, var(--ecs-color-white));
   --ecs-text-secondary: var(--ecs-text-body, var(--color-secondary-300));
 
   /* Map border variables */
@@ -1394,7 +1394,7 @@ html[data-style="dark"] {
   /* Map form variables */
   --ecs-form-bg: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
   --ecs-form-border: var(--ecs-border-input, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
-  --ecs-form-text: var(--ecs-text-heading, var(--color-white));
+  --ecs-form-text: var(--ecs-text-heading, var(--ecs-color-white));
   --ecs-form-placeholder: var(--ecs-text-muted, var(--color-secondary-400));
 
   /* Legacy background variable */
@@ -1412,25 +1412,25 @@ html[data-style="dark"] {
   --ecs-neutral-60: var(--color-secondary-200);
   --ecs-neutral-70: var(--color-secondary-100);
   --ecs-neutral-80: var(--color-secondary-50);
-  --ecs-neutral-90: var(--color-white);
+  --ecs-neutral-90: var(--ecs-color-white);
 
   /* Card background variable used by mobile.css */
   --ecs-card-bg: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
 
   /* CRITICAL: These are used by foundation.css lines 30751-30752 */
   --ecs-bg-dark: var(--ecs-bg-body, var(--color-secondary-950));
-  --ecs-text-dark: var(--ecs-text-heading, var(--color-white));
+  --ecs-text-dark: var(--ecs-text-heading, var(--ecs-color-white));
 
   /* Base bg/text variables used by components */
   --ecs-bg: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
-  --ecs-text: var(--ecs-text-heading, var(--color-white));
+  --ecs-text: var(--ecs-text-heading, var(--ecs-color-white));
 
   /* Dark mode specific variables for fallback (slate palette) */
   --ecs-dark-bg-body: var(--ecs-bg-body, var(--color-secondary-950));
   --ecs-dark-bg-card: var(--ecs-bg-card, var(--color-secondary-900, var(--color-secondary-900)));
   --ecs-dark-bg-elevated: var(--ecs-bg-input, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
   --ecs-dark-border: var(--ecs-border, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
-  --ecs-dark-text-primary: var(--ecs-text-heading, var(--color-white));
+  --ecs-dark-text-primary: var(--ecs-text-heading, var(--ecs-color-white));
   --ecs-dark-text-muted: var(--ecs-text-body, var(--color-secondary-300));
 }
 
@@ -1477,7 +1477,7 @@ html[data-style="dark"] {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--bs-border-color, var(--ecs-border, var(--color-neutral-200)));
+  background: var(--bs-border-color, var(--ecs-border, var(--ecs-color-neutral-200)));
 }
 
 .timeline-item {
@@ -1491,11 +1491,11 @@ html[data-style="dark"] {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 2px solid var(--bs-body-bg, var(--ecs-bg-card, var(--color-white)));
+  border: 2px solid var(--bs-body-bg, var(--ecs-bg-card, var(--ecs-color-white)));
 }
 
 .timeline-content {
-  background: var(--bs-light, var(--ecs-bg-body, var(--color-neutral-50)));
+  background: var(--bs-light, var(--ecs-bg-body, var(--ecs-color-neutral-50)));
   padding: 15px;
   border-radius: 8px;
 }
@@ -1512,7 +1512,7 @@ html[data-style="dark"] .timeline-content,
 
 .timeline-text {
   font-size: 0.85rem;
-  color: var(--bs-text-muted, var(--ecs-text-muted, var(--color-neutral-500)));
+  color: var(--bs-text-muted, var(--ecs-text-muted, var(--ecs-color-neutral-500)));
   margin-bottom: 5px;
 }
 
@@ -1564,7 +1564,7 @@ html[data-style="dark"] .card-body .row:hover,
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  color: var(--ecs-neutral-0, var(--color-white));
+  color: var(--ecs-neutral-0, var(--ecs-color-white));
   font-weight: bold;
   font-size: 0.8rem;
 }
@@ -1930,21 +1930,21 @@ html[data-style="dark"] .card-body .row:hover,
 
 /* Override card-level CSS variables set by foundation.css .card selector */
 .card {
-  --bs-card-title-color: var(--ecs-text-heading, var(--color-neutral-900));
-  --bs-card-cap-color: var(--ecs-text-heading, var(--color-neutral-900));
-  --bs-card-color: var(--ecs-text-body, var(--color-neutral-600));
+  --bs-card-title-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --bs-card-cap-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --bs-card-color: var(--ecs-text-body, var(--ecs-color-neutral-600));
 }
 
 html:not([data-style="dark"]) .card {
-  --bs-card-title-color: var(--ecs-text-heading, var(--color-neutral-900));
-  --bs-card-cap-color: var(--ecs-text-heading, var(--color-neutral-900));
-  --bs-card-color: var(--ecs-neutral-60, var(--color-neutral-600));
+  --bs-card-title-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --bs-card-cap-color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  --bs-card-color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 html[data-style="dark"] .card {
-  --bs-card-title-color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  --bs-card-cap-color: var(--ecs-dark-text-primary, var(--color-neutral-50));
-  --bs-card-color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+  --bs-card-title-color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
+  --bs-card-cap-color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
+  --bs-card-color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* Force heading colors in light mode - override foundation.css #444050 */
@@ -1960,7 +1960,7 @@ html:not([data-style="dark"]) .h3,
 html:not([data-style="dark"]) .h4,
 html:not([data-style="dark"]) .h5,
 html:not([data-style="dark"]) .h6 {
-  color: var(--ecs-text-heading, var(--color-neutral-900));
+  color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 }
 
 /* Card titles - maximum specificity */
@@ -1969,24 +1969,24 @@ html:not([data-style="dark"]) .card .card-title,
 html:not([data-style="dark"]) .card-header .card-title,
 html:not([data-style="dark"]) .ecs-card-title,
 html:not([data-style="dark"]) .card .ecs-card-title {
-  color: var(--ecs-text-heading, var(--color-neutral-900));
+  color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 }
 
 /* Table headers */
 html:not([data-style="dark"]) .table thead th,
 html:not([data-style="dark"]) .table-light th,
 html:not([data-style="dark"]) thead.table-light th {
-  color: var(--ecs-neutral-70, var(--color-neutral-700));
+  color: var(--ecs-neutral-70, var(--ecs-color-neutral-700));
 }
 
 /* Table body text */
 html:not([data-style="dark"]) .table tbody td {
-  color: var(--ecs-neutral-60, var(--color-neutral-600));
+  color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 html:not([data-style="dark"]) .table tbody td.fw-bold,
 html:not([data-style="dark"]) .table tbody .fw-bold {
-  color: var(--ecs-text-heading, var(--color-neutral-900));
+  color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 }
 
 /* Primary colored icons and text */
@@ -1999,12 +1999,12 @@ html:not([data-style="dark"]) .ti.text-primary {
 
 /* Card body text */
 html:not([data-style="dark"]) .card-body {
-  color: var(--ecs-neutral-60, var(--color-neutral-600));
+  color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 html:not([data-style="dark"]) .card-body p,
 html:not([data-style="dark"]) .card-body span:not(.badge):not(.text-white) {
-  color: var(--ecs-neutral-60, var(--color-neutral-600));
+  color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 /* Links in tables and cards */
@@ -2016,44 +2016,44 @@ html:not([data-style="dark"]) a.team-name {
 /* Match team names */
 html:not([data-style="dark"]) .match-teams h6,
 html:not([data-style="dark"]) .match-details h6 {
-  color: var(--ecs-text-heading, var(--color-neutral-900));
+  color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 }
 
 /* Match time */
 html:not([data-style="dark"]) .match-time {
-  color: var(--ecs-neutral-60, var(--color-neutral-600));
+  color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 /* Nav pills inactive state */
 html:not([data-style="dark"]) .nav-pills .nav-link:not(.active),
 html:not([data-style="dark"]) .ecs-nav-pills .ecs-nav-link:not(.active):not(.ecs-active) {
-  color: var(--ecs-neutral-60, var(--color-neutral-600));
+  color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 /* Muted text - readable but still muted */
 html:not([data-style="dark"]) .text-muted {
-  color: var(--ecs-neutral-50, var(--color-neutral-500));
+  color: var(--ecs-neutral-50, var(--ecs-color-neutral-500));
 }
 
 /* Popovers with solid backgrounds */
 html:not([data-style="dark"]) .popover {
-  background-color: var(--ecs-neutral-0, var(--color-white));
-  border-color: var(--ecs-neutral-20, var(--color-neutral-200));
+  background-color: var(--ecs-neutral-0, var(--ecs-color-white));
+  border-color: var(--ecs-neutral-20, var(--ecs-color-neutral-200));
 }
 
 html:not([data-style="dark"]) .popover-header {
-  background-color: var(--ecs-neutral-5, var(--color-neutral-50));
-  color: var(--ecs-text-heading, var(--color-neutral-900));
-  border-bottom-color: var(--ecs-neutral-20, var(--color-neutral-200));
+  background-color: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
+  color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
+  border-bottom-color: var(--ecs-neutral-20, var(--ecs-color-neutral-200));
 }
 
 html:not([data-style="dark"]) .popover-body {
-  background-color: var(--ecs-neutral-0, var(--color-white));
-  color: var(--ecs-neutral-60, var(--color-neutral-600));
+  background-color: var(--ecs-neutral-0, var(--ecs-color-white));
+  color: var(--ecs-neutral-60, var(--ecs-color-neutral-600));
 }
 
 html:not([data-style="dark"]) .popover-body strong {
-  color: var(--ecs-text-heading, var(--color-neutral-900));
+  color: var(--ecs-text-heading, var(--ecs-color-neutral-900));
 }
 
 /* Semantic text colors */

@@ -262,7 +262,7 @@
     align-items: center;
     background-color: var(--color-body-bg);
     padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     font-size: var(--font-size-xs);
 }
 
@@ -275,7 +275,7 @@
     align-items: center;
     background-color: var(--color-body-bg);
     padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     font-size: var(--font-size-sm);
 }
 
@@ -413,15 +413,15 @@
     width: 100%;
     padding-bottom: 30%;  /* 3.33:1 ratio */
     height: 0;
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
     border: 2px solid var(--color-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     overflow: hidden;
     position: relative;
 }
 
 [data-style="dark"] .header-preview {
-    background-color: var(--color-neutral-900);
+    background-color: var(--ecs-color-neutral-900);
 }
 
 /**
@@ -467,7 +467,7 @@
     max-height: 400px;
     overflow: hidden;
     border: 2px dashed var(--color-border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     position: relative;
 }
 
@@ -609,11 +609,11 @@
 }
 
 [data-style="dark"] .stat-badge {
-    background-color: var(--color-neutral-800);
+    background-color: var(--ecs-color-neutral-800);
 }
 
 [data-style="dark"] .discord-status-badge {
-    background-color: var(--color-neutral-800);
+    background-color: var(--ecs-color-neutral-800);
 }
 
 [data-style="dark"] .avatar-status {
@@ -695,7 +695,7 @@
 .list-group-item:focus-within {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 .dropdown-menu a:focus-visible {
@@ -781,7 +781,7 @@
 @media print {
     .teams-page .list-group-item,
     .list-group.teams-list .list-group-item {
-        border-bottom: 1px solid var(--color-neutral-900);
+        border-bottom: 1px solid var(--ecs-color-neutral-900);
         page-break-inside: avoid;
     }
 
