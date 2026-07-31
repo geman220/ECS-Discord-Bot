@@ -73,6 +73,11 @@
 {% macro button(text, variant="primary", size="md", type="button", class_="", icon=None, disabled=false, href=None, data_attrs=None) %}
 {% set base = "inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed" %}
 
+{# The "outline" key below is this macro's PUBLIC API — callers pass
+   variant="outline" — not a CSS class. The Tailwind v4 codemod renamed it to
+   "outline-solid" (the v3 `outline` utility's new name), which made
+   variants.get("outline", ...) miss and silently render all 11 outline buttons
+   as solid primary. Do not rename this key. #}
 {% set variants = {
     "primary": "bg-ecs-green hover:bg-ecs-green-700 text-white focus:ring-ecs-green/50",
     "secondary": "bg-gray-600 hover:bg-gray-700 text-white focus:ring-gray-500/50 dark:bg-gray-700 dark:hover:bg-gray-600",
@@ -80,7 +85,7 @@
     "danger": "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50",
     "warning": "bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50",
     "ghost": "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50",
-    "outline-solid": "border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50"
+    "outline": "border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 focus:ring-gray-500/50"
 } %}
 
 {% set sizes = {

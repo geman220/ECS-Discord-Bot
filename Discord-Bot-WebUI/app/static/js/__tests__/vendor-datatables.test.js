@@ -14,25 +14,36 @@
  * including the option shapes used at real init sites.
  */
 
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
+
+// LOAD ORDER IS THE POINT OF THIS FILE — do not "fix" it with a dynamic import.
+//
+// These three statements mirror app/static/js/vendor-globals.js exactly: it does
+// `import jQuery from 'jquery'` (line 21), `Object.assign(window, {$: jQuery, jQuery})`
+// (line 22), and `import DataTable from 'datatables.net-dt'` (line 159). ES module
+// imports are HOISTED, so the DataTables import is evaluated before line 22 ever runs.
+//
+// That matters because DataTables 3 dropped its `jquery` dependency (2.x declared
+// `"jquery": ">=1.7"`, 3.0.0 declares only `datatables.net`). It now resolves jQuery at
+// module-init time via `window.jQuery` (datatables.net/js/dataTables.mjs:1204) and calls
+// jQuerySetup() to attach `$.fn.dataTable`. With window.jQuery still unset at that
+// moment, registration silently never happens and every `$(sel).DataTable(...)` in the
+// app throws "not a function".
+//
+// An earlier version of this file set window.jQuery in beforeAll and then dynamically
+// imported DataTables. That passed all 8 assertions while every table in the app was
+// dead — it tested an ordering the app does not have. Keep the static imports below.
+import { readFileSync } from 'node:fs';
 import $ from 'jquery';
+import DataTable from 'datatables.net-dt';
+import 'datatables.net-responsive-dt';
 
-// DataTables resolves `window.jQuery` when its module initializer runs (see the
-// jQuerySetup() path in datatables.net/js/dataTables.mjs). In the browser that
-// ordering is satisfied for free: jQuery's dist assigns window.jQuery/$ as it loads,
-// which happens before the DataTables import is evaluated. Under vitest, a top-level
-// `import DataTable from 'datatables.net-dt'` is hoisted above every statement, so
-// window.jQuery would still be unset and DataTables would silently skip attaching
-// itself to $.fn. Import it dynamically instead, after the globals are in place —
-// this reproduces the real load order rather than working around it.
-let DataTable;
+window.jQuery = $;
+window.$ = $;
 
-beforeAll(async () => {
-  window.jQuery = $;
-  window.$ = $;
-  DataTable = (await import('datatables.net-dt')).default;
-  await import('datatables.net-responsive-dt');
-});
+// Mirrors vendor-globals.js: the explicit registration that makes the above work.
+// Comment this line out and every assertion below fails — which is the point.
+DataTable.use($);
 
 function buildTable() {
   document.body.innerHTML = `
@@ -53,6 +64,20 @@ describe('jQuery + DataTables integration', () => {
       $('#t').DataTable().destroy();
     }
     document.body.innerHTML = '';
+  });
+
+  it('vendor-globals.js still registers jQuery with DataTables', () => {
+    // The assertions in this file replicate vendor-globals.js's sequence rather than
+    // importing it (it also pulls in Flowbite, SweetAlert2 and socket.io, which do not
+    // load under happy-dom). So this guards the real file at the source level: if the
+    // DataTable.use() call is ever deleted or reordered away, every table in the app
+    // breaks silently and the behavioural assertions below would NOT catch it.
+    // cwd-relative, not import.meta.url — under vitest that is an http:// URL, which
+    // readFileSync rejects with "The URL must be of scheme file".
+    const src = readFileSync('app/static/js/vendor-globals.js', 'utf8');
+    // Anchored to line start so a commented-out `// DataTable.use(jQuery);` does not
+    // satisfy it — the first version of this guard matched the comment and passed.
+    expect(src).toMatch(/^[ \t]*DataTable\.use\(\s*jQuery\s*\)\s*;/m);
   });
 
   it('registers DataTable as a jQuery plugin', () => {

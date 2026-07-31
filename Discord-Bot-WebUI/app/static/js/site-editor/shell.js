@@ -348,13 +348,13 @@ function initEditor(rootEl) {
     button: [
       { key: 'label', label: 'Label', type: 'text' },
       { key: 'link', label: 'Link', type: 'link' },
-      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline-solid'] },
+      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline'] },
       { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
     ],
     cta_live: [
       { key: 'kind', label: 'Action', type: 'select',
         options: ['waitlist_or_register', 'division_classic', 'division_premier', 'how_to_join', 'contact'] },
-      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline-solid'] },
+      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline'] },
       { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
     ],
     card: [

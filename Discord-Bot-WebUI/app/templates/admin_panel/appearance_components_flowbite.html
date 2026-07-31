@@ -25,7 +25,11 @@
 
 {# Real enum scales mirrored verbatim from the route validators in
    app/admin_panel/routes/appearance.py (save_components): no fabricated levels. #}
-{% set radius_scale = ['sharp', 'default', 'rounded-sm'] %}
+{# Setting VALUES posted to the server, not CSS classes — must match
+   valid_border_radius in app/admin_panel/routes/appearance.py:545
+   ('sharp', 'default', 'rounded'). The Tailwind v4 codemod rewrote 'rounded' to
+   'rounded-sm' here, which made Save return 400 "Invalid border_radius value". #}
+{% set radius_scale = ['sharp', 'default', 'rounded'] %}
 {% set shadow_scale = ['none', 'subtle', 'default', 'strong'] %}
 
 {# Derive modified-state + scale position purely from real provided data. #}
