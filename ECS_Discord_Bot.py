@@ -3330,15 +3330,17 @@ async def start_rest_api():
                 
                 try:
                     # Use lsof to find process using the port and kill it
-                    cmd = f"lsof -ti:{port}"
-                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=10)
+                    # List form, not shell=True: the shell buys nothing here and bandit
+                    # flags it HIGH (B602). `f"-ti:{port}"` is the exact single token the
+                    # shell would have produced after word-splitting, so behaviour is identical.
+                    result = subprocess.run(["lsof", f"-ti:{port}"], capture_output=True, text=True, timeout=10)
                     if result.returncode == 0 and result.stdout.strip():
                         pids = result.stdout.strip().split('\n')
                         for pid in pids:
                             if pid.strip():
                                 logger.info(f"Killing process {pid} using port {port}")
                                 try:
-                                    subprocess.run(f"kill -TERM {pid}", shell=True, timeout=5)
+                                    subprocess.run(["kill", "-TERM", pid], timeout=5)
                                 except subprocess.TimeoutExpired:
                                     logger.warning(f"Timeout killing process {pid}")
                                 except Exception as e:

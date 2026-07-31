@@ -49,6 +49,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@vitest/coverage-v8": "^4.0.17",
     "css": "^3.0.0",
+    "esbuild": "0.28.1",
     "eslint": "10.8.0",
     "glob": "^10.5.0",
     "happy-dom": "^20.1.0",
