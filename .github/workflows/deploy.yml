@@ -34,7 +34,15 @@ jobs:
             git pull origin master &&
             mkdir -p maintenance/data &&
             echo "{\"start\":$(date +%s)000}" > maintenance/data/deploy_time.json &&
-            docker-compose up -d webui celery-worker celery-beat
+            # --force-recreate is REQUIRED: the source is bind-mounted, so nothing in the
+            # compose config changes between deploys and a plain `up -d` treats the
+            # containers as current and does nothing at all -- the job would report
+            # success having deployed no code. Recreating re-runs the container's
+            # `npm run build`, which is what actually publishes new front-end assets.
+            # NOTE: a package.json change ALSO needs `npm install` in the container
+            # first -- node_modules sits under the bind-mounted /app, so the image's
+            # own copy is masked at runtime.
+            docker-compose up -d --force-recreate webui celery-worker celery-beat
           '
 
   # Discord Bot Deployment

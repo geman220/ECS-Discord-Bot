@@ -5,7 +5,7 @@ permissions:
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ master ]
     paths:
       - '*.py'
       - 'api/**'
@@ -13,7 +13,7 @@ on:
       - 'requirements.txt'
       - '.github/workflows/bot-core-ci.yml'
   push:
-    branches: [ main, develop ]
+    branches: [ master ]
     paths:
       - '*.py'
       - 'api/**'
@@ -30,7 +30,7 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v7
       with:
-        python-version: '3.9'
+        python-version: '3.11'
 
     - name: Install dependencies
       run: |
@@ -71,7 +71,7 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v7
       with:
-        python-version: '3.9'
+        python-version: '3.11'
     
     - name: Install linting tools
       run: |
@@ -102,7 +102,7 @@ jobs:
     - name: Set up Python 3.9
       uses: actions/setup-python@v7
       with:
-        python-version: '3.9'
+        python-version: '3.11'
     
     - name: Install security tools
       run: |

@@ -6,12 +6,13 @@ fastapi==0.140.7
 itsdangerous==2.2.0
 psycopg2-binary==2.9.12
 pydantic==2.13.4
-# Stays on 8.x deliberately: pytest 9 requires Python >=3.10 and bot-core-ci.yml
-# pins 3.9, so bumping this pin fails the bot build outright. The web app (3.11)
-# is on pytest 9 in Discord-Bot-WebUI/requirements-test.txt. Revisit when the bot
-# moves off 3.9. Note bot-core-ci.yml also reinstalls pytest unpinned, so this pin
-# mostly documents intent rather than controlling CI.
-pytest==8.4.2
+# pytest 9 closes CVE-2025-71176 (insecure temp directory). It needs Python >=3.10,
+# which was previously read as a blocker because bot-core-ci.yml pinned 3.9 — but
+# that pin was stale: Dockerfile.bot has always run python:3.11-slim, and the CI
+# workflow never actually executed (its trigger listed branches main/develop, which
+# do not exist here; the default branch is master). Both are fixed now, so CI tests
+# the version the bot really runs and this bump is safe.
+pytest==9.0.3
 python-dotenv==1.2.2
 python-engineio>=4.9.0
 python-multipart==0.0.32

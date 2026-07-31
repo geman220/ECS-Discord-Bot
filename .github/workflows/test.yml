@@ -243,10 +243,12 @@ jobs:
   # non-strings), and a JS change needs a Vite rebuild to even reach users --
   # so a broken module is invisible until someone loads the page.
   #
-  # TODO(maintainer): flip this to gating by deleting `continue-on-error` below.
-  # It is advisory ONLY because nobody has yet confirmed these 4 files pass in a
-  # clean CI checkout. Check the first run's output: if `npm test` is green,
-  # delete the continue-on-error line and add `js-tests` to the required checks.
+  # This job is now GATING (the earlier TODO asked for that once `npm test` was
+  # confirmed green in a clean CI checkout -- it is, at 114 tests). It also builds
+  # the front end, which the container does at startup and which nothing verified
+  # before. Remaining step for a maintainer: add `js-tests` to the repo ruleset's
+  # required status checks, alongside `lint` and `test (3.11)` -- that is a GitHub
+  # settings change, not something this file can do.
   js-tests:
     runs-on: ubuntu-latest
 
@@ -274,11 +276,25 @@ jobs:
         cd Discord-Bot-WebUI
         npm install --no-audit --no-fund
 
+    # Build BEFORE the tests. The container start command is
+    # `npm run build && gunicorn ...`, so a build failure means gunicorn never boots
+    # and the site drops to the maintenance page. This job previously ran vitest only,
+    # and a Tailwind v4 upgrade that broke `build:tailwind` (the CLI moved to the
+    # separate @tailwindcss/cli package) went green here and broke production.
+    - name: Build front-end
+      run: |
+        cd Discord-Bot-WebUI
+        npm run build
+
+    # Gating as of this change: the TODO above asked for this once `npm test` was
+    # confirmed green in a clean CI checkout, which it now is (114 tests). Advisory
+    # mattered here -- vendor-datatables.test.js is the ONLY coverage of the
+    # jQuery/DataTables upgrade, and while non-blocking it could fail without
+    # stopping a merge.
     - name: Run vitest
       run: |
         cd Discord-Bot-WebUI
         npm test -- --run
-      continue-on-error: true
 
   security:
     runs-on: ubuntu-latest
