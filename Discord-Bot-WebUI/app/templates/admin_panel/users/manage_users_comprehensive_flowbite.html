@@ -20,7 +20,7 @@
 {% from 'macros/flowbite.html' import input, select, badge as fb_badge %}
 
 {% macro role_chip(name) %}
-<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if 'admin' in name.lower() %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name.lower() %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {% if 'admin' in name.lower() %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name.lower() %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
 {% endmacro %}
 
 <div class="space-y-6">
@@ -30,7 +30,7 @@
   {% set _active_pct = ((stats.active_users / _total) * 100) | round | int if _total else 0 %}
   {% set _pending_pct = ((stats.pending_approval / _total) * 100) | round | int if _total else 0 %}
   {% call page_header('Users', subtitle='User Directory') %}
-    <button type="button" data-action="create-user" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <button type="button" data-action="create-user" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-user-plus" aria-hidden="true"></i>Create New User
     </button>
   {% endcall %}
@@ -51,10 +51,10 @@
         <p class="text-xs text-amber-700 dark:text-amber-300/80 mt-0.5 font-mono">{{ _pending_pct }}% of {{ _total }} total users · action required before they can play</p>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <a href="{{ url_for('admin_panel.users_comprehensive', approved='false') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-100 dark:hover:bg-amber-500/15 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+        <a href="{{ url_for('admin_panel.users_comprehensive', approved='false') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-100 dark:hover:bg-amber-500/15 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500">
           <i class="ti ti-filter" aria-hidden="true"></i>Review
         </a>
-        <button type="button" data-action="bulk-approve-users" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-amber-500/10">
+        <button type="button" data-action="bulk-approve-users" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-amber-500/10">
           <i class="ti ti-checks" aria-hidden="true"></i>Approve All
         </button>
       </div>
@@ -113,7 +113,7 @@
       <p class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-[11px] text-gray-500 dark:text-gray-400 font-mono">new registrations · 30d</p>
     </div>
 
-    <a href="{{ url_for('admin_panel.access_control', tab='roles') }}" class="group block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 hover:border-ecs-gold-400 dark:hover:border-ecs-gold-400 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <a href="{{ url_for('admin_panel.access_control', tab='roles') }}" class="group block rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 hover:border-ecs-gold-400 dark:hover:border-ecs-gold-400 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Roles</span>
         <i class="ti ti-shield-check text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
@@ -131,21 +131,21 @@
   {% if league_filter %}{% for _lg in leagues if _lg.id|string == league_filter|string %}{% set _ns.league_name = _lg.name %}{% endfor %}{% endif %}
   {% set league_name = _ns.league_name %}
   <details id="filterDisclosure" class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" {% if not _active_filters %}open{% endif %}>
-    <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 cursor-pointer select-none list-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+    <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 cursor-pointer select-none list-none focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
       <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
         <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i>Filters
-        {% if _active_filters %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green dark:text-green-400 normal-case tracking-normal"><i class="ti ti-point-filled text-[10px]" aria-hidden="true"></i>active</span>{% endif %}
+        {% if _active_filters %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green/10 text-ecs-green dark:text-green-400 normal-case tracking-normal"><i class="ti ti-point-filled text-[10px]" aria-hidden="true"></i>active</span>{% endif %}
       </span>
       <i class="ti ti-chevron-down text-gray-400 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true"></i>
     </summary>
     {% if _active_filters %}
     <div class="flex flex-wrap items-center gap-1.5 px-4 sm:px-5 pb-3 -mt-1">
-      {% if search and search|trim %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-search text-[11px]" aria-hidden="true"></i>{{ search }}</span>{% endif %}
-      {% if role_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shield text-[11px]" aria-hidden="true"></i>{{ role_filter }}</span>{% endif %}
-      {% if approved_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ 'Approved' if approved_filter == 'true' else 'Pending' }}</span>{% endif %}
-      {% if active_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-bolt text-[11px]" aria-hidden="true"></i>{{ 'Active' if active_filter == 'true' else 'Inactive' }}</span>{% endif %}
-      {% if league_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-trophy text-[11px]" aria-hidden="true"></i>{{ league_name or league_filter }}</span>{% endif %}
-      <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x text-[11px]" aria-hidden="true"></i>Clear all</a>
+      {% if search and search|trim %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-search text-[11px]" aria-hidden="true"></i>{{ search }}</span>{% endif %}
+      {% if role_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shield text-[11px]" aria-hidden="true"></i>{{ role_filter }}</span>{% endif %}
+      {% if approved_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ 'Approved' if approved_filter == 'true' else 'Pending' }}</span>{% endif %}
+      {% if active_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-bolt text-[11px]" aria-hidden="true"></i>{{ 'Active' if active_filter == 'true' else 'Inactive' }}</span>{% endif %}
+      {% if league_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-trophy text-[11px]" aria-hidden="true"></i>{{ league_name or league_filter }}</span>{% endif %}
+      <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x text-[11px]" aria-hidden="true"></i>Clear all</a>
     </div>
     {% endif %}
     <form method="get" action="{{ url_for('admin_panel.users_comprehensive') }}" id="filterForm" class="px-4 sm:px-5 pb-4 pt-1 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -159,7 +159,7 @@
       {% for league in leagues %}{% set _ = league_opts.append({'value': league.id, 'label': league.name}) %}{% endfor %}
       {{ select('league', label='League', options=league_opts, selected=league_filter) }}
       <div class="flex items-end">
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-search" aria-hidden="true"></i>Apply
         </button>
       </div>
@@ -172,11 +172,11 @@
   <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex flex-wrap items-center gap-2">
       {# Selection-aware bulk dropdown (reads as connected to the row checkboxes) #}
-      <button type="button" id="bulkActionsBtn" data-dropdown-toggle="bulkActionsDropdown" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <button type="button" id="bulkActionsBtn" data-dropdown-toggle="bulkActionsDropdown" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-checklist" aria-hidden="true"></i>Bulk Actions
         <i class="ti ti-chevron-down" aria-hidden="true"></i>
       </button>
-      <div id="bulkActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-48 dark:bg-gray-700 dark:divide-gray-600">
+      <div id="bulkActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-48 dark:bg-gray-700 dark:divide-gray-600">
         <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
           <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="bulk-action" data-bulk-action="approve"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approve Selected</a></li>
           <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="bulk-action" data-bulk-action="activate"><i class="ti ti-user-bolt mr-2" aria-hidden="true"></i>Activate Selected</a></li>
@@ -184,15 +184,15 @@
           <li class="border-t border-gray-200 dark:border-gray-600"><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="bulk-action" data-bulk-action="delete"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete Selected</a></li>
         </ul>
       </div>
-      <button type="button" data-action="bulk-approve-users" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <button type="button" data-action="bulk-approve-users" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-user-check text-green-600 dark:text-green-400" aria-hidden="true"></i>Approve All Pending
       </button>
       {# Secondary utilities grouped under one kebab to cut clutter from the primary row #}
-      <button type="button" id="moreActionsBtn" data-dropdown-toggle="moreActionsDropdown" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <button type="button" id="moreActionsBtn" data-dropdown-toggle="moreActionsDropdown" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-dots" aria-hidden="true"></i>More
         <i class="ti ti-chevron-down" aria-hidden="true"></i>
       </button>
-      <div id="moreActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-52 dark:bg-gray-700 dark:divide-gray-600">
+      <div id="moreActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-52 dark:bg-gray-700 dark:divide-gray-600">
         <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
           <li><a href="{{ url_for('admin_panel.access_control', tab='roles') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-shield-check mr-2" aria-hidden="true"></i>Manage Roles</a></li>
           <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="sync-users"><i class="ti ti-refresh mr-2" aria-hidden="true"></i>Sync from WooCommerce</a></li>
@@ -218,7 +218,7 @@
       <thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700/50">
         <tr>
           <th scope="col" class="px-3 py-2.5 w-10">
-            <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
+            <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
           </th>
           {{ data_table_th('Player', key='player', sortable=False) }}
           {{ data_table_th('Email', key='email', sortable=False, hide='md') }}
@@ -233,11 +233,11 @@
         {% for user in users %}
         <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3">
-            <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
+            <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
           </td>
           <td class="px-3 py-3">
             <div class="flex items-center gap-3">
-              <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center">
+              <div class="shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center">
                 {% set display_name = user.player.name if user.player and user.player.name else user.username %}
                 <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
               </div>
@@ -265,7 +265,7 @@
               {% if user.player.primary_league %}{% set _ = all_leagues.append(user.player.primary_league) %}{% endif %}
               {% for league in user.player.other_leagues if league not in all_leagues %}{% set _ = all_leagues.append(league) %}{% endfor %}
               {% for league in all_leagues %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green dark:text-green-400 mr-1 mb-1">{{ league.name }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green/10 text-ecs-green dark:text-green-400 mr-1 mb-1">{{ league.name }}</span>
               {% endfor %}
               {% if user.player.teams %}
                 {% for team in user.player.teams %}
@@ -280,15 +280,15 @@
           </td>
           <td class="px-3 py-3">
             <div class="flex flex-wrap gap-1">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
                 <i class="ti {{ 'ti-circle-check' if user.is_approved else 'ti-clock' }}" aria-hidden="true"></i>{{ 'Approved' if user.is_approved else 'Pending' }}
               </span>
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
                 <i class="ti {{ 'ti-bolt' if user.is_active else 'ti-ban' }}" aria-hidden="true"></i>{{ 'Active' if user.is_active else 'Inactive' }}
               </span>
               {% set _sc = sub_conflicts.get(user.id) if sub_conflicts else None %}
               {% if _sc %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 cursor-help"
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 cursor-help"
                     title="Rostered on {{ _sc.team_name }} ({{ _sc.division }}) but still on the {{ _sc.divisions|join(' & ') }} sub list. A leftover sub role can block their division role on Discord — use 'Remove from sub list' to fix.">
                 <i class="ti ti-alert-triangle" aria-hidden="true"></i>Sub conflict
               </span>
@@ -296,7 +296,7 @@
               {% set _if = integrity_flags.get(user.id) if integrity_flags else None %}
               {% if _if %}
               <a href="{{ url_for('admin_panel.integrity_dashboard') }}"
-                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if _if.severity == 'high' %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}"
+                 class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {% if _if.severity == 'high' %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}"
                  title="{{ _if.count }} data conflict(s): {{ _if.titles|join('; ') }}. Open the Data Integrity dashboard.">
                 <i class="ti ti-shield-x" aria-hidden="true"></i>{{ _if.count }} conflict{{ 's' if _if.count != 1 else '' }}
               </a>
@@ -307,10 +307,10 @@
             {% if user.created_at %}<span class="text-xs font-mono">{{ user.created_at.strftime('%Y-%m-%d') }}</span>{% else %}<span class="text-gray-400">-</span>{% endif %}
           </td>
           <td class="px-3 py-3 text-right">
-            <button type="button" id="userActionsBtn{{ user.id }}" data-dropdown-toggle="userActionsDropdown{{ user.id }}" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="User actions">
+            <button type="button" id="userActionsBtn{{ user.id }}" data-dropdown-toggle="userActionsDropdown{{ user.id }}" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="User actions">
               <i class="ti ti-dots-vertical" aria-hidden="true"></i>
             </button>
-            <div id="userActionsDropdown{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
+            <div id="userActionsDropdown{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
                 <li><a href="{{ url_for('admin_panel.member_hub', user_id=user.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green dark:text-ecs-green"><i class="ti ti-id-badge-2 mr-2" aria-hidden="true"></i>Member Hub</a></li>
@@ -348,18 +348,18 @@
       {% set display_name = user.player.name if user.player and user.player.name else user.username %}
       <div class="px-4 py-3.5">
         <div class="flex items-start gap-3">
-          <input type="checkbox" class="user-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 shrink-0" value="{{ user.id }}" aria-label="Select user">
-          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center">
+          <input type="checkbox" class="user-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 shrink-0" value="{{ user.id }}" aria-label="Select user">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center">
             <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
           </div>
           <div class="flex-1 min-w-0">
             <p class="font-semibold text-gray-900 dark:text-white truncate">{{ display_name }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
             <div class="flex flex-wrap gap-1 mt-1.5">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
                 <i class="ti {{ 'ti-circle-check' if user.is_approved else 'ti-clock' }}" aria-hidden="true"></i>{{ 'Approved' if user.is_approved else 'Pending' }}
               </span>
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
                 <i class="ti {{ 'ti-bolt' if user.is_active else 'ti-ban' }}" aria-hidden="true"></i>{{ 'Active' if user.is_active else 'Inactive' }}
               </span>
             </div>
@@ -371,10 +371,10 @@
             {% endif %}
           </div>
           <div class="shrink-0">
-            <button type="button" id="userActionsBtnM{{ user.id }}" data-dropdown-toggle="userActionsDropdownM{{ user.id }}" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="User actions">
+            <button type="button" id="userActionsBtnM{{ user.id }}" data-dropdown-toggle="userActionsDropdownM{{ user.id }}" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="User actions">
               <i class="ti ti-dots-vertical" aria-hidden="true"></i>
             </button>
-            <div id="userActionsDropdownM{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
+            <div id="userActionsDropdownM{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700 dark:divide-gray-600">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
                 <li><a href="{{ url_for('admin_panel.member_hub', user_id=user.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-ecs-green dark:text-ecs-green"><i class="ti ti-id-badge-2 mr-2" aria-hidden="true"></i>Member Hub</a></li>
@@ -475,12 +475,12 @@
           <div class="flex gap-4">
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="editIsApproved" name="is_approved" class="sr-only peer">
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
               <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Approved</span>
             </label>
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="editIsActive" name="is_active" class="sr-only peer">
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
               <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
             </label>
           </div>
@@ -493,7 +493,7 @@
       <div id="editRolesContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {% for role in roles %}
         <label class="flex items-center p-2 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-          <input type="checkbox" name="roles" value="{{ role.id }}" data-role-id="{{ role.id }}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+          <input type="checkbox" name="roles" value="{{ role.id }}" data-role-id="{{ role.id }}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
           <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ role.name }}</span>
         </label>
         {% endfor %}
@@ -505,7 +505,7 @@
         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center"><i class="ti ti-ball-football mr-2 text-ecs-green" aria-hidden="true"></i>Player Profile</h6>
         <label class="relative inline-flex items-center cursor-pointer">
           <input type="checkbox" id="editIsCurrentPlayer" name="is_current_player" class="sr-only peer">
-          <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-ecs-green"></div>
+          <div class="w-9 h-5 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-ecs-green"></div>
           <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active Player</span>
         </label>
       </div>
@@ -528,14 +528,14 @@
               {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
             </select>
             <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input type="checkbox" id="editPrimaryTeamCoach" name="primary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+              <input type="checkbox" id="editPrimaryTeamCoach" name="primary_team_coach" value="1" class="w-4 h-4 rounded-sm border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
               <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
             </label>
           </div>
           <div id="primaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
-            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
-              <input type="checkbox" name="primary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+              <input type="checkbox" name="primary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
               <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
             </label>
             {% endfor %}{% endif %}{% endfor %}
@@ -555,14 +555,14 @@
               {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
             </select>
             <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input type="checkbox" id="editSecondaryTeamCoach" name="secondary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+              <input type="checkbox" id="editSecondaryTeamCoach" name="secondary_team_coach" value="1" class="w-4 h-4 rounded-sm border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
               <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
             </label>
           </div>
           <div id="secondaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
-            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
-              <input type="checkbox" name="secondary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+              <input type="checkbox" name="secondary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
               <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
             </label>
             {% endfor %}{% endif %}{% endfor %}
@@ -582,14 +582,14 @@
               {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
             </select>
             <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-              <input type="checkbox" id="editTertiaryTeamCoach" name="tertiary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+              <input type="checkbox" id="editTertiaryTeamCoach" name="tertiary_team_coach" value="1" class="w-4 h-4 rounded-sm border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
               <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
             </label>
           </div>
           <div id="tertiaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
             {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
-            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
-              <input type="checkbox" name="tertiary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+              <input type="checkbox" name="tertiary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
               <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
             </label>
             {% endfor %}{% endif %}{% endfor %}
@@ -599,10 +599,10 @@
     </div>
   </div>
   <div class="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700">
-    <button type="button" data-modal-hide="editUserModal" class="modal-close-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <button type="button" data-modal-hide="editUserModal" class="modal-close-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-x" aria-hidden="true"></i>Cancel
     </button>
-    <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Changes
     </button>
   </div>
@@ -693,7 +693,7 @@
             <i class="ti ti-download mr-2"></i>Export Users
             <i class="ti ti-chevron-down ml-1"></i>
         </button>
-        <div id="exportDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+        <div id="exportDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
             <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-users" data-export-type="all"><i class="ti ti-users mr-2"></i>All Users</a></li>
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-users" data-export-type="approved"><i class="ti ti-user-check mr-2"></i>Approved Only</a></li>
@@ -770,7 +770,7 @@
             <i class="ti ti-checklist mr-1"></i>Bulk Actions
             <i class="ti ti-chevron-down ml-1"></i>
         </button>
-        <div id="bulkActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-48 dark:bg-gray-700">
+        <div id="bulkActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-48 dark:bg-gray-700">
             <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600" data-action="bulk-action" data-bulk-action="approve"><i class="ti ti-user-check mr-2"></i>Approve Selected</a></li>
                 <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600" data-action="bulk-action" data-bulk-action="activate"><i class="ti ti-user-bolt mr-2"></i>Activate Selected</a></li>
@@ -789,7 +789,7 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-2 sm:px-4 py-3 w-10">
-                    <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 </th>
                 <th scope="col" class="px-3 sm:px-6 py-3">Player</th>
                 <th scope="col" class="px-3 sm:px-6 py-3 hidden lg:table-cell">Email</th>
@@ -804,11 +804,11 @@
             {% for user in users %}
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-2 sm:px-4 py-4">
-                    <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}">
+                    <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}">
                 </td>
                 <td class="px-3 sm:px-6 py-4">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
+                        <div class="shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
                             {% set display_name = user.player.name if user.player and user.player.name else user.username %}
                             <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
                         </div>
@@ -822,7 +822,7 @@
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate lg:hidden max-w-[180px]">{{ user.email }}</p>
                             <div class="flex flex-wrap gap-1 mt-1 md:hidden">
                                 {% for role in user.roles[:2] %}
-                                <span class="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium {% if 'admin' in role.name.lower() %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif 'coach' in role.name.lower() %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                <span class="inline-flex items-center px-1.5 py-0 rounded-sm text-[10px] font-medium {% if 'admin' in role.name.lower() %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif 'coach' in role.name.lower() %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                                     {{ role.name }}
                                 </span>
                                 {% endfor %}
@@ -835,7 +835,7 @@
                 <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                     <div class="flex flex-wrap gap-1">
                         {% for role in user.roles %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if 'admin' in role.name.lower() %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif 'coach' in role.name.lower() %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {% if 'admin' in role.name.lower() %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif 'coach' in role.name.lower() %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                             {{ role.name }}
                         </span>
                         {% endfor %}
@@ -856,7 +856,7 @@
                         {% endfor %}
                         {% if all_leagues %}
                             {% for league in all_leagues %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green mr-1 mb-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green/10 text-ecs-green mr-1 mb-1">
                                 {{ league.name }}
                             </span>
                             {% endfor %}
@@ -881,10 +881,10 @@
                 </td>
                 <td class="px-3 sm:px-6 py-4 hidden sm:table-cell">
                     <div class="flex flex-wrap gap-1">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% endif %}">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% endif %}">
                             {{ 'Approved' if user.is_approved else 'Pending' }}
                         </span>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
                             {{ 'Active' if user.is_active else 'Inactive' }}
                         </span>
                     </div>
@@ -900,7 +900,7 @@
                     <button type="button" id="userActionsBtn{{ user.id }}" data-dropdown-toggle="userActionsDropdown{{ user.id }}" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                         <i class="ti ti-dots-vertical"></i>
                     </button>
-                    <div id="userActionsDropdown{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+                    <div id="userActionsDropdown{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
                         <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                             <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2"></i>Edit User</a></li>
                             {% if user.player %}
@@ -1011,12 +1011,12 @@
                                 <div class="flex gap-4">
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" id="editIsApproved" name="is_approved" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Approved</span>
                                     </label>
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" id="editIsActive" name="is_active" class="sr-only peer">
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
                                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
                                     </label>
                                 </div>
@@ -1032,7 +1032,7 @@
                         <div id="editRolesContainer" class="grid grid-cols-2 md:grid-cols-3 gap-2">
                             {% for role in roles %}
                             <label class="flex items-center p-2 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
-                                <input type="checkbox" name="roles" value="{{ role.id }}" data-role-id="{{ role.id }}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                <input type="checkbox" name="roles" value="{{ role.id }}" data-role-id="{{ role.id }}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ role.name }}</span>
                             </label>
                             {% endfor %}
@@ -1047,7 +1047,7 @@
                             </h6>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" id="editIsCurrentPlayer" name="is_current_player" class="sr-only peer">
-                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-ecs-green"></div>
+                                <div class="w-9 h-5 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-ecs-green"></div>
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active Player</span>
                             </label>
                         </div>
@@ -1085,7 +1085,7 @@
                                         {% endfor %}
                                     </select>
                                     <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                        <input type="checkbox" id="editPrimaryTeamCoach" name="primary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+                                        <input type="checkbox" id="editPrimaryTeamCoach" name="primary_team_coach" value="1" class="w-4 h-4 rounded-sm border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
                                         <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
                                     </label>
                                 </div>
@@ -1094,8 +1094,8 @@
                                     {% for league in leagues %}
                                     {% if 'ECS FC' in league.name %}
                                     {% for team in league.teams %}
-                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
-                                        <input type="checkbox" name="primary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+                                        <input type="checkbox" name="primary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
                                         <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
                                     </label>
                                     {% endfor %}
@@ -1127,7 +1127,7 @@
                                         {% endfor %}
                                     </select>
                                     <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                        <input type="checkbox" id="editSecondaryTeamCoach" name="secondary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+                                        <input type="checkbox" id="editSecondaryTeamCoach" name="secondary_team_coach" value="1" class="w-4 h-4 rounded-sm border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
                                         <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
                                     </label>
                                 </div>
@@ -1136,8 +1136,8 @@
                                     {% for league in leagues %}
                                     {% if 'ECS FC' in league.name %}
                                     {% for team in league.teams %}
-                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
-                                        <input type="checkbox" name="secondary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+                                        <input type="checkbox" name="secondary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
                                         <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
                                     </label>
                                     {% endfor %}
@@ -1169,7 +1169,7 @@
                                         {% endfor %}
                                     </select>
                                     <label class="flex items-center gap-2 mt-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                                        <input type="checkbox" id="editTertiaryTeamCoach" name="tertiary_team_coach" value="1" class="w-4 h-4 rounded border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
+                                        <input type="checkbox" id="editTertiaryTeamCoach" name="tertiary_team_coach" value="1" class="w-4 h-4 rounded-sm border-gray-300 text-ecs-gold-500 focus:ring-ecs-gold-500 dark:bg-gray-600 dark:border-gray-500">
                                         <span class="inline-flex items-center gap-1"><i class="ti ti-whistle text-ecs-gold-500" aria-hidden="true"></i> Coach of this team</span>
                                     </label>
                                 </div>
@@ -1178,8 +1178,8 @@
                                     {% for league in leagues %}
                                     {% if 'ECS FC' in league.name %}
                                     {% for team in league.teams %}
-                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
-                                        <input type="checkbox" name="tertiary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+                                    <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+                                        <input type="checkbox" name="tertiary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
                                         <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
                                     </label>
                                     {% endfor %}

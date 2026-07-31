@@ -122,7 +122,7 @@ const MobileDraft = {
       // Create quick draft panel
       const panel = document.createElement('div');
       // REFACTORED: Added z-index-1060 class instead of inline style.zIndex
-      panel.className = 'mobile-quick-draft-panel position-fixed bottom-0 start-0 end-0 bg-body border-top border-primary border-2 p-3 translate-y-full transition-transform z-index-1060';
+      panel.className = 'mobile-quick-draft-panel position-fixed bottom-0 inset-s-0 inset-e-0 bg-body border-top border-primary border-2 p-3 translate-y-full transition-transform z-index-1060';
 
       // Get player info from card
       const playerName = card.querySelector('[data-component="player-name"], .fw-semibold, h6')?.textContent || 'Player';

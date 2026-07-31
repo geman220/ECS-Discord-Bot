@@ -74,7 +74,7 @@
     {# Advanced / special-week options — progressive disclosure (collapsed by default) #}
     <details class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 cursor-pointer select-none min-h-[44px]
-                      hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                      hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
         <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
           <i class="ti ti-confetti text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
           Special week options
@@ -86,7 +86,7 @@
         <p class="text-xs text-gray-500 dark:text-gray-400 py-3">Optionally flag the whole day as a non-standard week.</p>
         <label class="flex items-center gap-3 cursor-pointer min-h-[44px] rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <input type="checkbox" name="fun_week" value="1"
-                 class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                 class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
           <span class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <i class="ti ti-mood-smile text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
             Mark entire day as <span class="font-semibold">FUN WEEK</span>
@@ -94,7 +94,7 @@
         </label>
         <label class="flex items-center gap-3 cursor-pointer min-h-[44px] rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <input type="checkbox" name="bye_week" value="1"
-                 class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                 class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
           <span class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <i class="ti ti-zzz text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
             Mark entire day as <span class="font-semibold">BYE WEEK</span>
@@ -104,11 +104,11 @@
     </details>
 
     {# Primary action — sticky on mobile so it's reachable, one clear CTA #}
-    <div class="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-t border-gray-200 dark:border-gray-700 sm:border-0 flex justify-end">
+    <div class="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-t border-gray-200 dark:border-gray-700 sm:border-0 flex justify-end">
       <button type="submit"
               class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto px-6 rounded-lg
                      bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                     focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-calendar-plus" aria-hidden="true"></i>
         Generate Placeholders
         <i class="ti ti-arrow-right" aria-hidden="true"></i>
@@ -212,7 +212,7 @@
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>
           Assign teams to matches
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ placeholders|length }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ placeholders|length }}</span>
         </h2>
         <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
           <i class="ti ti-info-circle" aria-hidden="true"></i>
@@ -312,11 +312,11 @@
     </section>
 
     {# Primary action — sticky on mobile, one clear CTA #}
-    <div class="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-t border-gray-200 dark:border-gray-700 sm:border-0 flex justify-end">
+    <div class="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-t border-gray-200 dark:border-gray-700 sm:border-0 flex justify-end">
       <button type="submit"
               class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto px-6 rounded-lg
                      bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                     focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-check" aria-hidden="true"></i>
         Create Matches
       </button>
@@ -336,7 +336,7 @@
 
     {% if not placeholders %}
     <!-- STEP 1: Generate placeholders -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Step 1: Configure Schedule Parameters</h2>
         </div>
@@ -386,12 +386,12 @@
                 <div class="space-y-3">
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" name="fun_week" value="1"
-                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                               class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         <span class="text-gray-700 dark:text-gray-300">Mark entire day as FUN WEEK</span>
                     </label>
                     <label class="flex items-center gap-3 cursor-pointer">
                         <input type="checkbox" name="bye_week" value="1"
-                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                               class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         <span class="text-gray-700 dark:text-gray-300">Mark entire day as BYE WEEK</span>
                     </label>
                 </div>
@@ -409,7 +409,7 @@
 
     {% else %}
     <!-- STEP 2: Show placeholders + assign teams -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Step 2: Assign Teams to Matches</h2>
             <p class="text-gray-500 dark:text-gray-400 mt-1">Please assign Team A and Team B for each row, then click "Create Matches".</p>

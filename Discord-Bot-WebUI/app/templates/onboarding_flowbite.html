@@ -56,7 +56,7 @@
                     </p>
                 </div>
                 <a href="{{ discord_invite_link }}" target="_blank" rel="noopener"
-                   class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto px-5 rounded-lg bg-[#5865F2] text-white font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                   class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto px-5 rounded-lg bg-[#5865F2] text-white font-semibold hover:bg-[#4752c4] transition-colors focus:outline-hidden focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-brand-discord" aria-hidden="true"></i>Join Server
                 </a>
             </div>
@@ -115,7 +115,7 @@
                                     <input type="hidden" name="cropped_image_data" id="onboardingImageData">
                                     <canvas id="onboardingCanvas" class="hidden"></canvas>
                                     <button type="button" id="onboardingSelectBtn"
-                                            class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                            class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                         <i class="ti ti-upload" aria-hidden="true"></i>Select Image
                                     </button>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">PNG, JPG, or WEBP (max 5MB) — optional</p>
@@ -132,13 +132,13 @@
                                 </div>
                             </div>
                             <div class="flex justify-center gap-2">
-                                <button type="button" id="onboardingZoomOut" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Zoom out">
+                                <button type="button" id="onboardingZoomOut" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="Zoom out">
                                     <i class="ti ti-minus text-lg text-gray-700 dark:text-gray-300" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" id="onboardingZoomIn" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Zoom in">
+                                <button type="button" id="onboardingZoomIn" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="Zoom in">
                                     <i class="ti ti-plus text-lg text-gray-700 dark:text-gray-300" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" id="onboardingReselect" class="px-3 py-2 min-h-[44px] text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                <button type="button" id="onboardingReselect" class="px-3 py-2 min-h-[44px] text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                                     Change
                                 </button>
                             </div>
@@ -201,7 +201,7 @@
                             <div class="h-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
                                 <div class="flex items-center gap-2 mb-2">
                                     <i class="ti ti-award text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Beginner</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Beginner</span>
                                 </div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Classic</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Our beginner-friendly classic division - it's all about having fun and improving your game.</p>
@@ -216,7 +216,7 @@
                             <div class="h-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
                                 <div class="flex items-center gap-2 mb-2">
                                     <i class="ti ti-star text-2xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Intermediate</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Intermediate</span>
                                 </div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Premier</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Our Premier Division for low to intermediate recreational players. Bring your C game!</p>
@@ -231,7 +231,7 @@
                             <div class="h-full p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
                                 <div class="flex items-center gap-2 mb-2">
                                     <i class="ti ti-ball-football text-2xl text-ecs-green" aria-hidden="true"></i>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">Competitive</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-green/15 text-ecs-green">Competitive</span>
                                 </div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">ECS FC</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Our club team for dedicated players who want to represent ECS in organized competition.</p>
@@ -246,7 +246,7 @@
                             <div class="h-full p-4 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-400 dark:hover:border-gray-500">
                                 <div class="flex items-center gap-2 mb-2">
                                     <i class="ti ti-help-circle text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">No pressure</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">No pressure</span>
                                 </div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Not sure yet</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">New to ECS or unsure which fits? Pick this and an admin will help place you.</p>
@@ -342,7 +342,7 @@
                             <span class="flex-1 text-sm text-gray-700 dark:text-gray-300">Email</span>
                             <span class="relative inline-flex items-center">
                                 <input type="checkbox" name="email_notifications" id="emailNotifications" value="y" checked class="sr-only peer">
-                                <span class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green"></span>
+                                <span class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green transition-colors after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green"></span>
                             </span>
                         </label>
 
@@ -351,7 +351,7 @@
                             <span class="flex-1 text-sm text-gray-700 dark:text-gray-300">Discord</span>
                             <span class="relative inline-flex items-center">
                                 <input type="checkbox" name="discord_notifications" id="discordNotifications" value="y" checked class="sr-only peer">
-                                <span class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green"></span>
+                                <span class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green transition-colors after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green"></span>
                             </span>
                         </label>
 
@@ -360,7 +360,7 @@
                             <span class="flex-1 text-sm text-gray-700 dark:text-gray-300">SMS</span>
                             <span class="relative inline-flex items-center">
                                 <input type="checkbox" name="sms_notifications" id="smsNotifications" value="y" data-on-change="onboarding-sms-toggle" class="sr-only peer">
-                                <span class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green transition-colors after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green"></span>
+                                <span class="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green transition-colors after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green"></span>
                             </span>
                         </label>
                     </div>
@@ -369,7 +369,7 @@
                     <div id="smsOptInSection" class="hidden p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
                         <label class="flex items-start gap-3 cursor-pointer mb-4">
                             <input type="checkbox" id="smsConsent" name="sms_consent"
-                                   class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green"
+                                   class="mt-0.5 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green"
                                    data-on-change="onboarding-sms-consent">
                             <span class="text-sm text-gray-600 dark:text-gray-300">
                                 I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
@@ -382,7 +382,7 @@
                             <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">We'll send a verification code to confirm your phone number.</p>
 
                             <button type="button" id="sendVerificationBtn"
-                                    class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                 <i class="ti ti-send" aria-hidden="true"></i>Send Verification Code
                             </button>
 
@@ -391,7 +391,7 @@
                                     <input type="text" id="verificationCode" placeholder="Enter 6-digit code"
                                            class="input-ecs w-40">
                                     <button type="button" id="verifyCodeBtn"
-                                            class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                            class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                         <i class="ti ti-check" aria-hidden="true"></i>Verify
                                     </button>
                                 </div>
@@ -421,16 +421,16 @@
                     </p>
                     <div class="flex items-center gap-3">
                         <button type="button" data-wizard-back
-                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed">
+                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed">
                             <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Back</span>
                         </button>
                         <span class="flex-1 text-center text-xs text-gray-500 dark:text-gray-400" data-wizard-counter-inline>Step 1 of 6</span>
                         <button type="button" data-wizard-next
-                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <span>Next</span><i class="ti ti-arrow-right" aria-hidden="true"></i>
                         </button>
                         <button type="submit" data-wizard-submit
-                                class="hidden inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="hidden inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-check" aria-hidden="true"></i>Finish
                         </button>
                     </div>

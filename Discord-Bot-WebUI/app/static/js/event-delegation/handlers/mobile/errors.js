@@ -332,7 +332,7 @@ export function initErrorHandlers(ED) {
                         </div>
                         <div class="mb-3">
                             <strong>Severity:</strong><br>
-                            <span class="px-2 py-0.5 text-xs font-medium rounded ${data.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : data.severity === 'error' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'}" data-badge>${data.severity}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${data.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : data.severity === 'error' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'}" data-badge>${data.severity}</span>
                         </div>
                         <div class="mb-3">
                             <strong>Message:</strong><br>
@@ -341,13 +341,13 @@ export function initErrorHandlers(ED) {
                         ${data.stack_trace ? `
                         <div class="mb-3">
                             <strong>Stack Trace:</strong><br>
-                            <pre class="bg-light p-2 rounded scroll-container-sm code-display-sm">${data.stack_trace}</pre>
+                            <pre class="bg-light p-2 rounded-sm scroll-container-sm code-display-sm">${data.stack_trace}</pre>
                         </div>
                         ` : ''}
                         ${data.device_info ? `
                         <div class="mb-3">
                             <strong>Device Info:</strong><br>
-                            <pre class="bg-light p-2 rounded">${JSON.stringify(data.device_info, null, 2)}</pre>
+                            <pre class="bg-light p-2 rounded-sm">${JSON.stringify(data.device_info, null, 2)}</pre>
                         </div>
                         ` : ''}
                         <div class="mb-3">

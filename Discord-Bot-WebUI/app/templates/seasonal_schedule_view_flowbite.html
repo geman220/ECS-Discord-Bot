@@ -63,12 +63,12 @@
         {% if is_sched_admin or leagues %}
         <div class="flex flex-wrap items-center gap-2 shrink-0">
             {% if is_sched_admin %}
-            <button type="button" class="js-toggle-edit inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <button type="button" class="js-toggle-edit inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-edit" aria-hidden="true"></i> Toggle Edit Mode
             </button>
             {% for league in leagues %}
             <a href="{{ url_for('playoff.manage_playoffs', league_id=league.id) }}"
-               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> {{ league.name }} Playoffs
             </a>
             {% endfor %}
@@ -90,7 +90,7 @@
             </div>
             <button type="button" id="generateSchedulesBtn"
                     data-url="{{ url_for('auto_schedule.generate_season_schedules', season_id=season.id) }}"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 shrink-0">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 shrink-0">
                 <i class="ti ti-calendar-plus" aria-hidden="true"></i> Generate Schedule
             </button>
         </div>
@@ -178,7 +178,7 @@
                 </div>
             </div>
             <button type="button" id="applyFiltersBtn"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 shrink-0">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 shrink-0">
                 <i class="ti ti-filter" aria-hidden="true"></i> Apply
             </button>
         </div>
@@ -230,10 +230,10 @@
                             <input type="time" class="week-edit-time input-ecs h-9 text-sm w-auto"
                                    title="New start time for the first match — all later matches this week shift by the same amount">
                             <span class="hidden sm:inline text-[11px] text-gray-400 dark:text-gray-500 self-center">all match times shift together</span>
-                            <button type="button" class="js-save-week inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" aria-label="Save week">
+                            <button type="button" class="js-save-week inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" aria-label="Save week">
                                 <i class="ti ti-check" aria-hidden="true"></i>
                             </button>
-                            <button type="button" class="js-cancel-week-edit inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Cancel edit">
+                            <button type="button" class="js-cancel-week-edit inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="Cancel edit">
                                 <i class="ti ti-x" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -253,30 +253,30 @@
                     </span>
                     {% endif %}
                     {% endif %}
-                    <button type="button" class="week-toggle-btn inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" aria-label="Expand or collapse week">
+                    <button type="button" class="week-toggle-btn inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" aria-label="Expand or collapse week">
                         <i class="ti ti-chevron-down" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-edit-week focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Edit Week" aria-label="Edit week">
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-edit-week focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Edit Week" aria-label="Edit week">
                         <i class="ti ti-edit" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-move-week-up focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Move Week Earlier" aria-label="Move week earlier">
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-move-week-up focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Move Week Earlier" aria-label="Move week earlier">
                         <i class="ti ti-arrow-up" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-move-week-down focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Move Week Later" aria-label="Move week later">
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg js-move-week-down focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Move Week Later" aria-label="Move week later">
                         <i class="ti ti-arrow-down" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 rounded-lg js-add-match-btn focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Add Match" aria-label="Add match">
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-500/15 rounded-lg js-add-match-btn focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Add Match" aria-label="Add match">
                         <i class="ti ti-plus" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/15 rounded-lg js-delete-week focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Delete Week" aria-label="Delete week">
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/15 rounded-lg js-delete-week focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Delete Week" aria-label="Delete week">
                         <i class="ti ti-trash" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/15 rounded-lg js-shift-week focus:outline-none focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Shift This & Later Weeks Down (Make BYE)" aria-label="Shift weeks down">
+                    <button type="button" class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/15 rounded-lg js-shift-week focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-week="{{ week_num }}" title="Shift This & Later Weeks Down (Make BYE)" aria-label="Shift weeks down">
                         <i class="ti ti-arrow-bar-down" aria-hidden="true"></i>
                     </button>
                     {% if week_data.has_classic_first_window %}
                     <button type="button"
-                            class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg js-toggle-practice focus:outline-none focus:ring-2 focus:ring-ecs-green
+                            class="edit-control hidden inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg js-toggle-practice focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                                    {{ 'text-amber-600 bg-amber-100 dark:text-amber-400 dark:bg-amber-500/15 hover:bg-amber-200 dark:hover:bg-amber-500/25' if week_data.has_classic_practice else 'text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-500/15' }}"
                             data-week="{{ week_num }}"
                             data-practice="{{ 'true' if week_data.has_classic_practice else 'false' }}"
@@ -378,7 +378,7 @@
                                     <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">PRACTICE</span>
                                     {% else %}
                                     <span class="team-display inline-flex items-center gap-1.5">
-                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green shrink-0" title="Home">H</span>
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green shrink-0" title="Home">H</span>
                                         <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" class="text-ecs-green hover:underline font-medium">
                                             {{ match.home_team.name }}
                                         </a>
@@ -407,7 +407,7 @@
                                     <span class="text-gray-400 dark:text-gray-500">All teams practice together</span>
                                     {% else %}
                                     <span class="team-display inline-flex items-center gap-1.5">
-                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-300 shrink-0" title="Away">A</span>
+                                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm font-mono text-[10px] font-bold bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-300 shrink-0" title="Away">A</span>
                                         <a href="{{ url_for('teams.team_details', team_id=match.away_team_id) }}" class="text-ecs-green hover:underline font-medium">
                                             {{ match.away_team.name }}
                                         </a>
@@ -433,7 +433,7 @@
                                 <td class="px-4 py-3">
                                     <div class="flex items-center justify-end">
                                     <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-                                       class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                       class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/15 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                        title="View Match" aria-label="View match">
                                         <i class="ti ti-eye" aria-hidden="true"></i>
                                     </a>
@@ -441,10 +441,10 @@
                                 </td>
                                 <td class="px-4 py-3 edit-col hidden">
                                     <div class="flex items-center gap-1">
-                                        <button type="button" class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
+                                        <button type="button" class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
                                             <i class="ti ti-edit" aria-hidden="true"></i>
                                         </button>
-                                        <button type="button" class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/15 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-match-id="{{ match.id }}" title="Delete" aria-label="Delete match">
+                                        <button type="button" class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/15 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-match-id="{{ match.id }}" title="Delete" aria-label="Delete match">
                                             <i class="ti ti-trash" aria-hidden="true"></i>
                                         </button>
                                     </div>
@@ -472,15 +472,15 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <button type="button" id="exportCsvBtn"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-file-spreadsheet" aria-hidden="true"></i> CSV
             </button>
             <button type="button" id="printScheduleBtn"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-printer" aria-hidden="true"></i> Print
             </button>
             <button type="button" id="shareScheduleBtn"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-share" aria-hidden="true"></i> Share Link
             </button>
         </div>
@@ -508,7 +508,7 @@
     </div>
 
     <!-- Filter Controls -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 class="font-semibold text-gray-900 dark:text-white mb-4">Filter Schedule</h2>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -558,7 +558,7 @@
     <!-- Schedule Display -->
     <div id="scheduleContainer" class="space-y-4">
         {% for week_num, week_data in schedule_by_week.items() %}
-        <div class="week-container bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
+        <div class="week-container bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden"
              data-week="{{ week_num }}" data-week-type="{{ week_data.week_type }}">
             <!-- Week Header -->
             <div class="week-header bg-gray-50 dark:bg-gray-700/50 p-4 flex flex-wrap justify-between items-center gap-3 cursor-pointer"
@@ -578,20 +578,20 @@
                         </h3>
                         <!-- Inline edit form (hidden by default) -->
                         <div class="week-edit-form hidden flex items-center gap-2 mt-2">
-                            <select class="week-edit-type text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-original-type="{{ week_data.week_type }}">
+                            <select class="week-edit-type text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-original-type="{{ week_data.week_type }}">
                                 <option value="REGULAR" {{ 'selected' if week_data.week_type == 'REGULAR' }}>Regular</option>
                                 <option value="BYE" {{ 'selected' if week_data.week_type == 'BYE' }}>Bye Week</option>
                                 <option value="FUN" {{ 'selected' if week_data.week_type == 'FUN' }}>Fun Week</option>
                                 <option value="TST" {{ 'selected' if week_data.week_type == 'TST' }}>TST Week</option>
                                 <option value="PRACTICE" {{ 'selected' if week_data.week_type == 'PRACTICE' }}>Practice</option>
                             </select>
-                            <input type="date" class="week-edit-date text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                            <input type="date" class="week-edit-date text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                                    value="{{ week_data.date.strftime('%Y-%m-%d') }}">
-                            <input type="time" class="week-edit-time text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
-                            <button type="button" class="js-save-week p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded" data-week="{{ week_num }}">
+                            <input type="time" class="week-edit-time text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                            <button type="button" class="js-save-week p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-sm" data-week="{{ week_num }}">
                                 <i class="ti ti-check"></i>
                             </button>
-                            <button type="button" class="js-cancel-week-edit p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded">
+                            <button type="button" class="js-cancel-week-edit p-1 text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm">
                                 <i class="ti ti-x"></i>
                             </button>
                         </div>
@@ -599,19 +599,19 @@
                 </div>
                 <div class="flex items-center gap-2 js-week-actions">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{% if week_data.week_type == 'BYE' %}Bye Week{% else %}{{ week_data.matches|length }} matches{% endif %}</span>
-                    <button type="button" class="p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded week-toggle-btn" data-week="{{ week_num }}">
+                    <button type="button" class="p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-sm week-toggle-btn" data-week="{{ week_num }}">
                         <i class="ti ti-chevron-down"></i>
                     </button>
-                    <button type="button" class="edit-control hidden p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded js-edit-week" data-week="{{ week_num }}" title="Edit Week">
+                    <button type="button" class="edit-control hidden p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-sm js-edit-week" data-week="{{ week_num }}" title="Edit Week">
                         <i class="ti ti-edit"></i>
                     </button>
-                    <button type="button" class="edit-control hidden p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded js-add-match-btn" data-week="{{ week_num }}" title="Add Match">
+                    <button type="button" class="edit-control hidden p-1.5 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50 rounded-sm js-add-match-btn" data-week="{{ week_num }}" title="Add Match">
                         <i class="ti ti-plus"></i>
                     </button>
-                    <button type="button" class="edit-control hidden p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded js-delete-week" data-week="{{ week_num }}" title="Delete Week">
+                    <button type="button" class="edit-control hidden p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-sm js-delete-week" data-week="{{ week_num }}" title="Delete Week">
                         <i class="ti ti-trash"></i>
                     </button>
-                    <button type="button" class="edit-control hidden p-1.5 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded js-shift-week" data-week="{{ week_num }}" title="Shift This & Later Weeks Down (Make BYE)">
+                    <button type="button" class="edit-control hidden p-1.5 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded-sm js-shift-week" data-week="{{ week_num }}" title="Shift This & Later Weeks Down (Make BYE)">
                         <i class="ti ti-arrow-bar-down"></i>
                     </button>
                     {% if week_data.has_classic_first_window %}
@@ -675,7 +675,7 @@
                                     <div class="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                                         <i class="ti ti-clock"></i>
                                         <span class="time-display">{{ match.time.strftime('%I:%M %p') }}</span>
-                                        <input type="time" class="time-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                                        <input type="time" class="time-edit hidden text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                                                value="{{ match.time.strftime('%H:%M') }}">
                                     </div>
                                 </td>
@@ -683,7 +683,7 @@
                                     <span class="field-display px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                                         {{ match.location }}
                                     </span>
-                                    <select class="field-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
+                                    <select class="field-edit hidden text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700">
                                         {# The match's OWN location first, always selected. A match at
                                            any field outside the four literals below matched no option, so
                                            the browser defaulted select.value to 'North' -- and the modal
@@ -718,7 +718,7 @@
                                             {{ match.home_team.name }}
                                         </a>
                                     </span>
-                                    <select class="team-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-team-type="home">
+                                    <select class="team-edit hidden text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-team-type="home">
                                         {% for league in leagues %}
                                         {% if league.id == match.home_team.league_id %}
                                         {% for team in league.teams %}
@@ -746,7 +746,7 @@
                                             {{ match.away_team.name }}
                                         </a>
                                     </span>
-                                    <select class="team-edit hidden text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-team-type="away">
+                                    <select class="team-edit hidden text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-team-type="away">
                                         {% for league in leagues %}
                                         {% if league.id == match.home_team.league_id %}
                                         {% for team in league.teams %}
@@ -766,17 +766,17 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-                                       class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded inline-flex"
+                                       class="p-1.5 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-sm inline-flex"
                                        title="View Match">
                                         <i class="ti ti-eye"></i>
                                     </a>
                                 </td>
                                 <td class="px-4 py-3 edit-col hidden">
                                     <div class="flex items-center gap-1">
-                                        <button type="button" class="js-edit-match p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded" data-match-id="{{ match.id }}" title="Edit">
+                                        <button type="button" class="js-edit-match p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-sm" data-match-id="{{ match.id }}" title="Edit">
                                             <i class="ti ti-edit"></i>
                                         </button>
-                                        <button type="button" class="js-delete-match p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded" data-match-id="{{ match.id }}" title="Delete">
+                                        <button type="button" class="js-delete-match p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-sm" data-match-id="{{ match.id }}" title="Delete">
                                             <i class="ti ti-trash"></i>
                                         </button>
                                     </div>
@@ -790,7 +790,7 @@
             </div>
         </div>
         {% else %}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-12 text-center">
             <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <i class="ti ti-calendar-off text-2xl text-gray-400"></i>
             </div>
@@ -806,7 +806,7 @@
 
     <!-- Export Options -->
     {% if schedule_by_week %}
-    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6">
         <h2 class="font-semibold text-gray-900 dark:text-white mb-4">Export Options</h2>
         <div class="flex flex-wrap gap-3">
             <button type="button" id="exportCsvBtn"

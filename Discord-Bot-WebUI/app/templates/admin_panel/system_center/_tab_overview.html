@@ -80,7 +80,7 @@
             <i class="ti ti-circle-filled text-[8px]"></i>{{ c.status_word }}
           </span>
         </div>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 break-words">{{ c.message or '—' }}</p>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 wrap-break-word">{{ c.message or '—' }}</p>
       </div>
       {% endfor %}
     </div>

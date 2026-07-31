@@ -39,7 +39,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Scanner Column -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>Scan Pass
@@ -47,7 +47,7 @@
             </div>
             <div class="p-6">
                 <!-- Scanner Video -->
-                <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-4 aspect-[4/3]">
+                <div class="relative bg-gray-900 rounded-lg overflow-hidden mb-4 aspect-4/3">
                     <video id="scanner-video" class="w-full h-full object-cover" playsinline></video>
                     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div class="w-48 h-48 border-2 border-green-500 rounded-lg"></div>
@@ -88,7 +88,7 @@
                     </div>
                     <label class="inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="auto-checkin" checked class="sr-only peer">
-                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-blue-600"></div>
                         <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Automatically record check-in for valid passes</span>
                     </label>
                 </div>
@@ -98,7 +98,7 @@
         <!-- Result & History Column -->
         <div class="space-y-6">
             <!-- Latest Scan Result -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700" id="result-card">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700" id="result-card">
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-user-check"></i>Scan Result
@@ -131,7 +131,7 @@
             </div>
 
             <!-- Scan History -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Recent Scans

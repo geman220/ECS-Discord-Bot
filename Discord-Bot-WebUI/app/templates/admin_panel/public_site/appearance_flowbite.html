@@ -30,7 +30,7 @@
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Logo</label>
       <div class="mt-1 flex items-center gap-3">
-        <img id="logo-preview" src="{{ settings.logo_url or url_for('static', filename='img/publeague/2025-02__ECSPL-4-Color-With-Outline-transparent.png') }}" alt="" class="h-12 w-12 object-contain rounded bg-gray-100 dark:bg-gray-900">
+        <img id="logo-preview" src="{{ settings.logo_url or url_for('static', filename='img/publeague/2025-02__ECSPL-4-Color-With-Outline-transparent.png') }}" alt="" class="h-12 w-12 object-contain rounded-sm bg-gray-100 dark:bg-gray-900">
         <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <i class="ti ti-upload"></i> Upload logo
           <input type="file" id="logo-file" accept="image/*" class="hidden">
@@ -42,7 +42,7 @@
     <div>
       <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Favicon <span class="text-gray-400 font-normal">(the little browser-tab icon)</span></label>
       <div class="mt-1 flex items-center gap-3">
-        <img id="favicon-preview" src="{{ settings.favicon_url or '' }}" alt="" class="h-8 w-8 object-contain rounded bg-gray-100 dark:bg-gray-900 {{ '' if settings.favicon_url else 'hidden' }}">
+        <img id="favicon-preview" src="{{ settings.favicon_url or '' }}" alt="" class="h-8 w-8 object-contain rounded-sm bg-gray-100 dark:bg-gray-900 {{ '' if settings.favicon_url else 'hidden' }}">
         <label class="inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <i class="ti ti-upload"></i> Upload favicon
           <input type="file" id="favicon-file" accept="image/*" class="hidden">
@@ -61,14 +61,14 @@
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Primary color <span class="text-gray-400 font-normal">(green — main buttons &amp; links)</span></label>
         <div class="mt-1.5 flex items-center gap-3">
-          <input type="color" name="primary_hex" id="primary_hex" value="{{ settings.primary_hex }}" class="h-10 w-16 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+          <input type="color" name="primary_hex" id="primary_hex" value="{{ settings.primary_hex }}" class="h-10 w-16 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
           <span id="primary-contrast" class="text-xs" data-min="4.5"></span>
         </div>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Accent color <span class="text-gray-400 font-normal">(the “Join” buttons)</span></label>
         <div class="mt-1.5 flex items-center gap-3">
-          <input type="color" name="accent_hex" id="accent_hex" value="{{ settings.accent_hex }}" class="h-10 w-16 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+          <input type="color" name="accent_hex" id="accent_hex" value="{{ settings.accent_hex }}" class="h-10 w-16 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
           <span id="accent-contrast" class="text-xs" data-min="4.5"></span>
         </div>
       </div>

@@ -25,7 +25,7 @@ const TAILWIND_CLASSES = {
     inputGroupCompact: 'flex items-center gap-1 mb-1 player-event-entry player-event-entry-compact',
     select: 'flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green',
     input: 'w-16 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green',
-    removeButton: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-2.5 py-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900',
+    removeButton: 'text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-hidden focus:ring-red-300 font-medium rounded-lg text-sm px-2.5 py-2 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900',
     cardIndicator: 'flex items-center justify-center w-8 h-10 text-lg bg-gray-100 dark:bg-gray-600 rounded-lg'
 };
 

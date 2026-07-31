@@ -93,11 +93,11 @@ function viewEndpointDetails(endpointPath) {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Endpoint Information</h6>
-                            <p class="text-gray-700 dark:text-gray-300"><strong>Path:</strong> <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${endpoint.path}</code></p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Path:</strong> <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">${endpoint.path}</code></p>
                             <p class="text-gray-700 dark:text-gray-300"><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
                             <p class="text-gray-700 dark:text-gray-300"><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
                             <p class="text-gray-700 dark:text-gray-300"><strong>Authentication:</strong> ${endpoint.authentication}</p>
-                            <p class="text-gray-700 dark:text-gray-300"><strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded ${statusBadge}" data-badge>${endpoint.status}</span></p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${statusBadge}" data-badge>${endpoint.status}</span></p>
                         </div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Usage Statistics</h6>
@@ -114,7 +114,7 @@ function viewEndpointDetails(endpointPath) {
                     detailsHtml += `
                         <div class="mt-3">
                             <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Description</h6>
-                            <p class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-3 rounded">${endpoint.description}</p>
+                            <p class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-3 rounded-sm">${endpoint.description}</p>
                         </div>
                     `;
                 }
@@ -241,10 +241,10 @@ function testSpecificEndpointWithData(data) {
         if (result.success) {
             let resultHtml = `
                 <div class="text-start">
-                    <p class="text-gray-700 dark:text-gray-300"><strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>${result.status_code}</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>${result.status_code}</span></p>
                     <p class="text-gray-700 dark:text-gray-300"><strong>Response Time:</strong> ${result.response_time}s</p>
                     <p class="text-gray-700 dark:text-gray-300"><strong>Response:</strong></p>
-                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-3 rounded text-sm overflow-x-auto"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
+                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-3 rounded-sm text-sm overflow-x-auto"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
                 </div>
             `;
 

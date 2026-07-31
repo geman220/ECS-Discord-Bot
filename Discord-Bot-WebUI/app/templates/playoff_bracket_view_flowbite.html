@@ -55,7 +55,7 @@
         <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
             <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                 <i class="ti ti-ballpen text-ecs-green" aria-hidden="true"></i> Match Queue
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _total }}</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _total }}</span>
             </h2>
             {% if _remaining %}
             <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400">
@@ -98,10 +98,10 @@
                     <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
                             <div class="flex items-center gap-1.5 min-w-0">
-                                <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-ecs-green/10 text-ecs-green shrink-0">H</span>
+                                <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green shrink-0">H</span>
                                 <span class="truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                                 <span class="text-gray-400 dark:text-gray-500 font-normal text-xs px-0.5 shrink-0">vs</span>
-                                <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200 shrink-0">A</span>
+                                <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded-sm bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200 shrink-0">A</span>
                                 <span class="truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
                             </div>
                         </td>
@@ -135,7 +135,7 @@
                                     data-action="playoff-match-report"
                                     data-match-id="{{ match.id }}"
                                     class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold transition-colors
-                                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
                                            {% if match.reported %}border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700{% else %}bg-ecs-green hover:bg-ecs-green-700 text-white{% endif %}">
                                 <i class="ti {{ 'ti-edit' if match.reported else 'ti-clipboard-check' }}" aria-hidden="true"></i>
                                 {{ 'Edit' if match.reported else 'Report' }}
@@ -167,11 +167,11 @@
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white">
-                            <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-ecs-green/10 text-ecs-green shrink-0">H</span>
+                            <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green shrink-0">H</span>
                             <span class="truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                         </div>
                         <div class="flex items-center gap-1.5 text-sm font-semibold text-gray-900 dark:text-white mt-1">
-                            <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200 shrink-0">A</span>
+                            <span class="font-mono text-[10px] font-bold px-1 py-0.5 rounded-sm bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-200 shrink-0">A</span>
                             <span class="truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
                         </div>
                     </div>
@@ -198,7 +198,7 @@
                             data-action="playoff-match-report"
                             data-match-id="{{ match.id }}"
                             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold shrink-0 transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
                                    {% if match.reported %}border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200{% else %}bg-ecs-green text-white{% endif %}">
                         <i class="ti {{ 'ti-edit' if match.reported else 'ti-clipboard-check' }}" aria-hidden="true"></i>
                         {{ 'Edit' if match.reported else 'Report' }}
@@ -234,7 +234,7 @@
     <details class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
         <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 cursor-pointer select-none list-none
                         text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white
-                        hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                        hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-2">
                 <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i> How to report matches
             </span>
@@ -273,7 +273,7 @@
 {% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
-    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 rounded-xl p-6 mb-6">
+    <div class="bg-linear-to-r from-ecs-green to-ecs-green/80 rounded-xl p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-white flex items-center gap-2">
@@ -286,14 +286,14 @@
     </div>
 
     <!-- Playoff Bracket -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
         <div class="p-6">
             {{ render_playoff_bracket(league.id, season.id) }}
         </div>
     </div>
 
     <!-- Instructions Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-blue-200 dark:border-blue-700 overflow-hidden">
         <div class="p-4 border-b border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30">
             <h3 class="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
                 <i class="ti ti-info-circle"></i>

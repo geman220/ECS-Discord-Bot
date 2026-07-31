@@ -34,7 +34,7 @@
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
               text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-list-details text-sm" aria-hidden="true"></i> All Scheduled
     </a>
   {% endcall %}
@@ -129,7 +129,7 @@
               <!-- Selected match readout: dense mono row -->
               <div id="selected-match-info" class="hidden mt-3 rounded-xl border border-ecs-green/30 bg-ecs-green/5 dark:bg-ecs-green/10 p-4">
                 <div class="flex items-start gap-3">
-                  <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-ecs-green/10 flex-shrink-0">
+                  <div class="flex items-center justify-center w-11 h-11 rounded-lg bg-ecs-green/10 shrink-0">
                     <i class="ti ti-calendar-event text-xl text-ecs-green" aria-hidden="true"></i>
                   </div>
                   <div class="flex-1 min-w-0">
@@ -179,13 +179,13 @@
 
           <!-- command toolbar / actions -->
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
-            <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               Cancel
             </a>
-            <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="preview">
+            <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500" data-action="preview">
               <i class="ti ti-eye" aria-hidden="true"></i>Preview
             </button>
-            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule Message
             </button>
           </div>
@@ -201,7 +201,7 @@
             <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Bulk Schedule</h2>
           </div>
           <div class="divide-y divide-gray-100 dark:divide-gray-700/70">
-            <button type="button" class="w-full flex items-center gap-3 min-h-[44px] px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="quick-schedule-sunday">
+            <button type="button" class="w-full flex items-center gap-3 min-h-[44px] px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="quick-schedule-sunday">
               <i class="ti ti-calendar-event text-ecs-green text-lg shrink-0" aria-hidden="true"></i>
               <span class="flex-1 min-w-0">
                 <span class="block text-sm font-semibold text-gray-900 dark:text-white">This Sunday's Matches</span>
@@ -209,7 +209,7 @@
               </span>
               <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
             </button>
-            <button type="button" class="w-full flex items-center gap-3 min-h-[44px] px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="quick-schedule-week">
+            <button type="button" class="w-full flex items-center gap-3 min-h-[44px] px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="quick-schedule-week">
               <i class="ti ti-calendar-stats text-blue-500 text-lg shrink-0" aria-hidden="true"></i>
               <span class="flex-1 min-w-0">
                 <span class="block text-sm font-semibold text-gray-900 dark:text-white">Next 7 Days</span>
@@ -217,7 +217,7 @@
               </span>
               <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
             </button>
-            <button type="button" class="w-full flex items-center gap-3 min-h-[44px] px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="quick-schedule-season">
+            <button type="button" class="w-full flex items-center gap-3 min-h-[44px] px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green" data-action="quick-schedule-season">
               <i class="ti ti-calendar text-ecs-gold-500 dark:text-ecs-gold-400 text-lg shrink-0" aria-hidden="true"></i>
               <span class="flex-1 min-w-0">
                 <span class="block text-sm font-semibold text-gray-900 dark:text-white">Entire Season</span>
@@ -242,7 +242,7 @@
                 <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ msg.match.home_team.name }} vs {{ msg.match.away_team.name }}</p>
                 <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ msg.scheduled_send_time_pst.strftime('%b %d · %I:%M %p') }}</p>
               </div>
-              <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if msg.status == 'SENT' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+              <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if msg.status == 'SENT' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
                 <i class="ti {{ 'ti-circle-check' if msg.status == 'SENT' else 'ti-clock' }} text-[12px]" aria-hidden="true"></i>{{ msg.status }}
               </span>
             </div>
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="mb-4">
                     <h6 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">What gets posted</h6>
-                    <div class="p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                    <div class="p-3 bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-600">
                         <p class="text-gray-900 dark:text-white">The standard RSVP embed is posted to both teams' Discord channels with Yes / No / Maybe buttons.</p>
                     </div>
                 </div>

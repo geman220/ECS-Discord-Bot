@@ -15,7 +15,7 @@
         <div class="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800" id="league-tabs" role="tablist" aria-label="Leagues">
             {% for league in leagues %}
             <button type="button" role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}"
-                    class="league-tab inline-flex items-center gap-2 min-h-[40px] px-4 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-700 text-ecs-green shadow-sm' if loop.first else 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}"
+                    class="league-tab inline-flex items-center gap-2 min-h-[40px] px-4 rounded-lg text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-700 text-ecs-green shadow-xs' if loop.first else 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}"
                     data-tab="league-{{ league.id }}">
                 <i class="ti ti-shield-half text-base" aria-hidden="true"></i>{{ league.name }}
             </button>
@@ -53,11 +53,11 @@
                         <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">Build Schedule</h3>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 data-action="add-single-week" data-league-name="{{ league.name }}">
                             <i class="ti ti-plus" aria-hidden="true"></i> Add Single Week
                         </button>
-                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 bg-ecs-green hover:bg-ecs-green-700 text-white rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 bg-ecs-green hover:bg-ecs-green-700 text-white rounded-lg text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                 data-action="generate-form" data-league-name="{{ league.name }}">
                             <i class="ti ti-wand" aria-hidden="true"></i> Generate Input Form
                         </button>
@@ -109,7 +109,7 @@
                     <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-calendar-event text-ecs-green" aria-hidden="true"></i> Current Schedule
                     </h3>
-                    {% if weeks %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ week_count }} wk · {{ ns.matches }} mt</span>{% endif %}
+                    {% if weeks %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ week_count }} wk · {{ ns.matches }} mt</span>{% endif %}
                 </div>
                 {% if weeks %}
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -126,7 +126,7 @@
                             <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
                             <form method="POST" action="{{ url_for('publeague.schedule.delete_ecsfc_week', season_id=season.id, week_number=week) }}" class="shrink-0">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete week {{ week }}">
+                                <button type="submit" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-red-500" aria-label="Delete week {{ week }}">
                                     <i class="ti ti-trash" aria-hidden="true"></i><span class="hidden sm:inline">Week</span>
                                 </button>
                             </form>
@@ -145,7 +145,7 @@
                                     <i class="ti ti-map-pin text-[12px]" aria-hidden="true"></i>{{ match.location }}
                                 </span>
                                 <div class="flex gap-1 shrink-0">
-                                    <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-amber-500"
                                             data-action="edit-ecsfc-schedule-match"
                                             data-match-id="{{ match.match_id }}"
                                             data-team-a="{{ match.team_a }}"
@@ -159,7 +159,7 @@
                                     </button>
                                     <form action="{{ url_for('publeague.schedule.delete_ecsfc_match', match_id=match.match_id) }}" method="POST" class="inline">
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" aria-label="Delete match">
+                                        <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-8 sm:w-8 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-red-500" aria-label="Delete match">
                                             <i class="ti ti-trash" aria-hidden="true"></i>
                                         </button>
                                     </form>
@@ -268,7 +268,7 @@
         {% for league in leagues %}
         <div class="league-pane {{ 'hidden' if not loop.first else '' }}" id="league-{{ league.id }}">
             <!-- Bulk Match Creation Form -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h2 class="font-semibold text-gray-900 dark:text-white">Bulk Match Creation for {{ league.name }}</h2>
                     <button type="button" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
@@ -327,7 +327,7 @@
             <div id="detailedInputForm-{{ league.name }}" class="mb-6"></div>
 
             <!-- Current Schedule Display -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold text-gray-900 dark:text-white">Current Schedule for {{ league.name }}</h2>
                 </div>
@@ -340,7 +340,7 @@
                                 <h3 class="font-medium text-gray-900 dark:text-white">Week {{ week }} - {{ data.date }}</h3>
                                 <form method="POST" action="{{ url_for('publeague.schedule.delete_ecsfc_week', season_id=season.id, week_number=week) }}">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                    <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm">
                                         <i class="ti ti-trash"></i>
                                     </button>
                                 </form>
@@ -348,13 +348,13 @@
                             <div class="p-3 space-y-2">
                                 {% set sorted_matches = data.matches | sort(attribute='time') %}
                                 {% for match in sorted_matches %}
-                                <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                                <div class="flex justify-between items-center p-2 bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-600">
                                     <div>
                                         <p class="text-sm font-medium text-gray-900 dark:text-white">{{ match.team_a }} vs {{ match.team_b }}</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.time }} - {{ match.location }}</p>
                                     </div>
                                     <div class="flex gap-1">
-                                        <button type="button" class="p-1 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded"
+                                        <button type="button" class="p-1 text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-sm"
                                                 data-action="edit-ecsfc-schedule-match"
                                                 data-match-id="{{ match.match_id }}"
                                                 data-team-a="{{ match.team_a }}"
@@ -367,7 +367,7 @@
                                         </button>
                                         <form action="{{ url_for('publeague.schedule.delete_ecsfc_match', match_id=match.match_id) }}" method="POST" class="inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                            <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm">
                                                 <i class="ti ti-trash"></i>
                                             </button>
                                         </form>

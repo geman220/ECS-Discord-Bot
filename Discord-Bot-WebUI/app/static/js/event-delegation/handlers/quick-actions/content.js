@@ -226,19 +226,19 @@ window.EventDelegation.register('export-system-data', function(element, e) {
             <div class="mb-3">
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Data to Export</label>
                 <div class="flex items-center mb-2">
-                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportUsers" checked>
+                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportUsers" checked>
                     <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="exportUsers">User Data</label>
                 </div>
                 <div class="flex items-center mb-2">
-                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportSettings" checked>
+                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportSettings" checked>
                     <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="exportSettings">System Settings</label>
                 </div>
                 <div class="flex items-center mb-2">
-                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportLogs">
+                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportLogs">
                     <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="exportLogs">Audit Logs</label>
                 </div>
                 <div class="flex items-center mb-2">
-                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportTemplates">
+                    <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="exportTemplates">
                     <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="exportTemplates">Message Templates</label>
                 </div>
             </div>

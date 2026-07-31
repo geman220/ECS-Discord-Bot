@@ -136,7 +136,7 @@
                                 <ul id="channelStatusList" class="mt-2 space-y-1 text-sm"></ul>
                             </div>
                         </div>
-                        <button type="button" id="clearSelection" class="shrink-0 p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-lg" aria-label="Clear selection">
+                        <button type="button" id="clearSelection" class="shrink-0 p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-lg" aria-label="Clear selection">
                             <i class="ti ti-x" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -154,17 +154,17 @@
                     <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
                         <ul class="flex flex-wrap -mb-px text-sm font-medium" id="messageTabs" role="tablist">
                             <li role="presentation" id="sms-tab-container">
-                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="sms-tab" data-channel="sms" type="button" role="tab" aria-controls="sms-panel" aria-selected="true">
+                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="sms-tab" data-channel="sms" type="button" role="tab" aria-controls="sms-panel" aria-selected="true">
                                     <i class="ti ti-message-2" aria-hidden="true"></i>SMS
                                 </button>
                             </li>
                             <li role="presentation" id="discord-tab-container">
-                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="discord-tab" data-channel="discord" type="button" role="tab" aria-controls="discord-panel" aria-selected="false">
+                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="discord-tab" data-channel="discord" type="button" role="tab" aria-controls="discord-panel" aria-selected="false">
                                     <i class="ti ti-brand-discord" aria-hidden="true"></i>Discord DM
                                 </button>
                             </li>
                             <li role="presentation" id="email-tab-container">
-                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="email-tab" data-channel="email" type="button" role="tab" aria-controls="email-panel" aria-selected="false">
+                                <button class="channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed" id="email-tab" data-channel="email" type="button" role="tab" aria-controls="email-panel" aria-selected="false">
                                     <i class="ti ti-mail" aria-hidden="true"></i>Email
                                 </button>
                             </li>
@@ -202,7 +202,7 @@
                                     <span>Sends immediately and costs money per segment. "Reply STOP to opt out." is appended automatically for TCPA compliance. Requires a <strong>verified</strong> phone with consent on file.</span>
                                 </div>
 
-                                <button type="submit" id="sendSmsBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <button type="submit" id="sendSmsBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                     <i class="ti ti-send" aria-hidden="true"></i>Send SMS
                                 </button>
                             </form>
@@ -227,7 +227,7 @@
                                     <span>Free and instant. The bot must share a server with the member, and they must allow DMs from server members — if their privacy settings block it, the send reports as failed.</span>
                                 </div>
 
-                                <button type="submit" id="sendDiscordBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <button type="submit" id="sendDiscordBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                     <i class="ti ti-send" aria-hidden="true"></i>Send Discord DM
                                 </button>
                             </form>
@@ -257,7 +257,7 @@
                                     <span>Sent from <span class="font-mono">donotreply@weareecs.com</span>, so replies won't reach you.{% if has_email_layout %} Wrapped in the default league layout.{% else %} <strong>No default email layout is set</strong>, so this goes out unbranded — set one under Email Blasts → Layouts.{% endif %} Queued in the background — it lands within a few seconds.</span>
                                 </div>
 
-                                <button type="submit" id="sendEmailBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <button type="submit" id="sendEmailBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                     <i class="ti ti-send" aria-hidden="true"></i>Send Email
                                 </button>
                             </form>
@@ -308,7 +308,7 @@
             </div>
             <div class="max-h-80 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
                 {% for player in recent_players[:10] %}
-                <a href="#" class="quick-select-player flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+                <a href="#" class="quick-select-player flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green"
                    data-id="{{ player.id }}"
                    data-name="{{ player.name }}"
                    data-phone="{{ player.phone or '' }}"
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<div class="mx-auto max-w-[260px] rounded-[1.75rem] border-4 border-gray-800 dark:border-gray-600 bg-white dark:bg-gray-900 p-3 shadow-inner">' +
                   '<p class="text-center text-[10px] text-gray-400 mb-2">' + esc(who) + '</p>' +
                   '<div class="rounded-2xl rounded-bl-md bg-gray-100 dark:bg-gray-700 px-3 py-2">' +
-                    '<p class="text-[12px] leading-snug text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words">' + esc(full) + '</p>' +
+                    '<p class="text-[12px] leading-snug text-gray-900 dark:text-gray-100 whitespace-pre-wrap wrap-break-word">' + esc(full) + '</p>' +
                   '</div>' +
                   '<p class="mt-1.5 text-right text-[9px] text-gray-400">Delivered</p>' +
                 '</div>';
@@ -484,8 +484,8 @@ document.addEventListener('DOMContentLoaded', function() {
                   '<div class="flex items-start gap-2.5">' +
                     '<div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>' +
                     '<div class="min-w-0 flex-1">' +
-                      '<p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded bg-indigo-500 text-white text-[9px] uppercase">App</span></p>' +
-                      '<p class="mt-0.5 text-[13px] leading-snug text-gray-200 whitespace-pre-wrap break-words">' + esc(body) + '</p>' +
+                      '<p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded-sm bg-indigo-500 text-white text-[9px] uppercase">App</span></p>' +
+                      '<p class="mt-0.5 text-[13px] leading-snug text-gray-200 whitespace-pre-wrap wrap-break-word">' + esc(body) + '</p>' +
                     '</div>' +
                   '</div>' +
                 '</div>';
@@ -499,12 +499,12 @@ document.addEventListener('DOMContentLoaded', function() {
         surface.innerHTML =
             '<div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">' +
               '<div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">' +
-                '<p class="text-[13px] font-semibold text-gray-900 dark:text-white break-words">' + esc(subject) + '</p>' +
+                '<p class="text-[13px] font-semibold text-gray-900 dark:text-white wrap-break-word">' + esc(subject) + '</p>' +
                 '<p class="mt-0.5 text-[10px] text-gray-500 dark:text-gray-400 break-all">ECS &lt;donotreply@weareecs.com&gt; → ' + esc(to) + '</p>' +
               '</div>' +
               {% if has_email_layout %}'<div class="px-3 py-2.5 bg-ecs-green"><p class="text-[11px] font-bold uppercase tracking-wide text-white">Emerald City Supporters</p></div>' +{% endif %}
               '<div class="p-3">' +
-                '<p class="text-[12px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">' + esc(body) + '</p>' +
+                '<p class="text-[12px] leading-relaxed text-gray-800 dark:text-gray-200 whitespace-pre-wrap wrap-break-word">' + esc(body) + '</p>' +
               '</div>' +
             '</div>';
     }
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const c = CHANNELS[key];
             const tab = document.getElementById(c.tab);
             const on = key === channel;
-            tab.className = 'channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed ' +
+            tab.className = 'channel-tab inline-flex items-center gap-1.5 px-4 py-3 border-b-2 rounded-t-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green disabled:opacity-40 disabled:cursor-not-allowed ' +
                 (on ? TAB_ON : TAB_OFF);
             tab.setAttribute('aria-selected', on ? 'true' : 'false');
             document.getElementById(c.panel).classList.toggle('hidden', !on);

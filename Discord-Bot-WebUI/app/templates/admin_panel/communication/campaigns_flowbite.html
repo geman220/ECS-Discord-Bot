@@ -46,7 +46,7 @@
   {# Primary CTA lives in the header — the page's one job is launching/managing pushes #}
   {% call page_header('Push — Scheduled & History', subtitle='Schedule a push for later, or review how past sends performed') %}
     <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-plus text-sm" aria-hidden="true"></i>New Push
     </button>
   {% endcall %}
@@ -71,7 +71,7 @@
 
   {# ---- Campaigns table — status filter folded into the card header as one control surface ---- #}
   {% if campaigns.items %}
-    {% set seg_base = 'inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold border-y border-r first:border-l first:rounded-l-lg last:rounded-r-lg transition-colors focus:outline-none focus:z-10 focus:ring-2 focus:ring-ecs-green' %}
+    {% set seg_base = 'inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold border-y border-r first:border-l first:rounded-l-lg last:rounded-r-lg transition-colors focus:outline-hidden focus:z-10 focus:ring-2 focus:ring-ecs-green' %}
     {% set seg_on = 'bg-ecs-green text-white border-ecs-green' %}
     {% set seg_off = 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700' %}
     {% set page_lo = (campaigns.page - 1) * campaigns.per_page + 1 %}
@@ -85,32 +85,32 @@
              class="{{ seg_base }} {% if not status_filter %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
              {% if not status_filter %}aria-current="true"{% endif %}>
             <i class="ti ti-list text-sm" aria-hidden="true"></i>All
-            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if not status_filter %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.all }}</span>
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded-sm {% if not status_filter %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.all }}</span>
           </a>
           <a href="{{ url_for('admin_panel.campaigns_list', status='draft') }}"
              class="{{ seg_base }} {% if status_filter == 'draft' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
              {% if status_filter == 'draft' %}aria-current="true"{% endif %}>
             <i class="ti ti-file-text text-sm" aria-hidden="true"></i>Drafts
-            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'draft' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.draft }}</span>
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded-sm {% if status_filter == 'draft' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.draft }}</span>
           </a>
           <a href="{{ url_for('admin_panel.campaigns_list', status='scheduled') }}"
              class="{{ seg_base }} {% if status_filter == 'scheduled' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
              {% if status_filter == 'scheduled' %}aria-current="true"{% endif %}>
             <i class="ti ti-clock text-sm" aria-hidden="true"></i>Scheduled
-            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'scheduled' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.scheduled }}</span>
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded-sm {% if status_filter == 'scheduled' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.scheduled }}</span>
           </a>
           <a href="{{ url_for('admin_panel.campaigns_list', status='sent') }}"
              class="{{ seg_base }} {% if status_filter == 'sent' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
              {% if status_filter == 'sent' %}aria-current="true"{% endif %}>
             <i class="ti ti-check text-sm" aria-hidden="true"></i>Sent
-            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'sent' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.sent }}</span>
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded-sm {% if status_filter == 'sent' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.sent }}</span>
           </a>
           {% if status_counts.failed %}
           <a href="{{ url_for('admin_panel.campaigns_list', status='failed') }}"
              class="{{ seg_base }} {% if status_filter == 'failed' %}bg-red-600 text-white border-red-600{% else %}{{ seg_off }}{% endif %}"
              {% if status_filter == 'failed' %}aria-current="true"{% endif %}>
             <i class="ti ti-alert-triangle text-sm" aria-hidden="true"></i>Failed
-            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'failed' %}bg-white/20{% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% endif %}">{{ status_counts.failed }}</span>
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded-sm {% if status_filter == 'failed' %}bg-white/20{% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400{% endif %}">{{ status_counts.failed }}</span>
           </a>
           {% endif %}
         </nav>
@@ -137,11 +137,11 @@
               <div class="font-semibold text-gray-900 dark:text-white">{{ campaign.name }}</div>
               <div class="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{{ campaign.title }}</div>
               {% if campaign.priority == 'urgent' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400 mt-1">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400 mt-1">
                 <i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>Urgent
               </span>
               {% elif campaign.priority == 'high' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-400 mt-1">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-400 mt-1">
                 <i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>High
               </span>
               {% endif %}
@@ -202,25 +202,25 @@
             </td>
             <td class="px-3 py-3 align-top">
               <div class="flex items-center justify-end gap-1">
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
                   <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
                 {% if campaign.status == 'draft' %}
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-send" aria-hidden="true"></i>
                 </button>
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule" aria-label="Schedule campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Schedule" aria-label="Schedule campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-clock" aria-hidden="true"></i>
                 </button>
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Delete" aria-label="Delete campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Delete" aria-label="Delete campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-trash" aria-hidden="true"></i>
                 </button>
                 {% elif campaign.status == 'scheduled' %}
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel campaign" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel campaign" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-x" aria-hidden="true"></i>
                 </button>
                 {% endif %}
-                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
                   <i class="ti ti-copy" aria-hidden="true"></i>
                 </button>
               </div>
@@ -271,25 +271,25 @@
           </div>
           {% endif %}
           <div class="mt-2 flex flex-wrap items-center gap-1">
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
               <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
             {% if campaign.status == 'draft' %}
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-send" aria-hidden="true"></i>
             </button>
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule" aria-label="Schedule campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Schedule" aria-label="Schedule campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-clock" aria-hidden="true"></i>
             </button>
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Delete" aria-label="Delete campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Delete" aria-label="Delete campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
             {% elif campaign.status == 'scheduled' %}
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel campaign" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel campaign" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-x" aria-hidden="true"></i>
             </button>
             {% endif %}
-            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
               <i class="ti ti-copy" aria-hidden="true"></i>
             </button>
           </div>

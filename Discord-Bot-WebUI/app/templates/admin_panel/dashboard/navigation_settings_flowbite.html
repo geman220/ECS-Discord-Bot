@@ -42,11 +42,11 @@
         </p>
         <div class="flex items-center gap-2 shrink-0">
             <button type="button" id="resetDefaults"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">
                 <i class="ti ti-restore" aria-hidden="true"></i> Reset to Defaults
             </button>
             <button type="button" id="saveAll"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors">
                 <i class="ti ti-device-floppy" aria-hidden="true"></i> Save All
             </button>
         </div>
@@ -105,7 +105,7 @@
                     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                         <i class="ti ti-adjustments text-ecs-green" aria-hidden="true"></i> Sidebar Items
                     </h2>
-                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         <span data-kpi="visible-inline">{{ ns_visible }}</span>/{{ ns_total }} on
                     </span>
                 </div>
@@ -123,7 +123,7 @@
                             </label>
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.description }}</p>
                         </div>
-                        <span class="hidden sm:inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if item.enabled else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' }}" data-row-badge>
+                        <span class="hidden sm:inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-sm text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if item.enabled else 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' }}" data-row-badge>
                             <i class="ti {{ 'ti-eye' if item.enabled else 'ti-eye-off' }} text-[11px]" aria-hidden="true"></i>
                             <span data-row-badge-text>{{ 'Visible' if item.enabled else 'Hidden' }}</span>
                         </span>
@@ -133,7 +133,7 @@
                                    name="{{ item.key }}"
                                    {% if item.enabled %}checked{% endif %}
                                    data-setting="{{ item.key }}">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
                         </label>
                     </li>
                     {% endfor %}
@@ -176,7 +176,7 @@
                         <i class="ti ti-history text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Recent Changes
                     </h2>
                     {% if recent_changes %}
-                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_changes | length }}</span>
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_changes | length }}</span>
                     {% endif %}
                 </div>
                 {% if recent_changes %}
@@ -193,11 +193,11 @@
                             </p>
                         </div>
                         {% if change.new_value == 'true' %}
-                        <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                        <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-sm text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
                             <i class="ti ti-check text-[11px]" aria-hidden="true"></i> Enabled
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                        <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-sm text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                             <i class="ti ti-x text-[11px]" aria-hidden="true"></i> Disabled
                         </span>
                         {% endif %}
@@ -215,7 +215,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Settings -->
     <div class="lg:col-span-2">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                     <i class="ti ti-menu-2 mr-2"></i>Sidebar Navigation Settings
@@ -250,7 +250,7 @@
                                            name="{{ item.key }}"
                                            {% if item.enabled %}checked{% endif %}
                                            data-setting="{{ item.key }}">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
                                 </label>
                             </div>
                         </div>
@@ -279,7 +279,7 @@
     <!-- Sidebar -->
     <div class="space-y-6">
         <!-- Preview -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h6 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
                     <i class="ti ti-eye mr-2"></i>Preview
@@ -291,7 +291,7 @@
                 </p>
                 <ul id="previewList" class="space-y-1">
                     {% for item in nav_items %}
-                    <li class="preview-item flex items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 {{ 'hidden' if not item.enabled }}" data-key="{{ item.key }}">
+                    <li class="preview-item flex items-center p-2 rounded-sm hover:bg-gray-50 dark:hover:bg-gray-700 {{ 'hidden' if not item.enabled }}" data-key="{{ item.key }}">
                         <i class="ti ti-{{ item.icon }} text-blue-500 mr-2"></i>
                         <span class="text-gray-900 dark:text-white">{{ item.label }}</span>
                     </li>
@@ -301,7 +301,7 @@
         </div>
 
         <!-- Recent Changes -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h6 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
                     <i class="ti ti-history mr-2"></i>Recent Changes
@@ -315,9 +315,9 @@
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-900 dark:text-white">{{ change.setting }}</span>
                             {% if change.new_value == 'true' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Enabled</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Enabled</span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Disabled</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Disabled</span>
                             {% endif %}
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">

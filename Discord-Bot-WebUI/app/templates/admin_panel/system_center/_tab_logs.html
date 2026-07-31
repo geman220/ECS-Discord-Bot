@@ -91,7 +91,7 @@
               {% endfor %}
             </select>
           </div>
-          <div class="flex-1 min-w-[8rem]">
+          <div class="flex-1 min-w-32">
             <label for="logSearch" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Search message</label>
             <input id="logSearch" name="search" type="text" value="{{ logs.app.search }}" placeholder="substring…"
                    class="w-full h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-3">
@@ -130,7 +130,7 @@
       {% endif %}
 
       {% if logs.app.entries %}
-      <div class="max-h-[32rem] overflow-auto">
+      <div class="max-h-128 overflow-auto">
         <table class="w-full text-sm">
           <thead class="sticky top-0 bg-white dark:bg-gray-800 z-10">
             <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700/60">
@@ -148,7 +148,7 @@
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 {{ logtone.get(e.tone, logtone['neutral']) }}">{{ e.level }}</span>
               </td>
               <td class="px-4 py-2 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-all">{{ e.source }}</td>
-              <td class="px-4 py-2 font-mono text-xs text-gray-700 dark:text-gray-300 break-words">
+              <td class="px-4 py-2 font-mono text-xs text-gray-700 dark:text-gray-300 wrap-break-word">
                 {{ e.message }}
                 <span class="md:hidden block text-[10px] text-gray-400 mt-0.5">{{ e.timestamp }}</span>
               </td>
@@ -212,11 +212,11 @@
                 <span class="lg:hidden block text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ r.timestamp }}</span>
                 <span class="md:hidden block text-[11px] text-gray-500 dark:text-gray-400">{{ r.resource_type }}{% if r.resource_id %} · {{ r.resource_id }}{% endif %}</span>
               </td>
-              <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hidden md:table-cell break-words">
+              <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hidden md:table-cell wrap-break-word">
                 {{ r.resource_type }}{% if r.resource_id %} <span class="font-mono text-gray-400">#{{ r.resource_id }}</span>{% endif %}
               </td>
-              <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hidden sm:table-cell break-words">{{ r.actor }}</td>
-              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden xl:table-cell break-words max-w-xs">
+              <td class="px-4 py-2.5 text-xs text-gray-600 dark:text-gray-300 hidden sm:table-cell wrap-break-word">{{ r.actor }}</td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden xl:table-cell wrap-break-word max-w-xs">
                 {% if r.new_value %}<span class="font-mono break-all" title="{{ r.new_value }}">{{ r.new_value | truncate(80, True) }}</span>{% else %}<span class="text-gray-400">—</span>{% endif %}
               </td>
               <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-all">{{ r.ip }}</td>
@@ -318,7 +318,7 @@
           <form method="get" action="{{ url_for('admin_panel.system_center') }}" class="flex flex-wrap items-end gap-2">
             <input type="hidden" name="tab" value="logs">
             <input type="hidden" name="src" value="container">
-            <div class="flex-1 min-w-[12rem]">
+            <div class="flex-1 min-w-48">
               <label for="containerPick" class="block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Container</label>
               <select id="containerPick" name="container" class="w-full h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 px-2">
                 {% for c in logs.container.containers %}
@@ -335,8 +335,8 @@
         <div class="px-4 py-2 text-[11px] text-gray-500 dark:text-gray-400 font-mono">
           <i class="ti ti-box" aria-hidden="true"></i> {{ logs.container.selected }} <span class="text-gray-400">· last {{ logs.container.log_lines }} lines (live from Docker)</span>
         </div>
-        <div class="mx-4 mb-4 max-h-[32rem] overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-950">
-          <pre class="p-3 text-xs font-mono text-gray-100 whitespace-pre-wrap break-words leading-relaxed">{{ logs.container.log_text }}</pre>
+        <div class="mx-4 mb-4 max-h-128 overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-950">
+          <pre class="p-3 text-xs font-mono text-gray-100 whitespace-pre-wrap wrap-break-word leading-relaxed">{{ logs.container.log_text }}</pre>
         </div>
         {% else %}
           {{ empty_state('ti-file-search', 'No log output', 'The selected container produced no log lines. Nothing is fabricated to fill the view.') }}
@@ -372,7 +372,7 @@
               <i class="ti ti-chevron-right text-[11px] transition-transform group-open:rotate-90" aria-hidden="true"></i>Traceback
             </summary>
             <div class="mt-2 max-h-80 overflow-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-950">
-              <pre class="p-3 text-xs font-mono text-red-200 whitespace-pre-wrap break-words leading-relaxed">{{ r.error }}</pre>
+              <pre class="p-3 text-xs font-mono text-red-200 whitespace-pre-wrap wrap-break-word leading-relaxed">{{ r.error }}</pre>
             </div>
           </details>
           {% else %}
@@ -420,7 +420,7 @@
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ring-1 {{ logtone.get(e.tone, logtone['neutral']) }}">{{ e.severity | capitalize }}</span>
               </td>
               <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell break-all">{{ e.ip }}</td>
-              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell break-words">{{ e.description }}</td>
+              <td class="px-4 py-2.5 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell wrap-break-word">{{ e.description }}</td>
               <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap hidden md:table-cell">{{ e.created_at }}</td>
             </tr>
             {% endfor %}

@@ -129,7 +129,7 @@
                         <td class="px-2 py-2 text-right text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ p.coach_ratings|length }}</td>
                         <td class="px-2 py-2 text-center hidden sm:table-cell">
                             <select data-on-change="ratings-set-gender" data-player-id="{{ p.id }}"
-                                    class="py-1 pl-2 pr-6 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
+                                    class="py-1 pl-2 pr-6 text-xs rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200">
                                 <option value="" {{ 'selected' if not p.balance_gender }}>auto</option>
                                 <option value="M" {{ 'selected' if p.balance_gender == 'M' }}>M</option>
                                 <option value="N" {{ 'selected' if p.balance_gender == 'N' }}>N</option>
@@ -181,7 +181,7 @@
                                                        value="{{ '%.2f'|format(p.final[key].value) if p.final[key].overridden else '' }}"
                                                        placeholder="—" data-metric="{{ key }}" data-player-id="{{ p.id }}"
                                                        data-overridden="{{ '1' if p.final[key].overridden else '0' }}"
-                                                       class="cr-override-input w-16 py-1 px-1.5 text-right text-xs rounded border {{ 'border-amber-400 ring-1 ring-amber-300' if p.final[key].overridden else 'border-gray-200 dark:border-gray-600' }} bg-white dark:bg-gray-900">
+                                                       class="cr-override-input w-16 py-1 px-1.5 text-right text-xs rounded-sm border {{ 'border-amber-400 ring-1 ring-amber-300' if p.final[key].overridden else 'border-gray-200 dark:border-gray-600' }} bg-white dark:bg-gray-900">
                                             </td>
                                             {% endfor %}
                                         </tr>
@@ -210,7 +210,7 @@
 <div id="cr-metrics-modal" tabindex="-1" aria-hidden="true"
      class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-xl shadow dark:bg-gray-800">
+        <div class="relative bg-white rounded-xl shadow-sm dark:bg-gray-800">
             <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 rounded-t">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Edit metric guide text</h3>
                 <button type="button" data-modal-hide="cr-metrics-modal" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>
@@ -224,21 +224,21 @@
                 <div class="cr-metric-form {{ 'hidden' if not loop.first }} space-y-2" data-metric="{{ m.key }}">
                     <label class="block text-xs text-gray-600 dark:text-gray-300">Label
                         <input type="text" name="label" value="{{ m.label }}"
-                               class="mt-1 w-full py-1.5 px-2 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                               class="mt-1 w-full py-1.5 px-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                     </label>
                     <label class="block text-xs text-gray-600 dark:text-gray-300">Description
                         <textarea name="description" rows="3"
-                                  class="mt-1 w-full py-1.5 px-2 text-sm rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.description }}</textarea>
+                                  class="mt-1 w-full py-1.5 px-2 text-sm rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.description }}</textarea>
                     </label>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <label class="block text-xs text-gray-600 dark:text-gray-300">Scale anchor 1
-                            <textarea name="anchor_1" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_1 }}</textarea>
+                            <textarea name="anchor_1" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_1 }}</textarea>
                         </label>
                         <label class="block text-xs text-gray-600 dark:text-gray-300">Scale anchor 3
-                            <textarea name="anchor_3" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_3 }}</textarea>
+                            <textarea name="anchor_3" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_3 }}</textarea>
                         </label>
                         <label class="block text-xs text-gray-600 dark:text-gray-300">Scale anchor 5
-                            <textarea name="anchor_5" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_5 }}</textarea>
+                            <textarea name="anchor_5" rows="4" class="mt-1 w-full py-1.5 px-2 text-xs rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">{{ m.anchor_5 }}</textarea>
                         </label>
                     </div>
                 </div>
@@ -258,7 +258,7 @@
 <div id="cr-config-modal" tabindex="-1" aria-hidden="true"
      class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-xl shadow dark:bg-gray-800">
+        <div class="relative bg-white rounded-xl shadow-sm dark:bg-gray-800">
             <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 rounded-t">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Classic rating configuration</h3>
                 <button type="button" data-modal-hide="cr-config-modal" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>
@@ -274,7 +274,7 @@
                         <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                             <span class="flex-1 truncate">{{ m.label }}</span>
                             <input type="number" min="0" max="100" step="0.5" name="weight_{{ m.key }}" value="{{ weights[m.key] }}"
-                                   class="cr-weight w-16 py-1 px-1.5 text-right rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                   class="cr-weight w-16 py-1 px-1.5 text-right rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                         </label>
                         {% endfor %}
                     </div>
@@ -283,24 +283,24 @@
                 <div class="grid grid-cols-2 gap-3">
                     <label class="text-xs text-gray-600 dark:text-gray-300">Max per-metric team gap
                         <input type="number" min="0" max="100" step="0.25" name="max_metric_gap" value="{{ config.max_metric_gap }}"
-                               class="mt-1 w-full py-1.5 px-2 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                               class="mt-1 w-full py-1.5 px-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                     </label>
                     <label class="text-xs text-gray-600 dark:text-gray-300">Unrated player default
                         <input type="number" min="1" max="5" step="0.25" name="unrated_default" value="{{ config.unrated_default }}"
-                               class="mt-1 w-full py-1.5 px-2 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                               class="mt-1 w-full py-1.5 px-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                     </label>
                     <label class="text-xs text-gray-600 dark:text-gray-300">Suggestions shown
                         <input type="number" min="1" max="50" step="1" name="suggestion_count" value="{{ config.suggestion_count }}"
-                               class="mt-1 w-full py-1.5 px-2 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                               class="mt-1 w-full py-1.5 px-2 rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                     </label>
                     <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 mt-5">
                         <input type="checkbox" name="gender_balance_enabled" {{ 'checked' if config.gender_balance_enabled }}
-                               class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green">
+                               class="w-4 h-4 rounded-sm text-ecs-green focus:ring-ecs-green">
                         Factor M/N balance
                     </label>
                     <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 col-span-2">
                         <input type="checkbox" name="balanced_draft_enabled" {{ 'checked' if config.balanced_draft_enabled }}
-                               class="w-4 h-4 rounded text-ecs-green focus:ring-ecs-green">
+                               class="w-4 h-4 rounded-sm text-ecs-green focus:ring-ecs-green">
                         Serve the balanced-draft UI at /draft/classic (off = legacy draft)
                     </label>
                 </div>
@@ -311,7 +311,7 @@
                         <label class="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                             <span class="flex-1">{{ label }}</span>
                             <input type="number" min="0" max="10" step="0.05" name="coeff_{{ key }}" value="{{ config.suggestion_coefficients[key] }}"
-                                   class="w-16 py-1 px-1.5 text-right rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
+                                   class="w-16 py-1 px-1.5 text-right rounded-sm border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900">
                         </label>
                         {% endfor %}
                     </div>

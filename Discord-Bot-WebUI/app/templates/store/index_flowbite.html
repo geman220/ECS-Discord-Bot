@@ -24,14 +24,14 @@
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                   bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600
                   hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-list" aria-hidden="true"></i>My Orders
         </a>
         {% if is_store_admin %}
         <a href="{{ url_for('store.admin') }}"
            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                   bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-settings" aria-hidden="true"></i>Store Administration
         </a>
         {% endif %}
@@ -60,15 +60,15 @@
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Locked in for the season</p>
                         <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ current_season_order.item.name if current_season_order.item else 'Unknown Item' }}</p>
                         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            {% if current_season_order.selected_color %}<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded">{{ current_season_order.selected_color }}</span>{% endif %}
-                            {% if current_season_order.selected_size %}<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ current_season_order.selected_size }}</span>{% endif %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded font-mono">Qty {{ current_season_order.quantity }}</span>
+                            {% if current_season_order.selected_color %}<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded-sm">{{ current_season_order.selected_color }}</span>{% endif %}
+                            {% if current_season_order.selected_size %}<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">{{ current_season_order.selected_size }}</span>{% endif %}
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm font-mono">Qty {{ current_season_order.quantity }}</span>
                         </div>
                     </div>
                 </div>
                 <div class="shrink-0 sm:border-l sm:border-gray-200 sm:dark:border-gray-700 sm:pl-6">
                     <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</p>
-                    <span class="mt-1 inline-flex items-center gap-1 px-2.5 py-1 text-sm font-semibold rounded {{ sm.cls }}">
+                    <span class="mt-1 inline-flex items-center gap-1 px-2.5 py-1 text-sm font-semibold rounded-sm {{ sm.cls }}">
                         <i class="ti {{ sm.i }}" aria-hidden="true"></i>{{ sm.word }}
                     </span>
                 </div>
@@ -91,7 +91,7 @@
                 <a href="#store-catalog"
                    class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
                           bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                          focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                          focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-arrow-down" aria-hidden="true"></i>Browse Catalog
                 </a>
                 {% endif %}
@@ -145,7 +145,7 @@
             <div class="flex items-center justify-between gap-2">
                 <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-building-store text-ecs-green" aria-hidden="true"></i>Catalog
-                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ items|length }}</span>
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ items|length }}</span>
                 </h2>
             </div>
 
@@ -164,7 +164,7 @@
                         {% endif %}
                         {% if item.category %}
                         <span class="absolute top-2 left-2 inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-md
-                                     bg-white/90 dark:bg-gray-900/80 text-ecs-green dark:text-green-400 backdrop-blur">
+                                     bg-white/90 dark:bg-gray-900/80 text-ecs-green dark:text-green-400 backdrop-blur-sm">
                             <i class="ti ti-tag mr-1" aria-hidden="true"></i>{{ item.category }}
                         </span>
                         {% endif %}
@@ -185,7 +185,7 @@
                                 <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Colors</span>
                                 <div class="flex flex-wrap gap-1 mt-1">
                                     {% for color in colors %}
-                                    <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded">{{ color }}</span>
+                                    <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded-sm">{{ color }}</span>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -195,7 +195,7 @@
                                 <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Sizes</span>
                                 <div class="flex flex-wrap gap-1 mt-1">
                                     {% for size in sizes %}
-                                    <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded font-mono">{{ size }}</span>
+                                    <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm font-mono">{{ size }}</span>
                                     {% endfor %}
                                 </div>
                             </div>
@@ -212,7 +212,7 @@
                             <button type="button" data-modal-target="orderModal{{ item.id }}" data-modal-toggle="orderModal{{ item.id }}"
                                     class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
                                            bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                 <i class="ti ti-shopping-cart" aria-hidden="true"></i>Order Item
                             </button>
                             {% endif %}
@@ -240,7 +240,7 @@
                         <i class="ti ti-history text-ecs-green" aria-hidden="true"></i>Recent Orders
                     </h2>
                     {% if recent_orders %}
-                    <a href="{{ url_for('store.my_orders') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-1">All</a>
+                    <a href="{{ url_for('store.my_orders') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm px-1">All</a>
                     {% endif %}
                 </div>
                 {% if recent_orders %}
@@ -251,7 +251,7 @@
                         <div class="flex items-center justify-between gap-2">
                             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ order.item.name if order.item else 'Unknown Item' }}</span>
                             {% if os %}
-                            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded {{ os.cls }}">
+                            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm {{ os.cls }}">
                                 <i class="ti {{ os.i }}" aria-hidden="true"></i>{{ os.word }}
                             </span>
                             {% endif %}
@@ -319,7 +319,7 @@
 
     <!-- Recent Orders -->
     {% if recent_orders %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Recent Orders</h5>
         </div>
@@ -342,23 +342,23 @@
                         <td class="px-4 py-3">{{ order.quantity }}</td>
                         <td class="px-4 py-3">
                             {% if order.selected_color %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ order.selected_color }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ order.selected_color }}</span>
                             {% endif %}
                             {% if order.selected_size %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ order.selected_size }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">{{ order.selected_size }}</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
                             {% if order.status == 'PENDING' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Pending</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-sm">Pending</span>
                             {% elif order.status == 'PROCESSING' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">Processing</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">Processing</span>
                             {% elif order.status == 'ORDERED' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Ordered</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded-sm">Ordered</span>
                             {% elif order.status == 'DELIVERED' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Delivered</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Delivered</span>
                             {% elif order.status == 'CANCELLED' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">Cancelled</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded-sm">Cancelled</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">{{ order.season.name if order.season else 'Unknown' }}</td>
@@ -375,7 +375,7 @@
     {% if items %}
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for item in items %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
             {% if item.image_url %}
             <img src="{{ item.image_url }}" class="w-full h-48 object-cover" alt="{{ item.name }}">
             {% else %}
@@ -388,7 +388,7 @@
                 <div class="flex-1">
                     <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ item.name }}</h5>
                     {% if item.category %}
-                    <span class="inline-block px-2 py-0.5 text-xs font-medium bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300 rounded mb-2">{{ item.category }}</span>
+                    <span class="inline-block px-2 py-0.5 text-xs font-medium bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300 rounded-sm mb-2">{{ item.category }}</span>
                     {% endif %}
                     {% if item.description %}
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ item.description }}</p>
@@ -402,7 +402,7 @@
                         <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Available Colors:</span>
                         <div class="flex flex-wrap gap-1 mt-1">
                             {% for color in colors %}
-                            <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ color }}</span>
+                            <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ color }}</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -416,7 +416,7 @@
                         <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Available Sizes:</span>
                         <div class="flex flex-wrap gap-1 mt-1">
                             {% for size in sizes %}
-                            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ size }}</span>
+                            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">{{ size }}</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -439,7 +439,7 @@
     </div>
     {% else %}
     <!-- No Items -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
         <i class="ti ti-shopping-cart-off text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
         <h4 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No Items Available</h4>
         <p class="text-gray-400 dark:text-gray-500 mb-4">There are currently no items available in the store.</p>

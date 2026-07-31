@@ -154,8 +154,8 @@ function displayResult(data) {
     resultCard.classList.add(isValid ? 'valid' : 'invalid');
 
     let statusBadge = isValid
-        ? '<span class="px-3 py-1 text-sm font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge><i class="ti ti-check mr-1"></i>VALID</span>'
-        : '<span class="px-3 py-1 text-sm font-semibold rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge><i class="ti ti-x mr-1"></i>INVALID</span>';
+        ? '<span class="px-3 py-1 text-sm font-semibold rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge><i class="ti ti-check mr-1"></i>VALID</span>'
+        : '<span class="px-3 py-1 text-sm font-semibold rounded-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge><i class="ti ti-x mr-1"></i>INVALID</span>';
 
     let alertHtml = '';
     if (!isValid && data.reason) {
@@ -173,7 +173,7 @@ function displayResult(data) {
         <div class="c-table-wrapper" data-table-responsive>
             <table class="c-table c-table--compact mb-0" data-mobile-table data-table-type="checkins" data-table>
                 <tr><td class="text-gray-500 dark:text-gray-400 u-w-35-percent">Email</td><td class="text-gray-900 dark:text-white">${pass.member_email || '-'}</td></tr>
-                <tr><td class="text-gray-500 dark:text-gray-400">Pass Type</td><td><span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" data-badge>${pass.pass_type || '-'}</span></td></tr>
+                <tr><td class="text-gray-500 dark:text-gray-400">Pass Type</td><td><span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" data-badge>${pass.pass_type || '-'}</span></td></tr>
                 <tr><td class="text-gray-500 dark:text-gray-400">Validity</td><td class="text-gray-900 dark:text-white">${pass.validity || '-'}</td></tr>
                 ${pass.team_name ? `<tr><td class="text-gray-500 dark:text-gray-400">Team</td><td class="text-gray-900 dark:text-white">${pass.team_name}</td></tr>` : ''}
                 <tr><td class="text-gray-500 dark:text-gray-400">Status</td><td class="text-gray-900 dark:text-white">${pass.status}</td></tr>
@@ -217,7 +217,7 @@ function addToHistory(data) {
                 ${data.pass ? `<p class="text-xs text-gray-500 dark:text-gray-400">${data.pass.pass_type}</p>` : ''}
             </div>
             <div class="text-right">
-                <span class="px-2 py-0.5 text-xs font-medium rounded ${isValid ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}" data-badge>${isValid ? 'Valid' : 'Invalid'}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${isValid ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}" data-badge>${isValid ? 'Valid' : 'Invalid'}</span>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${time}</p>
             </div>
         </div>

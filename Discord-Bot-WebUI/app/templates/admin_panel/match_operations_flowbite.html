@@ -22,13 +22,13 @@
   {# ---- Title + primary CTA (one primary job: schedule the next match) ---- #}
   {% call page_header('Operations Cockpit', subtitle='Match & League Operations') %}
     <a href="{{ url_for('admin_panel.live_matches') }}"
-       class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-broadcast text-base text-green-600 dark:text-green-400" aria-hidden="true"></i>
       <span class="hidden sm:inline">Live</span>
-      {% if stats.live_matches %}<span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ stats.live_matches }}</span>{% endif %}
+      {% if stats.live_matches %}<span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ stats.live_matches }}</span>{% endif %}
     </a>
     <a href="{{ url_for('admin_panel.schedule_matches') }}"
-       class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+       class="h-9 px-3.5 inline-flex items-center gap-1.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-calendar-plus text-base" aria-hidden="true"></i> Schedule Match
     </a>
   {% endcall %}
@@ -152,10 +152,10 @@
         {% for value, label in tabs %}
         <button type="button" role="tab" data-fb-status="{{ value }}"
                 aria-selected="{{ 'true' if value == 'all' else 'false' }}"
-                class="fb-tab h-8 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                class="fb-tab h-8 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                        {{ 'bg-ecs-green text-white' if value == 'all' else 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
           {{ label }}
-          <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded {{ 'bg-white/20' if value == 'all' else 'bg-gray-100 dark:bg-gray-700' }}">{{ status_counts.get(value, 0) }}</span>
+          <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-sm {{ 'bg-white/20' if value == 'all' else 'bg-gray-100 dark:bg-gray-700' }}">{{ status_counts.get(value, 0) }}</span>
         </button>
         {% endfor %}
       </div>
@@ -178,8 +178,8 @@
       <div data-fb-day class="px-4 sm:px-5 py-3">
         <div class="flex items-center gap-2 mb-2">
           <h3 class="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">{{ day.label }}</h3>
-          {% if day.is_today %}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">TODAY</span>{% endif %}
-          <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ day.count }}</span>
+          {% if day.is_today %}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">TODAY</span>{% endif %}
+          <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ day.count }}</span>
         </div>
         <div class="space-y-1.5">
           {% for row in day.rows %}
@@ -325,12 +325,12 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
           <i class="ti {{ card_data.icon }} {{ card_data.tone }}" aria-hidden="true"></i> {{ card_data.title }}
         </h2>
-        <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ card_data.links | length }}</span>
+        <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">{{ card_data.links | length }}</span>
       </div>
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for link in card_data.links %}
         <a href="{{ link.url }}"
-           class="flex items-center gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green group">
+           class="flex items-center gap-3 px-4 sm:px-5 py-3 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green group">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 group-hover:bg-ecs-green/10 dark:group-hover:bg-ecs-green/20 flex items-center justify-center transition-colors">
             <i class="ti {{ link.icon }} text-gray-500 dark:text-gray-400 group-hover:text-ecs-green transition-colors" aria-hidden="true"></i>
           </span>

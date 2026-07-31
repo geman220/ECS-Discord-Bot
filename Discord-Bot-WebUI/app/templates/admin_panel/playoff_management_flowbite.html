@@ -41,12 +41,12 @@
         <div class="mt-4 flex flex-wrap gap-2">
           {% if active_n > 0 %}
           <a href="#" data-action="view-active"
-             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-tournament" aria-hidden="true"></i>Manage Active
           </a>
           {% endif %}
           <a href="#" data-action="bracket-gen"
-             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-sitemap" aria-hidden="true"></i>Bracket Generator
           </a>
         </div>
@@ -122,7 +122,7 @@
           <i class="ti ti-tournament text-ecs-green" aria-hidden="true"></i> Tournament Status
         </h2>
         {% if active_n > 0 %}
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ active_n }} live</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ active_n }} live</span>
         {% endif %}
       </div>
       {% if active_n > 0 or completed_n > 0 %}
@@ -179,13 +179,13 @@
             <div class="flex gap-2">
               {% if t.manage_url %}
               <a href="{{ t.manage_url }}"
-                 class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                 class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-settings" aria-hidden="true"></i>Manage
               </a>
               {% endif %}
               {% if t.bracket_url %}
               <a href="{{ t.bracket_url }}"
-                 class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                 class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-500/25 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-tournament" aria-hidden="true"></i>Bracket
               </a>
               {% endif %}
@@ -197,15 +197,15 @@
         <!-- Command toolbar -->
         <div class="flex flex-wrap gap-2">
           <a href="#" data-action="view-active"
-             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-tournament" aria-hidden="true"></i>Manage Active
           </a>
           <a href="#" data-action="view-brackets"
-             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-sitemap" aria-hidden="true"></i>View Brackets
           </a>
           <a href="#" data-action="update-results"
-             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+             class="inline-flex items-center gap-1.5 min-h-[44px] px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-edit" aria-hidden="true"></i>Update Results
           </a>
         </div>
@@ -218,7 +218,7 @@
         <h3 class="text-base font-semibold text-gray-900 dark:text-white">No playoffs yet</h3>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No playoff matches are flagged in the current season. Use the bracket generator to start seeding teams and generating a bracket.</p>
         <a href="#" data-action="bracket-gen"
-                class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-sitemap" aria-hidden="true"></i>Open Bracket Generator
         </a>
       </div>
@@ -234,17 +234,17 @@
       <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
         <li>
           <a href="#" data-action="view-active"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-tournament text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Active Playoffs</span>
             </span>
-            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ active_n }}</span>
+            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ active_n }}</span>
           </a>
         </li>
         <li>
           <a href="#" data-action="bracket-gen"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-sitemap text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Bracket Generator</span>
@@ -254,17 +254,17 @@
         </li>
         <li>
           <a href="#" data-action="seed-teams"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-sort-ascending text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Seed Teams</span>
             </span>
-            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams_n }}</span>
+            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams_n }}</span>
           </a>
         </li>
         <li>
           <a href="#" data-action="update-results"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-edit text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Update Match Results</span>
@@ -274,7 +274,7 @@
         </li>
         <li>
           <a href="#" data-action="view-brackets"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-tournament text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">View Brackets</span>
@@ -284,17 +284,17 @@
         </li>
         <li>
           <a href="#" data-action="playoff-history"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-history text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Playoff History</span>
             </span>
-            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ completed_n }}</span>
+            <span class="shrink-0 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ completed_n }}</span>
           </a>
         </li>
         <li>
           <a href="#" data-action="generate-reports"
-             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-3 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-3 min-w-0">
               <i class="ti ti-file-report text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">Generate Reports</span>
@@ -311,7 +311,7 @@
 {% else %}
 <!-- Playoff Overview Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-500 text-white rounded-lg shadow p-5">
+    <div class="bg-blue-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ stats.active_playoffs or 0 }}</p>
@@ -322,7 +322,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-green-500 text-white rounded-lg shadow p-5">
+    <div class="bg-green-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ stats.completed_playoffs or 0 }}</p>
@@ -333,7 +333,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-500 text-white rounded-lg shadow p-5">
+    <div class="bg-yellow-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ stats.upcoming_matches or 0 }}</p>
@@ -344,7 +344,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-500 text-white rounded-lg shadow p-5">
+    <div class="bg-cyan-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ stats.playoff_teams or 0 }}</p>
@@ -360,7 +360,7 @@
 <!-- Management Actions -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Create & Manage Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-plus mr-2"></i>Create & Manage
@@ -400,7 +400,7 @@
     </div>
 
     <!-- Results & Reports Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-chart-dots mr-2"></i>Results & Reports

@@ -29,9 +29,9 @@ function genderGlyph(gender) {
 function compositeChip(player) {
     const composite = player?.ratings?.composite;
     if (composite === null || composite === undefined) {
-        return '<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-gray-100 dark:bg-gray-700 text-gray-400">?</span>';
+        return '<span class="px-1.5 py-0.5 rounded-sm text-[10px] font-mono bg-gray-100 dark:bg-gray-700 text-gray-400">?</span>';
     }
-    return `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-ecs-green/10 text-ecs-green">${fmt(composite)}</span>`;
+    return `<span class="px-1.5 py-0.5 rounded-sm text-[10px] font-mono bg-ecs-green/10 text-ecs-green">${fmt(composite)}</span>`;
 }
 
 function metricLabel(key) {
@@ -61,7 +61,7 @@ function metricGrid(player) {
     if (player.is_coach) return '';
     const cells = DISPLAY_ORDER.map(metric => {
         const value = player?.ratings?.metrics?.[metric];
-        return `<span class="px-1 py-0.5 rounded text-center ${valueCellClass(metric, value)}"
+        return `<span class="px-1 py-0.5 rounded-sm text-center ${valueCellClass(metric, value)}"
                       title="${esc(metricLabel(metric))}">${value === null || value === undefined ? '–' : Number(value).toFixed(2)}</span>`;
     }).join('');
     return `<span class="grid grid-cols-2 gap-0.5 font-mono text-[10px] leading-tight w-[4.6rem] shrink-0">${cells}</span>`;
@@ -85,7 +85,7 @@ function gkTag(player) {
     const freq = (player.gk_willingness || '').toLowerCase();
     const partTime = /sometimes|maybe|part|occasion|rarely|pt/.test(freq);
     const label = partTime ? 'PT' : 'GK';
-    return `<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 shrink-0"
+    return `<span class="px-1 py-0.5 rounded-sm text-[9px] font-bold bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 shrink-0"
                   title="GK: ${esc(player.gk_willingness || 'willing')}">${label}</span>`;
 }
 
@@ -144,18 +144,18 @@ function rosterRow(player) {
             ${avatar(player, 'w-6 h-6')}
             <span class="min-w-0 flex-1 flex items-center gap-1">
                 <span class="text-xs font-medium text-gray-900 dark:text-white truncate">${esc(player.name)}</span>
-                ${player.is_coach ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 shrink-0">C</span>' : genderGlyph(player.gender)}
+                ${player.is_coach ? '<span class="px-1 py-0.5 rounded-sm text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 shrink-0">C</span>' : genderGlyph(player.gender)}
                 ${player.is_new && !player.is_coach ? '<span class="text-[9px] font-bold text-amber-500 shrink-0">N</span>' : ''}
             </span>
             ${gkTag(player)}
             ${metricGrid(player)}
             <button type="button" data-action="balanced-toggle-player-detail" data-target="${detailId}"
-                    class="p-0.5 rounded text-gray-400 hover:text-ecs-green shrink-0"><i class="ti ti-chevron-down text-xs transition-transform"></i></button>
+                    class="p-0.5 rounded-sm text-gray-400 hover:text-ecs-green shrink-0"><i class="ti ti-chevron-down text-xs transition-transform"></i></button>
         </div>
         <div id="${detailId}" class="hidden px-2 pb-2 text-[11px] text-gray-500 dark:text-gray-400 space-y-1">
             ${playerDetailHtml(player)}
             ${player.is_coach ? '' : `<button type="button" data-action="balanced-remove-player" data-player-id="${player.id}"
-                class="mt-1 inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                class="mt-1 inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                 <i class="ti ti-x text-xs"></i>Remove from team</button>`}
         </div>
     </div>`;
@@ -201,7 +201,7 @@ export function renderTeams() {
                 && (gaps[metric].maxTeamId === team.id || gaps[metric].minTeamId === team.id);
             const barWidth = entry.avg === null ? 0 : Math.max(0, Math.min(100, ((entry.avg - 1) / 4) * 100));
             return `
-            <div class="flex items-center gap-1.5 text-base ${offending ? 'ring-1 ring-red-400 rounded px-1 -mx-1' : ''}"
+            <div class="flex items-center gap-1.5 text-base ${offending ? 'ring-1 ring-red-400 rounded-sm px-1 -mx-1' : ''}"
                  title="${esc(metricLabel(metric))} — total ${fmt(entry.total, 1)}, avg ${fmt(entry.avg)}">
                 <span class="w-8 shrink-0 text-[11px] text-gray-500 dark:text-gray-400">${METRIC_SHORT[metric]}</span>
                 <div class="flex-1 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -219,7 +219,7 @@ export function renderTeams() {
                     class="w-full px-3 py-2.5 text-left border-b border-gray-200 dark:border-gray-700">
                 <span class="flex items-center gap-2">
                     <span class="text-sm font-bold text-gray-900 dark:text-white truncate flex-1">${esc(team.name)}</span>
-                    ${active ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-ecs-green text-white">TARGET</span>' : ''}
+                    ${active ? '<span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-ecs-green text-white">TARGET</span>' : ''}
                 </span>
                 <span class="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 flex-wrap">
                     <span>${totals.size} players</span>
@@ -287,20 +287,20 @@ export function renderPool() {
             <div class="flex items-center gap-2 px-2.5 py-2 cursor-grab active:cursor-grabbing">
                 <input type="checkbox" data-on-change="balanced-multi-toggle" data-player-id="${player.id}"
                        ${state.selectedIds.has(player.id) ? 'checked' : ''}
-                       class="db-multi-check w-3.5 h-3.5 rounded text-ecs-green focus:ring-ecs-green shrink-0"
+                       class="db-multi-check w-3.5 h-3.5 rounded-sm text-ecs-green focus:ring-ecs-green shrink-0"
                        aria-label="Select ${esc(player.name)} for multi-assign">
                 ${avatar(player, 'w-7 h-7')}
                 <span class="min-w-0 flex-1">
                     <span class="flex items-center gap-1.5">
                         <span class="text-xs font-medium text-gray-900 dark:text-white truncate">${esc(player.name)}</span>
                         ${genderGlyph(player.gender)}
-                        ${player.is_new ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">NEW</span>' : ''}
+                        ${player.is_new ? '<span class="px-1 py-0.5 rounded-sm text-[9px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">NEW</span>' : ''}
                         ${player.wants_gk ? '<span class="text-sky-500" title="Willing to GK"><i class="ti ti-hand-stop text-xs"></i></span>' : ''}
                     </span>
                 </span>
                 ${compositeChip(player)}
                 <button type="button" data-action="balanced-toggle-player-detail" data-target="${detailId}"
-                        class="p-1 rounded text-gray-400 hover:text-ecs-green"><i class="ti ti-chevron-down text-xs transition-transform"></i></button>
+                        class="p-1 rounded-sm text-gray-400 hover:text-ecs-green"><i class="ti ti-chevron-down text-xs transition-transform"></i></button>
                 <button type="button" data-action="balanced-draft-player" data-player-id="${player.id}"
                         class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-ecs-green text-white hover:bg-ecs-green/90">Draft</button>
             </div>
@@ -386,15 +386,15 @@ export function renderSuggestions(suggestions, loading = false, error = null) {
         return `
         <div class="px-2.5 py-2 space-y-1 ${s.violates_gap ? 'opacity-70' : ''} ${best ? 'bg-ecs-green/5 border-l-2 border-ecs-green' : ''}">
             <div class="flex items-center gap-2">
-                ${best ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-ecs-green text-white shrink-0" title="Best mathematical fit — advisory only">BEST</span>'
+                ${best ? '<span class="px-1 py-0.5 rounded-sm text-[9px] font-bold bg-ecs-green text-white shrink-0" title="Best mathematical fit — advisory only">BEST</span>'
                        : `<span class="w-5 text-center font-mono text-[11px] text-gray-400">${s.rank}</span>`}
                 ${avatar(s, 'w-6 h-6')}
                 <span class="min-w-0 flex-1 flex items-center gap-1.5">
                     <span class="text-xs font-semibold text-gray-900 dark:text-white truncate">${esc(s.name)}</span>
                     ${genderGlyph(s.gender)}
-                    ${s.is_rated ? '' : '<span class="px-1 py-0.5 rounded text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-400">unrated</span>'}
+                    ${s.is_rated ? '' : '<span class="px-1 py-0.5 rounded-sm text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-400">unrated</span>'}
                     ${s.wants_gk ? '<span class="text-sky-500"><i class="ti ti-hand-stop text-xs"></i></span>' : ''}
-                    ${s.violates_gap ? '<span class="px-1 py-0.5 rounded text-[9px] font-bold bg-red-100 dark:bg-red-900/30 text-red-500" title="Would push a metric gap over the limit">gap!</span>' : ''}
+                    ${s.violates_gap ? '<span class="px-1 py-0.5 rounded-sm text-[9px] font-bold bg-red-100 dark:bg-red-900/30 text-red-500" title="Would push a metric gap over the limit">gap!</span>' : ''}
                 </span>
                 <span class="font-mono text-[11px] text-gray-500" title="Fit score (balance ${s.components.balance}, need ${s.components.need}, gender ${s.components.gender}, position ${s.components.position})">fit ${s.fit_score}</span>
                 <button type="button" data-action="balanced-draft-player" data-player-id="${s.player_id}" data-team-id="${state.suggestTeamId}"

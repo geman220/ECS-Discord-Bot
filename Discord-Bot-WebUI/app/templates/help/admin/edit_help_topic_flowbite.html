@@ -38,11 +38,11 @@
                 <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ecs-green">
                     <i class="ti ti-pencil-cog text-sm" aria-hidden="true"></i> Editing Topic
                 </span>
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">#{{ topic.id }}</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">#{{ topic.id }}</span>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
-                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-eye text-sm" aria-hidden="true"></i> View Live
                 </a>
                 {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
@@ -51,7 +51,7 @@
 
         <div class="px-4 sm:px-5 py-4">
             <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Title</p>
-            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white break-words">{{ topic.title }}</h1>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white wrap-break-word">{{ topic.title }}</h1>
         </div>
 
         {# KPI band — real metadata from the HelpTopic model #}

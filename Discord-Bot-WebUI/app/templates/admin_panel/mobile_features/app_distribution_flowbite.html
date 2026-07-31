@@ -27,7 +27,7 @@
 
   {% call page_header('App Distribution', subtitle='Mobile Features') %}
     <a href="{{ url_for('admin_panel.mobile_features') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Mobile
     </a>
   {% endcall %}
@@ -54,7 +54,7 @@
 
 <!-- Distribution Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
                 <i class="ti ti-brand-apple text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -63,7 +63,7 @@
             <span class="text-sm text-blue-700 dark:text-blue-300">iOS Version</span>
         </div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-brand-android text-2xl text-green-600 dark:text-green-400"></i>
@@ -72,7 +72,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Android Version</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-download text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -81,7 +81,7 @@
             <span class="text-sm text-cyan-700 dark:text-cyan-300">Total Installs</span>
         </div>
     </div>
-    <div class="bg-ecs-green/10 dark:bg-ecs-green/20 rounded-lg shadow p-5">
+    <div class="bg-ecs-green/10 dark:bg-ecs-green/20 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-ecs-green/20 dark:bg-ecs-green/30 mb-3">
                 <i class="ti ti-refresh text-2xl text-ecs-green"></i>
@@ -95,7 +95,7 @@
 <!-- Distribution Channels -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- iOS Distribution -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-brand-apple mr-2"></i>iOS Distribution
@@ -137,7 +137,7 @@
     </div>
 
     <!-- Android Distribution -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-brand-android mr-2"></i>Android Distribution
@@ -180,7 +180,7 @@
 </div>
 
 <!-- Version History -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="flex flex-wrap items-center justify-between gap-4 p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-history mr-2"></i>Version History
@@ -238,7 +238,7 @@
 </div>
 
 <!-- Quick Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-bolt mr-2"></i>Quick Actions

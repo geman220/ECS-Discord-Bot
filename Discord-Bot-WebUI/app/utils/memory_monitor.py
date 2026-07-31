@@ -164,6 +164,11 @@ class MemoryMonitor:
         gc.collect(2)  # Full collection
         
         # 2. Clear any module caches if possible
+        #
+        # Currently a permanent no-op: Flask-Caching isn't in requirements.txt, so this
+        # import always raises ImportError and is swallowed below. Left in place because
+        # it costs nothing and becomes real if app/static.py is ever wired up (see the
+        # checklist in that file). Do not read the log line below as proof it ran.
         try:
             from app.database.cache import cache
             if hasattr(cache, 'clear'):

@@ -24,6 +24,13 @@ export default defineConfig({
     // Global test setup
     setupFiles: ['./vitest.setup.js'],
 
+    // See the datatables aliases in `resolve` below.
+    server: {
+      deps: {
+        inline: [/datatables\.net/],
+      },
+    },
+
     // Enable globals (describe, it, expect, etc.)
     globals: true,
 
@@ -52,11 +59,27 @@ export default defineConfig({
   },
 
   resolve: {
-    alias: {
-      '@js': resolve(__dirname, 'app/static/js'),
-      '@custom': resolve(__dirname, 'app/static/custom_js'),
-      '@utils': resolve(__dirname, 'app/static/js/utils'),
-      '@services': resolve(__dirname, 'app/static/js/services')
-    }
+    // Array form (not object) so the datatables entries can be anchored regexes —
+    // a plain string alias for 'datatables.net' would also prefix-match
+    // 'datatables.net-dt' and silently resolve the wrong package.
+    alias: [
+      { find: '@js', replacement: resolve(__dirname, 'app/static/js') },
+      { find: '@custom', replacement: resolve(__dirname, 'app/static/custom_js') },
+      { find: '@utils', replacement: resolve(__dirname, 'app/static/js/utils') },
+      { find: '@services', replacement: resolve(__dirname, 'app/static/js/services') },
+
+      // DataTables ships a CJS build (`main`) and an ESM build (`module`). Vite's
+      // production build resolves `module`, so the browser bundle is ESM — verified:
+      // the emitted vendor-datatables chunk contains no `cjsRequires` and no UMD
+      // branch. Vitest resolves `main` instead, and the CJS wrapper's
+      // `require('datatables.net')(window)` path throws on import under DataTables 3.
+      // That is a harness artifact, not a shipped bug, but it made the vendor test
+      // unable to run. Pin these to the exact ESM entry the bundle uses so the test
+      // exercises the code that actually ships.
+      { find: /^datatables\.net$/, replacement: resolve(__dirname, 'node_modules/datatables.net/js/dataTables.mjs') },
+      { find: /^datatables\.net-dt$/, replacement: resolve(__dirname, 'node_modules/datatables.net-dt/js/dataTables.dataTables.mjs') },
+      { find: /^datatables\.net-responsive$/, replacement: resolve(__dirname, 'node_modules/datatables.net-responsive/js/dataTables.responsive.mjs') },
+      { find: /^datatables\.net-responsive-dt$/, replacement: resolve(__dirname, 'node_modules/datatables.net-responsive-dt/js/responsive.dataTables.mjs') },
+    ]
   }
 });

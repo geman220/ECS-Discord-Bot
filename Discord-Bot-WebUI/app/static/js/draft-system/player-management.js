@@ -38,11 +38,11 @@ export function addPlayerToTeam(player, teamId, teamName) {
     const profilePictureUrl = player.profile_picture_url || '/static/img/default_player.png';
 
     playerCard.innerHTML = `
-        <div class="card border-0 shadow-sm position-relative draft-card-grabable"
+        <div class="card border-0 shadow-xs position-relative draft-card-grabable"
              draggable="true"
              data-drag-player-id="${player.id}">
             ${player.is_ref ? `
-            <div class="position-absolute top-0 start-0 z-2">
+            <div class="position-absolute top-0 inset-s-0 z-2">
                 <div class="bg-danger text-white draft-referee-badge" title="Referee">
                     REF
                 </div>
@@ -55,7 +55,7 @@ export function addPlayerToTeam(player, teamId, teamName) {
                          class="rounded-circle me-2 avatar-40"
                          loading="lazy"
                          data-fallback-src="/static/img/default_player.png">
-                    <div class="flex-grow-1 min-width-0">
+                    <div class="grow min-width-0">
                         <div class="fw-semibold text-truncate small">${player.name}</div>
                         <div class="text-gray-500 dark:text-gray-400 text-xs-75">
                             ${formatPosition(player.favorite_position) || 'Any'}
@@ -142,7 +142,7 @@ export function addPlayerToAvailable(player) {
     }
 
     playerCard.innerHTML = `
-        <div id="player-${player.id}" class="card border-0 shadow-sm h-100 draft-card-grabable-lg"
+        <div id="player-${player.id}" class="card border-0 shadow-xs h-100 draft-card-grabable-lg"
              data-component="player-card"
              data-player-id="${player.id}"
              data-player-name="${player.name.toLowerCase()}"
@@ -163,7 +163,7 @@ export function addPlayerToAvailable(player) {
 
                 <div class="position-absolute w-100 h-100 draft-dark-overlay"></div>
 
-                <div class="position-absolute top-0 end-0 z-2">
+                <div class="position-absolute top-0 inset-e-0 z-2">
                     <div class="experience-corner-tag bg-${experienceBadgeColor}"
                          title="${experienceLevel}">
                         <span class="experience-initial">
@@ -172,7 +172,7 @@ export function addPlayerToAvailable(player) {
                     </div>
                 </div>
 
-                <div class="position-absolute bottom-0 start-0 p-2 z-2">
+                <div class="position-absolute bottom-0 inset-s-0 p-2 z-2">
                     <h6 class="text-white fw-bold mb-0 text-shadow-sm">${player.name}</h6>
                 </div>
             </div>

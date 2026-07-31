@@ -63,8 +63,8 @@ export function searchPlayers(query, issueId, orderIndex) {
 
             data.players.forEach(player => {
                 const statusBadge = player.is_current ?
-                    '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Active</span>' :
-                    '<span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-badge>Inactive</span>';
+                    '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Active</span>' :
+                    '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-badge>Inactive</span>';
 
                 let playerDetails = `Email: ${player.email}<br>Phone: ${player.phone}<br>League: ${player.league}`;
                 if (player.jersey_size && player.jersey_size !== 'N/A') {

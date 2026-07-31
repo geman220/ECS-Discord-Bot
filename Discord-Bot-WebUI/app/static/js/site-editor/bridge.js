@@ -207,7 +207,7 @@ function activateTextEditing(el) {
       setup(ed) {
         activeEditor = ed;
         ed.on('input change Undo Redo', () => emitText(el));
-        ed.on('blur', () => {
+        ed.on('blur-sm', () => {
           clearTimeout(textDebounce);
           post({ type: 'text-change', bid: el.getAttribute('data-bid'), html: el.innerHTML });
         });

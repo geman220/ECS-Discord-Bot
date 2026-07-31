@@ -19,14 +19,14 @@
                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                       border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
                       hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                      focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                 <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back to Match</span>
             </a>
         {% endcall %}
 
         <!-- Fixture feature card: the primary object this page acts on -->
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm overflow-hidden mb-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green/5 to-transparent dark:from-ecs-green/10">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-xs overflow-hidden mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-green/5 to-transparent dark:from-ecs-green/10">
                 <div class="flex items-center gap-3 min-w-0">
                     {% if match.is_home_match %}
                     <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-bold bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 shrink-0" title="Home fixture">
@@ -44,7 +44,7 @@
                         </h2>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2 shrink-0">
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
                         {{ match.status|lower }}
                     </span>
@@ -112,13 +112,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Pitch View -->
             <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden">
                     <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                         <i class="ti ti-layout-board text-ecs-green" aria-hidden="true"></i>
                         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300">Starting Pitch</h2>
                     </div>
                     <div class="p-4">
-                    <div class="bg-gradient-to-b from-[#2d5a2d] via-[#3a7a3a] to-[#2d5a2d] rounded-xl relative aspect-[3/4] max-h-[450px] md:max-h-[600px] overflow-hidden" id="pitchContainer">
+                    <div class="bg-linear-to-b from-[#2d5a2d] via-[#3a7a3a] to-[#2d5a2d] rounded-xl relative aspect-3/4 max-h-[450px] md:max-h-[600px] overflow-hidden" id="pitchContainer">
                         <!-- Pitch Markings -->
                         <div class="absolute inset-0 pointer-events-none">
                             <svg viewBox="0 0 100 133" preserveAspectRatio="none" class="w-full h-full">
@@ -197,7 +197,7 @@
                             <i class="ti ti-armchair" aria-hidden="true"></i> Bench
                         </h3>
                         <div class="js-position-drop-zone" data-position="bench">
-                            <div class="min-w-[60px] min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200 bg-gray-100 dark:bg-gray-700 !border-gray-300 dark:!border-gray-600 min-h-[80px]" id="position-bench">
+                            <div class="min-w-[60px] min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200 bg-gray-100 dark:bg-gray-700 border-gray-300! dark:border-gray-600! min-h-[80px]" id="position-bench">
                             </div>
                         </div>
                     </div>
@@ -230,7 +230,7 @@
                 </div>
 
                 <!-- Notes Section -->
-                <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-4">
+                <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs p-4">
                     <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         <i class="ti ti-notes" aria-hidden="true"></i> Lineup Notes
                     </h3>
@@ -240,7 +240,7 @@
                     <div class="mt-2 text-right">
                         <button id="saveNotesBtn" type="button"
                                 class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 px-4 py-2 bg-ecs-green hover:bg-ecs-green-700 text-white rounded-lg transition-colors text-sm font-semibold
-                                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                             Save Notes
                         </button>
                     </div>
@@ -249,12 +249,12 @@
 
             <!-- Roster Panel -->
             <div class="lg:col-span-1">
-                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden lg:sticky lg:top-4">
+                <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden lg:sticky lg:top-4">
                     <!-- Command header -->
                     <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                         <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
                         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-700 dark:text-gray-300 flex-1">Available Players</h2>
-                        <span id="availablePlayerCount" class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roster|length }}</span>
+                        <span id="availablePlayerCount" class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roster|length }}</span>
                     </div>
 
                     <!-- Filter toolbar -->
@@ -281,7 +281,7 @@
                              data-player-id="{{ player.player_id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-rsvp="{{ player.rsvp_status }}">
-                            <div class="relative flex-shrink-0">
+                            <div class="relative shrink-0">
                                 <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
                                      class="w-10 h-10 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
                                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
@@ -294,7 +294,7 @@
                                 <p class="font-semibold text-sm text-gray-900 dark:text-white truncate flex items-center gap-1.5">
                                     <span class="truncate">{{ player.name }}</span>
                                     {% if player.is_sub %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 shrink-0">Sub</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 shrink-0">Sub</span>
                                     {% endif %}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
@@ -310,7 +310,7 @@
                                     {% endif %}
                                 </p>
                             </div>
-                            <i class="ti ti-grip-vertical text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 flex-shrink-0 transition-colors" aria-hidden="true"></i>
+                            <i class="ti ti-grip-vertical text-gray-300 dark:text-gray-600 group-hover:text-gray-400 dark:group-hover:text-gray-500 shrink-0 transition-colors" aria-hidden="true"></i>
                         </div>
                         {% else %}
                         {{ kit.empty_state('ti-users-off', 'No players on this roster', 'Add players to the team to start building a lineup.') }}
@@ -335,7 +335,7 @@
 {% else %}
 <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
     <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 shadow">
+    <div class="bg-white dark:bg-gray-800 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
@@ -363,8 +363,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Pitch View -->
             <div class="lg:col-span-2">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
-                    <div class="bg-gradient-to-b from-[#2d5a2d] via-[#3a7a3a] to-[#2d5a2d] rounded-xl relative aspect-[3/4] max-h-[450px] md:max-h-[600px] overflow-hidden" id="pitchContainer">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
+                    <div class="bg-linear-to-b from-[#2d5a2d] via-[#3a7a3a] to-[#2d5a2d] rounded-xl relative aspect-3/4 max-h-[450px] md:max-h-[600px] overflow-hidden" id="pitchContainer">
                         <!-- Pitch Markings -->
                         <div class="absolute inset-0 pointer-events-none">
                             <svg viewBox="0 0 100 133" preserveAspectRatio="none" class="w-full h-full">
@@ -443,7 +443,7 @@
                             <i class="ti ti-armchair"></i> Bench
                         </h3>
                         <div class="js-position-drop-zone" data-position="bench">
-                            <div class="min-w-[60px] min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200 bg-gray-100 dark:bg-gray-700 !border-gray-300 dark:!border-gray-600 min-h-[80px]" id="position-bench">
+                            <div class="min-w-[60px] min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200 bg-gray-100 dark:bg-gray-700 border-gray-300! dark:border-gray-600! min-h-[80px]" id="position-bench">
                             </div>
                         </div>
                     </div>
@@ -474,7 +474,7 @@
                 </div>
 
                 <!-- Notes Section -->
-                <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xs p-4">
                     <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         <i class="ti ti-notes"></i> Lineup Notes
                     </h3>
@@ -492,7 +492,7 @@
 
             <!-- Roster Panel -->
             <div class="lg:col-span-1">
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden sticky top-4">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs overflow-hidden sticky top-4">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h2 class="font-semibold text-gray-900 dark:text-white flex items-center justify-between">
                             <span>Available Players</span>
@@ -526,7 +526,7 @@
                              data-player-id="{{ player.player_id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-rsvp="{{ player.rsvp_status }}">
-                            <div class="relative flex-shrink-0">
+                            <div class="relative shrink-0">
                                 <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
                                      class="w-10 h-10 rounded-full object-cover"
                                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
@@ -539,7 +539,7 @@
                                 <p class="font-medium text-sm text-gray-900 dark:text-white truncate">
                                     {{ player.name }}
                                     {% if player.is_sub %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">SUB</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">SUB</span>
                                     {% endif %}
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -551,7 +551,7 @@
                                     {% endif %}
                                 </p>
                             </div>
-                            <i class="ti ti-grip-vertical text-gray-400 flex-shrink-0"></i>
+                            <i class="ti ti-grip-vertical text-gray-400 shrink-0"></i>
                         </div>
                         {% endfor %}
                     </div>

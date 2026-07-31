@@ -55,7 +55,7 @@
 
     <!-- Quick Stats -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-start">
                 <div>
                     <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Total Matches</h6>
@@ -67,7 +67,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-start">
                 <div>
                     <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Active Threads</h6>
@@ -79,14 +79,14 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-start">
                 <div>
                     <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Live Reporting</h6>
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="liveReporting">--</h3>
                     <span class="text-xs text-gray-500 dark:text-gray-400">active</span>
                     <div class="mt-2">
-                        <a href="{{ url_for('admin_live.dashboard') }}" class="inline-flex items-center px-2 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 rounded transition-colors">
+                        <a href="{{ url_for('admin_live.dashboard') }}" class="inline-flex items-center px-2 py-1 text-xs font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50 rounded-sm transition-colors">
                             <i class="ti ti-dashboard mr-1"></i>Dashboard
                         </a>
                     </div>
@@ -96,7 +96,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-start">
                 <div>
                     <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">System Health</h6>
@@ -111,7 +111,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
             <div>
                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
@@ -166,7 +166,7 @@
     <!-- Match Cards View -->
     <div id="matchCardsContainer" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {% for match in matches %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden match-card" data-match-id="{{ match.id }}" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden match-card" data-match-id="{{ match.id }}" data-competition="{{ match.competition }}" data-status="{{ match.live_reporting_status }}">
             <div class="p-5">
                 <!-- Match Header -->
                 <div class="flex justify-between items-start mb-4">
@@ -179,7 +179,7 @@
                                 {% if match.is_home_game %}Sounders vs {{ match.opponent }}{% else %}{{ match.opponent }} vs Sounders{% endif %}
                             </h5>
                             <div class="flex items-center gap-2 mt-1">
-                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ match.competition }}</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">{{ match.competition }}</span>
                                 <span class="text-xs text-gray-500 dark:text-gray-400">{{ match.venue or 'TBD' }}</span>
                             </div>
                         </div>
@@ -218,12 +218,12 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-{{ match.status_color }}-100 text-{{ match.status_color }}-800 dark:bg-{{ match.status_color }}-900/30 dark:text-{{ match.status_color }}-300 mb-2" id="status-{{ match.id }}">
+                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded-sm bg-{{ match.status_color }}-100 text-{{ match.status_color }}-800 dark:bg-{{ match.status_color }}-900/30 dark:text-{{ match.status_color }}-300 mb-2" id="status-{{ match.id }}">
                             <i class="ti {{ match.status_icon }} mr-1"></i>{{ match.status_display }}
                         </span>
                         {% if match.discord_thread_id %}
                         <div>
-                            <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors" target="_blank">
+                            <a href="https://discord.com/channels/{{ config.SERVER_ID }}/{{ config.MATCH_CHANNEL_ID }}/{{ match.discord_thread_id }}" class="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-sm transition-colors" target="_blank">
                                 <i class="ti ti-brand-discord mr-1"></i>View Thread
                             </a>
                         </div>
@@ -279,7 +279,7 @@
 
     <!-- Table View (Hidden by default) -->
     <div id="matchTableContainer" class="hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -311,31 +311,31 @@
                                 <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ match.date_time.strftime('%I:%M %p PT') }}</span>
                             </td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ match.competition }}</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">{{ match.competition }}</span>
                             </td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 text-xs font-medium rounded {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.thread_created else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">{{ 'Created' if match.thread_created else 'Pending' }}</span>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-sm {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.thread_created else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">{{ 'Created' if match.thread_created else 'Pending' }}</span>
                             </td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 text-xs font-medium rounded bg-{{ match.status_color }}-100 text-{{ match.status_color }}-800 dark:bg-{{ match.status_color }}-900 dark:text-{{ match.status_color }}-300">{{ match.status_display }}</span>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-{{ match.status_color }}-100 text-{{ match.status_color }}-800 dark:bg-{{ match.status_color }}-900 dark:text-{{ match.status_color }}-300">{{ match.status_display }}</span>
                             </td>
                             <td class="px-4 py-3 text-center">
                                 <div class="flex justify-center gap-1">
                                     {% if not match.thread_created %}
-                                    <button type="button" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="schedule-match" data-match-id="{{ match.id }}" title="Schedule">
+                                    <button type="button" class="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm" data-action="schedule-match" data-match-id="{{ match.id }}" title="Schedule">
                                         <i class="ti ti-calendar-plus"></i>
                                     </button>
                                     {% endif %}
                                     {% if match.live_reporting_status in ['not_started', 'scheduled', 'stopped'] %}
-                                    <button type="button" class="p-1.5 text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="start-live-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
+                                    <button type="button" class="p-1.5 text-yellow-600 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm" data-action="start-live-reporting" data-match-id="{{ match.id }}" title="Start Reporting">
                                         <i class="ti ti-player-play"></i>
                                     </button>
                                     {% elif match.live_reporting_status == 'running' %}
-                                    <button type="button" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="stop-live-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
+                                    <button type="button" class="p-1.5 text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm" data-action="stop-live-reporting" data-match-id="{{ match.id }}" title="Stop Reporting">
                                         <i class="ti ti-player-stop"></i>
                                     </button>
                                     {% endif %}
-                                    <button type="button" class="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit">
+                                    <button type="button" class="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-sm" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit">
                                         <i class="ti ti-edit"></i>
                                     </button>
                                 </div>

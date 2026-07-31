@@ -154,13 +154,13 @@
                             </div>
                             <div class="mt-2 flex flex-wrap items-center gap-1.5">
                                 {% if has_sms %}
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" title="SMS verified &amp; consented"><i class="ti ti-message-2 text-xs"></i> SMS</span>
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" title="SMS verified &amp; consented"><i class="ti ti-message-2 text-xs"></i> SMS</span>
                                 {% endif %}
                                 {% if has_discord %}
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" title="Discord connected"><i class="ti ti-brand-discord text-xs"></i> Discord</span>
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" title="Discord connected"><i class="ti ti-brand-discord text-xs"></i> Discord</span>
                                 {% endif %}
                                 {% if has_email %}
-                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" title="Email available"><i class="ti ti-mail text-xs"></i> Email</span>
+                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" title="Email available"><i class="ti ti-mail text-xs"></i> Email</span>
                                 {% endif %}
                             </div>
                             <div class="mt-2 grid grid-cols-3 gap-2 text-xs">
@@ -399,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
         channelDefs.forEach(c => {
             if (d[c.key] === '1') {
                 const span = document.createElement('span');
-                span.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded ' + c.cls;
+                span.className = 'inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium rounded-sm ' + c.cls;
                 span.innerHTML = `<i class="ti ${c.icon} text-xs"></i> ${c.label}`;
                 channelsEl.appendChild(span);
             }

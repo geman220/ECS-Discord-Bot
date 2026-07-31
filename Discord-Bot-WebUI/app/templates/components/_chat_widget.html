@@ -39,13 +39,13 @@
      (icon swap driven by data-state in the companion CSS — Tailwind display
      utilities lose to tabler-icons.css's `.ti { display: inline-block }`)
      ======================================================================== #}
-  <button class="c-chat-widget__trigger relative flex h-14 w-14 items-center justify-center rounded-full bg-ecs-green text-white shadow-lg shadow-gray-900/20 transition-all hover:scale-105 hover:bg-ecs-green-dark active:scale-95 focus:outline-none focus:ring-4 focus:ring-ecs-green/30 max-md:h-11 max-md:w-11"
+  <button class="c-chat-widget__trigger relative flex h-14 w-14 items-center justify-center rounded-full bg-ecs-green text-white shadow-lg shadow-gray-900/20 transition-all hover:scale-105 hover:bg-ecs-green-dark active:scale-95 focus:outline-hidden focus:ring-4 focus:ring-ecs-green/30 max-md:h-11 max-md:w-11"
           aria-label="Open messages"
           aria-expanded="false"
           aria-haspopup="dialog">
     <i class="c-chat-widget__icon-closed ti ti-message-circle text-2xl max-md:text-xl" aria-hidden="true"></i>
     <i class="c-chat-widget__icon-open ti ti-x text-2xl max-md:text-xl" aria-hidden="true"></i>
-    <span class="c-chat-widget__badge absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white shadow"
+    <span class="c-chat-widget__badge absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white shadow-sm"
           data-count="0"
           style="display: none;">0</span>
   </button>
@@ -69,13 +69,13 @@
           <span>Messages</span>
         </h2>
         <div class="c-chat-widget__header-actions flex items-center gap-1">
-          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                   data-action="new-chat"
                   aria-label="New conversation"
                   title="Start new chat">
             <i class="ti ti-edit" aria-hidden="true"></i>
           </button>
-          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                   data-action="close-widget"
                   aria-label="Close messages">
             <i class="ti ti-x" aria-hidden="true"></i>
@@ -104,7 +104,7 @@
       {# Online Users (Horizontal Scroll) #}
       <div class="c-chat-widget__online u-hidden shrink-0 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
         <div class="c-chat-widget__online-label mb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Online Now</div>
-        <div class="c-chat-widget__online-list flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        <div class="c-chat-widget__online-list flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden"
              role="list"
              aria-label="Online users">
           {# Online users populated by JS #}
@@ -123,7 +123,7 @@
         <i class="ti ti-message-off mb-4 text-5xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
         <div class="mb-1 text-base font-semibold text-gray-900 dark:text-white">No conversations yet</div>
         <div class="mb-4 text-sm text-gray-500 dark:text-gray-400">Search for a user above to start chatting</div>
-        <button class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ecs-green-dark focus:outline-none focus:ring-4 focus:ring-ecs-green/30"
+        <button class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ecs-green-dark focus:outline-hidden focus:ring-4 focus:ring-ecs-green/30"
                 data-action="new-chat">
           <i class="ti ti-edit" aria-hidden="true"></i>
           Start a conversation
@@ -140,7 +140,7 @@
 
       {# Chat Header #}
       <div class="c-chat-widget__chat-header flex shrink-0 items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-        <button class="c-chat-widget__back-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+        <button class="c-chat-widget__back-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                 aria-label="Back to conversations">
           <i class="ti ti-arrow-left" aria-hidden="true"></i>
         </button>
@@ -158,7 +158,7 @@
         </div>
 
         <div class="c-chat-widget__header-actions flex items-center gap-1">
-          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          <button class="c-chat-widget__header-btn inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-ecs-green/40 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
                   data-action="close-widget"
                   aria-label="Close messages">
             <i class="ti ti-x" aria-hidden="true"></i>
@@ -167,7 +167,7 @@
       </div>
 
       {# Messages Area #}
-      <div class="c-chat-widget__messages relative z-[1] flex min-h-[150px] flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-4"
+      <div class="c-chat-widget__messages relative z-1 flex min-h-[150px] flex-1 flex-col gap-2 overflow-y-auto overscroll-contain p-4"
            aria-live="polite"
            aria-label="Message history">
         {# Messages populated by JS #}
@@ -193,7 +193,7 @@
                   rows="1"
                   maxlength="2000"
                   aria-label="Message input"></textarea>
-        <button class="c-chat-widget__send-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ecs-green text-white transition-all hover:bg-ecs-green-dark focus:outline-none focus:ring-4 focus:ring-ecs-green/30 disabled:cursor-not-allowed disabled:opacity-50"
+        <button class="c-chat-widget__send-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ecs-green text-white transition-all hover:bg-ecs-green-dark focus:outline-hidden focus:ring-4 focus:ring-ecs-green/30 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled
                 aria-label="Send message">
           <i class="ti ti-send" aria-hidden="true"></i>

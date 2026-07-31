@@ -30,11 +30,11 @@
 {% set fulfil_pct = ((delivered / total_orders) * 100) | round | int if total_orders > 0 else 0 %}
 {% call page_header("Store Fulfillment", subtitle="Catalog & Orders") %}
     <button type="button" data-action="search-orders"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-search text-base" aria-hidden="true"></i><span class="hidden sm:inline">Search Orders</span>
     </button>
     <button type="button" data-action="add-new-product"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-plus text-base" aria-hidden="true"></i>Add Product
     </button>
 {% endcall %}
@@ -90,7 +90,7 @@
             </div>
 
             <button type="button" data-action="view-pending-orders"
-                    class="mt-auto pt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    class="mt-auto pt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-checks text-base" aria-hidden="true"></i>Process Pending Orders
             </button>
         </div>
@@ -106,22 +106,22 @@
            to the route, then a 5th success-tone stat_card can be added. #}
         <div class="grid grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
             {% call stat_card("ti-package", "Catalog", stats.total_items or 0, sublabel="products", tone="info") %}
-                <button type="button" data-action="view-all-products" class="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline focus:outline-none">
+                <button type="button" data-action="view-all-products" class="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline focus:outline-hidden">
                     Browse <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
             {% endcall %}
             {% call stat_card("ti-shopping-cart", "Total Orders", total_orders, sublabel="all time", tone="primary") %}
-                <button type="button" data-action="view-all-products" class="inline-flex items-center gap-1 font-medium text-ecs-green hover:underline focus:outline-none">
+                <button type="button" data-action="view-all-products" class="inline-flex items-center gap-1 font-medium text-ecs-green hover:underline focus:outline-hidden">
                     Catalog <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
             {% endcall %}
             {% call stat_card("ti-clock", "Pending", pending, sublabel="to fulfill", tone="warning") %}
-                <button type="button" data-action="view-pending-orders" class="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400 hover:underline focus:outline-none">
+                <button type="button" data-action="view-pending-orders" class="inline-flex items-center gap-1 font-medium text-amber-600 dark:text-amber-400 hover:underline focus:outline-hidden">
                     Process <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
             {% endcall %}
             {% call stat_card("ti-circle-check", "Delivered", delivered, sublabel="completed", tone="success") %}
-                <button type="button" data-action="view-completed-orders" class="inline-flex items-center gap-1 font-medium text-green-600 dark:text-green-400 hover:underline focus:outline-none">
+                <button type="button" data-action="view-completed-orders" class="inline-flex items-center gap-1 font-medium text-green-600 dark:text-green-400 hover:underline focus:outline-hidden">
                     History <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
             {% endcall %}
@@ -132,17 +132,17 @@
             {% call section_card("Product Management", icon="ti-package") %}
             <div class="p-2 sm:p-3 space-y-1">
                 <button type="button" data-action="add-new-product"
-                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <span class="flex items-center gap-2.5"><i class="ti ti-plus text-base text-ecs-green" aria-hidden="true"></i>Add New Product</span>
                     <i class="ti ti-chevron-right text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-action="view-all-products"
-                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <span class="flex items-center gap-2.5"><i class="ti ti-list text-base text-blue-600 dark:text-blue-400" aria-hidden="true"></i>View All Products</span>
                     <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.total_items or 0 }}</span>
                 </button>
                 <button type="button" data-action="manage-categories"
-                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <span class="flex items-center gap-2.5"><i class="ti ti-category text-base text-ecs-green" aria-hidden="true"></i>Product Categories</span>
                     <i class="ti ti-chevron-right text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
                 </button>
@@ -151,17 +151,17 @@
             {% call section_card("Order Management", icon="ti-clipboard-list") %}
             <div class="p-2 sm:p-3 space-y-1">
                 <button type="button" data-action="view-pending-orders"
-                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <span class="flex items-center gap-2.5"><i class="ti ti-clock text-base text-amber-500" aria-hidden="true"></i>Pending Orders</span>
                     <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ pending }}</span>
                 </button>
                 <button type="button" data-action="view-completed-orders"
-                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <span class="flex items-center gap-2.5"><i class="ti ti-circle-check text-base text-green-500" aria-hidden="true"></i>Completed Orders</span>
                     <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ delivered }}</span>
                 </button>
                 <button type="button" data-action="search-orders"
-                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="w-full flex items-center justify-between gap-2.5 min-h-[44px] px-2.5 py-2.5 rounded-lg text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <span class="flex items-center gap-2.5"><i class="ti ti-search text-base text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Search Orders</span>
                     <i class="ti ti-chevron-right text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
                 </button>
@@ -204,8 +204,8 @@
                             <span class="text-gray-900 dark:text-white"><span class="font-mono">{{ order.quantity or 1 }}×</span> {{ order.item.name if order.item else 'Unknown Item' }}</span>
                             {% if order.selected_color or order.selected_size %}
                             <span class="block mt-0.5 flex flex-wrap gap-1">
-                                {% if order.selected_size %}<span class="inline-flex items-center font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>{% endif %}
-                                {% if order.selected_color %}<span class="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>{% endif %}
+                                {% if order.selected_size %}<span class="inline-flex items-center font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>{% endif %}
+                                {% if order.selected_color %}<span class="inline-flex items-center text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>{% endif %}
                             </span>
                             {% endif %}
                         </td>
@@ -218,7 +218,7 @@
                         <td class="px-3 py-3 align-top text-gray-500 dark:text-gray-400 font-mono text-xs hidden lg:table-cell">{{ order.order_date.strftime('%b %d, %Y') if order.order_date else 'N/A' }}</td>
                         <td class="px-3 py-3 align-top text-right">
                             <button type="button" onclick="viewOrder('{{ order.id }}')" title="View Order"
-                                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                    class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                     aria-label="View order #{{ order.id }}">
                                 <i class="ti ti-eye" aria-hidden="true"></i>
                             </button>
@@ -245,7 +245,7 @@
                     </div>
                     <div class="mt-2">
                         <button type="button" onclick="viewOrder('{{ order.id }}')"
-                                class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 aria-label="View order #{{ order.id }}">
                             <i class="ti ti-eye" aria-hidden="true"></i>View
                         </button>
@@ -262,7 +262,7 @@
 {% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-600 rounded-lg shadow p-5">
+    <div class="bg-blue-600 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.total_items or 0 }}</h5>
@@ -273,7 +273,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-green-600 rounded-lg shadow p-5">
+    <div class="bg-green-600 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.total_orders or 0 }}</h5>
@@ -284,7 +284,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-500 rounded-lg shadow p-5">
+    <div class="bg-yellow-500 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.pending_orders or 0 }}</h5>
@@ -295,7 +295,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-600 rounded-lg shadow p-5">
+    <div class="bg-cyan-600 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">${{ stats.revenue_total or 0 }}</h5>
@@ -311,7 +311,7 @@
 <!-- Management Panels -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Product Management -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-package mr-2 text-blue-500"></i>Product Management
@@ -346,7 +346,7 @@
     </div>
 
     <!-- Order Management -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-clipboard-list mr-2 text-green-500"></i>Order Management
@@ -383,7 +383,7 @@
 
 <!-- Recent Orders -->
 {% if recent_orders %}
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-history mr-2 text-gray-500"></i>Recent Orders
@@ -416,7 +416,7 @@
                     </td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
                     <td class="px-3 sm:px-6 py-4">
-                        <button class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-900/50"
+                        <button class="p-2 text-blue-600 hover:bg-blue-100 rounded-sm dark:text-blue-400 dark:hover:bg-blue-900/50"
                                 onclick="viewOrder('{{ order.id }}')" title="View Order">
                             <i class="ti ti-eye"></i>
                         </button>
@@ -429,7 +429,7 @@
 </div>
 {% else %}
 <div class="flex items-start p-4 text-blue-800 bg-blue-50 rounded-lg dark:bg-blue-900/30 dark:text-blue-300">
-    <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+    <i class="ti ti-info-circle shrink-0 mr-3 mt-0.5 text-lg"></i>
     <p>No orders found. Start by adding products to your store!</p>
 </div>
 {% endif %}
@@ -609,7 +609,7 @@ async function manageCategories() {
                 return `
                     <a href="${link}" class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                         <span><i class="ti ti-category mr-2"></i>${escHtml(cat)}</span>
-                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded text-xs">${n} item${n === 1 ? '' : 's'}</span>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm text-xs">${n} item${n === 1 ? '' : 's'}</span>
                     </a>`;
             }).join('');
             body = `<div class="text-left space-y-2">${rows}<p class="text-xs text-gray-500 mt-3">Add a category by assigning it to a product when creating or editing it.</p></div>`;
@@ -637,7 +637,7 @@ function renderOrdersTable(orders, opts) {
             cells.push(`<td class="p-2">${d}</td>`);
         }
         if (opts.showProcess) {
-            cells.push(`<td class="p-2"><button type="button" onclick="processOrder('${escHtml(o.id)}')" class="px-2 py-1 bg-green-600 text-white rounded text-xs">Process</button></td>`);
+            cells.push(`<td class="p-2"><button type="button" onclick="processOrder('${escHtml(o.id)}')" class="px-2 py-1 bg-green-600 text-white rounded-sm text-xs">Process</button></td>`);
         }
         if (opts.showStatus) {
             cells.push(`<td class="p-2">${escHtml(o.status)}</td>`);

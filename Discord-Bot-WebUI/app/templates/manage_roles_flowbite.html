@@ -22,7 +22,7 @@
               border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
               text-sm font-semibold text-gray-700 dark:text-gray-300
               hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-shield-cog" aria-hidden="true"></i>
       <span class="hidden sm:inline">Full role manager</span>
     </a>
@@ -80,7 +80,7 @@
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-shield-lock text-ecs-green" aria-hidden="true"></i> Edit Role Permissions
         </h2>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
           {{ permissions|length }} avail
         </span>
       </div>
@@ -111,25 +111,25 @@
           <div class="flex items-center gap-1">
             <button type="button" id="select-all-btn"
                     class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-semibold
-                           text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                           text-ecs-green hover:bg-ecs-green/10 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-checks" aria-hidden="true"></i> Select all
             </button>
             <button type="button" id="clear-all-btn"
                     class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-semibold
                            text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-square-off" aria-hidden="true"></i> Clear
             </button>
           </div>
         </div>
 
         {# Dense permission rows #}
-        <div class="max-h-[26rem] overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/70">
+        <div class="max-h-104 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/70">
           {% for permission in permissions %}
           <label class="flex items-start gap-3 min-h-[44px] px-4 sm:px-5 py-2.5 cursor-pointer
                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <input type="checkbox" name="permissions" value="{{ permission.id }}"
-                   class="permission-checkbox mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="permission-checkbox mt-0.5 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             <span class="min-w-0 flex-1">
               <span class="block text-sm font-medium text-gray-900 dark:text-white truncate">{{ permission.name }}</span>
               {% if permission.description %}
@@ -146,7 +146,7 @@
           <button type="submit"
                   class="w-full sm:w-auto inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
                          bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                         focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-device-floppy" aria-hidden="true"></i>
             Update Permissions
           </button>
@@ -165,7 +165,7 @@
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-list-details text-ecs-green" aria-hidden="true"></i> Roles
         </h2>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
           {{ roles|length }}
         </span>
       </div>
@@ -247,7 +247,7 @@
     </div>
 
     <!-- Roles Management Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Role Permissions</h2>
         </div>
@@ -261,7 +261,7 @@
                         Select Role
                     </label>
                     <select name="role_id" id="role_id" required
-                            class="block w-full md:w-1/2 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            class="block w-full md:w-1/2 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         <option value="" disabled selected>Select a role...</option>
                         {% for role in roles %}
                         <option value="{{ role.id }}">{{ role.name }}</option>
@@ -279,7 +279,7 @@
                             {% for permission in permissions %}
                             <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
                                 <input type="checkbox" name="permissions" value="{{ permission.id }}"
-                                       class="permission-checkbox rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                       class="permission-checkbox rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                                 <span class="text-sm text-gray-700 dark:text-gray-300">{{ permission.name }}</span>
                             </label>
                             {% endfor %}
@@ -313,7 +313,7 @@
     </div>
 
     <!-- Roles Overview -->
-    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Roles Overview</h2>
         </div>

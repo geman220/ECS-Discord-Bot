@@ -38,13 +38,13 @@
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
               text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-template" aria-hidden="true"></i> Tone Templates
     </a>
     <a href="{{ url_for('ai_prompts.create_prompt') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-plus" aria-hidden="true"></i> Create New Prompt
     </a>
   {% endcall %}
@@ -113,7 +113,7 @@
     <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
       <i class="ti ti-broadcast text-ecs-green" aria-hidden="true"></i>
       <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Match Moment Coverage</h3>
-      <span class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _types_covered }}/{{ prompt_type_labels | length }}</span>
+      <span class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _types_covered }}/{{ prompt_type_labels | length }}</span>
     </div>
     <div class="flex flex-wrap gap-2 p-4 sm:p-5">
       {% for ptype, plabel in prompt_type_labels.items() %}
@@ -253,10 +253,10 @@
             <button id="dropdown-btn-{{ prompt.id }}" data-dropdown-toggle="dropdown-{{ prompt.id }}"
                     class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
                            text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                           hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                           hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               Actions <i class="ti ti-chevron-down w-4 h-4" aria-hidden="true"></i>
             </button>
-            <div id="dropdown-{{ prompt.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
+            <div id="dropdown-{{ prompt.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
               <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                 <li>
                   <a href="{{ url_for('ai_prompts.view_prompt', prompt_id=prompt.id) }}" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">
@@ -552,7 +552,7 @@
       {# Footer actions #}
       <div class="flex flex-wrap items-center gap-2 pt-1">
         <button type="submit"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-device-floppy" aria-hidden="true"></i> Save as New Version
         </button>
         <a href="{{ url_for('ai_prompts.view_prompt', prompt_id=sp.id) }}"
@@ -598,7 +598,7 @@
           <button data-action="use-ai-template" data-template-id="{{ template.id }}"
                   class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 w-full px-3 rounded-lg text-sm font-semibold
                          text-ecs-green bg-white dark:bg-gray-700 border border-ecs-green hover:bg-ecs-green hover:text-white
-                         dark:hover:bg-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                         dark:hover:bg-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-copy" aria-hidden="true"></i> Use Template
           </button>
         </div>
@@ -712,7 +712,7 @@
                             Actions
                             <i class="ti ti-chevron-down ml-1 w-4 h-4"></i>
                         </button>
-                        <div id="dropdown-{{ prompt.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
+                        <div id="dropdown-{{ prompt.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700 dark:divide-gray-600">
                             <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                                 <li>
                                     <a href="{{ url_for('ai_prompts.view_prompt', prompt_id=prompt.id) }}" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">

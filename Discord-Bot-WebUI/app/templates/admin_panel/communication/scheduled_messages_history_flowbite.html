@@ -39,13 +39,13 @@
   <a href="{{ url_for('admin_panel.scheduled_messages') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
             border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
-            text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-calendar" aria-hidden="true"></i><span class="hidden sm:inline">Scheduled</span>
   </a>
   <button type="button" data-action="cleanup-history"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                  border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400
-                 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500">
+                 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-hidden focus:ring-2 focus:ring-red-500">
     <i class="ti ti-trash" aria-hidden="true"></i><span class="hidden sm:inline">Cleanup Old</span>
   </button>
 {% endcall %}
@@ -73,7 +73,7 @@
     <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-red-200 dark:border-red-500/30">
       <h2 class="font-semibold flex items-center gap-2 text-red-800 dark:text-red-300">
         <i class="ti ti-alert-triangle-filled text-red-600 dark:text-red-400" aria-hidden="true"></i> Failed Deliveries
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">{{ failed_messages|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300">{{ failed_messages|length }}</span>
       </h2>
     </div>
     <ul class="divide-y divide-red-200 dark:divide-red-500/20" role="list">
@@ -92,7 +92,7 @@
         <button type="button" data-action="retry-message" data-message-id="{{ message.id }}"
                 class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
           <i class="ti ti-refresh" aria-hidden="true"></i> Retry
         </button>
       </li>
@@ -106,15 +106,15 @@
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Message History
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ all_messages|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ all_messages|length }}</span>
       </h2>
       <div class="flex items-center gap-2">
         <button id="exportBtn" type="button" data-dropdown-toggle="exportMenu"
-                class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-download mr-1" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
           <i class="ti ti-chevron-down ml-1" aria-hidden="true"></i>
         </button>
-        <div id="exportMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:border-gray-600 dark:bg-gray-700">
+        <div id="exportMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 dark:bg-gray-700">
           <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
             <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-csv"><i class="ti ti-file-text mr-2" aria-hidden="true"></i>CSV</button></li>
             <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-excel"><i class="ti ti-file-spreadsheet mr-2" aria-hidden="true"></i>Excel</button></li>
@@ -147,7 +147,7 @@
       <span class="text-gray-500 dark:text-gray-400 text-sm">to</span>
       <input type="date" id="dateTo" aria-label="To date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green min-h-[44px] sm:min-h-0 sm:h-9 px-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
       <button type="button" data-action="clear-filters"
-              class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-x mr-1" aria-hidden="true"></i>Clear
       </button>
     </div>
@@ -173,11 +173,11 @@
             data-date="{{ message.sent_at.strftime('%Y-%m-%d') if message.sent_at else '' }}">
           <td class="px-3 py-2.5">
             {% if not message.message_type or message.message_type == 'standard' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green/10 text-ecs-green">
               <i class="ti ti-soccer-field mr-1" aria-hidden="true"></i>Pub League
             </span>
             {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-gold/10 text-ecs-gold">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-gold/10 text-ecs-gold">
               <i class="ti ti-trophy mr-1" aria-hidden="true"></i>ECS FC
             </span>
             {% endif %}
@@ -220,35 +220,35 @@
           </td>
           <td class="px-3 py-2.5">
             {% if message.status == 'SENT' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
               <i class="ti ti-check mr-1" aria-hidden="true"></i>Sent
             </span>
             {% elif message.status == 'FAILED' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
               <i class="ti ti-x mr-1" aria-hidden="true"></i>Failed
             </span>
             {% elif message.status == 'CANCELLED' %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
               <i class="ti ti-ban mr-1" aria-hidden="true"></i>Cancelled
             </span>
             {% else %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
               {{ message.status }}
             </span>
             {% endif %}
           </td>
           <td class="px-3 py-2.5">
             <div class="flex items-center justify-end gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View Details" aria-label="View Details" data-action="view-details" data-message-id="{{ message.id }}">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View Details" aria-label="View Details" data-action="view-details" data-message-id="{{ message.id }}">
                 <i class="ti ti-eye" aria-hidden="true"></i>
               </button>
               {% if message.match %}
-              <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVPs" aria-label="View RSVPs">
+              <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View RSVPs" aria-label="View RSVPs">
                 <i class="ti ti-list-check" aria-hidden="true"></i>
               </a>
               {% endif %}
               {% if message.status == 'FAILED' %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Retry" aria-label="Retry" data-action="retry-message" data-message-id="{{ message.id }}">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Retry" aria-label="Retry" data-action="retry-message" data-message-id="{{ message.id }}">
                 <i class="ti ti-refresh" aria-hidden="true"></i>
               </button>
               {% endif %}
@@ -277,13 +277,13 @@
             {% endif %}
           </div>
           {% if message.status == 'SENT' %}
-          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Sent</span>
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1" aria-hidden="true"></i>Sent</span>
           {% elif message.status == 'FAILED' %}
-          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Failed</span>
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-x mr-1" aria-hidden="true"></i>Failed</span>
           {% elif message.status == 'CANCELLED' %}
-          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Cancelled</span>
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Cancelled</span>
           {% else %}
-          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ message.status }}</span>
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ message.status }}</span>
           {% endif %}
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
@@ -299,19 +299,19 @@
           {% endif %}
         </div>
         {% if message.status == 'FAILED' and message.send_error %}
-        <p class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono break-words">{{ message.send_error }}</p>
+        <p class="mt-2 text-xs text-red-600 dark:text-red-400 font-mono wrap-break-word">{{ message.send_error }}</p>
         {% endif %}
         <div class="mt-3 flex items-center gap-1">
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View Details" aria-label="View Details" data-action="view-details" data-message-id="{{ message.id }}">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View Details" aria-label="View Details" data-action="view-details" data-message-id="{{ message.id }}">
             <i class="ti ti-eye" aria-hidden="true"></i>
           </button>
           {% if message.match %}
-          <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVPs" aria-label="View RSVPs">
+          <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View RSVPs" aria-label="View RSVPs">
             <i class="ti ti-list-check" aria-hidden="true"></i>
           </a>
           {% endif %}
           {% if message.status == 'FAILED' %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Retry" aria-label="Retry" data-action="retry-message" data-message-id="{{ message.id }}">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Retry" aria-label="Retry" data-action="retry-message" data-message-id="{{ message.id }}">
             <i class="ti ti-refresh" aria-hidden="true"></i>
           </button>
           {% endif %}

@@ -1,54 +1,157 @@
 /* Tailwind CSS Entry Point for Flowbite-based templates */
-/* This file is processed by PostCSS/Tailwind and outputs the utility classes */
+/* This file is processed by the Tailwind CLI and outputs the utility classes */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ----------------------------------------------------------------------------
+   Cascade order. This line is load-bearing — do not drop it.
 
-/* Custom ECS component overrides using Tailwind */
+   v3 emitted NO native @layer at all, so every Tailwind rule was unlayered, and
+   unlayered normal declarations beat ALL layered ones. Tailwind utilities
+   therefore won against every rule in main-entry.css (which imports ~190
+   stylesheets into layer(tokens|bootstrap|core|layout|components|features|
+   pages|themes|utilities)).
+
+   v4 emits real layers (properties, theme, base, components, utilities). Layer
+   order is fixed by first declaration, and tailwind.css is a <link> in <head>
+   while main-entry.css is injected later by main-entry.js — so without this
+   line the app's tokens/core/layout/features/pages/themes layers get appended
+   AFTER Tailwind's `utilities` and start overriding utility classes. That
+   inverts v3 behaviour across every page, and neither the build, the test
+   suite, nor a generated-class diff can see it.
+
+   Naming the full order here keeps main-entry.css's own sequence identical
+   (its @layer statement re-declares the same names, which is a no-op once
+   they exist) and puts Tailwind's utilities last, as in v3. `properties` is
+   listed first on purpose: it holds @property fallbacks and must stay lowest.
+   ---------------------------------------------------------------------------- */
+@layer properties, theme, base, tokens, bootstrap, core, layout, components, features, pages, themes, utilities;
+
+@import 'tailwindcss';
+
+/* Tailwind v4 reads the v3-style JS config through this directive. Keeping
+   tailwind.config.js (rather than porting the whole theme to a CSS-first
+   `@theme` block) preserves the CSS-variable-backed brand colours
+   — rgb(var(--color-primary-rgb) / <alpha-value>) — that the Appearance
+   admin page re-skins at runtime. */
+@config '../../../tailwind.config.js';
+
+/* v4 changed the default border colour to `currentcolor`. This restores the v3
+   default so existing `border` utilities keep rendering gray-200. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   Single-class ECS components.
+   These are `@utility` (not plain CSS in a layer) for one specific reason: in
+   v4 `@apply` only accepts real utilities, and several of these apply each
+   other — `.btn-ecs-primary { @apply btn-ecs ... }`, `.badge-ecs-success
+   { @apply badge-ecs ... }`. Declared as plain classes they would fail to
+   resolve.
+   ---------------------------------------------------------------------------- */
+
+/* Focus ring styles using ECS green */
+@utility focus-ecs {
+  @apply focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900;
+}
+
+/* ECS branded button base */
+@utility btn-ecs {
+  @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+}
+
+@utility btn-ecs-primary {
+  @apply btn-ecs bg-ecs-green hover:bg-ecs-green-700 text-white;
+}
+
+@utility btn-ecs-secondary {
+  @apply btn-ecs bg-gray-600 hover:bg-gray-700 text-white dark:bg-gray-700 dark:hover:bg-gray-600;
+}
+
+@utility btn-ecs-ghost {
+  @apply btn-ecs bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300;
+}
+
+/* Card styles */
+@utility card-ecs {
+  @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700;
+}
+
+/* Input styles */
+@utility input-ecs {
+  @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green;
+}
+
+/* Select styles */
+@utility select-ecs {
+  @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green;
+}
+
+/* Table styles */
+@utility table-ecs {
+  @apply w-full text-sm text-left text-gray-500 dark:text-gray-400;
+}
+
+/* Badge styles */
+@utility badge-ecs {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+@utility badge-ecs-success {
+  @apply badge-ecs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
+}
+
+@utility badge-ecs-warning {
+  @apply badge-ecs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300;
+}
+
+@utility badge-ecs-danger {
+  @apply badge-ecs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
+}
+
+@utility badge-ecs-info {
+  @apply badge-ecs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300;
+}
+
+/* ============================================
+     DataTables Tailwind/Dark Mode Styling
+     ============================================ */
+@utility dataTables_wrapper {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+@utility select2-dropdown {
+  @apply border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg shadow-lg mt-1;
+}
+
+@utility swal2-confirm {
+  @apply bg-ecs-green hover:bg-ecs-green-700 focus:ring-ecs-green;
+}
+
+@utility swal2-cancel {
+  @apply bg-gray-500 hover:bg-gray-600;
+}
+
+@utility swal2-deny {
+  @apply bg-red-600 hover:bg-red-700;
+}
+
+
+/* ----------------------------------------------------------------------------
+   Vendor overrides (DataTables, Select2, SweetAlert2, Flatpickr) and the
+   `.table-ecs` descendants.
+   These stay plain CSS inside `@layer components`. They are descendant
+   selectors, and `@utility` accepts exactly one class name — the automated
+   upgrade turned rules like `table.dataTable tbody tr.selected` into
+   `@utility selected`, which emitted the malformed selector
+   `:is(.selected\!)tr` and dropped the rule.
+   ---------------------------------------------------------------------------- */
 @layer components {
-  /* Focus ring styles using ECS green */
-  .focus-ecs {
-    @apply focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900;
-  }
-
-  /* ECS branded button base */
-  .btn-ecs {
-    @apply inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
-  }
-
-  .btn-ecs-primary {
-    @apply btn-ecs bg-ecs-green hover:bg-ecs-green-700 text-white;
-  }
-
-  .btn-ecs-secondary {
-    @apply btn-ecs bg-gray-600 hover:bg-gray-700 text-white dark:bg-gray-700 dark:hover:bg-gray-600;
-  }
-
-  .btn-ecs-ghost {
-    @apply btn-ecs bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300;
-  }
-
-  /* Card styles */
-  .card-ecs {
-    @apply bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700;
-  }
-
-  /* Input styles */
-  .input-ecs {
-    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green;
-  }
-
-  /* Select styles */
-  .select-ecs {
-    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green;
-  }
-
-  /* Table styles */
-  .table-ecs {
-    @apply w-full text-sm text-left text-gray-500 dark:text-gray-400;
-  }
-
   .table-ecs thead {
     @apply text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400;
   }
@@ -63,34 +166,6 @@
 
   .table-ecs tbody tr {
     @apply bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700;
-  }
-
-  /* Badge styles */
-  .badge-ecs {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  }
-
-  .badge-ecs-success {
-    @apply badge-ecs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300;
-  }
-
-  .badge-ecs-warning {
-    @apply badge-ecs bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300;
-  }
-
-  .badge-ecs-danger {
-    @apply badge-ecs bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300;
-  }
-
-  .badge-ecs-info {
-    @apply badge-ecs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300;
-  }
-
-  /* ============================================
-     DataTables Tailwind/Dark Mode Styling
-     ============================================ */
-  .dataTables_wrapper {
-    @apply text-gray-900 dark:text-gray-100;
   }
 
   .dataTables_wrapper .dataTables_length,
@@ -163,8 +238,8 @@
   }
 
   /* ============================================
-     Select2 Tailwind/Dark Mode Styling
-     ============================================ */
+  Select2 Tailwind/Dark Mode Styling
+  ============================================ */
   .select2-container--default .select2-selection--single {
     @apply rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 h-10 flex items-center;
   }
@@ -201,10 +276,6 @@
     @apply text-gray-500 dark:text-gray-400 hover:text-red-500 mr-1;
   }
 
-  .select2-dropdown {
-    @apply border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg shadow-lg mt-1;
-  }
-
   .select2-container--default .select2-search--dropdown .select2-search__field {
     @apply rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 focus:border-ecs-green focus:ring-ecs-green;
   }
@@ -222,8 +293,8 @@
   }
 
   /* ============================================
-     SweetAlert2 Dark Mode Styling
-     ============================================ */
+  SweetAlert2 Dark Mode Styling
+  ============================================ */
   .dark .swal2-popup {
     @apply bg-gray-800 text-gray-100;
   }
@@ -246,21 +317,9 @@
     @apply bg-gray-700 text-gray-300;
   }
 
-  .swal2-confirm {
-    @apply bg-ecs-green hover:bg-ecs-green-700 focus:ring-ecs-green;
-  }
-
-  .swal2-cancel {
-    @apply bg-gray-500 hover:bg-gray-600;
-  }
-
-  .swal2-deny {
-    @apply bg-red-600 hover:bg-red-700;
-  }
-
   /* ============================================
-     Flatpickr Dark Mode Styling
-     ============================================ */
+  Flatpickr Dark Mode Styling
+  ============================================ */
   .dark .flatpickr-calendar {
     @apply bg-gray-800 border-gray-700 shadow-lg;
   }
@@ -338,10 +397,12 @@
   .dark .flatpickr-next-month svg {
     @apply fill-current;
   }
+
 }
 
 /* Flowbite component customizations */
 @layer utilities {
+
   /* Scrollbar styling for dark mode */
   .scrollbar-dark {
     scrollbar-width: thin;

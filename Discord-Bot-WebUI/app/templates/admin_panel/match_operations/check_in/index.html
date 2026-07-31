@@ -30,12 +30,12 @@
 
 {% call page_header("Match Check-In", subtitle="Match Operations") %}
   <button type="button" data-action="backfill-wallet-passes"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
           title="Create membership pass rows for active players that don't have one. Required so coach scans can resolve player identities.">
     <i class="ti ti-id-badge-2" aria-hidden="true"></i>Backfill member passes
   </button>
   <button type="button" data-action="generate-tokens-bulk" data-days="{{ days }}"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-qrcode" aria-hidden="true"></i>Generate missing QRs
   </button>
 {% endcall %}
@@ -57,7 +57,7 @@
       <span class="font-mono font-bold">{{ no_qr }}</span> of <span class="font-mono font-bold">{{ rows|length }}</span> upcoming match{{ 'es' if rows|length != 1 else '' }} still need a venue QR code before coaches can scan players in.
     </p>
     <button type="button" data-action="generate-tokens-bulk" data-days="{{ days }}"
-            class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-qrcode" aria-hidden="true"></i>Generate {{ no_qr }} missing
     </button>
   </div>
@@ -69,7 +69,7 @@
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i> Check-In Queue
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ rows|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ rows|length }}</span>
       </h2>
       <div class="flex flex-col sm:flex-row sm:items-center gap-2">
         <div class="relative flex-1 sm:min-w-[200px]">
@@ -124,9 +124,9 @@
               <div class="flex items-center gap-2 flex-wrap">
                 <a href="{{ r.detail_url }}" class="text-sm font-semibold text-gray-900 dark:text-white hover:text-ecs-green truncate">{{ r.label }}</a>
                 {% if r.league_type == 'pub_league' %}
-                <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Pub League</span>
+                <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Pub League</span>
                 {% else %}
-                <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">ECS FC</span>
+                <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">ECS FC</span>
                 {% endif %}
               </div>
               <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -151,7 +151,7 @@
               </div>
             </div>
             <a href="{{ r.detail_url }}"
-               class="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+               class="shrink-0 inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-arrow-right" aria-hidden="true"></i>Manage
             </a>
           </div>
@@ -172,7 +172,7 @@
 
 <!-- Stat cards + bulk action -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 flex items-center">
         <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900 rounded-lg flex items-center justify-center mr-4">
             <i class="ti ti-calendar text-xl text-emerald-600 dark:text-emerald-400"></i>
         </div>
@@ -181,7 +181,7 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Matches in next {{ days }} days</p>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 flex items-center">
         <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
             <i class="ti ti-qrcode text-xl text-blue-600 dark:text-blue-400"></i>
         </div>
@@ -190,7 +190,7 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">With active QR</p>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 flex items-center">
         <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center mr-4">
             <i class="ti ti-alert-circle text-xl text-amber-600 dark:text-amber-400"></i>
         </div>
@@ -202,7 +202,7 @@
 </div>
 
 <!-- Toolbar -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div class="flex items-center gap-3">
             <label for="daysFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Window</label>
@@ -229,7 +229,7 @@
 </div>
 
 <!-- Matches table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-sm text-left text-gray-700 dark:text-gray-300">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -254,7 +254,7 @@
                     </td>
                     <td class="px-3 sm:px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate hidden md:table-cell">{{ r.location or '—' }}</td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
-                        <span class="text-xs px-2 py-0.5 rounded {% if r.league_type == 'pub_league' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-200{% endif %}">
+                        <span class="text-xs px-2 py-0.5 rounded-sm {% if r.league_type == 'pub_league' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-200{% endif %}">
                             {% if r.league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
                         </span>
                     </td>
@@ -275,7 +275,7 @@
                     </td>
                     <td class="px-3 sm:px-6 py-4 text-right">
                         <a href="{{ r.detail_url }}"
-                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700">
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-sm hover:bg-emerald-700">
                             <i class="ti ti-eye mr-1"></i>Manage
                         </a>
                     </td>

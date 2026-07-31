@@ -97,7 +97,7 @@
 
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
-                    {{ form.remember(class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600", id="remember") }}
+                    {{ form.remember(class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600", id="remember") }}
                     <label for="remember" class="ml-2 text-sm text-gray-700 dark:text-gray-300">Remember me</label>
                 </div>
                 <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-ecs-green hover:underline">Forgot Password?</a>

@@ -42,7 +42,7 @@
 
     <!-- Info Alert -->
     <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
-        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 flex-shrink-0"></i>
+        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 shrink-0"></i>
         <div class="text-sm text-blue-700 dark:text-blue-300">
             <strong>Sponsor Information</strong>
             <p class="mt-1">Sponsors can appear on the back of passes or in auxiliary fields. Configure which pass types each sponsor appears on.</p>
@@ -51,7 +51,7 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Sponsors</p>
@@ -62,7 +62,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Sponsors</p>
@@ -73,7 +73,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Presenting Sponsors</p>
@@ -87,7 +87,7 @@
     </div>
 
     <!-- Sponsors List -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">All Sponsors</h5>
         </div>
@@ -112,25 +112,25 @@
                             <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ sponsor.name }}</td>
                             <td class="px-4 py-3 hidden md:table-cell">{{ sponsor.display_name }}</td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 text-xs font-medium rounded {% if sponsor.sponsor_type == 'presenting' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% elif sponsor.sponsor_type == 'venue' %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-sm {% if sponsor.sponsor_type == 'presenting' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% elif sponsor.sponsor_type == 'venue' %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                                     {{ sponsor.sponsor_type|title }}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
                                 {% if sponsor.applies_to == 'all' %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">All Passes</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">All Passes</span>
                                 {% elif sponsor.applies_to == 'ecs_membership' %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">ECS Only</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">ECS Only</span>
                                 {% else %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">Pub League</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded-sm">Pub League</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 hidden md:table-cell">{{ sponsor.display_location|title }}</td>
                             <td class="px-4 py-3">
                                 {% if sponsor.is_active %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Active</span>
                                 {% else %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">Inactive</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 text-right">
@@ -219,7 +219,7 @@
     </div>
     <div class="flex items-center">
         <input type="checkbox" name="is_active" id="addIsActive" checked
-               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
         <label for="addIsActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
@@ -276,7 +276,7 @@
     </div>
     <div class="flex items-center">
         <input type="checkbox" name="is_active" id="editIsActive"
-               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
         <label for="editIsActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}

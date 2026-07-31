@@ -28,7 +28,7 @@
     </div>
 
     <!-- Progress Indicator -->
-    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-xs border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <!-- Progress Bar -->
         <div class="relative h-1 bg-gray-200 dark:bg-gray-700 rounded-full mb-4 overflow-hidden">
             <div id="progressBar" class="absolute left-0 top-0 h-full bg-ecs-green dark:bg-ecs-gold transition-all duration-300 rounded-full" style="width: 16.66%"></div>
@@ -89,7 +89,7 @@
 
         <!-- Step 1: Order Verification -->
         <div class="wizard-step{% if initial_step != 1 %} hidden{% endif %}" data-step="1">
-            <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
+            <div class="bg-linear-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
                     <i class="ti ti-receipt-2 text-3xl"></i>
                 </div>
@@ -97,7 +97,7 @@
                 <p class="text-white/80">Let's link your Pub League purchase</p>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
@@ -139,7 +139,7 @@
 
                     <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                         <div class="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300">
-                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
                             <p>You have <strong>{{ unassigned_items|length }} pass{% if unassigned_items|length != 1 %}es{% endif %}</strong> to link. You can assign them to yourself or others.</p>
                         </div>
                     </div>
@@ -149,7 +149,7 @@
 
         <!-- Step 2: Discord Login -->
         <div class="wizard-step{% if initial_step != 2 %} hidden{% endif %}" data-step="2">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-50 dark:bg-indigo-900/30">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
@@ -169,7 +169,7 @@
                         Sign in with Discord to link your pass — or, if it's your first time, this is how you sign up. Same button either way.
                     </p>
                     <a href="{{ url_for('auth.discord_register', next=request.url) }}"
-                       class="inline-flex items-center justify-center gap-2 w-full min-h-[44px] px-6 py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                       class="inline-flex items-center justify-center gap-2 w-full min-h-[44px] px-6 py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-brand-discord text-xl"></i>
                         Continue with Discord
                     </a>
@@ -182,7 +182,7 @@
 
         <!-- Step 3: Pass Assignment -->
         <div class="wizard-step{% if initial_step != 3 %} hidden{% endif %}" data-step="3">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
@@ -201,7 +201,7 @@
                          still get activated); this is the explicit "yes, that's me". -->
                     <div id="autoConfirmCard" class="mb-4 rounded-xl border border-ecs-green/30 dark:border-ecs-gold/30 bg-ecs-green/5 dark:bg-ecs-gold/5 p-5">
                         <div class="flex items-start gap-3">
-                            <div class="w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center flex-shrink-0">
+                            <div class="w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center shrink-0">
                                 <i class="ti ti-user-check text-xl text-ecs-green dark:text-ecs-gold"></i>
                             </div>
                             <div class="min-w-0">
@@ -286,7 +286,7 @@
                                     <div class="relative">
                                         <input type="text"
                                                inputmode="search"
-                                               class="user-search-input block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green pr-10"
+                                               class="user-search-input block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green pr-10"
                                                placeholder="Start typing..."
                                                data-line-item-id="{{ item.id }}">
                                         <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -308,7 +308,7 @@
                                             </label>
                                             <input type="text"
                                                    autocomplete="name"
-                                                   class="claim-name block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                                   class="claim-name block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green"
                                                    placeholder="Their name">
                                         </div>
                                         <div>
@@ -318,7 +318,7 @@
                                             <input type="email"
                                                    inputmode="email"
                                                    autocomplete="email"
-                                                   class="claim-email block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                                   class="claim-email block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green"
                                                    placeholder="their@email.com">
                                         </div>
                                         <button type="button"
@@ -362,7 +362,7 @@
 
         <!-- Step 4: Conflict Resolution -->
         <div class="wizard-step{% if initial_step != 4 %} hidden{% endif %}" data-step="4">
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
@@ -388,16 +388,16 @@
                                 <span class="font-medium text-gray-900 dark:text-white">{{ conflict.display_name }} Mismatch</span>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-center mb-4">
-                                <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                                <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-xs">
                                     <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Your Portal Profile</span>
-                                    <span class="text-lg font-bold text-gray-900 dark:text-white break-words">{{ conflict.portal_value or '-' }}</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white wrap-break-word">{{ conflict.portal_value or '-' }}</span>
                                 </div>
                                 <div class="flex justify-center">
                                     <i class="ti ti-arrows-exchange text-2xl text-gray-400 rotate-90 sm:rotate-0"></i>
                                 </div>
-                                <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                                <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-xs">
                                     <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Your Order Says</span>
-                                    <span class="text-lg font-bold text-gray-900 dark:text-white break-words">{{ conflict.order_value or '-' }}</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white wrap-break-word">{{ conflict.order_value or '-' }}</span>
                                 </div>
                             </div>
                             <div class="flex gap-3">
@@ -459,7 +459,7 @@
             </div>
 
             <!-- Section A: Identity & Contact -->
-            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="identity">
+            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="identity">
                 <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-3">
                     <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <i class="ti ti-user text-blue-600 dark:text-blue-400"></i>
@@ -470,14 +470,14 @@
                     <div>
                         <label for="profileName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
                         <input type="text" id="profileName" autocomplete="name" autocapitalize="words"
-                               class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                               class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green"
                                placeholder="Your full name"
                                value="{{ profile_prefill.name or '' }}">
                     </div>
                     <div>
                         <label for="profilePhone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mobile Phone</label>
                         <input type="tel" id="profilePhone" inputmode="tel" autocomplete="tel"
-                               class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                               class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green"
                                placeholder="(555) 123-4567"
                                value="{{ profile_prefill.phone or '' }}">
                         <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Only used to reach you about matches. We never share it.</p>
@@ -485,7 +485,7 @@
                     <div>
                         <label for="profilePronouns" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pronouns</label>
                         <select id="profilePronouns"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Prefer not to say</option>
                             {% for value, label in pronoun_choices %}
                             <option value="{{ value }}" {% if profile_prefill.pronouns == value %}selected{% endif %}>{{ label }}</option>
@@ -496,7 +496,7 @@
                         <div>
                             <label for="profileJerseySize" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
                             <select id="profileJerseySize"
-                                    class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select</option>
                                 {% for size in jersey_size_choices %}
                                 <option value="{{ size }}" {% if profile_prefill.jersey_size == size %}selected{% endif %}>{{ size }}</option>
@@ -506,7 +506,7 @@
                         <div>
                             <label for="profileJerseyNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey #</label>
                             <input type="number" id="profileJerseyNumber" inputmode="numeric" min="0" max="99"
-                                   class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                   class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green"
                                    placeholder="—"
                                    value="{{ profile_prefill.jersey_number if profile_prefill.jersey_number not in (None, '') else '' }}">
                         </div>
@@ -514,14 +514,14 @@
                 </div>
                 {% if profile_review_mode != 'compact' %}
                 <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
-                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="identity">
+                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="identity">
                     <span class="text-sm text-gray-700 dark:text-gray-300">My name, contact and jersey info above is correct.</span>
                 </label>
                 {% endif %}
             </div>
 
             <!-- Section B: Playing -->
-            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="playing">
+            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="playing">
                 <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-3">
                     <div class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                         <i class="ti ti-ball-football text-purple-600 dark:text-purple-400"></i>
@@ -532,7 +532,7 @@
                     <div>
                         <label for="profileFavoritePosition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
                         <select id="profileFavoritePosition"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">No preference</option>
                             {% for value, label in soccer_positions %}
                             <option value="{{ value }}" {% if profile_prefill.favorite_position == value %}selected{% endif %}>{{ label }}</option>
@@ -566,7 +566,7 @@
                     <div>
                         <label for="profileFrequencyGoal" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Playing in Goal</label>
                         <select id="profileFrequencyGoal"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Select an option</option>
                             {% for value, label in goal_frequency_choices %}
                             <option value="{{ value }}" {% if profile_prefill.frequency_play_goal == value %}selected{% endif %}>{{ label }}</option>
@@ -576,14 +576,14 @@
                 </div>
                 {% if profile_review_mode != 'compact' %}
                 <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
-                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="playing">
+                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="playing">
                     <span class="text-sm text-gray-700 dark:text-gray-300">My position preferences above are correct.</span>
                 </label>
                 {% endif %}
             </div>
 
             <!-- Section C: Availability -->
-            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="availability">
+            <div class="profile-section bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-4" data-section="availability">
                 <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center gap-3">
                     <div class="w-9 h-9 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                         <i class="ti ti-calendar-check text-amber-600 dark:text-amber-400"></i>
@@ -594,7 +594,7 @@
                     <div>
                         <label for="profileAvailability" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weeks You Expect to Be Available</label>
                         <select id="profileAvailability"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Select</option>
                             {% for value, label in availability_choices %}
                             <option value="{{ value }}" {% if profile_prefill.expected_weeks_available == value %}selected{% endif %}>{{ label }}</option>
@@ -604,7 +604,7 @@
                     <div>
                         <label for="profileWillingToReferee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Up for Refereeing?</label>
                         <select id="profileWillingToReferee"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Select</option>
                             {% for value, label in willing_to_referee_choices %}
                             <option value="{{ value }}" {% if profile_prefill.willing_to_referee == value %}selected{% endif %}>{{ label }}</option>
@@ -614,21 +614,21 @@
                     <div>
                         <label for="profilePlayerNotes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes for Coaches &amp; Admins</label>
                         <textarea id="profilePlayerNotes" rows="3"
-                                  class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                  class="block w-full text-base rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green"
                                   placeholder="Anything you'd like coaches or admins to know (optional)">{{ profile_prefill.player_notes or '' }}</textarea>
                     </div>
                 </div>
                 {% if profile_review_mode != 'compact' %}
                 <label class="flex items-start gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 cursor-pointer">
-                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="availability">
+                    <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="availability">
                     <span class="text-sm text-gray-700 dark:text-gray-300">My availability above is correct.</span>
                 </label>
                 {% endif %}
             </div>
 
             {% if profile_review_mode == 'compact' %}
-            <label class="flex items-start gap-3 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm cursor-pointer">
-                <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="all">
+            <label class="flex items-start gap-3 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xs cursor-pointer">
+                <input type="checkbox" class="profile-confirm mt-0.5 w-5 h-5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green dark:border-gray-600 dark:bg-gray-700" data-section="all">
                 <span class="text-sm text-gray-700 dark:text-gray-300">Everything above looks right.</span>
             </label>
             {% endif %}
@@ -637,7 +637,7 @@
         <!-- Step 6: Download Pass -->
         <div class="wizard-step{% if initial_step != 6 %} hidden{% endif %}" data-step="6">
             <!-- Approved hero -->
-            <div id="step6HeroApproved" class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6 {% if not is_approved %}hidden{% endif %}">
+            <div id="step6HeroApproved" class="bg-linear-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6 {% if not is_approved %}hidden{% endif %}">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
                     <i class="ti ti-ticket text-3xl"></i>
                 </div>
@@ -649,7 +649,7 @@
             </div>
 
             <!-- Pending-approval hero -->
-            <div id="step6HeroPending" class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6 {% if is_approved %}hidden{% endif %}">
+            <div id="step6HeroPending" class="bg-linear-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6 {% if is_approved %}hidden{% endif %}">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
                     <i class="ti ti-circle-check text-3xl"></i>
                 </div>
@@ -662,7 +662,7 @@
             <!-- Pending-approval details card -->
             <div id="step6PendingCard" class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6 {% if is_approved %}hidden{% endif %}">
                 <div class="flex items-start gap-3">
-                    <i class="ti ti-hourglass-high text-amber-500 text-xl flex-shrink-0 mt-0.5"></i>
+                    <i class="ti ti-hourglass-high text-amber-500 text-xl shrink-0 mt-0.5"></i>
                     <div class="text-sm text-amber-800 dark:text-amber-300">
                         <p class="font-medium mb-1">What happens next</p>
                         <ul class="list-disc list-inside space-y-1 text-amber-700 dark:text-amber-400">
@@ -679,7 +679,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
@@ -705,7 +705,7 @@
 
                     <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                         <div class="flex items-start gap-3 text-sm text-blue-700 dark:text-blue-300">
-                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
                             <div>
                                 <p class="font-medium mb-1">What's next?</p>
                                 <ul class="list-disc list-inside space-y-1 text-blue-600 dark:text-blue-400">
@@ -1332,7 +1332,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: 'Claim Link Created!',
                     html: `
                         <p class="mb-3">Share this link with ${escapeHtml(name || 'the recipient')}:</p>
-                        <input type="text" value="${escapeHtml(data.claim_url)}" class="w-full p-2 border rounded text-base" readonly onclick="this.select()">
+                        <input type="text" value="${escapeHtml(data.claim_url)}" class="w-full p-2 border rounded-sm text-base" readonly onclick="this.select()">
                         <p class="mt-2 text-sm text-gray-500">Link expires in 7 days</p>
                     `,
                     confirmButtonText: 'Copy Link',

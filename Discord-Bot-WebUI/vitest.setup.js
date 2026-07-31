@@ -182,6 +182,23 @@ beforeEach(() => {
   localStorageMock.setItem.mockClear();
 });
 
+// happy-dom exposes HTMLOptionElement but not the legacy `Option` constructor that
+// browsers have had since forever. DataTables builds its page-length <select> with
+// `new Option(...)`, so without this every DataTable init dies with "Option is not a
+// constructor" — a harness gap, not a library bug. Real browsers all provide it.
+if (typeof globalThis.Option === 'undefined' && typeof globalThis.HTMLOptionElement !== 'undefined') {
+  globalThis.Option = function Option(text = '', value, defaultSelected = false, selected = false) {
+    const opt = document.createElement('option');
+    if (text !== '') opt.text = text;
+    if (value !== undefined) opt.value = value;
+    opt.defaultSelected = defaultSelected;
+    opt.selected = selected;
+    return opt;
+  };
+  globalThis.Option.prototype = globalThis.HTMLOptionElement.prototype;
+  if (typeof window !== 'undefined') window.Option = globalThis.Option;
+}
+
 // Custom matchers
 expect.extend({
   toBeVisible(element) {

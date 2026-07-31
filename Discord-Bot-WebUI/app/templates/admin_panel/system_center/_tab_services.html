@@ -28,13 +28,13 @@
         </span>
       </div>
 
-      {% if s.meta %}<p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 break-words">{{ s.meta }}</p>{% endif %}
+      {% if s.meta %}<p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 wrap-break-word">{{ s.meta }}</p>{% endif %}
 
       <dl class="mt-3 space-y-1.5 flex-1">
         {% for label, value in s.metrics %}
         <div class="flex items-baseline justify-between gap-3 text-xs">
           <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ label }}</dt>
-          <dd class="font-mono text-gray-900 dark:text-white text-right break-words min-w-0 truncate" title="{{ value }}">{{ value if value not in (none, '') else '—' }}</dd>
+          <dd class="font-mono text-gray-900 dark:text-white text-right wrap-break-word min-w-0 truncate" title="{{ value }}">{{ value if value not in (none, '') else '—' }}</dd>
         </div>
         {% endfor %}
       </dl>

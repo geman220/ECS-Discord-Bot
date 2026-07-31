@@ -85,7 +85,7 @@
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-photo text-ecs-green" aria-hidden="true"></i> Submission Feed
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ shots.total }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ shots.total }}</span>
       </h2>
     </div>
 
@@ -131,7 +131,7 @@
             <td class="px-3 py-3 align-middle">
               <div class="flex items-center gap-3">
                 <a href="{{ shot.image_url }}" target="_blank" rel="noopener"
-                   class="block w-11 h-11 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 ring-1 ring-gray-200 dark:ring-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   class="block w-11 h-11 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 ring-1 ring-gray-200 dark:ring-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                    title="Open full image">
                   <img src="{{ shot.image_url }}" alt="Shot #{{ shot.id }}" class="w-full h-full object-cover" loading="lazy">
                 </a>
@@ -182,13 +182,13 @@
               <div class="flex items-center justify-end gap-1">
                 {% if shot.status == 'approved' %}
                 <button type="button"
-                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}" aria-label="Disallow shot">
                   <i class="ti ti-ban" aria-hidden="true"></i>
                 </button>
                 {% endif %}
                 <button type="button"
-                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         title="Delete" data-action="delete-shot" data-id="{{ shot.id }}" aria-label="Delete shot">
                   <i class="ti ti-trash" aria-hidden="true"></i>
                 </button>
@@ -205,7 +205,7 @@
         <div data-row class="px-4 py-3.5">
           <div class="flex items-start gap-3">
             <a href="{{ shot.image_url }}" target="_blank" rel="noopener"
-               class="block w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 ring-1 ring-gray-200 dark:ring-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="block w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 shrink-0 ring-1 ring-gray-200 dark:ring-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <img src="{{ shot.image_url }}" alt="Shot #{{ shot.id }}" class="w-full h-full object-cover" loading="lazy">
             </a>
             <div class="min-w-0 flex-1">
@@ -217,13 +217,13 @@
                 <div class="flex items-center gap-1 shrink-0">
                   {% if shot.status == 'approved' %}
                   <button type="button"
-                          class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 dark:text-red-400 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}" aria-label="Disallow shot">
                     <i class="ti ti-ban" aria-hidden="true"></i>
                   </button>
                   {% endif %}
                   <button type="button"
-                          class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           title="Delete" data-action="delete-shot" data-id="{{ shot.id }}" aria-label="Delete shot">
                     <i class="ti ti-trash" aria-hidden="true"></i>
                   </button>
@@ -280,7 +280,7 @@
 </div>
 {% else %}
 <!-- Header Card -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-6 border border-gray-200 dark:border-gray-700">
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -293,7 +293,7 @@
 
 <!-- Shot Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.total_shots }}</p>
@@ -304,7 +304,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.approved_shots }}</p>
@@ -315,7 +315,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.disallowed_shots }}</p>
@@ -326,7 +326,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.avg_points|round(1) }}</p>
@@ -340,7 +340,7 @@
 </div>
 
 <!-- Filters Bar -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
     <div class="p-4 flex flex-wrap items-center gap-3">
         <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
             <option value="">All Status</option>
@@ -358,7 +358,7 @@
 
 {% if shots.items %}
 <!-- Shots Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
     <div class="overflow-x-auto">
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -445,7 +445,7 @@
 
 {% else %}
 <!-- Empty State -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
     {{ empty_state(
         title="No Shots Found",
         description="No photo submissions match your current filters.",

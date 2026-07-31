@@ -80,19 +80,19 @@
     {# Operator command buttons — single primary CTA (Force Sync, amber/recovery) leads. #}
     <button type="button" id="force-sync-btn"
             class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 sm:px-4 rounded-lg text-sm font-semibold text-white
-                   bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors whitespace-nowrap">
+                   bg-amber-500 hover:bg-amber-600 focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors whitespace-nowrap">
       <i class="ti ti-refresh" aria-hidden="true"></i>Force Sync
     </button>
     <button type="button" id="health-check-btn"
             class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 sm:px-4 rounded-lg text-sm font-semibold
                    text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
-                   hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors whitespace-nowrap">
+                   hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green transition-colors whitespace-nowrap">
       <i class="ti ti-heartbeat" aria-hidden="true"></i>Health Check
     </button>
     <button type="button" data-action="refresh-page"
             class="js-refresh-page inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
                    text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
-                   hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Refresh now" aria-label="Refresh now">
+                   hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Refresh now" aria-label="Refresh now">
       <i class="ti ti-refresh" aria-hidden="true"></i>
     </button>
   </div>
@@ -205,7 +205,7 @@
             <td class="px-3 py-2.5 text-right">
               <button type="button" data-action="stop-session" data-session-id="{{ session.id }}" title="Stop Session" aria-label="Stop session"
                       class="js-stop-session inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
-                             text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500">
+                             text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-hidden focus:ring-2 focus:ring-red-500">
                 <i class="ti ti-player-stop" aria-hidden="true"></i>
               </button>
             </td>
@@ -228,7 +228,7 @@
           </div>
           <button type="button" data-action="stop-session" data-session-id="{{ session.id }}" title="Stop Session" aria-label="Stop session"
                   class="js-stop-session shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg
-                         text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500">
+                         text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-hidden focus:ring-2 focus:ring-red-500">
             <i class="ti ti-player-stop" aria-hidden="true"></i>
           </button>
         </div>
@@ -278,13 +278,13 @@
               {% if match.live_reporting_status != 'running' %}
               <button type="button" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Live Reporting" aria-label="Start live reporting"
                       class="js-start-reporting inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
-                             text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                             text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-player-play" aria-hidden="true"></i>
               </button>
               {% else %}
               <button type="button" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Live Reporting" aria-label="Stop live reporting"
                       class="js-stop-reporting inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
-                             text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500">
+                             text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-hidden focus:ring-2 focus:ring-red-500">
                 <i class="ti ti-player-stop" aria-hidden="true"></i>
               </button>
               {% endif %}
@@ -309,13 +309,13 @@
           {% if match.live_reporting_status != 'running' %}
           <button type="button" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Live Reporting" aria-label="Start live reporting"
                   class="js-start-reporting shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg
-                         text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                         text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-player-play" aria-hidden="true"></i>
           </button>
           {% else %}
           <button type="button" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Live Reporting" aria-label="Stop live reporting"
                   class="js-stop-reporting shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg
-                         text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-red-500">
+                         text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-hidden focus:ring-2 focus:ring-red-500">
             <i class="ti ti-player-stop" aria-hidden="true"></i>
           </button>
           {% endif %}
@@ -346,7 +346,7 @@
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
           {% for session in recent_sessions %}
           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-            <td class="px-3 py-2.5"><code class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded">{{ session.id }}</code></td>
+            <td class="px-3 py-2.5"><code class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded-sm">{{ session.id }}</code></td>
             <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white font-mono">{{ session.match_id }}</td>
             <td class="px-3 py-2.5 font-mono text-xs hidden md:table-cell">{{ session.started_at.strftime('%m/%d %H:%M') if session.started_at else 'N/A' }}</td>
             <td class="px-3 py-2.5 font-mono text-xs hidden md:table-cell">{{ session.ended_at.strftime('%m/%d %H:%M') if session.ended_at else '-' }}</td>
@@ -368,7 +368,7 @@
         {% for session in recent_sessions %}
         <div class="px-4 py-3.5">
           <div class="flex items-center justify-between gap-2">
-            <code class="px-2 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded">{{ session.id }}</code>
+            <code class="px-2 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded-sm">{{ session.id }}</code>
             {% if session.is_active %}
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300">Active</span>
             {% elif session.ended_at %}
@@ -407,7 +407,7 @@
           <button type="button" id="lre-pause"
                   class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold
                          text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600
-                         hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                         hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-player-pause" aria-hidden="true"></i><span>Pause</span>
           </button>
         </div>
@@ -434,7 +434,7 @@
   <div class="mb-6">
     {% call section_card('Quick Links', icon='ti-link') %}
       <div class="p-4 sm:p-5 flex flex-wrap gap-3">
-        {% set ql = 'inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors' %}
+        {% set ql = 'inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green transition-colors' %}
         <a href="{{ url_for('admin_panel.mls_sessions') }}" class="{{ ql }}"><i class="ti ti-list" aria-hidden="true"></i>View All Sessions</a>
         <a href="{{ url_for('admin_panel.mls_settings') }}" class="{{ ql }}"><i class="ti ti-settings" aria-hidden="true"></i>Settings</a>
         <a href="{{ url_for('admin_panel.mls_matches') }}" class="{{ ql }}"><i class="ti ti-ball-football" aria-hidden="true"></i>All Matches</a>
@@ -447,7 +447,7 @@
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
     <button type="button" id="toggle-service-details" aria-expanded="false"
             class="w-full flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700
-                   focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                   focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
       <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
         <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>Detailed Service Status
       </span>
@@ -549,7 +549,7 @@
 <!-- Status Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <!-- Real-time Service Status -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 {{ 'border-green-500' if realtime_health.health == 'healthy' else 'border-yellow-500' if realtime_health.health == 'degraded' else 'border-red-500' }}">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 {{ 'border-green-500' if realtime_health.health == 'healthy' else 'border-yellow-500' if realtime_health.health == 'degraded' else 'border-red-500' }}">
         <div class="p-5">
             <div class="flex items-center mb-3">
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 mr-3">
@@ -582,7 +582,7 @@
     </div>
 
     <!-- Active Sessions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-blue-500">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 border-blue-500">
         <div class="p-5">
             <div class="flex items-center mb-3">
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mr-3">
@@ -599,7 +599,7 @@
     </div>
 
     <!-- Coordination Status -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 {{ 'border-green-500' if coordination_status.coordination_status == 'healthy' else 'border-yellow-500' }}">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 {{ 'border-green-500' if coordination_status.coordination_status == 'healthy' else 'border-yellow-500' }}">
         <div class="p-5">
             <div class="flex items-center mb-3">
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mr-3">
@@ -615,7 +615,7 @@
     </div>
 
     <!-- Upcoming Matches -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-l-4 border-gray-400">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 border-gray-400">
         <div class="p-5">
             <div class="flex items-center mb-3">
                 <div class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 mr-3">
@@ -632,7 +632,7 @@
 <!-- Main Content -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Active Sessions List -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-broadcast mr-2"></i>Active Sessions
@@ -693,7 +693,7 @@
     </div>
 
     <!-- Upcoming Matches List -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-calendar mr-2"></i>Upcoming Matches
@@ -767,7 +767,7 @@
 
 <!-- Recent Sessions -->
 {% if recent_sessions %}
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-history mr-2"></i>Recent Sessions (Last 24 Hours)
@@ -789,7 +789,7 @@
                 {% for session in recent_sessions %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                     <td class="px-4 py-3">
-                        <code class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded">{{ session.id }}</code>
+                        <code class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded-sm">{{ session.id }}</code>
                     </td>
                     <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ session.match_id }}</td>
                     <td class="px-4 py-3 text-gray-600 dark:text-gray-400">{{ session.started_at.strftime('%m/%d %H:%M') if session.started_at else 'N/A' }}</td>
@@ -813,7 +813,7 @@
 {% endif %}
 
 <!-- Recent Live Reporting Activity (Redis ring buffer — last ~1000 events) -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div class="flex items-center gap-2">
             <i class="ti ti-clipboard-list text-gray-500 dark:text-gray-400"></i>
@@ -856,7 +856,7 @@
 <!-- Service Controls -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Quick Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-2">
                 <i class="ti ti-tools text-gray-500 dark:text-gray-400"></i>
@@ -876,7 +876,7 @@
     </div>
 
     <!-- Navigation Links -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-2">
                 <i class="ti ti-link text-gray-500 dark:text-gray-400"></i>
@@ -900,7 +900,7 @@
 </div>
 
 <!-- Detailed Service Status (Collapsible) -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <button type="button" class="w-full flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700" id="toggle-service-details" aria-expanded="false">
         <div class="flex items-center gap-2">
             <i class="ti ti-activity text-gray-500 dark:text-gray-400"></i>
@@ -1244,7 +1244,7 @@ document.getElementById('health-check-btn')?.addEventListener('click', function(
             info:     'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
         };
         const cls = map[outcome] || map.info;
-        return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls}">${escape(outcome)}</span>`;
+        return `<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${cls}">${escape(outcome)}</span>`;
     };
 
     const render = (events) => {

@@ -8,7 +8,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     {% call kit.page_header("Season Configuration", subtitle=league.name) %}
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
-           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Schedule Manager
         </a>
     {% endcall %}
@@ -46,7 +46,7 @@
             <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <input type="checkbox" id="has_fun_week" name="has_fun_week"
                        {{ 'checked' if season_config.has_fun_week else '' }}
-                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                 <div>
                     <p class="font-medium text-gray-900 dark:text-white">Fun Week</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Include a fun week in the schedule</p>
@@ -55,7 +55,7 @@
             <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <input type="checkbox" id="has_tst_week" name="has_tst_week"
                        {{ 'checked' if season_config.has_tst_week else '' }}
-                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                 <div>
                     <p class="font-medium text-gray-900 dark:text-white">TST Week</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Include a TST (Tournament) week</p>
@@ -64,7 +64,7 @@
             <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <input type="checkbox" id="has_bonus_week" name="has_bonus_week"
                        {{ 'checked' if season_config.has_bonus_week else '' }}
-                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                 <div>
                     <p class="font-medium text-gray-900 dark:text-white">Bonus Week</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Include a bonus week at the end of the season</p>
@@ -78,7 +78,7 @@
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" id="has_practice_sessions" name="has_practice_sessions"
                        {{ 'checked' if season_config.has_practice_sessions else '' }}
-                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                 <div>
                     <p class="font-medium text-gray-900 dark:text-white">Enable Practice Sessions</p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Enable practice sessions for specific weeks</p>
@@ -138,11 +138,11 @@
 
         <div class="flex flex-wrap gap-3">
             <button type="submit"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                 <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Configuration
             </button>
             <a href="{{ url_for('auto_schedule.schedule_manager') }}"
-               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-x" aria-hidden="true"></i> Cancel
             </a>
         </div>
@@ -168,7 +168,7 @@
         {{ csrf_token() }}
 
         <!-- Season Length Configuration -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-calendar text-ecs-green"></i> Season Length
@@ -201,7 +201,7 @@
         </div>
 
         <!-- Special Weeks Configuration -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-star text-ecs-green"></i> Special Weeks
@@ -211,7 +211,7 @@
                 <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" id="has_fun_week" name="has_fun_week"
                            {{ 'checked' if season_config.has_fun_week else '' }}
-                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                           class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                     <div>
                         <p class="font-medium text-gray-900 dark:text-white">Fun Week</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Include a fun week in the schedule</p>
@@ -220,7 +220,7 @@
                 <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" id="has_tst_week" name="has_tst_week"
                            {{ 'checked' if season_config.has_tst_week else '' }}
-                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                           class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                     <div>
                         <p class="font-medium text-gray-900 dark:text-white">TST Week</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Include a TST (Tournament) week</p>
@@ -229,7 +229,7 @@
                 <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
                     <input type="checkbox" id="has_bonus_week" name="has_bonus_week"
                            {{ 'checked' if season_config.has_bonus_week else '' }}
-                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                           class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                     <div>
                         <p class="font-medium text-gray-900 dark:text-white">Bonus Week</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Include a bonus week at the end of the season</p>
@@ -239,7 +239,7 @@
         </div>
 
         <!-- Practice Sessions Configuration -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-ball-football text-ecs-green"></i> Practice Sessions
@@ -249,7 +249,7 @@
                 <label class="flex items-center gap-3 cursor-pointer">
                     <input type="checkbox" id="has_practice_sessions" name="has_practice_sessions"
                            {{ 'checked' if season_config.has_practice_sessions else '' }}
-                           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                           class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                     <div>
                         <p class="font-medium text-gray-900 dark:text-white">Enable Practice Sessions</p>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Enable practice sessions for specific weeks</p>

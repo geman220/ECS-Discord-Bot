@@ -23,8 +23,8 @@
             {{ form.csrf_token }}
 
             {% for match in matches %}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-green to-ecs-green/80">
                     <h3 class="font-bold text-white">{{ match.home_team.name }} vs {{ match.away_team.name }}</h3>
                 </div>
                 <div class="p-4">

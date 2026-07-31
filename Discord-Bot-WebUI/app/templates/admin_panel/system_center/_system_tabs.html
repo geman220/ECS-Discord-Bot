@@ -21,7 +21,7 @@
        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
        {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
       <i class="ti {{ icon }}"></i>{{ label }}
-      {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+      {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-5 h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
     </a>
     {% endfor %}
   </div>

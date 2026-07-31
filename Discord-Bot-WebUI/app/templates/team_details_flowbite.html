@@ -43,9 +43,9 @@
     {% if team.background_image_url %}
     <img src="{{ team.background_image_url }}" alt="" aria-hidden="true"
          class="absolute inset-0 w-full h-full object-cover object-center">
-    <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/60 to-black/35"></div>
+    <div class="absolute inset-0 bg-linear-to-r from-black/80 via-black/60 to-black/35"></div>
     {% else %}
-    <div class="absolute inset-0 bg-gradient-to-r from-ecs-green to-ecs-green-700"></div>
+    <div class="absolute inset-0 bg-linear-to-r from-ecs-green to-ecs-green-700"></div>
     {% endif %}
 
     <div class="relative p-5 sm:p-6 lg:p-8">
@@ -86,13 +86,13 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="file" name="team_kit" id="kit-upload" class="hidden" accept="image/*" onchange="this.form.submit()">
             <button type="button" onclick="document.getElementById('kit-upload').click()"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white/15 text-white text-sm font-semibold hover:bg-white/25 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-white/70">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white/15 text-white text-sm font-semibold hover:bg-white/25 backdrop-blur-xs transition-colors focus:outline-hidden focus:ring-2 focus:ring-white/70">
               <i class="ti ti-upload" aria-hidden="true"></i>
               <span class="hidden sm:inline">Upload Kit</span>
             </button>
           </form>
           <button type="button" id="upload-bg-btn"
-                  class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white/15 text-white text-sm font-semibold hover:bg-white/25 backdrop-blur-sm transition-colors focus:outline-none focus:ring-2 focus:ring-white/70">
+                  class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white/15 text-white text-sm font-semibold hover:bg-white/25 backdrop-blur-xs transition-colors focus:outline-hidden focus:ring-2 focus:ring-white/70">
             <i class="ti ti-photo" aria-hidden="true"></i>
             <span class="hidden sm:inline">Upload Background</span>
           </button>
@@ -255,12 +255,12 @@
         <div class="flex items-center gap-2">
           <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
           <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Roster</h3>
-          <span class="font-mono text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ players|length }}</span>
+          <span class="font-mono text-xs px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ players|length }}</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           {% if has_role('Global Admin') or has_role('Pub League Admin') %}
           <button type="button" id="assign-discord-btn" data-action="assign-discord-roles" data-team-id="{{ team.id }}"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-[#5865F2] text-white text-xs font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-[#5865F2] text-white text-xs font-semibold hover:bg-[#4752c4] transition-colors focus:outline-hidden focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-brand-discord" aria-hidden="true"></i>
             <span>Assign Roles</span>
           </button>
@@ -277,12 +277,12 @@
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for player in players %}
         <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
-           class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           {# jersey number (mono) — falls back to a dash when unset #}
           <span class="shrink-0 w-8 text-center font-mono text-sm font-bold text-gray-400 dark:text-gray-500">
             {% if player.jersey_number is not none %}{{ player.jersey_number }}{% else %}<span class="text-gray-300 dark:text-gray-600">·</span>{% endif %}
           </span>
-          <div class="relative flex-shrink-0">
+          <div class="relative shrink-0">
             <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                  alt="{{ player.name }}"
                  class="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600">
@@ -296,7 +296,7 @@
             <div class="flex items-center gap-1.5">
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate group-hover:text-ecs-green">{{ player.name }}</span>
               {% if player.is_coach %}
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold">Coach</span>
+              <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold">Coach</span>
               {% endif %}
             </div>
             {% if player.favorite_position %}
@@ -346,9 +346,9 @@
           <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Schedule &amp; Results</h3>
           {% if can_view_game_results and ns.played > 0 %}
           <span class="hidden sm:inline-flex items-center gap-1 ml-1">
-            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ ns.w }}W</span>
-            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ ns.l }}L</span>
-            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ ns.d }}D</span>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ ns.w }}W</span>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ ns.l }}L</span>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ ns.d }}D</span>
           </span>
           {% endif %}
         </div>
@@ -403,7 +403,7 @@
               <i class="ti ti-calendar-off" aria-hidden="true"></i>
             </span>
             <div class="flex-1 min-w-0">
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">No game scheduled — week off</div>
             </div>
             {% else %}
@@ -427,7 +427,7 @@
                   <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="text-sm font-semibold text-gray-900 dark:text-white hover:text-ecs-green truncate block">
                   {% endif %}
                     {% if match.week_type in ['FUN', 'TST', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold">{{ match.week_type }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-ecs-gold/15 text-ecs-gold-700 dark:text-ecs-gold">{{ match.week_type }}</span>
                     {% else %}
                     <span class="text-gray-900 dark:text-white">{{ display_home }}</span>
                     <span class="text-gray-400 font-normal mx-0.5">vs</span>
@@ -455,7 +455,7 @@
                   {% endif %}
                   {% if can_report_match %}
                   <button type="button"
-                          class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors edit-match-btn
+                          class="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors edit-match-btn
                               {% if match.reported %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900{% endif %}"
                           data-action="edit-match-report"
                           data-match-id="{{ match.id }}"
@@ -616,9 +616,9 @@
                     {% if team.background_size %}background-size: {{ team.background_size }};{% endif %}
                     {% if team.background_position %}background-position: {{ team.background_position }};{% endif %}">
         </div>
-        <div class="absolute inset-0 bg-gradient-to-r from-black/70 to-black/40"></div>
+        <div class="absolute inset-0 bg-linear-to-r from-black/70 to-black/40"></div>
         {% else %}
-        <div class="absolute inset-0 bg-gradient-to-r from-ecs-green to-ecs-green/80"></div>
+        <div class="absolute inset-0 bg-linear-to-r from-ecs-green to-ecs-green/80"></div>
         {% endif %}
 
         <!-- Content -->
@@ -668,7 +668,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Team Members Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h2>
@@ -690,7 +690,7 @@
                     {% for player in players %}
                     <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                        <div class="relative flex-shrink-0">
+                        <div class="relative shrink-0">
                             <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                                  alt="{{ player.name }}"
                                  class="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-600">
@@ -708,10 +708,10 @@
                         </div>
                         <div class="flex items-center gap-1 text-xs">
                             {% if can_view_player_stats %}
-                            <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Goals">
+                            <span class="px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Goals">
                                 <i class="ti ti-ball-football mr-0.5"></i>{{ player.season_goals(season.id) }}
                             </span>
-                            <span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Assists">
+                            <span class="px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" title="Assists">
                                 <i class="ti ti-arrow-big-right-lines mr-0.5"></i>{{ player.season_assists(season.id) }}
                             </span>
                             {% endif %}
@@ -736,7 +736,7 @@
         </div>
 
         <!-- Team Schedule Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Schedule</h2>
@@ -771,16 +771,16 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 {% if wins > 0 %}
-                                <span class="px-1.5 py-0.5 text-xs rounded bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">W{{ wins }}</span>
+                                <span class="px-1.5 py-0.5 text-xs rounded-sm bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">W{{ wins }}</span>
                                 {% endif %}
                                 {% if losses > 0 %}
-                                <span class="px-1.5 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">L{{ losses }}</span>
+                                <span class="px-1.5 py-0.5 text-xs rounded-sm bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">L{{ losses }}</span>
                                 {% endif %}
                                 {% if draws > 0 %}
-                                <span class="px-1.5 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">D{{ draws }}</span>
+                                <span class="px-1.5 py-0.5 text-xs rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">D{{ draws }}</span>
                                 {% endif %}
                                 {% if pending > 0 %}
-                                <span class="px-1.5 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ pending }}</span>
+                                <span class="px-1.5 py-0.5 text-xs rounded-sm bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">{{ pending }}</span>
                                 {% endif %}
                                 <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400"></i>
                             </div>
@@ -801,7 +801,7 @@
                                     <i class="ti ti-calendar-off"></i>
                                 </span>
                                 <div class="flex-1 min-w-0">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">BYE WEEK</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">BYE WEEK</span>
                                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">No game scheduled - week off</div>
                                 </div>
                                 {% else %}
@@ -816,7 +816,7 @@
                                     <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="hover:text-ecs-green">
                                     {% endif %}
                                         {% if match.week_type in ['FUN', 'TST', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ match.week_type }}</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ match.week_type }}</span>
                                         {% else %}
                                         <span class="font-medium text-gray-900 dark:text-white">{{ display_home }}</span>
                                         <span class="text-gray-400 mx-1">vs</span>
@@ -839,7 +839,7 @@
                                 {% endif %}
                                 {% if can_report_match %}
                                 <button type="button"
-                                        class="flex-shrink-0 p-1.5 rounded-lg transition-colors edit-match-btn
+                                        class="shrink-0 p-1.5 rounded-lg transition-colors edit-match-btn
                                             {% if match.reported %}bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900{% endif %}"
                                         data-action="edit-match-report"
                                         data-match-id="{{ match.id }}"
@@ -866,7 +866,7 @@
     </div>
 
     <!-- Team Information Card -->
-    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Information</h2>
         </div>

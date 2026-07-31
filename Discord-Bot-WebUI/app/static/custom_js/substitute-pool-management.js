@@ -189,7 +189,7 @@ export function displaySearchResults(players) {
                             <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Can add to:</span>
                             <div class="flex gap-1">
                                 ${player.can_add_to.map(league => `
-                                    <button class="px-2 py-1 text-xs font-medium text-ecs-green border border-ecs-green rounded hover:bg-ecs-green hover:text-white transition-colors"
+                                    <button class="px-2 py-1 text-xs font-medium text-ecs-green border border-ecs-green rounded-sm hover:bg-ecs-green hover:text-white transition-colors"
                                             data-action="add-player-to-league"
                                             data-player-id="${player.id}"
                                             data-league="${league}">
@@ -380,7 +380,7 @@ export function displayPlayerDetails(data, playerId) {
                         <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Teams</h6>
                         <div class="flex flex-wrap gap-1">
                             ${profile.teams && profile.teams.length > 0 ?
-                                profile.teams.map(team => `<span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded">${team.name}</span>`).join('') :
+                                profile.teams.map(team => `<span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded-sm">${team.name}</span>`).join('') :
                                 '<span class="text-gray-500 dark:text-gray-400 text-sm">No teams assigned</span>'
                             }
                         </div>
@@ -389,7 +389,7 @@ export function displayPlayerDetails(data, playerId) {
                         <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Roles</h6>
                         <div class="flex flex-wrap gap-1">
                             ${profile.roles && profile.roles.length > 0 ?
-                                profile.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-gray-500 text-white rounded">${role}</span>`).join('') :
+                                profile.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-gray-500 text-white rounded-sm">${role}</span>`).join('') :
                                 '<span class="text-gray-500 dark:text-gray-400 text-sm">No roles assigned</span>'
                             }
                         </div>

@@ -28,7 +28,7 @@ function _buildPreviewHtml(data) {
         html += `<div class="mb-3 text-left">`;
         html += `<div class="flex items-center mb-2">`;
         html += `<label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">`;
-        html += `<input type="checkbox" id="espn-select-all" checked class="w-4 h-4 mr-2 text-blue-600 rounded border-gray-300 focus:ring-blue-500"> Select All`;
+        html += `<input type="checkbox" id="espn-select-all" checked class="w-4 h-4 mr-2 text-blue-600 rounded-sm border-gray-300 focus:ring-blue-500"> Select All`;
         html += `</label>`;
         html += `</div>`;
         html += `<div class="max-h-64 overflow-y-auto border rounded-lg dark:border-gray-600">`;
@@ -42,7 +42,7 @@ function _buildPreviewHtml(data) {
             const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const homeLabel = m.is_home_game ? 'vs' : '@';
             html += `<tr class="border-b dark:border-gray-600">`;
-            html += `<td class="px-3 py-2"><input type="checkbox" class="espn-match-cb w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" value="${escapeHtml(String(m.espn_id))}" checked></td>`;
+            html += `<td class="px-3 py-2"><input type="checkbox" class="espn-match-cb w-4 h-4 text-blue-600 rounded-sm border-gray-300 focus:ring-blue-500" value="${escapeHtml(String(m.espn_id))}" checked></td>`;
             html += `<td class="px-3 py-2 text-gray-900 dark:text-white">${homeLabel} ${escapeHtml(m.opponent)}</td>`;
             html += `<td class="px-3 py-2 text-gray-600 dark:text-gray-400">${escapeHtml(dateStr)}</td>`;
             html += `<td class="px-3 py-2 text-gray-600 dark:text-gray-400">${escapeHtml(m.competition_name)}</td>`;
@@ -613,7 +613,7 @@ window.EventDelegation.register('refresh-match-statuses', function(element, e) {
                     const el = document.getElementById(`status-${status.id}`);
                     if (el) {
                         const badgeClasses = colorMap[status.status_color] || colorMap['secondary'];
-                        el.className = `px-2 py-0.5 text-xs font-medium rounded ${badgeClasses}`;
+                        el.className = `px-2 py-0.5 text-xs font-medium rounded-sm ${badgeClasses}`;
                         el.innerHTML = `<i class="ti ${status.status_icon} me-1"></i>${status.status_display}`;
                     }
                 });

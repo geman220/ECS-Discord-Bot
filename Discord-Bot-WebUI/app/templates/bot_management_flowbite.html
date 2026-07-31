@@ -24,7 +24,7 @@
     <a href="{{ url_for('admin_panel.discord_bot_management') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-robot text-base" aria-hidden="true"></i>
       <span>Open Bot Panel</span>
     </a>
@@ -36,21 +36,21 @@
        class="h-10 px-3.5 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700
               bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200
               hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-adjustments-alt text-base text-ecs-green" aria-hidden="true"></i> Manage commands
     </a>
     <a href="{{ url_for('admin.match_management') }}"
        class="h-10 px-3.5 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700
               bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200
               hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-broadcast text-base text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Live reporting
     </a>
     <a href="{{ url_for('bot_admin.roles') }}"
        class="h-10 px-3.5 inline-flex items-center gap-2 rounded-lg border border-gray-200 dark:border-gray-700
               bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200
               hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-shield-half text-base text-blue-600 dark:text-blue-400" aria-hidden="true"></i> Sync roles
     </a>
   </div>
@@ -117,7 +117,7 @@
           <a href="{{ url_for('admin_panel.discord_bot_management') }}"
              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-adjustments-alt text-base" aria-hidden="true"></i>
             <span>Manage bot &amp; commands</span>
             <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
@@ -126,7 +126,7 @@
              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
                     border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
                     hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-shield-half text-base text-gray-400" aria-hidden="true"></i>
             <span>View roles</span>
           </a>
@@ -140,13 +140,13 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
           <i class="ti ti-layout-grid text-ecs-green" aria-hidden="true"></i> Operations
         </h2>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">3</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">3</span>
       </div>
       <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
         <li>
           <a href="{{ url_for('admin_panel.discord_bot_management') }}"
              class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/15 flex items-center justify-center">
               <i class="ti ti-robot text-ecs-green" aria-hidden="true"></i>
             </span>
@@ -160,7 +160,7 @@
         <li>
           <a href="{{ url_for('bot_admin.roles') }}"
              class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-500/10 dark:bg-blue-500/15 flex items-center justify-center">
               <i class="ti ti-shield-half text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
             </span>
@@ -174,7 +174,7 @@
         <li>
           <a href="{{ url_for('admin.match_management') }}"
              class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                    focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-gold-500/10 dark:bg-ecs-gold-400/15 flex items-center justify-center">
               <i class="ti ti-broadcast text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
             </span>
@@ -204,7 +204,7 @@
     </div>
 
     <!-- Content Placeholder -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-12 text-center">
         <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
             <i class="ti ti-robot text-2xl text-gray-400"></i>
         </div>

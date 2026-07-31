@@ -52,8 +52,8 @@
                         <div class="flex items-center gap-2">
                             <i class="ti ti-hash text-gray-400 text-xs"></i>
                             <span class="font-medium text-gray-900 dark:text-white">{{ c.channel_name or c.channel_id }}</span>
-                            {% if c.is_team %}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="{{ c.team_name }}">team</span>{% endif %}
-                            {% if c.conflict %}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/10 text-red-500">conflict — clear this</span>{% endif %}
+                            {% if c.is_team %}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-gray-400/10 text-gray-500" title="{{ c.team_name }}">team</span>{% endif %}
+                            {% if c.conflict %}<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-red-500/10 text-red-500">conflict — clear this</span>{% endif %}
                         </div>
                         <div class="text-[11px] text-gray-400 font-mono">{{ c.channel_id }}</div>
                     </td>
@@ -74,7 +74,7 @@
                                 {% endfor %}
                             </select>
                             {% if c.role %}
-                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded {% if c.role == 'coach_global' %}bg-ecs-green/10 text-ecs-green{% elif c.role == 'coach_premier' %}bg-blue-500/10 text-blue-500{% else %}bg-purple-500/10 text-purple-500{% endif %}">
+                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-sm {% if c.role == 'coach_global' %}bg-ecs-green/10 text-ecs-green{% elif c.role == 'coach_premier' %}bg-blue-500/10 text-blue-500{% else %}bg-purple-500/10 text-purple-500{% endif %}">
                                 {{ role_label[c.role] }}
                             </span>
                             {% endif %}

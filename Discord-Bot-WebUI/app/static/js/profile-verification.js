@@ -79,7 +79,7 @@ const ProfileVerification = {
 
       // Create checkbox input
       const checkbox = document.createElement('input');
-      checkbox.className = 'w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 section-reviewed';
+      checkbox.className = 'w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 section-reviewed';
       checkbox.type = 'checkbox';
       checkbox.id = `section-reviewed-${index}`;
       checkbox.setAttribute('data-section', sectionName.toLowerCase().replace(/\s+/g, '-'));

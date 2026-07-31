@@ -87,11 +87,11 @@
                     {% for league in season.leagues %}
                     <button type="button"
                             class="league-tab-{{ season.id }} inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-semibold rounded-lg transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green
+                                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                                    {% if league.is_first %}bg-ecs-green text-white{% else %}text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
                             data-tab="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}">
                         {{ league.name }}
-                        <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if league.is_first %}bg-white/20{% else %}bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}">{{ league.teams|length if league.teams else 0 }}</span>
+                        <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm {% if league.is_first %}bg-white/20{% else %}bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}">{{ league.teams|length if league.teams else 0 }}</span>
                     </button>
                     {% endfor %}
                 </div>
@@ -111,7 +111,7 @@
                     <button type="button"
                             class="add-team-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                             data-league-name="{{ league.name }}"
                             data-season-id="{{ season.id }}"
                             data-season-name="{{ season.name }}">
@@ -155,7 +155,7 @@
                                 <td class="px-5 py-3">
                                     <div class="flex items-center justify-end gap-2">
                                         <button type="button"
-                                                class="edit-team-btn inline-flex items-center gap-1 h-9 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                                class="edit-team-btn inline-flex items-center gap-1 h-9 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                                 data-team-id="{{ team.id }}"
                                                 data-team-name="{{ team.name }}"
                                                 data-league-name="{{ league.name }}"
@@ -164,7 +164,7 @@
                                             Edit
                                         </button>
                                         <button type="button"
-                                                class="delete-team-btn inline-flex items-center gap-1 h-9 px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                                class="delete-team-btn inline-flex items-center gap-1 h-9 px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                                 data-team-id="{{ team.id }}"
                                                 data-team-name="{{ team.name }}">
                                             <i class="ti ti-trash" aria-hidden="true"></i>
@@ -191,7 +191,7 @@
                             </div>
                             <div class="mt-3 flex items-center gap-2">
                                 <button type="button"
-                                        class="edit-team-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                        class="edit-team-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                         data-team-id="{{ team.id }}"
                                         data-team-name="{{ team.name }}"
                                         data-league-name="{{ league.name }}"
@@ -200,7 +200,7 @@
                                     Edit
                                 </button>
                                 <button type="button"
-                                        class="delete-team-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                        class="delete-team-btn flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                         data-team-id="{{ team.id }}"
                                         data-team-name="{{ team.name }}">
                                     <i class="ti ti-trash" aria-hidden="true"></i>
@@ -239,9 +239,9 @@
     <!-- Season Sections -->
     <div class="space-y-8">
         {% for season in seasons %}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <!-- Season Header -->
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-green to-ecs-green/80">
                 <h2 class="text-lg font-bold text-white">{{ season.name }}</h2>
             </div>
 
@@ -328,7 +328,7 @@
     </div>
     {% else %}
     <!-- Empty State -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-12 text-center">
         <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
             <i class="ti ti-calendar-off text-2xl text-gray-400"></i>
         </div>
@@ -346,7 +346,7 @@
     <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
         <input type="text" id="team_name" name="team_name" required
-               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
     </div>
 {% endcall %}
 
@@ -358,7 +358,7 @@
     <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
         <input type="text" id="edit_team_name" name="team_name" required
-               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
     </div>
 {% endcall %}
 {% endblock %}

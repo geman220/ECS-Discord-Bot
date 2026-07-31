@@ -36,15 +36,15 @@
     </div>
     <div class="flex flex-wrap items-center gap-2 shrink-0">
       <button type="button" data-action="export-user-data"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-download" aria-hidden="true"></i> Export
       </button>
       <button type="button" data-action="bulk-device-management"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-device-mobile" aria-hidden="true"></i> Devices
       </button>
       <button type="button" data-action="send-bulk-notification"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-send" aria-hidden="true"></i> Send Notification
       </button>
     </div>
@@ -73,7 +73,7 @@
     <div class="flex flex-col gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 xl:flex-row xl:items-center xl:justify-between">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white shrink-0">
         <i class="ti ti-users text-ecs-green" aria-hidden="true"></i> Mobile Users
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ shown_count }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ shown_count }}</span>
       </h2>
       <form method="GET" class="grid grid-cols-2 sm:grid-cols-4 gap-2 xl:flex xl:items-center xl:gap-2">
         <select id="activity" name="activity" aria-label="Activity status" class="h-10 text-sm rounded-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3">
@@ -88,7 +88,7 @@
           <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
         </select>
         <input type="text" id="search" name="search" placeholder="Username or email…" value="{{ request.args.get('search', '') }}" class="col-span-2 sm:col-span-1 h-10 text-sm rounded-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 xl:w-48">
-        <button type="submit" class="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-filter" aria-hidden="true"></i> Filter
         </button>
       </form>
@@ -97,22 +97,22 @@
     <!-- Bulk action bar: select-all + selected count + per-selection bulk actions -->
     <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 text-sm">
       <label class="inline-flex items-center gap-2 cursor-pointer">
-        <input id="mobile-users-selectAllBar" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
+        <input id="mobile-users-selectAllBar" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
         <span class="text-gray-500 dark:text-gray-400">Select all</span>
       </label>
       <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">&middot;</span>
       <span class="text-gray-500 dark:text-gray-400"><span id="mobile-users-selectedCount" class="font-mono font-semibold text-gray-900 dark:text-white">0</span> selected</span>
       <div class="ml-auto flex flex-wrap items-center gap-2">
         <button type="button" data-action="send-bulk-notification"
-                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-send text-blue-500" aria-hidden="true"></i> Notify Selected
         </button>
         <button type="button" data-action="export-user-data"
-                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-download text-green-500" aria-hidden="true"></i> Export
         </button>
         <button type="button" data-action="bulk-device-management"
-                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-device-mobile text-yellow-500" aria-hidden="true"></i> Manage Devices
         </button>
       </div>
@@ -123,7 +123,7 @@
       <thead class="text-xs bg-gray-50 dark:bg-gray-700/50">
         <tr>
           <th scope="col" class="px-3 py-2.5 w-px">
-            <input id="mobile-users-selectAll" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
+            <input id="mobile-users-selectAll" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
           </th>
           {{ data_table_th('User', key='user', sortable=False) }}
           {{ data_table_th('Platform', key='platform', sortable=False) }}
@@ -139,11 +139,11 @@
         {% set app_version = user.fcm_tokens[0].app_version if user.fcm_tokens and user.fcm_tokens[0].app_version else None %}
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
           <td class="px-3 py-3">
-            <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
+            <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
           </td>
           <td class="px-3 py-3">
             <div class="flex items-center gap-3">
-              <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+              <div class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
                 <span class="text-sm font-bold text-ecs-green">{{ user.username[0].upper() if user.username else 'U' }}</span>
               </div>
               <div class="min-w-0">
@@ -183,13 +183,13 @@
           </td>
           <td class="px-3 py-3">
             <div class="flex items-center justify-end gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View user details">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View user details">
                 <i class="ti ti-eye" aria-hidden="true"></i>
               </button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send notification">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send notification">
                 <i class="ti ti-send" aria-hidden="true"></i>
               </button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices">
                 <i class="ti ti-device-mobile" aria-hidden="true"></i>
               </button>
             </div>
@@ -206,8 +206,8 @@
       {% set app_version = user.fcm_tokens[0].app_version if user.fcm_tokens and user.fcm_tokens[0].app_version else None %}
       <div class="px-4 py-3.5">
         <div class="flex items-start gap-3">
-          <input type="checkbox" class="user-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
-          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+          <input type="checkbox" class="user-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
+          <div class="shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
             <span class="text-sm font-bold text-ecs-green">{{ user.username[0].upper() if user.username else 'U' }}</span>
           </div>
           <div class="flex-1 min-w-0">
@@ -230,9 +230,9 @@
               {% if user.fcm_tokens and user.fcm_tokens[0].updated_at %}{{ user.fcm_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}{% else %}Last active: Unknown{% endif %}
             </p>
             <div class="mt-2 flex items-center gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View user details"><i class="ti ti-eye" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send notification"><i class="ti ti-send" aria-hidden="true"></i></button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices"><i class="ti ti-device-mobile" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View user details"><i class="ti ti-eye" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send notification"><i class="ti ti-send" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices"><i class="ti ti-device-mobile" aria-hidden="true"></i></button>
             </div>
           </div>
         </div>
@@ -254,7 +254,7 @@
 {% else %}
 <!-- Mobile User Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
                 <i class="ti ti-device-mobile text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -263,7 +263,7 @@
             <span class="text-sm text-blue-700 dark:text-blue-300">Total Mobile Users</span>
         </div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-activity text-2xl text-green-600 dark:text-green-400"></i>
@@ -272,7 +272,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Active This Week</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-calendar text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -281,7 +281,7 @@
             <span class="text-sm text-cyan-700 dark:text-cyan-300">Active This Month</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
                 <i class="ti ti-chart-line text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -293,7 +293,7 @@
 </div>
 
 <!-- User Filters -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-filter mr-2"></i>Filter Mobile Users
@@ -332,7 +332,7 @@
 </div>
 
 <!-- Bulk Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -355,7 +355,7 @@
 </div>
 
 <!-- Mobile Users Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-users mr-2"></i>Mobile Users
@@ -368,7 +368,7 @@
                 <tr>
                     <th scope="col" class="px-4 py-3">
                         <div class="flex items-center">
-                            <input id="mobile-users-selectAll" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <input id="mobile-users-selectAll" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                         </div>
                     </th>
                     <th scope="col" class="px-4 py-3 hidden md:table-cell">User</th>
@@ -384,12 +384,12 @@
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-4 py-3">
                         <div class="flex items-center">
-                            <input type="checkbox" class="user-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}">
+                            <input type="checkbox" class="user-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}">
                         </div>
                     </td>
                     <td class="px-4 py-3 hidden md:table-cell">
                         <div class="flex items-center">
-                            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mr-3">
+                            <div class="shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mr-3">
                                 <span class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ user.username[0].upper() if user.username else 'U' }}</span>
                             </div>
                             <div>

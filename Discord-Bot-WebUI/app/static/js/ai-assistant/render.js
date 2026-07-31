@@ -81,7 +81,7 @@ function formatInline(text) {
     // Bold
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">$1</code>');
+    html = html.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-sm text-xs">$1</code>');
     // Links
     html = linkify(html);
     return html;
@@ -284,7 +284,7 @@ export function renderHistoryList(conversations) {
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">${conv.messageCount} messages &middot; ${formatTimeAgo(conv.updatedAt)}</p>
             </button>
             <button type="button" data-action="ai-assistant-delete-conv" data-conv-id="${escapeHtml(conv.id)}"
-                    class="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg" title="Delete">
+                    class="shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg" title="Delete">
                 <i class="ti ti-trash text-sm"></i>
             </button>
         </div>

@@ -303,7 +303,7 @@ function initEditor(rootEl) {
     textarea: (f, v) => `<textarea data-k="${f.key}" rows="4" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">${escAttr(v)}</textarea>`,
     number: (f, v) => `<input data-k="${f.key}" type="number" min="${f.min || 1}" max="${f.max || 12}" value="${escAttr(v || f.def || '')}" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm">`,
     color: (f, v) => `<input data-k="${f.key}" type="color" value="${escAttr(v || '#40b050')}" class="h-10 w-full rounded-lg border-gray-300">`,
-    toggle: (f, v) => `<label class="inline-flex items-center gap-2 text-sm"><input data-k="${f.key}" type="checkbox" ${v ? 'checked' : ''} class="rounded"> ${f.label}</label>`,
+    toggle: (f, v) => `<label class="inline-flex items-center gap-2 text-sm"><input data-k="${f.key}" type="checkbox" ${v ? 'checked' : ''} class="rounded-sm"> ${f.label}</label>`,
   };
 
   const SECTION_FIELDS = {
@@ -348,13 +348,13 @@ function initEditor(rootEl) {
     button: [
       { key: 'label', label: 'Label', type: 'text' },
       { key: 'link', label: 'Link', type: 'link' },
-      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline'] },
+      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline-solid'] },
       { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
     ],
     cta_live: [
       { key: 'kind', label: 'Action', type: 'select',
         options: ['waitlist_or_register', 'division_classic', 'division_premier', 'how_to_join', 'contact'] },
-      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline'] },
+      { key: 'style', label: 'Style', type: 'select', options: ['primary', 'secondary', 'outline-solid'] },
       { key: 'align', label: 'Alignment', type: 'select', options: ['left', 'center', 'right'] },
     ],
     card: [
@@ -418,8 +418,8 @@ function initEditor(rootEl) {
         const on = !!cval;
         wrap.innerHTML = `<label class="block text-sm font-medium mb-1.5">${f.label}</label>
           <div class="flex items-center gap-2">
-            <input data-coloropt-on="${f.key}" type="checkbox" ${on ? 'checked' : ''} class="rounded">
-            <input data-coloropt-val="${f.key}" type="color" value="${escAttr(cval || f.def || '#40b050')}" class="h-9 w-14 rounded border-gray-300 ${on ? '' : 'opacity-40'}">
+            <input data-coloropt-on="${f.key}" type="checkbox" ${on ? 'checked' : ''} class="rounded-sm">
+            <input data-coloropt-val="${f.key}" type="color" value="${escAttr(cval || f.def || '#40b050')}" class="h-9 w-14 rounded-sm border-gray-300 ${on ? '' : 'opacity-40'}">
             <span class="text-xs text-gray-400">use a custom color</span>
           </div>`;
         const cb = wrap.querySelector('[data-coloropt-on]');

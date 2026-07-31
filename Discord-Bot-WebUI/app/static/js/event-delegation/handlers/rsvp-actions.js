@@ -485,7 +485,7 @@ function updateSubstituteSlots() {
         const slotHtml = `
             <div class="grid grid-cols-12 gap-2 mb-2 substitute-slot" data-slot="${i}">
                 <div class="col-span-1">
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300" data-badge>${i}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300" data-badge>${i}</span>
                 </div>
                 <div class="col-span-6">
                     <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" name="slot_${i}_position" data-form-select>

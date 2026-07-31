@@ -8,7 +8,7 @@
 #}
 
 {# Platform Toggle #}
-<div class="inline-flex rounded-md shadow-sm w-full mb-4" role="group" aria-label="Platform preview toggle">
+<div class="inline-flex rounded-md shadow-xs w-full mb-4" role="group" aria-label="Platform preview toggle">
     <button type="button"
             class="flex-1 px-4 py-2 text-sm font-medium text-primary-700 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-primary-400 dark:hover:bg-gray-600 platform-toggle-active"
             data-platform="apple"
@@ -53,7 +53,7 @@
             {# Logo - optional #}
             {% set show_logo = pass_type.show_logo if pass_type.show_logo is not none else true %}
             {% if assets.get('logo') and show_logo %}
-            <div class="w-10 h-10 flex-shrink-0 flex items-center justify-center" id="preview-logo">
+            <div class="w-10 h-10 shrink-0 flex items-center justify-center" id="preview-logo">
                 <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo" class="max-w-full max-h-full object-contain">
             </div>
             {% endif %}
@@ -78,7 +78,7 @@
 
             {# Thumbnail - Only for generic passes #}
             {% if current_style == 'generic' %}
-            <div class="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/10" id="preview-thumbnail">
+            <div class="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-white/10" id="preview-thumbnail">
                 {% if assets.get('thumbnail') %}
                 <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}" alt="Thumbnail" class="w-full h-full object-cover">
                 {% else %}
@@ -108,7 +108,7 @@
 
             {# Primary Field Overlay - ONLY for storeCard #}
             {% if current_style == 'storeCard' %}
-            <div class="absolute bottom-0 left-0 right-0 px-4 py-3 bg-gradient-to-t from-black/60 to-transparent" id="preview-primary-overlay">
+            <div class="absolute bottom-0 left-0 right-0 px-4 py-3 bg-linear-to-t from-black/60 to-transparent" id="preview-primary-overlay">
                 {% if primary_fields %}
                     {% for field in primary_fields %}
                     <div class="text-[9px] uppercase tracking-wide mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }}; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">{{ field.label }}</div>

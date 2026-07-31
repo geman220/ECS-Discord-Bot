@@ -194,7 +194,7 @@ function _rowNotYet(entry) {
         </div>
         <button type="button" data-action="manual-mark-present"
                 data-player-id="${entry.player_id}" data-player-name="${escapeHtml(entry.player_name)}"
-                class="px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 rounded hover:bg-emerald-100 dark:hover:bg-emerald-900/60">
+                class="px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 rounded-sm hover:bg-emerald-100 dark:hover:bg-emerald-900/60">
             <i class="ti ti-check mr-1"></i>Mark present
         </button>
     </li>`;
@@ -215,7 +215,7 @@ function _rowCheckedIn(entry) {
         </div>
         <button type="button" data-action="unmark-attendance"
                 data-player-id="${entry.player_id}" data-player-name="${escapeHtml(entry.player_name)}"
-                class="px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                class="px-2 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm">
             <i class="ti ti-x"></i>
         </button>
     </li>`;
@@ -250,8 +250,8 @@ if (window.EventDelegation && window.EventDelegation.register) {
         document.querySelectorAll('.checkin-tab').forEach(b => {
             const isActive = b.dataset.scope === scope;
             b.className = isActive
-                ? 'checkin-tab px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white'
-                : 'checkin-tab px-3 py-1.5 text-sm font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+                ? 'checkin-tab px-3 py-1.5 text-sm font-medium rounded-sm bg-emerald-600 text-white'
+                : 'checkin-tab px-3 py-1.5 text-sm font-medium rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
         });
         _renderRoster(scope);
         _refreshRoster();

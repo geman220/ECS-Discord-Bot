@@ -70,7 +70,7 @@
         <div class="flex items-center gap-2">
           <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Active season</p>
           {% if selected_season.is_current %}
-          <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">
+          <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">
             <i class="ti ti-point-filled text-[10px]" aria-hidden="true"></i>Current
           </span>
           {% endif %}
@@ -85,7 +85,7 @@
       </div>
       {% if total_predictions > 0 %}
       <a href="{{ url_for('draft_predictions.admin_view_league', league_type=lead_league, season_id=selected_season.id) }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-eye" aria-hidden="true"></i>View {{ lead_league }}
       </a>
       {% endif %}
@@ -202,7 +202,7 @@
       <div class="mt-auto pt-3 border-t border-gray-200 dark:border-gray-700">
         {% if pc > 0 %}
         <a href="{{ url_for('draft_predictions.admin_view_league', league_type=lt.name, season_id=selected_season.id) }}"
-           class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+           class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-eye" aria-hidden="true"></i>View Predictions
         </a>
         {% else %}
@@ -241,8 +241,8 @@
       <i class="ti ti-chart-line text-ecs-green" aria-hidden="true"></i>
       <h3 class="font-semibold text-gray-900 dark:text-white">Prediction Accuracy Trend</h3>
       <div class="ml-auto flex items-center gap-3 text-xs">
-        <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400"><span class="w-2.5 h-2.5 rounded-sm bg-ecs-green"></span>Premier</span>
-        <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400"><span class="w-2.5 h-2.5 rounded-sm bg-blue-500"></span>Classic</span>
+        <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400"><span class="w-2.5 h-2.5 rounded-xs bg-ecs-green"></span>Premier</span>
+        <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400"><span class="w-2.5 h-2.5 rounded-xs bg-blue-500"></span>Classic</span>
       </div>
     </div>
     <div class="p-4">
@@ -411,7 +411,7 @@
   {# Show-more pagination over the already-rendered real rows (client-side) #}
   <div id="leaderboardShowMoreWrap" class="hidden px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-center">
     <button type="button" id="leaderboardShowMore"
-            class="inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-chevron-down" aria-hidden="true"></i>Show more
       <span class="font-mono text-xs text-gray-500 dark:text-gray-400" data-remaining></span>
     </button>
@@ -450,13 +450,13 @@
 {% call section_card("Quick Links", icon="ti-link") %}
 <div class="p-4">
   <div class="flex flex-wrap gap-2">
-    <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-home" aria-hidden="true"></i>Coach View
     </a>
-    <a href="{{ url_for('admin_panel.draft_history') }}" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <a href="{{ url_for('admin_panel.draft_history') }}" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-history" aria-hidden="true"></i>Draft History
     </a>
-    <a href="{{ url_for('admin_panel.draft_overview') }}" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <a href="{{ url_for('admin_panel.draft_overview') }}" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-settings" aria-hidden="true"></i>Draft Settings
     </a>
   </div>
@@ -465,7 +465,7 @@
 {% else %}
 {# ============================= CLASSIC (unchanged) ============================= #}
 <!-- Header with Season Selector -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap justify-between items-center gap-4">
         <p class="text-gray-500 dark:text-gray-400">
             View and analyze draft predictions submitted by coaches across all seasons.
@@ -490,9 +490,9 @@
 {% set total_players = league_stats.get('Premier', {}).get('player_count', 0) + league_stats.get('Classic', {}).get('player_count', 0) %}
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-ecs-green/10 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-ecs-green/10 flex items-center justify-center mr-4">
                 <i class="ti ti-trophy text-xl text-ecs-green"></i>
             </div>
             <div>
@@ -502,9 +502,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-chart-bar text-xl text-blue-600 dark:text-blue-400"></i>
             </div>
             <div>
@@ -514,9 +514,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-users text-xl text-green-600 dark:text-green-400"></i>
             </div>
             <div>
@@ -526,9 +526,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-user-check text-xl text-yellow-600 dark:text-yellow-400"></i>
             </div>
             <div>
@@ -542,7 +542,7 @@
 <!-- League Cards -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Premier League -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-shield text-green-500 mr-2"></i>Premier League
@@ -579,7 +579,7 @@
     </div>
 
     <!-- Classic League -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-shield text-blue-500 mr-2"></i>Classic League
@@ -618,7 +618,7 @@
 
 {% else %}
 <!-- No Season Selected/Available -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-12 text-center">
     <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
         <i class="ti ti-calendar-off text-3xl text-gray-400"></i>
     </div>
@@ -628,7 +628,7 @@
 {% endif %}
 
 <!-- Quick Links -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-link text-gray-400 mr-2"></i>Quick Links

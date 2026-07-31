@@ -93,7 +93,7 @@
                         </div>
 
                         <button type="submit"
-                                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-send" aria-hidden="true"></i>
                             Submit Feedback
                         </button>
@@ -108,7 +108,7 @@
                 <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                         <i class="ti ti-messages text-ecs-green" aria-hidden="true"></i> Your Tickets
-                        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_count }}</span>
+                        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_count }}</span>
                     </h2>
                 </div>
 
@@ -124,19 +124,19 @@
                     </form>
                     <div class="inline-flex flex-wrap items-center gap-1 p-1 rounded-lg bg-gray-100 dark:bg-gray-700/60 w-fit" role="group" aria-label="Filter by status">
                         <a href="{{ url_for('feedback.submit_feedback', q=search_query) }}"
-                           class="inline-flex items-center min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-ecs-green shadow-sm' if not status_filter else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                           class="inline-flex items-center min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-ecs-green shadow-xs' if not status_filter else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
                             All
                         </a>
                         <a href="{{ url_for('feedback.submit_feedback', status='Open', q=search_query) }}"
-                           class="inline-flex items-center gap-1 min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' if status_filter == 'Open' else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                           class="inline-flex items-center gap-1 min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-xs' if status_filter == 'Open' else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
                             <i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>Open
                         </a>
                         <a href="{{ url_for('feedback.submit_feedback', status='In Progress', q=search_query) }}"
-                           class="inline-flex items-center gap-1 min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-cyan-600 dark:text-cyan-400 shadow-sm' if status_filter == 'In Progress' else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                           class="inline-flex items-center gap-1 min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-cyan-600 dark:text-cyan-400 shadow-xs' if status_filter == 'In Progress' else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
                             <i class="ti ti-progress text-xs" aria-hidden="true"></i>In Progress
                         </a>
                         <a href="{{ url_for('feedback.submit_feedback', status='Closed', q=search_query) }}"
-                           class="inline-flex items-center gap-1 min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm' if status_filter == 'Closed' else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
+                           class="inline-flex items-center gap-1 min-h-[36px] px-3 text-xs font-semibold rounded-md transition-colors {{ 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-xs' if status_filter == 'Closed' else 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white' }}">
                             <i class="ti ti-circle-check text-xs" aria-hidden="true"></i>Closed
                         </a>
                     </div>
@@ -146,7 +146,7 @@
                     {% if feedbacks %}
                         {% for feedback in feedbacks %}
                         <a href="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}"
-                           class="group flex items-start gap-3 p-4 sm:px-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                           class="group flex items-start gap-3 p-4 sm:px-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
                             <!-- category icon rail -->
                             <span class="shrink-0 mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center
                                 {% if feedback.category == 'Bug' %}bg-red-100 text-red-600 dark:bg-red-500/15 dark:text-red-400
@@ -221,7 +221,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Submit Feedback Form -->
         <div class="lg:col-span-5">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-full">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 h-full">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-message-plus text-ecs-green"></i>
@@ -289,7 +289,7 @@
 
         <!-- Your Feedbacks -->
         <div class="lg:col-span-7">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -337,7 +337,7 @@
                                         {{ feedback.title }}
                                     </a>
                                 </h3>
-                                <div class="flex gap-1 flex-shrink-0 flex-wrap">
+                                <div class="flex gap-1 shrink-0 flex-wrap">
                                     {% if feedback.status == 'Open' %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{{ feedback.status }}</span>
                                     {% elif feedback.status == 'In Progress' %}

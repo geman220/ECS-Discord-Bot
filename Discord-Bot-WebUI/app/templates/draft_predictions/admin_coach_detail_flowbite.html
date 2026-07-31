@@ -63,7 +63,7 @@
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800
               hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-arrow-left text-sm" aria-hidden="true"></i> Back to {{ league_type }}
     </a>
 {% endcall %}
@@ -195,7 +195,7 @@
   <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
       <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i> Prediction Ledger
-      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ prediction_count }}</span>
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ prediction_count }}</span>
     </h2>
     <div class="relative flex-1 min-w-[180px] max-w-xs">
       <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
@@ -250,7 +250,7 @@
         </td>
         <td class="px-3 py-2.5 hidden md:table-cell">
           {% if player.favorite_position %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
           {% else %}
           <span class="text-gray-400 dark:text-gray-500">-</span>
           {% endif %}
@@ -274,7 +274,7 @@
         </td>
         <td class="px-3 py-2.5 text-right">
           <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=player.id, season_id=season.id, league_type=league_type) }}"
-             class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+             class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
              aria-label="View prediction for {{ player.name }}">
             <i class="ti ti-eye" aria-hidden="true"></i>
           </a>
@@ -311,14 +311,14 @@
           </div>
         </div>
         <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=player.id, season_id=season.id, league_type=league_type) }}"
-           class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+           class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
            aria-label="View prediction for {{ player.name }}">
           <i class="ti ti-eye" aria-hidden="true"></i>
         </a>
       </div>
       <div class="mt-2 flex flex-wrap items-center gap-2">
-        {% if player.favorite_position %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>{% endif %}
-        {% if prediction.predicted_pick_number %}<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 font-mono">Pick #{{ prediction.predicted_pick_number }}</span>{% endif %}
+        {% if player.favorite_position %}<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>{% endif %}
+        {% if prediction.predicted_pick_number %}<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 font-mono">Pick #{{ prediction.predicted_pick_number }}</span>{% endif %}
         {% if prediction.confidence_level %}
         <span class="inline-flex items-center gap-0.5" aria-label="Confidence {{ prediction.confidence_level }} of 5">
           {% for i in range(5) %}<i class="ti {{ 'ti-circle-filled text-purple-600 dark:text-purple-400' if i < prediction.confidence_level else 'ti-circle text-gray-300 dark:text-gray-600' }} text-[11px]" aria-hidden="true"></i>{% endfor %}
@@ -356,10 +356,10 @@
 
 {% else %}
 <!-- Coach Header -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-4">
-            <div class="flex-shrink-0 w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center">
+            <div class="shrink-0 w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center">
                 <span class="text-xl font-bold text-ecs-green">{{ coach.username[:2]|upper }}</span>
             </div>
             <div>
@@ -368,7 +368,7 @@
                     {% if coach.email %}
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ coach.email }}</span>
                     {% endif %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">{{ league_type }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">{{ league_type }}</span>
                 </div>
             </div>
         </div>
@@ -381,9 +381,9 @@
 
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-list-check text-xl text-blue-600 dark:text-blue-400"></i>
             </div>
             <div>
@@ -393,9 +393,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-ecs-green/10 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-ecs-green/10 flex items-center justify-center mr-4">
                 <i class="ti ti-trophy text-xl text-ecs-green"></i>
             </div>
             <div>
@@ -405,9 +405,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg {{ 'bg-green-100 dark:bg-green-900/30' if league_type == 'Premier' else 'bg-blue-100 dark:bg-blue-900/30' }} flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg {{ 'bg-green-100 dark:bg-green-900/30' if league_type == 'Premier' else 'bg-blue-100 dark:bg-blue-900/30' }} flex items-center justify-center mr-4">
                 <i class="ti ti-shield text-xl {{ 'text-green-600 dark:text-green-400' if league_type == 'Premier' else 'text-blue-600 dark:text-blue-400' }}"></i>
             </div>
             <div>
@@ -419,7 +419,7 @@
 </div>
 
 <!-- Predictions Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-list mr-2 text-gray-400"></i>All Predictions
@@ -452,7 +452,7 @@
                     <td class="px-4 py-3 text-gray-500">{{ loop.index }}</td>
                     <td class="px-4 py-3">
                         <div class="flex items-center">
-                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3 overflow-hidden">
+                            <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3 overflow-hidden">
                                 {% if player.profile_picture_url %}
                                 <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-8 h-8 rounded-full object-cover">
                                 {% else %}
@@ -469,7 +469,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if player.favorite_position %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}
@@ -481,7 +481,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if prediction.confidence_level %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">{{ prediction.confidence_level }}/5</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">{{ prediction.confidence_level }}/5</span>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}
@@ -491,7 +491,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=player.id, season_id=season.id, league_type=league_type) }}"
-                           class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                           class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-sm hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
                             <i class="ti ti-eye"></i>
                         </a>
                     </td>

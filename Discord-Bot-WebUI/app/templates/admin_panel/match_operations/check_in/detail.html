@@ -25,18 +25,18 @@
 
 {% call page_header(match_label, subtitle="Match Operations / Check-In") %}
   <a href="{{ url_for('admin_panel.match_check_in_index') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
      aria-label="Back to check-in queue">
     <i class="ti ti-list" aria-hidden="true"></i><span class="hidden sm:inline">Queue</span>
   </a>
   {% if not token %}
   <button type="button" data-action="generate-match-qr"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-qrcode" aria-hidden="true"></i><span class="hidden sm:inline">Generate QR</span>
   </button>
   {% endif %}
   <a href="{{ export_url }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-download" aria-hidden="true"></i>Export CSV
   </a>
 {% endcall %}
@@ -50,7 +50,7 @@
     <div class="min-w-0">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="font-semibold text-gray-900 dark:text-white truncate">{{ match_label }}</span>
-        <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">
+        <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">
           {% if league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
         </span>
       </div>
@@ -75,7 +75,7 @@
     <div class="relative">
       <i class="ti ti-switch-horizontal absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
       <select id="matchSwitcher"
-              class="h-10 w-full sm:w-72 pl-9 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"
+              class="h-10 w-full sm:w-72 pl-9 pr-8 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"
               aria-label="Switch to another match">
         {% for opt in switcher_matches %}
         <option value="{{ opt.detail_url }}"{% if opt.is_current %} selected{% endif %}>
@@ -167,19 +167,19 @@
       <!-- command toolbar -->
       <div class="grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700">
         <a href="{{ print_url }}" target="_blank"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <i class="ti ti-printer" aria-hidden="true"></i>Print poster
         </a>
         <button type="button" data-action="copy-checkin-url" data-url="{{ check_in_url }}"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <i class="ti ti-copy" aria-hidden="true"></i>Copy URL
         </button>
         <button type="button" data-action="rotate-match-qr"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500 border-t border-gray-200 dark:border-gray-700">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-amber-500 border-t border-gray-200 dark:border-gray-700">
           <i class="ti ti-refresh" aria-hidden="true"></i>Rotate
         </button>
         <button type="button" data-action="revoke-match-qr"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-500 border-t border-gray-200 dark:border-gray-700">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[48px] px-3 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-red-500 border-t border-gray-200 dark:border-gray-700">
           <i class="ti ti-ban" aria-hidden="true"></i>Revoke
         </button>
       </div>
@@ -187,7 +187,7 @@
       {{ empty_state("ti-qrcode", "No active QR yet", "Generate a venue QR code so players can scan in for this match.") }}
       <div class="flex justify-center pb-6 -mt-2">
         <button type="button" data-action="generate-match-qr"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-qrcode" aria-hidden="true"></i>Generate QR
         </button>
       </div>
@@ -236,18 +236,18 @@
     <div class="flex flex-wrap items-center gap-3">
       <div class="inline-flex p-1 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <button type="button" data-action="set-roster-scope" data-scope="yes"
-                class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-green text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" data-active="yes">
+                class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-ecs-green text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" data-active="yes">
           RSVP'd Yes <span class="ml-1.5 text-xs font-mono opacity-80" data-roster-count="yes">({{ roster_yes|length }})</span>
         </button>
         <button type="button" data-action="set-roster-scope" data-scope="all"
-                class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-active="all">
+                class="checkin-tab inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-active="all">
           All Roster <span class="ml-1.5 text-xs font-mono opacity-80" data-roster-count="all">({{ roster_full|length }})</span>
         </button>
       </div>
       <div class="relative flex-1 sm:min-w-[180px] sm:max-w-xs">
         <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
         <input type="search" id="rosterSearch" placeholder="Find player…"
-               class="h-9 w-full pl-9 pr-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"
+               class="h-9 w-full pl-9 pr-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:border-ecs-green"
                aria-label="Find player">
       </div>
       <span class="ml-auto inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400" id="rosterRefreshIndicator">
@@ -262,7 +262,7 @@
         <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
           <i class="ti ti-clock-hour-3 text-amber-500" aria-hidden="true"></i>Not Yet
         </h3>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400" id="notYetCount">0</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400" id="notYetCount">0</span>
       </div>
       <ul class="divide-y divide-gray-100 dark:divide-gray-700" id="rosterNotYet"></ul>
     </section>
@@ -273,7 +273,7 @@
         <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
           <i class="ti ti-circle-check text-green-500" aria-hidden="true"></i>Checked In
         </h3>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" id="checkedInCount">0</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" id="checkedInCount">0</span>
       </div>
       <ul class="divide-y divide-gray-100 dark:divide-gray-700" id="rosterCheckedIn"></ul>
     </section>
@@ -293,7 +293,7 @@
 
     <!-- LEFT: QR + token + actions -->
     <div class="lg:col-span-1 space-y-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
             <div class="flex items-start justify-between mb-3">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Venue QR</h3>
                 {% if token %}
@@ -313,19 +313,19 @@
             </div>
             <div class="mt-4 grid grid-cols-2 gap-2">
                 <a href="{{ print_url }}" target="_blank"
-                   class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700">
+                   class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-white bg-emerald-600 rounded-sm hover:bg-emerald-700">
                     <i class="ti ti-printer mr-1"></i>Print
                 </a>
                 <button type="button" data-action="copy-checkin-url" data-url="{{ check_in_url }}"
-                        class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
+                        class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-sm hover:bg-gray-200 dark:hover:bg-gray-600">
                     <i class="ti ti-copy mr-1"></i>Copy URL
                 </button>
                 <button type="button" data-action="rotate-match-qr"
-                        class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/40 rounded hover:bg-amber-100 dark:hover:bg-amber-900/60">
+                        class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/40 rounded-sm hover:bg-amber-100 dark:hover:bg-amber-900/60">
                     <i class="ti ti-refresh mr-1"></i>Rotate
                 </button>
                 <button type="button" data-action="revoke-match-qr"
-                        class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/40 rounded hover:bg-red-100 dark:hover:bg-red-900/60">
+                        class="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/40 rounded-sm hover:bg-red-100 dark:hover:bg-red-900/60">
                     <i class="ti ti-x mr-1"></i>Revoke
                 </button>
             </div>
@@ -344,7 +344,7 @@
         </div>
 
         <!-- Match info card -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Match info</h3>
             <dl class="space-y-2 text-sm">
                 <div class="flex justify-between">
@@ -377,11 +377,11 @@
         <!-- Tab toggle -->
         <div class="flex items-center gap-2">
             <button type="button" data-action="set-roster-scope" data-scope="yes"
-                    class="checkin-tab px-3 py-1.5 text-sm font-medium rounded bg-emerald-600 text-white" data-active="yes">
+                    class="checkin-tab px-3 py-1.5 text-sm font-medium rounded-sm bg-emerald-600 text-white" data-active="yes">
                 RSVP'd Yes <span class="ml-1 text-xs opacity-80" data-roster-count="yes">({{ roster_yes|length }})</span>
             </button>
             <button type="button" data-action="set-roster-scope" data-scope="all"
-                    class="checkin-tab px-3 py-1.5 text-sm font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    class="checkin-tab px-3 py-1.5 text-sm font-medium rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                 All Roster <span class="ml-1 text-xs opacity-80" data-roster-count="all">({{ roster_full|length }})</span>
             </button>
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400" id="rosterRefreshIndicator">
@@ -390,7 +390,7 @@
         </div>
 
         <!-- Not Yet section -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
                     <i class="ti ti-clock-hour-3 text-amber-500 mr-2"></i>Not Yet
@@ -401,7 +401,7 @@
         </div>
 
         <!-- Checked In section -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white flex items-center">
                     <i class="ti ti-circle-check text-emerald-500 mr-2"></i>Checked In

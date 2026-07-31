@@ -14,7 +14,7 @@
     {% endif %}
 
     {# ── Progress Bar (sticky top) ── #}
-    <div class="flex-shrink-0 px-4 pt-4 md:px-5 md:pt-5">
+    <div class="shrink-0 px-4 pt-4 md:px-5 md:pt-5">
         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-3">
             <div id="onboardingProgress"
                  class="bg-ecs-green h-2.5 rounded-full transition-all duration-300"
@@ -47,14 +47,14 @@
                         <h4 class="text-lg font-bold text-ecs-green dark:text-ecs-gold">Welcome to the ECS!</h4>
                         <p class="text-sm text-gray-600 dark:text-gray-300">It looks like you don't have a player profile yet. Would you like to create one?</p>
                         <div class="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-800">
-                            <i class="ti ti-alert-circle flex-shrink-0 mt-0.5"></i>
+                            <i class="ti ti-alert-circle shrink-0 mt-0.5"></i>
                             <span class="text-sm font-semibold">A player profile is required for ECS FC or ECS FC Pub League!</span>
                         </div>
                     </div>
                     <div class="flex flex-col gap-3">
                         <button type="button"
                                 id="createProfileCarouselButton"
-                                class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-none focus:ring-4 focus:ring-ecs-green/50"
+                                class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-hidden focus:ring-4 focus:ring-ecs-green/50"
                                 data-action="onboarding-create-profile">
                             <i class="ti ti-user-plus"></i>Create Profile
                         </button>
@@ -85,7 +85,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                         {# Name — full width #}
                         <div>
                             <label for="{{ onboarding_form.name.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -139,9 +139,9 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                         <div class="flex items-start gap-3 p-3 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg">
-                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
                             <p class="text-sm">Select the league that best matches your skill level. Not sure yet? No worries — you can decide later.</p>
                         </div>
 
@@ -152,7 +152,7 @@
                                     <i class="ti ti-check text-sm"></i>
                                 </div>
                                 <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                                    <div class="text-2xl flex-shrink-0">&#x1F3C6;</div>
+                                    <div class="text-2xl shrink-0">&#x1F3C6;</div>
                                     <div class="flex-1 min-w-0">
                                         <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Classic</h6>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Beginner-friendly — all about having fun and improving your game</p>
@@ -166,7 +166,7 @@
                                     <i class="ti ti-check text-sm"></i>
                                 </div>
                                 <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                                    <div class="text-2xl flex-shrink-0">&#x1F31F;</div>
+                                    <div class="text-2xl shrink-0">&#x1F31F;</div>
                                     <div class="flex-1 min-w-0">
                                         <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Premier</h6>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Low to intermediate recreational players — bring your C game!</p>
@@ -180,7 +180,7 @@
                                     <i class="ti ti-check text-sm"></i>
                                 </div>
                                 <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                                    <div class="text-2xl flex-shrink-0">&#x26BD;</div>
+                                    <div class="text-2xl shrink-0">&#x26BD;</div>
                                     <div class="flex-1 min-w-0">
                                         <h6 class="font-semibold text-gray-900 dark:text-white">ECS FC</h6>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Club team for dedicated players in organized competition</p>
@@ -194,7 +194,7 @@
                                     <i class="ti ti-check text-sm"></i>
                                 </div>
                                 <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
-                                    <div class="text-2xl flex-shrink-0">&#x1F914;</div>
+                                    <div class="text-2xl shrink-0">&#x1F914;</div>
                                     <div class="flex-1 min-w-0">
                                         <h6 class="font-semibold text-gray-900 dark:text-white">Not Sure Yet</h6>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">No problem — we'll help you find the right fit</p>
@@ -221,7 +221,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                             {# Left: Preview / Cropper #}
                             <div class="text-center">
@@ -297,7 +297,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                         {# Jersey Size + Pronouns #}
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -345,7 +345,7 @@
                                     {% if value != 'no_preference' %}
                                     <div class="flex items-center">
                                         <input type="checkbox" name="other_positions" value="{{ value }}" id="onboard_other_pos_{{ value }}"
-                                               class="w-4 h-4 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800"
+                                               class="w-4 h-4 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800"
                                                {% if value in selected_other %}checked{% endif %}>
                                         <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer" for="onboard_other_pos_{{ value }}">{{ label }}</label>
                                     </div>
@@ -367,7 +367,7 @@
                                     {% if value != 'no_preference' %}
                                     <div class="flex items-center">
                                         <input type="checkbox" name="positions_not_to_play" value="{{ value }}" id="onboard_avoid_pos_{{ value }}"
-                                               class="w-4 h-4 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800"
+                                               class="w-4 h-4 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:ring-offset-gray-800"
                                                {% if value in selected_avoid %}checked{% endif %}>
                                         <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300 cursor-pointer" for="onboard_avoid_pos_{{ value }}">{{ label }}</label>
                                     </div>
@@ -433,7 +433,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                             <div class="text-center">
                                 <img src="{{ url_for('static', filename='img/discord-mark-black.svg') }}"
@@ -443,7 +443,7 @@
                                 {% if player.discord_id %}
                                     {% if player.discord_in_server %}
                                     <div class="flex items-start gap-3 p-4 rounded-lg border bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 mb-4">
-                                        <i class="ti ti-check-circle text-2xl flex-shrink-0"></i>
+                                        <i class="ti ti-check-circle text-2xl shrink-0"></i>
                                         <div>
                                             <h5 class="font-semibold text-lg">You're All Set!</h5>
                                             <p class="text-sm">Discord connected and you're in the ECS server.</p>
@@ -451,7 +451,7 @@
                                     </div>
                                     {% else %}
                                     <div class="flex items-start gap-3 p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800 mb-3">
-                                        <i class="ti ti-alert-triangle text-2xl flex-shrink-0"></i>
+                                        <i class="ti ti-alert-triangle text-2xl shrink-0"></i>
                                         <div>
                                             <h5 class="font-semibold text-lg">Join Our Discord Server</h5>
                                             <p class="text-sm">Your Discord is connected, but you haven't joined the ECS server yet.</p>
@@ -477,7 +477,7 @@
                                     <li class="flex items-center gap-2"><i class="ti ti-check text-green-500"></i>Verify your identity for team servers</li>
                                 </ul>
                                 <a href="{{ url_for('auth.discord_login') }}"
-                                   class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-none focus:ring-4 focus:ring-ecs-green/50">
+                                   class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-hidden focus:ring-4 focus:ring-ecs-green/50">
                                     <i class="fab fa-discord"></i>Connect Discord Account
                                 </a>
                                 {% endif %}
@@ -502,13 +502,13 @@
                         </div>
                     </div>
 
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                         <h5 class="font-bold text-gray-900 dark:text-white">Notification Channels</h5>
 
                         {# Email Notifications #}
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <label class="flex items-start gap-3 cursor-pointer" for="emailNotifications">
-                                {{ onboarding_form.email_notifications(class="mt-0.5 w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700", id="emailNotifications") }}
+                                {{ onboarding_form.email_notifications(class="mt-0.5 w-5 h-5 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700", id="emailNotifications") }}
                                 <div>
                                     <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
                                         <i class="ti ti-mail text-ecs-green dark:text-ecs-gold"></i>Email Notifications
@@ -521,7 +521,7 @@
                         {# SMS Notifications #}
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <label class="flex items-start gap-3 cursor-pointer" for="smsNotifications">
-                                <input class="mt-0.5 w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700"
+                                <input class="mt-0.5 w-5 h-5 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700"
                                        type="checkbox"
                                        id="smsNotifications"
                                        name="sms_notifications"
@@ -566,7 +566,7 @@
                                     {# Consent checkbox #}
                                     <label class="flex items-start gap-3 cursor-pointer">
                                         <input type="checkbox"
-                                               class="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700"
+                                               class="mt-0.5 w-4 h-4 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700"
                                                id="smsConsent"
                                                name="sms_consent"
                                                data-on-change="onboarding-sms-consent">
@@ -606,7 +606,7 @@
                         {# Discord Notifications #}
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <label class="flex items-start gap-3 cursor-pointer" for="discordNotifications">
-                                {{ onboarding_form.discord_notifications(class="mt-0.5 w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700", id="discordNotifications") }}
+                                {{ onboarding_form.discord_notifications(class="mt-0.5 w-5 h-5 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700", id="discordNotifications") }}
                                 <div>
                                     <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
                                         <i class="fab fa-discord text-ecs-green dark:text-ecs-gold"></i>Discord Notifications
@@ -636,7 +636,7 @@
     </div>{# END scrollable content #}
 
     {# ── Navigation Controls (always visible at bottom) ── #}
-    <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 md:px-5 md:py-4 rounded-b-lg"
+    <div class="shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 md:px-5 md:py-4 rounded-b-lg"
          id="carouselControls" data-component="onboarding-controls">
         <div class="flex justify-between gap-3">
             <button class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
@@ -645,7 +645,7 @@
                     data-action="onboarding-previous">
                 <i class="ti ti-chevron-left"></i> Back
             </button>
-            <button class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-none focus:ring-4 focus:ring-ecs-green/50"
+            <button class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-hidden focus:ring-4 focus:ring-ecs-green/50"
                     type="button"
                     id="nextOrSaveButton"
                     data-action="onboarding-next">
@@ -717,7 +717,7 @@
                    data-{{ key }}="{{ value }}"
                    {% endfor %}
                    {% endif %}>
-            <div class="{{ _track }} bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full {{ _dot }} after:transition-all {{ _on }}"></div>
+            <div class="{{ _track }} bg-gray-200 rounded-full peer dark:bg-gray-700 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full {{ _dot }} after:transition-all {{ _on }}"></div>
         </label>
     </div>
 </div>

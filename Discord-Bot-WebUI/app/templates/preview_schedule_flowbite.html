@@ -20,11 +20,11 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
     {% call page_header(league.name ~ ' Schedule Preview', subtitle='Auto-schedule draft · review before committing') %}
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
-           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>Builder
         </a>
         <button id="commitScheduleBtn" type="button"
-                class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-check" aria-hidden="true"></i>Commit Schedule
         </button>
     {% endcall %}
@@ -40,11 +40,11 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <button id="toggleSettingsBtn" type="button"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-settings" aria-hidden="true"></i>Settings &amp; Tools
                 </button>
                 <a href="{{ url_for('auto_schedule.auto_schedule_config', league_id=league.id) }}"
-                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-edit" aria-hidden="true"></i>Config
                 </a>
             </div>
@@ -115,12 +115,12 @@
                         <input type="date" name="start_date" id="regenerate_start_date" required
                                class="input-ecs h-11 sm:h-10 text-sm flex-1" aria-label="Regenerate start date">
                         <button type="submit"
-                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                             <i class="ti ti-refresh" aria-hidden="true"></i>Regenerate
                         </button>
                     </form>
                     <button id="deleteScheduleBtn" type="button"
-                            class="mt-2 w-full sm:w-auto inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                            class="mt-2 w-full sm:w-auto inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                         <i class="ti ti-trash" aria-hidden="true"></i>Delete Draft
                     </button>
                     <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">Regenerate rebuilds all templates from the chosen start date. Delete discards the draft.</p>
@@ -192,7 +192,7 @@
                         data-template-id="{{ match.id }}">
                         <td class="px-4 py-3 font-mono font-semibold text-gray-900 dark:text-white whitespace-nowrap">{{ match.time }}</td>
                         <td class="px-4 py-3">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                 {{ match.field }}
                             </span>
                         </td>
@@ -211,13 +211,13 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium font-mono {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
                                 {{ match.match_order }}{{ 'st' if match.match_order == 1 else 'nd' if match.match_order == 2 else 'rd' if match.match_order == 3 else 'th' }}
                             </span>
                         </td>
                         {% if week_type == 'REGULAR' %}
                         <td class="px-4 py-3 text-right">
-                            <button class="inline-flex items-center justify-center gap-1 min-h-[36px] px-2.5 text-xs font-semibold rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green js-select-swap"
+                            <button class="inline-flex items-center justify-center gap-1 min-h-[36px] px-2.5 text-xs font-semibold rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-select-swap"
                                     data-match-id="{{ match.id }}"
                                     data-match-desc="{{ match.home_team }} vs {{ match.away_team }}">
                                 <i class="ti ti-arrows-exchange" aria-hidden="true"></i>Swap
@@ -242,17 +242,17 @@
                             {{ match.home_team }} <span class="text-gray-400 dark:text-gray-500">vs</span> {{ match.away_team }}
                             {% endif %}
                         </span>
-                        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
+                        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium font-mono {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300' }}">
                             {{ match.match_order }}{{ 'st' if match.match_order == 1 else 'nd' if match.match_order == 2 else 'rd' if match.match_order == 3 else 'th' }}
                         </span>
                     </div>
                     <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                         <span class="font-mono font-semibold text-gray-700 dark:text-gray-300">{{ match.time }}</span>
-                        <span class="inline-flex items-center px-2 py-0.5 rounded font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ match.field }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ match.field }}</span>
                     </div>
                     {% if week_type == 'REGULAR' %}
                     <div class="mt-2">
-                        <button class="inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-xs font-semibold rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green js-select-swap"
+                        <button class="inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-xs font-semibold rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-select-swap"
                                 data-match-id="{{ match.id }}"
                                 data-match-desc="{{ match.home_team }} vs {{ match.away_team }}">
                             <i class="ti ti-arrows-exchange" aria-hidden="true"></i>Swap
@@ -276,11 +276,11 @@
     <div id="selectedMatches" class="space-y-2"></div>
     <div class="flex justify-end gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button type="button" data-modal-hide="swapTeamsModal"
-                class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             Cancel
         </button>
         <button id="executeSwapBtn" disabled
-                class="inline-flex items-center justify-center gap-1 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-arrows-exchange" aria-hidden="true"></i>Swap Teams
         </button>
     </div>
@@ -288,7 +288,7 @@
 {% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
         <div class="p-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -362,7 +362,7 @@
     <div class="space-y-6">
         {% for week, matches in schedule_preview.items() %}
         {% set week_type = matches[0].week_type if matches else 'REGULAR' %}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h3 class="font-semibold text-gray-900 dark:text-white">{{ week }}</h3>
                 {% if week_type == 'FUN' %}
@@ -419,7 +419,7 @@
                             data-template-id="{{ match.id }}">
                             <td class="px-4 py-3 text-gray-900 dark:text-white">{{ match.time }}</td>
                             <td class="px-4 py-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
                                     {{ match.field }}
                                 </span>
                             </td>
@@ -440,13 +440,13 @@
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' }}">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-ecs-green/10 text-ecs-green' if match.match_order == 1 else 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300' }}">
                                     {{ match.match_order }}{{ 'st' if match.match_order == 1 else 'nd' if match.match_order == 2 else 'rd' if match.match_order == 3 else 'th' }}
                                 </span>
                             </td>
                             {% if week_type == 'REGULAR' %}
                             <td class="px-4 py-3">
-                                <button class="px-2 py-1 text-xs rounded border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors js-select-swap"
+                                <button class="px-2 py-1 text-xs rounded-sm border border-ecs-green text-ecs-green hover:bg-ecs-green/10 transition-colors js-select-swap"
                                         data-match-id="{{ match.id }}"
                                         data-match-desc="{{ match.home_team }} vs {{ match.away_team }}">
                                     <i class="ti ti-arrows-exchange mr-1"></i>Swap
@@ -571,7 +571,7 @@ document.querySelectorAll('.js-select-swap').forEach(btn => {
 function updateSwapModal() {
     const container = document.getElementById('selectedMatches');
     container.innerHTML = selectedMatches.map((m, i) => `
-        <div class="p-2 bg-gray-50 dark:bg-gray-700 rounded flex justify-between items-center">
+        <div class="p-2 bg-gray-50 dark:bg-gray-700 rounded-sm flex justify-between items-center">
             <span class="text-gray-900 dark:text-white"><strong>Match ${i+1}:</strong> ${m.description}</span>
             <button onclick="removeFromSwap(${i})" class="text-red-500 hover:text-red-600"><i class="ti ti-x"></i></button>
         </div>

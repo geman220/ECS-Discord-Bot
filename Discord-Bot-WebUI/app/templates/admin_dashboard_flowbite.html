@@ -33,7 +33,7 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
             <a href="#rbacPanel"
-               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                 <i class="ti ti-shield-plus" aria-hidden="true"></i><span>Assign Permissions</span>
             </a>
         </div>
@@ -42,19 +42,19 @@
     <!-- Command toolbar: admin destinations as quick actions -->
     <div class="flex flex-wrap gap-2" role="group" aria-label="Admin quick actions">
         <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
-           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-user-check text-base text-amber-600 dark:text-amber-400" aria-hidden="true"></i> User Approvals
         </a>
         <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
-           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-clock text-base text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i> Waitlist
         </a>
         <a href="{{ url_for('admin_panel.system_monitoring') }}"
-           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-chart-dots text-base text-purple-600 dark:text-purple-400" aria-hidden="true"></i> Monitoring
         </a>
         <button type="button" data-action="refresh-containers"
-                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-refresh text-base text-ecs-green" aria-hidden="true"></i> Refresh Containers
         </button>
     </div>
@@ -124,7 +124,7 @@
                 <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-shield-lock text-ecs-green" aria-hidden="true"></i> Roles &amp; Permissions
                 </h2>
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ permissions|length }} perms</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">{{ permissions|length }} perms</span>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-gray-200 dark:divide-gray-700">
                 <!-- Edit form -->
@@ -139,7 +139,7 @@
                                 Select Role <span class="text-red-500">*</span>
                             </label>
                             <select name="role_id" id="role_id" required
-                                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-xs focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
                                 <option value="" disabled selected>Select a role...</option>
                                 {% for role in roles %}
                                 <option value="{{ role.id }}">{{ role.name }}</option>
@@ -152,7 +152,7 @@
                                 Assign Permissions
                             </label>
                             <select name="permissions" id="permissions" multiple size="6"
-                                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                    class="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-xs focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
                                 {% for permission in permissions %}
                                 <option value="{{ permission.id }}">{{ permission.name }}</option>
                                 {% endfor %}
@@ -160,7 +160,7 @@
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold <kbd class="font-mono">Ctrl</kbd>/<kbd class="font-mono">⌘</kbd> to multi-select.</p>
                         </div>
 
-                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-check" aria-hidden="true"></i><span>Update Permissions</span>
                         </button>
                     </form>
@@ -185,12 +185,12 @@
                 <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i> Role Roster
                 </h2>
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roles|length }}</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roles|length }}</span>
             </div>
             {% if roles %}
-            <div class="overflow-x-auto max-h-[28rem]">
+            <div class="overflow-x-auto max-h-112">
                 <table class="w-full text-sm">
-                    <thead class="sticky top-0 bg-gray-50/90 dark:bg-gray-900/70 backdrop-blur z-10">
+                    <thead class="sticky top-0 bg-gray-50/90 dark:bg-gray-900/70 backdrop-blur-sm z-10">
                         <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                             <th scope="col" class="px-4 py-2.5 w-8 text-right font-semibold">#</th>
                             <th scope="col" class="px-3 py-2.5 font-semibold">Role</th>
@@ -205,7 +205,7 @@
                                 <div class="flex items-center gap-1.5 flex-wrap">
                                     <span class="font-semibold text-gray-900 dark:text-white">{{ role.name }}</span>
                                     {% if role.discord_role_id %}
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" title="Mapped to a Discord role">
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-sm bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300" title="Mapped to a Discord role">
                                         <i class="ti ti-brand-discord text-[11px]" aria-hidden="true"></i> Synced
                                     </span>
                                     {% endif %}
@@ -215,7 +215,7 @@
                                 {% endif %}
                             </td>
                             <td class="px-3 py-2.5 text-right">
-                                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if role.permissions|length %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ role.permissions|length }}</span>
+                                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm {% if role.permissions|length %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ role.permissions|length }}</span>
                             </td>
                         </tr>
                         {% endfor %}
@@ -237,12 +237,12 @@
             <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-key text-ecs-green" aria-hidden="true"></i> Permission Catalogue
             </h2>
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ permissions|length }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ permissions|length }}</span>
         </div>
         {% if permissions %}
-        <div class="overflow-x-auto max-h-[26rem]">
+        <div class="overflow-x-auto max-h-104">
             <table class="w-full text-sm">
-                <thead class="sticky top-0 bg-gray-50/90 dark:bg-gray-900/70 backdrop-blur z-10">
+                <thead class="sticky top-0 bg-gray-50/90 dark:bg-gray-900/70 backdrop-blur-sm z-10">
                     <tr class="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                         <th scope="col" class="px-4 py-2.5 w-8 text-right font-semibold">#</th>
                         <th scope="col" class="px-3 py-2.5 font-semibold">Permission</th>
@@ -264,7 +264,7 @@
                             {% if permission.description %}{{ permission.description }}{% else %}<span class="text-gray-400 dark:text-gray-500">—</span>{% endif %}
                         </td>
                         <td class="px-3 py-2.5 text-right">
-                            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if permission.roles|length %}bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ permission.roles|length }}</span>
+                            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm {% if permission.roles|length %}bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500{% endif %}">{{ permission.roles|length }}</span>
                         </td>
                     </tr>
                     {% endfor %}
@@ -287,8 +287,8 @@
         </div>
         <div class="p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
             <a href="{{ url_for('admin_panel.communication_hub') }}"
-               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                     <i class="ti ti-message-2 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -300,8 +300,8 @@
 
             {% if endpoint_exists('admin_panel.surveys_list') %}
             <a href="{{ url_for('admin_panel.surveys_list') }}"
-               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                     <i class="ti ti-clipboard-list text-green-600 dark:text-green-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -313,8 +313,8 @@
             {% endif %}
 
             <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
-               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                     <i class="ti ti-users text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -325,8 +325,8 @@
             </a>
 
             <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
-               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
                     <i class="ti ti-clock text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -337,8 +337,8 @@
             </a>
 
             <a href="{{ url_for('admin_panel.system_monitoring') }}"
-               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+               class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                     <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -349,8 +349,8 @@
             </a>
 
             <button type="button" data-action="open-task-management"
-                    class="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
-                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                    class="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group text-left focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
+                <div class="shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
                     <i class="ti ti-list-check text-indigo-600 dark:text-indigo-400" aria-hidden="true"></i>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -371,7 +371,7 @@
                     <i class="ti ti-box text-ecs-green" aria-hidden="true"></i> Docker Containers
                 </h2>
                 <button type="button" data-action="refresh-containers"
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-refresh text-sm" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
                 </button>
             </div>
@@ -393,11 +393,11 @@
                 </h2>
                 <div class="flex gap-2">
                     <button type="button" data-action="refresh-task-list"
-                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                         <i class="ti ti-refresh text-sm" aria-hidden="true"></i><span>Refresh</span>
                     </button>
                     <button type="button" data-action="cleanup-old-tasks"
-                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500">
                         <i class="ti ti-broom text-sm" aria-hidden="true"></i><span>Cleanup</span>
                     </button>
                 </div>
@@ -408,7 +408,7 @@
                         <i class="ti ti-list-search text-3xl text-gray-300 dark:text-gray-600" aria-hidden="true"></i>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Celery task queue not loaded.</p>
                         <button type="button" data-action="load-task-management"
-                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold hover:bg-ecs-green/10 dark:hover:bg-ecs-gold/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold hover:bg-ecs-green/10 dark:hover:bg-ecs-gold/10 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                             <i class="ti ti-list-check" aria-hidden="true"></i><span>Load Task Management</span>
                         </button>
                     </div>
@@ -439,7 +439,7 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Manage Roles and Permissions Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
             <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white">Manage Roles & Permissions</h5>
             </div>
@@ -453,7 +453,7 @@
                             Select Role <span class="text-red-500">*</span>
                         </label>
                         <select name="role_id" id="role_id" required
-                                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="" disabled selected>Select a role...</option>
                             {% for role in roles %}
                             <option value="{{ role.id }}">{{ role.name }}</option>
@@ -466,7 +466,7 @@
                             Assign Permissions
                         </label>
                         <select name="permissions" id="permissions" multiple size="6"
-                                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             {% for permission in permissions %}
                             <option value="{{ permission.id }}">{{ permission.name }}</option>
                             {% endfor %}
@@ -489,7 +489,7 @@
         </div>
 
         <!-- Quick Links Section -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
             <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white">Quick Admin Links</h5>
             </div>
@@ -497,7 +497,7 @@
                 <div class="space-y-2">
                     <a href="{{ url_for('admin_panel.communication_hub') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                             <i class="ti ti-message-2 text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -510,7 +510,7 @@
                     {% if endpoint_exists('admin_panel.surveys_list') %}
                     <a href="{{ url_for('admin_panel.surveys_list') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                             <i class="ti ti-clipboard-list text-green-600 dark:text-green-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -523,7 +523,7 @@
 
                     <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                             <i class="ti ti-users text-amber-600 dark:text-amber-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -535,7 +535,7 @@
 
                     <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
                             <i class="ti ti-clock text-cyan-600 dark:text-cyan-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -547,7 +547,7 @@
 
                     <a href="{{ url_for('admin_panel.system_monitoring') }}"
                        class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                             <i class="ti ti-chart-dots text-purple-600 dark:text-purple-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -559,7 +559,7 @@
 
                     <button type="button" data-action="open-task-management"
                             class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group text-left">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
                             <i class="ti ti-list-check text-indigo-600 dark:text-indigo-400"></i>
                         </div>
                         <div class="flex-1 min-w-0">
@@ -574,7 +574,7 @@
     </div>
 
     <!-- Docker Containers Status Section -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Docker Containers Status</h5>
         </div>
@@ -589,7 +589,7 @@
     </div>
 
     <!-- Task Management Section -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h5 class="font-semibold text-gray-900 dark:text-white">Global Task Management</h5>
             <div class="flex gap-2">

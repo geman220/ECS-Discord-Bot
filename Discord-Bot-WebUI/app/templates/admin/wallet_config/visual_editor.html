@@ -145,7 +145,7 @@
                 <input type="hidden" name="pass_type_id" value="{{ pass_type.id }}">
 
                 <!-- Appearance Card -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Appearance Settings</h5>
                     </div>
@@ -197,7 +197,7 @@
                 </div>
 
                 <!-- Template Content Card -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Template Content</h5>
                     </div>
@@ -211,7 +211,7 @@
 
                         <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800" role="alert">
                             <i class="ti ti-info-circle mr-1"></i>
-                            <strong>Template Variables:</strong> Use variables like <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{% raw %}{{member_name}}{% endraw %}</code>, <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{% raw %}{{validity}}{% endraw %}</code>, and <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{% raw %}{{team_name}}{% endraw %}</code> for dynamic content.
+                            <strong>Template Variables:</strong> Use variables like <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{% raw %}{{member_name}}{% endraw %}</code>, <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{% raw %}{{validity}}{% endraw %}</code>, and <code class="font-mono text-xs bg-blue-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{% raw %}{{team_name}}{% endraw %}</code> for dynamic content.
                         </div>
                     </div>
                 </div>
@@ -230,7 +230,7 @@
 
         <!-- Right Column: Live Preview -->
         <div>
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 h-full flex flex-col">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 h-full flex flex-col">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Live Preview</h5>
                 </div>
@@ -286,19 +286,19 @@
                                 <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Preview Options</h6>
                                 <label class="inline-flex items-center cursor-pointer mb-3 w-full">
                                     <input type="checkbox" id="toggleBackground" class="sr-only peer">
-                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                                     <span class="ms-3 text-sm text-gray-700 dark:text-gray-300">Toggle Background Image</span>
                                 </label>
 
                                 <label class="inline-flex items-center cursor-pointer mb-3 w-full">
                                     <input type="checkbox" id="toggleBarcode" class="sr-only peer">
-                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                                     <span class="ms-3 text-sm text-gray-700 dark:text-gray-300">Toggle Barcode Display</span>
                                 </label>
 
                                 <label class="inline-flex items-center cursor-pointer w-full">
                                     <input type="checkbox" id="toggleFields" class="sr-only peer">
-                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                                    <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-2 peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                                     <span class="ms-3 text-sm text-gray-700 dark:text-gray-300">Toggle Field Layout</span>
                                 </label>
                             </div>
@@ -310,7 +310,7 @@
     </div>
 
     <!-- Asset Management -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Pass Assets</h5>
             <a href="{{ url_for('wallet_config.assets') }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors">
@@ -337,7 +337,7 @@
             </div>
             {% else %}
             <div class="flex p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800" role="alert">
-                <i class="ti ti-alert-triangle text-lg mr-2 flex-shrink-0"></i>
+                <i class="ti ti-alert-triangle text-lg mr-2 shrink-0"></i>
                 <div>
                     No assets uploaded for this pass type yet.
                     <a href="{{ url_for('wallet_config.assets') }}" class="font-medium underline hover:no-underline">Upload assets</a> to enhance your pass appearance.
@@ -348,7 +348,7 @@
     </div>
 
     <!-- Help & Tips -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-bulb text-ecs-green"></i>Design Tips

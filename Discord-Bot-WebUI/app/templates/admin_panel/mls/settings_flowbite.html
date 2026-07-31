@@ -30,13 +30,13 @@
   <a href="{{ url_for('admin_panel.mls_overview') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg
             border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium
-            hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Overview</span>
   </a>
   <button type="submit" form="mls-settings-form" id="save-settings-btn"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg
                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900
                  disabled:opacity-50 disabled:cursor-not-allowed">
     <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
   </button>
@@ -101,7 +101,7 @@
           <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
             <input type="number" id="thread_creation_hours" name="mls_thread_creation_hours_before"
                    value="{{ settings.thread_creation_hours_before }}" min="1" max="168"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-hidden">
             <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hours</span>
           </div>
           <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
@@ -116,7 +116,7 @@
           <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
             <input type="number" id="live_reporting_minutes" name="mls_live_reporting_minutes_before"
                    value="{{ settings.live_reporting_minutes_before }}" min="0" max="60"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-hidden">
             <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">mins</span>
           </div>
           <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
@@ -131,7 +131,7 @@
           <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
             <input type="number" id="buildup_post_hours" name="mls_buildup_post_hours_before"
                    value="{{ settings.buildup_post_hours_before }}" min="1" max="24"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-hidden">
             <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">hours</span>
           </div>
           <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
@@ -146,7 +146,7 @@
           <div class="flex items-center gap-0 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus-within:border-ecs-green focus-within:ring-1 focus-within:ring-ecs-green overflow-hidden w-full max-w-[16rem]">
             <input type="number" id="lineup_post_minutes" name="mls_lineup_post_minutes_before"
                    value="{{ settings.lineup_post_minutes_before }}" min="5" max="180"
-                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-none">
+                   class="w-full min-w-0 bg-transparent px-3 py-2.5 font-mono text-gray-900 dark:text-white focus:outline-hidden">
             <span class="shrink-0 px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60">mins</span>
           </div>
           <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
@@ -162,7 +162,7 @@
     <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Supported Competitions
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ competition_mappings|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ competition_mappings|length }}</span>
       </h2>
       <span class="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
         <i class="ti ti-lock" aria-hidden="true"></i> read-only
@@ -190,7 +190,7 @@
               </span>
             </td>
             <td class="px-4 sm:px-5 py-3">
-              <span class="font-mono text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ code }}</span>
+              <span class="font-mono text-xs px-2 py-1 rounded-sm bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ code }}</span>
             </td>
           </tr>
           {% endfor %}
@@ -222,7 +222,7 @@
     <button type="submit"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900
                    disabled:opacity-50 disabled:cursor-not-allowed">
       <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
     </button>
@@ -231,7 +231,7 @@
 {% else %}
 <form id="mls-settings-form">
     <!-- Scheduling Settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-calendar-event mr-2"></i>Scheduling Settings
@@ -306,7 +306,7 @@
     </div>
 
     <!-- Competitions Reference -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-trophy mr-2"></i>Supported Competitions

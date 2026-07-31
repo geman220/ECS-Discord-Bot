@@ -57,7 +57,7 @@ export function initPushHistoryHandlers(ED) {
                         </div>
                         <div class="mb-3">
                             <strong>Content:</strong><br>
-                            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                            <div class="bg-gray-100 dark:bg-gray-700 p-2 rounded-sm">
                                 <strong>Title:</strong> ${escHtml(n.title)}<br>
                                 <strong>Message:</strong> ${escHtml(n.content)}
                             </div>

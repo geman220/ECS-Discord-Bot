@@ -13,7 +13,7 @@ let currentSrc = null;
 function ensure() {
     if (peekEl) return peekEl;
     peekEl = document.createElement('div');
-    peekEl.className = 'fixed z-[70] hidden pointer-events-none rounded-xl overflow-hidden shadow-2xl ring-2 ring-white dark:ring-gray-600 bg-gray-100 dark:bg-gray-800';
+    peekEl.className = 'fixed z-70 hidden pointer-events-none rounded-xl overflow-hidden shadow-2xl ring-2 ring-white dark:ring-gray-600 bg-gray-100 dark:bg-gray-800';
     peekEl.innerHTML = '<img class="w-44 h-44 object-cover" alt="">'
         + '<div class="peek-name px-2 py-1 text-xs font-semibold text-gray-900 dark:text-white bg-white/90 dark:bg-gray-800/90 truncate"></div>';
     document.body.appendChild(peekEl);

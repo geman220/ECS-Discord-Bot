@@ -123,7 +123,7 @@
         <button type="button" id="save-app-config"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Configuration
         </button>
       </div>
@@ -138,7 +138,7 @@
         {% set _on = s.value and s.value|lower in ('true','1','yes','on') %}
         <label class="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px]">
           <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input" {{ 'checked' if _on else '' }}>
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 dark:peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/30 dark:peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
         </label>
       </div>
       {% endfor %}
@@ -156,12 +156,12 @@
           {% set _on = s.value and s.value|lower in ('true','1','yes','on') %}
           <label class="relative inline-flex items-center cursor-pointer min-h-[44px]">
             <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input" {{ 'checked' if _on else '' }}>
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-400/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-red-400/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
             <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">{{ 'Enabled' if _on else 'Disabled' }}</span>
           </label>
           {% elif s.data_type == 'integer' %}
           <input type="number" id="{{ s.key }}" data-key="{{ s.key }}" value="{{ s.value or '' }}" min="0"
-                 class="input-ecs w-full max-w-[12rem] h-11 px-3 text-base font-mono app-config-input">
+                 class="input-ecs w-full max-w-48 h-11 px-3 text-base font-mono app-config-input">
           {% else %}
           <input type="text" id="{{ s.key }}" data-key="{{ s.key }}" value="{{ s.value or '' }}"
                  class="input-ecs w-full h-11 px-3 text-sm app-config-input">
@@ -246,7 +246,7 @@
           </li>
         </ul>
         <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
-          Served at <code class="font-mono text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">GET /api/v1/app_config</code>
+          Served at <code class="font-mono text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-sm">GET /api/v1/app_config</code>
         </div>
       </section>
     </aside>
@@ -257,7 +257,7 @@
     <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-device-analytics text-ecs-green" aria-hidden="true"></i> Device Version Distribution
-        {% if version_dist %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ version_dist|length }}</span>{% endif %}
+        {% if version_dist %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ version_dist|length }}</span>{% endif %}
       </h2>
       {% if version_dist %}<span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ ns.total }} active</span>{% endif %}
     </div>
@@ -326,14 +326,14 @@
 </div>
 {% else %}
 <div class="max-w-3xl">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                     <i class="ti ti-device-mobile-up mr-2"></i>App Version &amp; Update Settings
                 </h5>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Controls what the mobile app sees at <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">GET /api/v1/app_config</code>
+                    Controls what the mobile app sees at <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">GET /api/v1/app_config</code>
                 </p>
             </div>
         </div>
@@ -347,7 +347,7 @@
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input"
                            {{ 'checked' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else '' }}>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
                     <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
                         {{ 'Enabled' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else 'Disabled' }}
                     </span>
@@ -381,7 +381,7 @@
     </div>
 
     <!-- Quick Reference -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mt-6">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h6 class="font-semibold text-gray-900 dark:text-white"><i class="ti ti-info-circle mr-1"></i> Quick Reference</h6>
         </div>
@@ -393,7 +393,7 @@
     </div>
 
     <!-- Device Version Distribution -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mt-6">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h6 class="font-semibold text-gray-900 dark:text-white"><i class="ti ti-device-analytics mr-1"></i> Device Version Distribution</h6>
         </div>

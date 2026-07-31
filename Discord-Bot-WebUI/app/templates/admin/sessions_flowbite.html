@@ -27,7 +27,7 @@
     </div>
 
     <!-- Filter Tabs -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="border-b border-gray-200 dark:border-gray-700">
             <nav class="flex flex-wrap -mb-px" role="tablist">
                 <a href="{{ url_for('admin_live.sessions', status='all') }}"
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Sessions Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-2">
                 <i class="ti ti-table text-gray-500 dark:text-gray-400"></i>
@@ -125,7 +125,7 @@
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-gray-900 dark:text-white">{{ session.update_count or 0 }}</span>
                                 {% if session.error_count and session.error_count > 0 %}
-                                <span class="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded">
+                                <span class="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-sm">
                                     {{ session.error_count }} errors
                                 </span>
                                 {% endif %}
@@ -174,7 +174,7 @@
 
     <!-- Session Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                     <i class="ti ti-player-play text-2xl text-green-600 dark:text-green-400"></i>
@@ -188,7 +188,7 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                     <i class="ti ti-chart-bar text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -206,7 +206,7 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                     <i class="ti ti-alert-triangle text-2xl text-red-600 dark:text-red-400"></i>

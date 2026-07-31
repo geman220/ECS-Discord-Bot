@@ -194,8 +194,8 @@ window.EventDelegation.register('view-role-details', function(element, e) {
                                     <br><small class="text-gray-500 dark:text-gray-400">${escapeHtml(user.email)}</small>
                                 </div>
                                 <div class="flex gap-1">
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded ${approvedBadge}" data-badge>${user.is_approved ? 'Approved' : 'Pending'}</span>
-                                    <span class="px-2 py-0.5 text-xs font-medium rounded ${activeBadge}" data-badge>${user.is_active ? 'Active' : 'Inactive'}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${approvedBadge}" data-badge>${user.is_approved ? 'Approved' : 'Pending'}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${activeBadge}" data-badge>${user.is_active ? 'Active' : 'Inactive'}</span>
                                 </div>
                             </div>
                         `;

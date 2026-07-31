@@ -28,11 +28,11 @@
   {# --- Command header: primary job is watching the live queue; one primary CTA = Refresh --- #}
   {% call page_header('Task Monitor', subtitle='Celery background workers · live') %}
     <a href="{{ url_for('admin_panel.task_history') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-history" aria-hidden="true"></i> History
     </a>
     <button type="button" data-action="refresh-tasks"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
     </button>
   {% endcall %}
@@ -91,7 +91,7 @@
     <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
       <h2 class="text-sm font-bold uppercase tracking-wide flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i> Active Tasks
-        {% if active_tasks %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ active_tasks|length }}</span>{% endif %}
+        {% if active_tasks %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ active_tasks|length }}</span>{% endif %}
       </h2>
       <span class="text-xs font-mono text-gray-400 dark:text-gray-500">as of {{ now.strftime('%H:%M:%S') }} UTC</span>
     </div>
@@ -128,7 +128,7 @@
               <p class="mt-0.5 ml-4 text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{{ task.worker }}</p>
             </td>
             <td class="px-4 py-3">
-              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ task.task_id[:8] }}…</code>
+              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-sm">{{ task.task_id[:8] }}…</code>
             </td>
             <td class="px-4 py-3 hidden lg:table-cell">
               {% if task.is_zombie %}
@@ -151,13 +151,13 @@
             </td>
             <td class="px-4 py-3">
               <div class="flex items-center justify-end gap-1">
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.task_id }}" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal" title="View Details" aria-label="View Details">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.task_id }}" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal" title="View Details" aria-label="View Details">
                   <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.task_id }}" data-modal-target="taskLogsModal" data-modal-toggle="taskLogsModal" title="View Logs" aria-label="View Logs">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.task_id }}" data-modal-target="taskLogsModal" data-modal-toggle="taskLogsModal" title="View Logs" aria-label="View Logs">
                   <i class="ti ti-file-text" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.task_id }}" title="Cancel" aria-label="Cancel">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.task_id }}" title="Cancel" aria-label="Cancel">
                   <i class="ti ti-x" aria-hidden="true"></i>
                 </button>
               </div>
@@ -178,7 +178,7 @@
               </span>
               <span class="text-sm font-semibold text-gray-900 dark:text-white break-all">{{ task.name }}</span>
             </div>
-            <code class="shrink-0 font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ task.task_id[:8] }}…</code>
+            <code class="shrink-0 font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-sm">{{ task.task_id[:8] }}…</code>
           </div>
           <div class="mt-2 flex items-center gap-2 text-xs">
             {% if task.is_zombie %}
@@ -199,13 +199,13 @@
             <p class="break-all">Args <span class="font-mono">{{ task.args }}</span></p>
           </div>
           <div class="mt-2 flex items-center gap-1">
-            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.task_id }}" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal" title="View Details" aria-label="View Details">
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-task-details" data-task-id="{{ task.task_id }}" data-modal-target="taskDetailsModal" data-modal-toggle="taskDetailsModal" title="View Details" aria-label="View Details">
               <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
-            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.task_id }}" data-modal-target="taskLogsModal" data-modal-toggle="taskLogsModal" title="View Logs" aria-label="View Logs">
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-task-logs" data-task-id="{{ task.task_id }}" data-modal-target="taskLogsModal" data-modal-toggle="taskLogsModal" title="View Logs" aria-label="View Logs">
               <i class="ti ti-file-text" aria-hidden="true"></i>
             </button>
-            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.task_id }}" title="Cancel" aria-label="Cancel">
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="cancel-task" data-task-id="{{ task.task_id }}" title="Cancel" aria-label="Cancel">
               <i class="ti ti-x" aria-hidden="true"></i>
             </button>
           </div>
@@ -321,7 +321,7 @@
 {% else %}
 <!-- Task Monitor Overview -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-player-play text-2xl text-green-600 dark:text-green-400"></i>
@@ -330,7 +330,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Running Tasks</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
                 <i class="ti ti-clock-pause text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -339,7 +339,7 @@
             <span class="text-sm text-yellow-700 dark:text-yellow-300">Queued Tasks</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-check text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -348,7 +348,7 @@
             <span class="text-sm text-cyan-700 dark:text-cyan-300">Completed Today</span>
         </div>
     </div>
-    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow p-5">
+    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 mb-3">
                 <i class="ti ti-alert-circle text-2xl text-red-600 dark:text-red-400"></i>
@@ -360,7 +360,7 @@
 </div>
 
 <!-- Active Tasks -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-activity mr-2"></i>Active Tasks
@@ -387,7 +387,7 @@
                 {% for task in active_tasks %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-4 py-3">
-                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ task.id[:8] }}...</code>
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm">{{ task.id[:8] }}...</code>
                     </td>
                     <td class="px-4 py-3 hidden md:table-cell">
                         <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
@@ -455,7 +455,7 @@
 <!-- Task Queue & History -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- Task Queue -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-list mr-2"></i>Task Queue
@@ -489,7 +489,7 @@
     </div>
 
     <!-- Recent Completed -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-history mr-2"></i>Recent Completed
@@ -527,7 +527,7 @@
 </div>
 
 <!-- Task Statistics -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-chart-bar mr-2"></i>Task Statistics (Last 24 Hours)

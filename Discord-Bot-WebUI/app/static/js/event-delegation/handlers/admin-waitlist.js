@@ -129,9 +129,9 @@ function buildPlayerDetailsHTML(user) {
                     <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Username:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.username)}</span></p>
                     <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Email:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.email)}</span></p>
                     <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Joined:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.created_at) || 'Unknown'}</span></p>
-                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> <span class="px-2 py-0.5 text-xs font-medium ${statusBadgeClass} rounded ml-1">${safeStatus}</span></p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> <span class="px-2 py-0.5 text-xs font-medium ${statusBadgeClass} rounded-sm ml-1">${safeStatus}</span></p>
                     <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Preferred League:</span> <span class="text-gray-900 dark:text-white">${preferredLeagueDisplay}</span></p>
-                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Roles:</span> ${user.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded ml-1">${escapeHtml(role)}</span>`).join('')}</p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Roles:</span> ${user.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm ml-1">${escapeHtml(role)}</span>`).join('')}</p>
                 </div>
             </div>
             <div>
@@ -162,8 +162,8 @@ function buildPlayerDetailsHTML(user) {
             <div>
                 <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Substitute Information</h6>
                 <div class="space-y-2">
-                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Interested in Subbing:</span> ${user.player.interested_in_sub ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded ml-1">Yes</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded ml-1">No</span>'}</p>
-                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Available for Subbing:</span> ${user.player.is_sub ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded ml-1">Yes</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded ml-1">No</span>'}</p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Interested in Subbing:</span> ${user.player.interested_in_sub ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm ml-1">Yes</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm ml-1">No</span>'}</p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Available for Subbing:</span> ${user.player.is_sub ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm ml-1">Yes</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm ml-1">No</span>'}</p>
                     ${user.player.unavailable_dates ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Unavailable Dates:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.unavailable_dates)}</span></p>` : ''}
                 </div>
             </div>

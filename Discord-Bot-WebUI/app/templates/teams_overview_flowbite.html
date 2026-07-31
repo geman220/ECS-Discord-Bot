@@ -48,7 +48,7 @@
     </div>
     <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
         <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-           class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-3.5 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
+           class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-3.5 rounded-lg text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
                   {% if accent == 'gold' %}bg-ecs-gold hover:bg-ecs-gold/90 text-gray-900 focus:ring-ecs-gold{% else %}bg-ecs-green hover:bg-ecs-green-700 text-white focus:ring-ecs-green{% endif %}">
             <i class="ti ti-eye" aria-hidden="true"></i>
             View Team
@@ -123,25 +123,25 @@
     <div class="mb-6">
         <div class="inline-flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
             <button type="button"
-                    class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-semibold bg-white dark:bg-gray-700 shadow-sm text-ecs-green"
+                    class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-semibold bg-white dark:bg-gray-700 shadow-xs text-ecs-green"
                     data-tab="classic">
                 <i class="ti ti-ball-football" aria-hidden="true"></i>
                 Classic
-                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ classic_teams | length }}</span>
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ classic_teams | length }}</span>
             </button>
             <button type="button"
                     class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     data-tab="premier">
                 <i class="ti ti-trophy" aria-hidden="true"></i>
                 Premier
-                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ premier_teams | length }}</span>
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ premier_teams | length }}</span>
             </button>
             <button type="button"
                     class="division-tab inline-flex items-center gap-1.5 px-4 h-10 rounded-lg text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                     data-tab="ecsfc">
                 <i class="ti ti-shield" aria-hidden="true"></i>
                 ECS FC
-                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ ecs_fc_teams | length }}</span>
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ ecs_fc_teams | length }}</span>
             </button>
             {# One tab per program beyond the three named above. These used to be
                rendered INSIDE the ECS FC pane with no tab of their own, so a new
@@ -152,7 +152,7 @@
                     data-tab="other-{{ loop.index0 }}">
                 <i class="ti ti-shield-half" aria-hidden="true"></i>
                 {{ _lname }}
-                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ other_teams | selectattr("league.name", "equalto", _lname) | list | length }}</span>
+                <span class="ml-1 font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-200">{{ other_teams | selectattr("league.name", "equalto", _lname) | list | length }}</span>
             </button>
             {% endfor %}
         </div>
@@ -272,7 +272,7 @@
         {% if classic_teams %}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for team in classic_teams %}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                 <div class="p-4">
                     <div class="flex items-center gap-4 mb-4">
                         <!-- Team Avatar -->
@@ -314,7 +314,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
             <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
                 <i class="ti ti-ball-football text-2xl text-gray-400"></i>
             </div>
@@ -329,7 +329,7 @@
         {% if premier_teams %}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for team in premier_teams %}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                 <div class="p-4">
                     <div class="flex items-center gap-4 mb-4">
                         {% if team.kit_url %}
@@ -370,7 +370,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
             <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
                 <i class="ti ti-trophy text-2xl text-gray-400"></i>
             </div>
@@ -385,7 +385,7 @@
         {% if ecs_fc_teams %}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for team in ecs_fc_teams %}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                 <div class="p-4">
                     <div class="flex items-center gap-4 mb-4">
                         {% if team.kit_url %}
@@ -426,7 +426,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
             <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
                 <i class="ti ti-shield text-2xl text-gray-400"></i>
             </div>

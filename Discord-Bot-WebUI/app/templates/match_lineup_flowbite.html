@@ -135,7 +135,7 @@
             <span class="font-mono font-bold text-gray-900 dark:text-white" id="lineupVersion">v{{ lineup.version if lineup else 1 }}</span>
         </span>
         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
             <span class="hidden sm:inline">Back to Match</span>
         </a>
@@ -227,7 +227,7 @@
                              data-player-name="{{ player.name|lower }}"
                              data-rsvp="{{ player.rsvp_status }}"
                              draggable="{{ 'false' if player.rsvp_status == 'no' else 'true' }}">
-                            <div class="relative flex-shrink-0">
+                            <div class="relative shrink-0">
                                 <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                      alt="{{ player.name }}"
                                      class="w-10 h-10 rounded-full object-cover">
@@ -236,7 +236,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{{ player.favorite_position|format_position or 'Any' }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ player.favorite_position|format_position or 'Any' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     <span class="text-green-500" title="Goals"><i class="ti ti-ball-football" aria-hidden="true"></i> {{ player.stats.goals }}</span>
@@ -249,9 +249,9 @@
                                 </div>
                             </div>
                             {% if player.rsvp_status == 'no' %}
-                            <i class="ti ti-ban text-red-400 flex-shrink-0" title="Player declined - not available" aria-hidden="true"></i>
+                            <i class="ti ti-ban text-red-400 shrink-0" title="Player declined - not available" aria-hidden="true"></i>
                             {% else %}
-                            <i class="ti ti-grip-vertical text-gray-400 flex-shrink-0" aria-hidden="true"></i>
+                            <i class="ti ti-grip-vertical text-gray-400 shrink-0" aria-hidden="true"></i>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -380,7 +380,7 @@
                               class="input-ecs w-full text-sm"
                               placeholder="Add notes about rotation, substitution plans, etc...">{{ lineup.notes if lineup else '' }}</textarea>
                     <div class="flex justify-end mt-3">
-                        <button id="saveNotesBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 bg-ecs-green text-white rounded-lg text-sm font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <button id="saveNotesBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 bg-ecs-green text-white rounded-lg text-sm font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-device-floppy" aria-hidden="true"></i>
                             Save Notes
                         </button>
@@ -394,7 +394,7 @@
 {# ===================== CLASSIC (unchanged) ===================== #}
 <div class="container mx-auto px-4 py-4 md:py-8">
     <!-- Match Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6 mb-4 md:mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 md:p-6 mb-4 md:mb-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 class="text-xl md:text-2xl font-bold text-ecs-green">Match Lineup</h1>
@@ -429,7 +429,7 @@
     </div>
 
     <!-- RSVP Legend -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 mb-4 md:mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-3 mb-4 md:mb-6">
         <div class="flex flex-wrap items-center gap-4 text-sm">
             <span class="font-medium text-gray-700 dark:text-gray-300">RSVP Status:</span>
             <div class="flex items-center gap-2">
@@ -454,7 +454,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
         <!-- Available Players Pool -->
         <div class="lg:col-span-4 order-2 lg:order-1">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden lg:sticky lg:top-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden lg:sticky lg:top-4">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-users text-ecs-green"></i>
@@ -494,7 +494,7 @@
                              data-player-name="{{ player.name|lower }}"
                              data-rsvp="{{ player.rsvp_status }}"
                              draggable="{{ 'false' if player.rsvp_status == 'no' else 'true' }}">
-                            <div class="relative flex-shrink-0">
+                            <div class="relative shrink-0">
                                 <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                      alt="{{ player.name }}"
                                      class="w-10 h-10 rounded-full object-cover">
@@ -503,7 +503,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{{ player.favorite_position|format_position or 'Any' }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ player.favorite_position|format_position or 'Any' }}</span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     <span class="text-green-500" title="Goals"><i class="ti ti-ball-football"></i> {{ player.stats.goals }}</span>
@@ -516,9 +516,9 @@
                                 </div>
                             </div>
                             {% if player.rsvp_status == 'no' %}
-                            <i class="ti ti-ban text-red-400 flex-shrink-0" title="Player declined - not available"></i>
+                            <i class="ti ti-ban text-red-400 shrink-0" title="Player declined - not available"></i>
                             {% else %}
-                            <i class="ti ti-grip-vertical text-gray-400 flex-shrink-0"></i>
+                            <i class="ti ti-grip-vertical text-gray-400 shrink-0"></i>
                             {% endif %}
                         </div>
                         {% endfor %}
@@ -529,7 +529,7 @@
 
         <!-- Soccer Pitch -->
         <div class="lg:col-span-8 order-1 lg:order-2">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }} Formation</h3>
                     <span class="text-sm text-gray-500 dark:text-gray-400" id="lineupVersion">
@@ -645,7 +645,7 @@
             </div>
 
             <!-- Notes Section -->
-            <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     <i class="ti ti-notes mr-1"></i>Lineup Notes
                 </label>

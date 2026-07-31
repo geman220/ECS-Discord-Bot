@@ -30,7 +30,7 @@
 
 {% call page_header("Upcoming Matches", subtitle="Match Operations") %}
   <a href="{{ url_for('admin_panel.schedule_matches') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule Matches
   </a>
 {% endcall %}
@@ -131,10 +131,10 @@
               </div>
             {% else %}
               <div class="flex items-center gap-2 min-w-0">
-                <span class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 shrink-0" title="Home">H</span>
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 shrink-0" title="Home">H</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                 <span class="text-xs text-gray-400 dark:text-gray-500 shrink-0">vs</span>
-                <span class="inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-mono font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 shrink-0" title="Away">A</span>
+                <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-mono font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 shrink-0" title="Away">A</span>
                 <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
               </div>
             {% endif %}
@@ -150,14 +150,14 @@
 
           {# Action cluster — JS hooks preserved verbatim #}
           <div class="flex items-center gap-1 shrink-0 self-start sm:self-center">
-            <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match" data-match-id="{{ match.id }}" aria-label="View match" title="View">
+            <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-match" data-match-id="{{ match.id }}" aria-label="View match" title="View">
               <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
-            <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" aria-label="Edit match report" title="Edit">
+            <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" aria-label="Edit match report" title="Edit">
               <i class="ti ti-edit" aria-hidden="true"></i>
             </button>
             <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}"
-               class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Check-in" title="Check-In">
+               class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-emerald-600 hover:bg-emerald-100 dark:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="Check-in" title="Check-In">
               <i class="ti ti-qrcode" aria-hidden="true"></i>
             </a>
           </div>

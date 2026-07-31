@@ -60,7 +60,7 @@ export function initMobileUsersHandlers(ED) {
                                     <strong class="text-gray-900 dark:text-white">Token:</strong> <span class="text-gray-700 dark:text-gray-300">${token.token.substring(0, 20)}...</span><br>
                                     <small class="text-gray-500 dark:text-gray-400">Platform: ${token.platform || 'Unknown'} | Created: ${token.created_at ? new Date(token.created_at).toLocaleDateString() : 'Unknown'}</small>
                                 </div>
-                                <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}" data-badge>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${badgeClass}" data-badge>
                                     ${token.is_active ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
@@ -120,7 +120,7 @@ export function initMobileUsersHandlers(ED) {
                     </div>
                     <div class="mb-3">
                         <div class="flex items-center">
-                            <input type="checkbox" id="highPriority" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <input type="checkbox" id="highPriority" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                             <label for="highPriority" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 High Priority Notification
                             </label>
@@ -184,8 +184,8 @@ export function initMobileUsersHandlers(ED) {
                     const updated = token.updated_at ? new Date(token.updated_at).toLocaleDateString() : 'Unknown';
                     const tokenPreview = escapeHtml(token.token || '');
                     const statusBadge = token.is_active
-                        ? '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>'
-                        : '<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Inactive</span>';
+                        ? '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>'
+                        : '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Inactive</span>';
                     const actionBtn = token.is_active
                         ? `<button class="text-yellow-600 bg-transparent border border-yellow-600 hover:bg-yellow-600 hover:text-white focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs p-1.5" data-action="deactivate-device" data-token-id="${escapeHtml(token.id)}" aria-label="Deactivate device"><i class="ti ti-ban"></i></button>`
                         : '';

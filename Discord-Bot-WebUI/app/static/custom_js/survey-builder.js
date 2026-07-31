@@ -665,7 +665,7 @@
     else if (t === 'rating') html = numberBtns(1, (q.config && q.config.max) || 5);
     else if (t === 'scale') html = numberBtns((q.config && q.config.min) != null ? q.config.min : 1, (q.config && q.config.max) != null ? q.config.max : 5);
     else if (t === 'nps') html = numberBtns(0, 10);
-    else if (t === 'ranking') html = '<div class="space-y-2">' + opts.map(function (o) { return '<div class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700"><span class="w-10 h-8 rounded border border-gray-200 dark:border-gray-700 inline-flex items-center justify-center text-xs text-gray-400">#</span><span class="text-sm text-gray-700 dark:text-gray-200">' + escapeHtml(o.label) + '</span></div>'; }).join('') + '</div>';
+    else if (t === 'ranking') html = '<div class="space-y-2">' + opts.map(function (o) { return '<div class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700"><span class="w-10 h-8 rounded-sm border border-gray-200 dark:border-gray-700 inline-flex items-center justify-center text-xs text-gray-400">#</span><span class="text-sm text-gray-700 dark:text-gray-200">' + escapeHtml(o.label) + '</span></div>'; }).join('') + '</div>';
     else if (t === 'matrix') {
       var rows = (q.config && q.config.rows) || [], cols = (q.config && q.config.cols) || [];
       html = '<table class="min-w-full text-sm border border-gray-200 dark:border-gray-700"><thead><tr><th></th>' + cols.map(function (c) { return '<th class="p-2 text-xs text-gray-600 dark:text-gray-300">' + escapeHtml(c) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows.map(function (r) { return '<tr class="border-t border-gray-200 dark:border-gray-700"><td class="p-2 text-gray-700 dark:text-gray-200">' + escapeHtml(r) + '</td>' + cols.map(function () { return '<td class="p-2 text-center"><input type="radio" class="text-ecs-green"></td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table>';
@@ -693,13 +693,13 @@
       '<div class="flex items-start gap-2.5">' +
       '<div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-bold shrink-0">ECS</div>' +
       '<div class="min-w-0 flex-1">' +
-      '<p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded bg-indigo-500 text-white text-[9px] uppercase">App</span></p>' +
-      '<div class="mt-1 rounded bg-[#2b2d31] p-2.5">' +
+      '<p class="text-xs"><span class="font-semibold text-white">ECS Bot</span> <span class="ml-1 px-1 rounded-sm bg-indigo-500 text-white text-[9px] uppercase">App</span></p>' +
+      '<div class="mt-1 rounded-sm bg-[#2b2d31] p-2.5">' +
       '<p class="text-sm font-semibold text-white">' + escapeHtml(q.prompt || 'Your question') + '</p>' +
       '<div class="mt-2 space-y-1.5">' +
       (opts.length
         ? opts.map(function (o) {
-            return '<div class="rounded border border-[#4e5058] px-2.5 py-1.5 text-xs text-gray-200">' +
+            return '<div class="rounded-sm border border-[#4e5058] px-2.5 py-1.5 text-xs text-gray-200">' +
               escapeHtml(o.label.slice(0, 55)) + '</div>';
           }).join('')
         : '<p class="text-[11px] text-gray-400">No options yet</p>') +
@@ -718,9 +718,9 @@
       parts.push(renderDiscordPollCard(data));
       parts.push('<p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">On the web — the same poll as a page</p>');
     }
-    parts.push('<div class="bg-white dark:bg-gray-800 rounded-2xl shadow border border-gray-200 dark:border-gray-700 overflow-hidden">');
+    parts.push('<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">');
     // header
-    parts.push('<div class="px-5 pt-5 pb-4 bg-gradient-to-br from-emerald-600 to-emerald-800">');
+    parts.push('<div class="px-5 pt-5 pb-4 bg-linear-to-br from-emerald-600 to-emerald-800">');
     parts.push('<h2 class="text-lg font-bold text-white">' + escapeHtml(data.title || 'Untitled survey') + '</h2>');
     if (data.description) parts.push('<p class="text-emerald-100 text-sm mt-1">' + escapeHtml(data.description) + '</p>');
     if (data.is_anonymous) parts.push('<p class="text-xs text-emerald-50/90 mt-2"><i class="ti ti-eye-off"></i> Your responses are anonymous.</p>');

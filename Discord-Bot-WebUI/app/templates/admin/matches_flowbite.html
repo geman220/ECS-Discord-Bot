@@ -23,7 +23,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Matches</label>
@@ -59,18 +59,18 @@
     {% if matches %}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for match in matches %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
             <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                 <span class="font-semibold text-gray-900 dark:text-white">Match {{ match.id }}</span>
                 {% if match.match_id in sessions_by_match %}
                     {% set session = sessions_by_match[match.match_id] %}
                     {% if session.is_active %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Live Reporting Active</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Live Reporting Active</span>
                     {% else %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Reporting Ended</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">Reporting Ended</span>
                     {% endif %}
                 {% else %}
-                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">No Live Reporting</span>
+                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-sm">No Live Reporting</span>
                 {% endif %}
             </div>
             <div class="p-4 flex-1">
@@ -138,7 +138,7 @@
     </div>
     {% else %}
     <!-- Empty State -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
         <i class="ti ti-ball-football text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
         <h4 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No matches found</h4>
         <p class="text-gray-400 dark:text-gray-500">Try adjusting your search filters or check back later.</p>

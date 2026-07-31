@@ -47,7 +47,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="ro-league-type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">League Type</label>
-                        <select id="ro-league-type" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <select id="ro-league-type" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="Pub League">Pub League (Premier + Classic)</option>
                             <option value="ECS FC">ECS FC</option>
                             {# One option per additional registered season type. The two
@@ -61,12 +61,12 @@
                     <div>
                         <label for="ro-season-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">New Season Name</label>
                         <input type="text" id="ro-season-name" placeholder="e.g. 2026 Fall" required
-                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                     </div>
                     <div>
                         <label for="ro-start-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Season Start Date</label>
                         <input type="date" id="ro-start-date" required
-                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                     </div>
                 </div>
 
@@ -76,12 +76,12 @@
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-green"></i> Classic Division</h4>
                             <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams (even number)</label>
-                            <input type="number" id="ro-classic-teams" min="2" step="2" value="4" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="number" id="ro-classic-teams" min="2" step="2" value="4" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                             <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-gold-500"></i> Premier Division</h4>
                             <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams (even number)</label>
-                            <input type="number" id="ro-premier-teams" min="2" step="2" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="number" id="ro-premier-teams" min="2" step="2" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                     </div>
 
@@ -91,7 +91,7 @@
                             <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-calendar-cog text-ecs-green"></i> Season calendar</h4>
                             <div class="flex items-center gap-2">
                                 <label for="ro-week-count" class="text-xs text-gray-500 dark:text-gray-400">Weeks</label>
-                                <input type="number" id="ro-week-count" min="1" value="10" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green text-sm py-1">
+                                <input type="number" id="ro-week-count" min="1" value="10" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green text-sm py-1">
                                 <button type="button" id="ro-rebuild-weeks" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="ti ti-refresh"></i> Rebuild</button>
                             </div>
                         </div>
@@ -114,14 +114,14 @@
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 max-w-md">
                         <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2"><i class="ti ti-shield-half text-ecs-green"></i> ECS FC</h4>
                         <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Teams (even number)</label>
-                        <input type="number" id="ro-ecs-teams" min="2" step="2" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green mb-3">
+                        <input type="number" id="ro-ecs-teams" min="2" step="2" value="8" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green mb-3">
                     </div>
                     <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 mt-4">
                         <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
                             <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-calendar-cog text-ecs-green"></i> Season calendar</h4>
                             <div class="flex items-center gap-2">
                                 <label for="ro-ecs-week-count" class="text-xs text-gray-500 dark:text-gray-400">Weeks</label>
-                                <input type="number" id="ro-ecs-week-count" min="1" value="10" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green text-sm py-1">
+                                <input type="number" id="ro-ecs-week-count" min="1" value="10" class="w-16 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green text-sm py-1">
                                 <button type="button" id="ro-ecs-rebuild-weeks" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600"><i class="ti ti-refresh"></i> Rebuild</button>
                             </div>
                         </div>
@@ -160,7 +160,7 @@
                         <div data-rocoach-col="{{ col.key }}" data-role-id="{{ col.role_id or '' }}" data-season-type="{{ col.season_type or 'Pub League' }}">
                             <div class="flex items-center justify-between mb-1.5">
                                 <span class="text-xs font-semibold uppercase tracking-wide {{ col.tone }}">{{ col.label }} Coaches</span>
-                                <span data-rocoach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
+                                <span data-rocoach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
                             </div>
                             <div class="relative mb-2">
                                 <input type="text" data-rocoach-search autocomplete="off" placeholder="Search a player to add…" class="block w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green py-2 pl-3">
@@ -170,7 +170,7 @@
                                 {% for c in col.coaches %}
                                 <li class="flex items-center justify-between gap-2 px-3 py-2" data-user-id="{{ c.user_id }}">
                                     <span class="flex items-center gap-2 min-w-0"><i class="ti ti-whistle {{ col.tone }} shrink-0"></i><span class="text-sm text-gray-900 dark:text-white truncate">{{ c.name }}</span></span>
-                                    <button type="button" data-rocoach-remove data-user-id="{{ c.user_id }}" title="Remove coach" class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"><i class="ti ti-x text-sm"></i></button>
+                                    <button type="button" data-rocoach-remove data-user-id="{{ c.user_id }}" title="Remove coach" class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-hidden focus:ring-2 focus:ring-red-500"><i class="ti ti-x text-sm"></i></button>
                                 </li>
                                 {% endfor %}
                             </ul>
@@ -189,19 +189,19 @@
                     <div class="p-4 pt-0 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="ro-premier-time" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Premier / ECS FC start time</label>
-                            <input type="time" id="ro-premier-time" value="08:20" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="time" id="ro-premier-time" value="08:20" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                         <div>
                             <label for="ro-classic-time" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Classic start time</label>
-                            <input type="time" id="ro-classic-time" value="13:10" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="time" id="ro-classic-time" value="13:10" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                         <div>
                             <label for="ro-match-duration" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Match duration (min)</label>
-                            <input type="number" id="ro-match-duration" min="10" value="70" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="number" id="ro-match-duration" min="10" value="70" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                         <div>
                             <label for="ro-fields" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Fields (comma-separated)</label>
-                            <input type="text" id="ro-fields" value="North,South" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <input type="text" id="ro-fields" value="North,South" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                     </div>
                 </details>
@@ -212,18 +212,18 @@
                         <i class="ti ti-brand-discord" aria-hidden="true"></i> Discord channels
                     </p>
                     <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input type="checkbox" id="ro-create-discord" checked class="mt-0.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                        <input type="checkbox" id="ro-create-discord" checked class="mt-0.5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
                         <span><strong>Create</strong> Discord channels &amp; roles for the new teams (Team A, Team B, …).</span>
                     </label>
                     <label class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300">
-                        <input type="checkbox" id="ro-delete-discord" checked class="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                        <input type="checkbox" id="ro-delete-discord" checked class="mt-0.5 rounded-sm border-gray-300 text-red-600 focus:ring-red-500">
                         <span><strong>Delete</strong> last season's team channels &amp; roles. <span class="text-red-600 dark:text-red-400">This removes their chat history and can't be undone.</span> Uncheck to keep them.</span>
                     </label>
                 </div>
 
                 <div class="flex justify-end pt-2">
                     <button type="button" data-action="rollover-goto-preview"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-eye" aria-hidden="true"></i> Preview Rollover
                     </button>
                 </div>
@@ -250,7 +250,7 @@
                         <i class="ti ti-arrow-left"></i> Back
                     </button>
                     <button type="button" data-action="rollover-goto-backup"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         Looks Good — Continue <i class="ti ti-arrow-right"></i>
                     </button>
                 </div>
@@ -279,7 +279,7 @@
                 <div class="flex flex-wrap gap-3">
                     {% if is_global_admin %}
                     <button type="button" data-action="rollover-create-backup"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-database-export"></i> Create Backup Now
                     </button>
                     {% endif %}
@@ -295,7 +295,7 @@
                         <i class="ti ti-arrow-left"></i> Back
                     </button>
                     <button type="button" id="ro-goto-execute-btn" data-action="rollover-goto-execute" disabled
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green text-white opacity-50 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green text-white opacity-50 cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         Continue to Execute <i class="ti ti-arrow-right"></i>
                     </button>
                 </div>
@@ -320,7 +320,7 @@
                         <i class="ti ti-arrow-left"></i> Back
                     </button>
                     <button type="button" data-action="rollover-execute"
-                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-player-play"></i> Execute Rollover
                     </button>
                 </div>
@@ -518,7 +518,7 @@
                 pCb.checked = !!w.classicPractice;
                 pCb.setAttribute('data-wk-act', 'practice');
                 pCb.setAttribute('data-wk-idx', i);
-                pCb.className = 'w-3.5 h-3.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-500';
+                pCb.className = 'w-3.5 h-3.5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-500';
                 pLabel.appendChild(pCb);
                 pLabel.appendChild(document.createTextNode('Practice'));
                 cCell.appendChild(pLabel);
@@ -728,7 +728,7 @@
             if (dc.create_channels) {
                 html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-plus text-ecs-green mt-0.5"></i><span><strong>' + dc.channels_to_create + '</strong> new team channel' + (dc.channels_to_create === 1 ? '' : 's') + ' + roles will be created.</span></div>';
                 if (p.team_names && p.team_names.length) {
-                    html += '<div class="pl-6 flex flex-wrap gap-1">' + p.team_names.map(function (n) { return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green text-[11px] font-mono">' + escapeHtml(n) + '</span>'; }).join('') + '</div>';
+                    html += '<div class="pl-6 flex flex-wrap gap-1">' + p.team_names.map(function (n) { return '<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green text-[11px] font-mono">' + escapeHtml(n) + '</span>'; }).join('') + '</div>';
                 }
             } else {
                 html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-minus mt-0.5"></i><span>New team channels will <strong>not</strong> be created.</span></div>';
@@ -737,14 +737,14 @@
                 html += '<div class="flex items-start gap-2 text-red-600 dark:text-red-400"><i class="ti ti-trash mt-0.5"></i><span><strong>' + dc.channels_to_delete + '</strong> old team channel' + (dc.channels_to_delete === 1 ? '' : 's') + ' + roles will be <strong>DELETED</strong> — chat history removed, cannot be undone.</span></div>';
                 if (p.old_teams && p.old_teams.length) {
                     var delNames = p.old_teams.filter(function (t) { return t.has_channel || t.has_roles; }).map(function (t) { return escapeHtml(t.name); });
-                    if (delNames.length) html += '<div class="pl-6 flex flex-wrap gap-1">' + delNames.map(function (n) { return '<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 text-[11px] font-mono">' + n + '</span>'; }).join('') + '</div>';
+                    if (delNames.length) html += '<div class="pl-6 flex flex-wrap gap-1">' + delNames.map(function (n) { return '<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 text-[11px] font-mono">' + n + '</span>'; }).join('') + '</div>';
                 }
             } else if (dc.delete_channels) {
                 html += '<div class="flex items-start gap-2 text-gray-500 dark:text-gray-400"><i class="ti ti-trash mt-0.5"></i><span>No old team channels found to delete.</span></div>';
             } else {
                 html += '<div class="flex items-start gap-2 text-gray-700 dark:text-gray-200"><i class="ti ti-lock text-ecs-green mt-0.5"></i><span>Last season\'s channels will be <strong>kept</strong> — but each player\'s old team <strong>role is still removed</strong> (roles always roll over).</span></div>';
             }
-            html += '<div class="pt-1"><button type="button" data-action="rollover-discord-check" class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-ecs-green hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-brand-discord"></i> Verify against Discord (live)</button><div id="ro-discord-live" class="mt-2"></div></div>';
+            html += '<div class="pt-1"><button type="button" data-action="rollover-discord-check" class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-ecs-green hover:text-ecs-green focus:outline-hidden focus:ring-2 focus:ring-ecs-green"><i class="ti ti-brand-discord"></i> Verify against Discord (live)</button><div id="ro-discord-live" class="mt-2"></div></div>';
             html += '</div>';
         }
 
@@ -961,10 +961,10 @@
                         + '<div class="text-xs text-gray-400">' + escapeHtml(b.created_at) + ' · ' + fmtBytes(b.size_bytes) + '</div></div>'
                         + '<div class="flex items-center gap-2 shrink-0">'
                         + '<button type="button" data-action="rollover-restore" data-filename="' + escapeHtml(b.filename) + '" '
-                        + 'class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">'
+                        + 'class="inline-flex items-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">'
                         + '<i class="ti ti-database-import"></i> Restore</button>'
                         + '<button type="button" data-action="rollover-delete-backup" data-filename="' + escapeHtml(b.filename) + '" title="Delete this backup" aria-label="Delete backup" '
-                        + 'class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-500">'
+                        + 'class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 hover:text-red-600 hover:border-red-300 focus:outline-hidden focus:ring-2 focus:ring-red-500">'
                         + '<i class="ti ti-trash"></i></button>'
                         + '</div></div>';
                 });
@@ -1193,7 +1193,7 @@
                 var nm = document.createElement('span'); nm.className = 'text-sm text-gray-900 dark:text-white truncate'; nm.textContent = name;
                 left.appendChild(ic); left.appendChild(nm);
                 var btn = document.createElement('button'); btn.type = 'button'; btn.setAttribute('data-rocoach-remove', ''); btn.setAttribute('data-user-id', uid);
-                btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500';
+                btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-hidden focus:ring-2 focus:ring-red-500';
                 btn.title = 'Remove coach'; btn.innerHTML = '<i class="ti ti-x text-sm"></i>';
                 li.appendChild(left); li.appendChild(btn); list.appendChild(li); refresh();
             }

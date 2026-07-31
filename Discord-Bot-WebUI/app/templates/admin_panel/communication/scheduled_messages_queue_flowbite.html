@@ -43,11 +43,11 @@
 
   {% call page_header('Match RSVP Posts', subtitle='RSVP embeds queued to post to team Discord channels') %}
     <button type="button" onclick="location.reload()"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
     </button>
     <button type="button" data-action="process-queue"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-player-play" aria-hidden="true"></i><span>Process Queue</span>
     </button>
   {% endcall %}
@@ -90,18 +90,18 @@
       <div class="flex flex-wrap items-center gap-2 px-4 sm:px-5 h-auto sm:h-14 py-3 sm:py-0 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-bold uppercase tracking-wide text-sm text-gray-900 dark:text-white flex items-center gap-2 mr-auto">
           <i class="ti ti-list-numbers text-ecs-green" aria-hidden="true"></i> Queued Messages
-          <span class="font-mono font-bold text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ pending_count or 0 }}</span>
+          <span class="font-mono font-bold text-xs px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ pending_count or 0 }}</span>
         </h2>
-        <select id="priorityFilter" class="h-9 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-2 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <select id="priorityFilter" class="h-9 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-2 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <option value="">All Types</option>
           <option value="normal">Match Day</option>
         </select>
         <div class="relative">
           <button id="bulkActionsBtn" data-dropdown-toggle="bulkMenu" disabled
-                  class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-list" aria-hidden="true"></i><span>Bulk Actions</span><i class="ti ti-chevron-down" aria-hidden="true"></i>
           </button>
-          <div id="bulkMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+          <div id="bulkMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
             <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
               <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-send"><i class="ti ti-send mr-2" aria-hidden="true"></i>Send Selected</button></li>
               <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-cancel"><i class="ti ti-ban mr-2" aria-hidden="true"></i>Cancel Selected</button></li>
@@ -117,7 +117,7 @@
         <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
           <tr>
             <th scope="col" class="px-3 py-2.5 text-left w-10">
-              <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all messages">
+              <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all messages">
             </th>
             <th scope="col" class="px-3 py-2.5 text-left w-12">#</th>
             <th scope="col" class="px-3 py-2.5 text-left">Message</th>
@@ -131,7 +131,7 @@
           <tr class="border-b border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/50 queue-row{{ ' bg-ecs-green/5 dark:bg-ecs-green/10' if loop.first }}"
               data-id="{{ message.id }}" data-priority="normal">
             <td class="px-3 py-3 align-top">
-              <input type="checkbox" class="row-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
+              <input type="checkbox" class="row-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
             </td>
             <td class="px-3 py-3 align-top">
               <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg font-mono font-bold text-sm {{ 'bg-ecs-green text-white' if loop.first else 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' }}">{{ loop.index }}</span>
@@ -162,19 +162,19 @@
             </td>
             <td class="px-3 py-3">
               {% if message.status == 'PROCESSING' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
               {% elif message.status == 'PENDING' or message.status == 'QUEUED' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Pending</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Pending</span>
               {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
               {% endif %}
             </td>
             <td class="px-3 py-3">
               <div class="flex items-center justify-end gap-1">
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
               </div>
             </td>
           </tr>
@@ -187,13 +187,13 @@
         {% for message in pending_messages %}
         <div class="px-4 py-3.5 queue-row{{ ' bg-ecs-green/5 dark:bg-ecs-green/10' if loop.first }}" data-id="{{ message.id }}" data-priority="normal">
           <div class="flex items-start gap-3">
-            <input type="checkbox" class="row-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
+            <input type="checkbox" class="row-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
             <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
               <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
             </span>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded font-mono font-bold text-xs shrink-0 {{ 'bg-ecs-green text-white' if loop.first else 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' }}">{{ loop.index }}</span>
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-sm font-mono font-bold text-xs shrink-0 {{ 'bg-ecs-green text-white' if loop.first else 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' }}">{{ loop.index }}</span>
                 {% if message.match %}
                 <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
                 {% else %}
@@ -205,17 +205,17 @@
               {% endif %}
               <div class="mt-2 flex flex-wrap items-center gap-2">
                 {% if message.status == 'PROCESSING' %}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
                 {% else %}
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>{{ message.status|capitalize }}</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>{{ message.status|capitalize }}</span>
                 {% endif %}
                 <span class="font-mono text-xs text-gray-400 dark:text-gray-500">ID {{ message.id }}</span>
               </div>
               <div class="mt-2 flex items-center gap-1">
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
               </div>
             </div>
           </div>
@@ -254,7 +254,7 @@
           </div>
           {% endif %}
           <button type="button" data-action="send-now" data-id="{{ next_message.id }}"
-                  class="mt-4 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  class="mt-4 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-send" aria-hidden="true"></i><span>Send This Now</span>
           </button>
           {% else %}
@@ -269,7 +269,7 @@
       {% call section_card('Processing Log', icon='ti-terminal') %}
         <div class="flex items-center justify-end px-4 sm:px-5 pt-3">
           <button type="button" data-action="clear-log"
-                  class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-trash" aria-hidden="true"></i><span>Clear Log</span>
           </button>
         </div>

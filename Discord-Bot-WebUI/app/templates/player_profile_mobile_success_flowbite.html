@@ -29,7 +29,7 @@
     </div>
 
     <!-- Player Confirmation Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
             <h5 class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-user-check text-green-600 dark:text-green-400"></i>
@@ -54,7 +54,7 @@
                     <div class="flex flex-wrap gap-1 mt-1">
                         {% for team in player.teams %}
                         {% if not (team.league and team.league.name in hidden_team_league_names) %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
                             {{ team.name }}
                         </span>
                         {% endif %}
@@ -85,7 +85,7 @@
     </div>
 
     <!-- Show to Staff Card -->
-    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 mb-6 text-white">
+    <div class="bg-linear-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 mb-6 text-white">
         <h5 class="flex items-center gap-2 text-lg font-semibold mb-2">
             <i class="ti ti-hand-finger"></i>
             Show This Screen to Staff
@@ -95,7 +95,7 @@
         </p>
 
         <!-- Large Verification Badge -->
-        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-4 text-center">
+        <div class="bg-white/20 backdrop-blur-xs rounded-xl p-4 text-center">
             <div class="inline-flex items-center justify-center gap-2 text-2xl font-bold mb-1">
                 <i class="ti ti-shield-check"></i>
                 VERIFIED
@@ -108,8 +108,8 @@
 
     <!-- Pub League Purchase Links -->
     {% if premier_product_url or classic_product_url %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
-        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-gold/10 to-transparent dark:from-ecs-gold/20">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-gold/10 to-transparent dark:from-ecs-gold/20">
             <h5 class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-ticket text-ecs-gold"></i>
                 Ready to Join Pub League?
@@ -122,7 +122,7 @@
             <div class="space-y-3">
                 {% if premier_product_url %}
                 <a href="{{ premier_product_url }}" target="_blank" rel="noopener noreferrer"
-                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-gradient-to-r from-ecs-gold to-amber-500 hover:from-amber-500 hover:to-ecs-gold rounded-lg shadow-sm transition-all">
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-linear-to-r from-ecs-gold to-amber-500 hover:from-amber-500 hover:to-ecs-gold rounded-lg shadow-xs transition-all">
                     <i class="ti ti-crown"></i>
                     Premier Division Pass
                     <i class="ti ti-external-link text-sm"></i>
@@ -130,7 +130,7 @@
                 {% endif %}
                 {% if classic_product_url %}
                 <a href="{{ classic_product_url }}" target="_blank" rel="noopener noreferrer"
-                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-gradient-to-r from-ecs-green to-emerald-600 hover:from-emerald-600 hover:to-ecs-green rounded-lg shadow-sm transition-all">
+                   class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-base font-medium text-white bg-linear-to-r from-ecs-green to-emerald-600 hover:from-emerald-600 hover:to-ecs-green rounded-lg shadow-xs transition-all">
                     <i class="ti ti-trophy"></i>
                     Classic Division Pass
                     <i class="ti ti-external-link text-sm"></i>
@@ -144,7 +144,7 @@
     <!-- Action Button -->
     <div class="mb-6">
         <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
-           class="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-medium text-white bg-ecs-green hover:bg-ecs-green/90 rounded-xl shadow-sm transition-colors">
+           class="w-full inline-flex items-center justify-center gap-2 px-6 py-4 text-base font-medium text-white bg-ecs-green hover:bg-ecs-green/90 rounded-xl shadow-xs transition-colors">
             <i class="ti ti-user"></i>
             View My Profile
         </a>

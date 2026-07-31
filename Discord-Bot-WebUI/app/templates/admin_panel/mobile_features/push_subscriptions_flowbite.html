@@ -103,16 +103,16 @@
       <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Bulk Commands</p>
         <div class="flex flex-wrap gap-2">
-          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-green-300 dark:border-green-500/40 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="bulk-activate">
+          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-green-300 dark:border-green-500/40 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="bulk-activate">
             <i class="ti ti-check" aria-hidden="true"></i>Bulk Activate
           </button>
-          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="bulk-deactivate">
+          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500" data-action="bulk-deactivate">
             <i class="ti ti-x" aria-hidden="true"></i>Bulk Deactivate
           </button>
-          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" data-action="cleanup-inactive">
+          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500" data-action="cleanup-inactive">
             <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Inactive
           </button>
-          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-blue-300 dark:border-blue-500/40 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="export-subscriptions">
+          <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-blue-300 dark:border-blue-500/40 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-blue-500" data-action="export-subscriptions">
             <i class="ti ti-download" aria-hidden="true"></i>Export
           </button>
         </div>
@@ -148,7 +148,7 @@
             </select>
           </div>
           <div class="flex items-end">
-            <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-[42px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-[42px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-search" aria-hidden="true"></i>Filter
             </button>
           </div>
@@ -165,7 +165,7 @@
       <thead>
         <tr class="border-b border-gray-200 dark:border-gray-700">
           <th scope="col" class="px-3 py-2.5 w-10">
-            <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all subscriptions">
+            <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all subscriptions">
           </th>
           {{ data_table_th('User', key='user', sortable=False) }}
           {{ data_table_th('Token', key='token', sortable=False) }}
@@ -181,7 +181,7 @@
         {% set platform = 'iOS' if token.platform == 'ios' else ('Android' if token.platform == 'android' else 'Web') %}
         <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3">
-            <input type="checkbox" class="token-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}" aria-label="Select subscription">
+            <input type="checkbox" class="token-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}" aria-label="Select subscription">
           </td>
           <td class="px-3 py-3">
             {% if token.user %}
@@ -200,8 +200,8 @@
           </td>
           <td class="px-3 py-3">
             <div class="flex items-center gap-1">
-              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-700 dark:text-gray-300">{{ token.fcm_token[:20] }}...{{ token.fcm_token[-10:] if token.fcm_token|length > 30 else '' }}</code>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy" aria-label="Copy token">
+              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm text-gray-700 dark:text-gray-300">{{ token.fcm_token[:20] }}...{{ token.fcm_token[-10:] if token.fcm_token|length > 30 else '' }}</code>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy" aria-label="Copy token">
                 <i class="ti ti-copy" aria-hidden="true"></i>
               </button>
             </div>
@@ -233,22 +233,22 @@
           <td class="px-3 py-3 text-sm font-mono hidden lg:table-cell">{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else 'Unknown' }}</td>
           <td class="px-3 py-3">
             <div class="flex items-center justify-end gap-1">
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-token" data-token-id="{{ token.id }}" data-user="{{ token.user.username if token.user else '' }}" data-platform="{{ platform }}" data-status="{{ 'Active' if token.is_active else 'Inactive' }}" data-app-version="{{ token.app_version or '' }}" data-created="{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else '' }}" data-last-used="{{ token.last_used.strftime('%Y-%m-%d %H:%M') if token.last_used else '' }}" data-token="{{ token.fcm_token }}" title="View" aria-label="View token">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500" data-action="view-token" data-token-id="{{ token.id }}" data-user="{{ token.user.username if token.user else '' }}" data-platform="{{ platform }}" data-status="{{ 'Active' if token.is_active else 'Inactive' }}" data-app-version="{{ token.app_version or '' }}" data-created="{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else '' }}" data-last-used="{{ token.last_used.strftime('%Y-%m-%d %H:%M') if token.last_used else '' }}" data-token="{{ token.fcm_token }}" title="View" aria-label="View token">
                 <i class="ti ti-eye" aria-hidden="true"></i>
               </button>
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="test-notification" data-token-id="{{ token.id }}" title="Send Test" aria-label="Send test notification">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="test-notification" data-token-id="{{ token.id }}" title="Send Test" aria-label="Send test notification">
                 <i class="ti ti-send" aria-hidden="true"></i>
               </button>
               {% if token.is_active %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="deactivate-token" data-token-id="{{ token.id }}" title="Deactivate" aria-label="Deactivate token">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-amber-500" data-action="deactivate-token" data-token-id="{{ token.id }}" title="Deactivate" aria-label="Deactivate token">
                 <i class="ti ti-ban" aria-hidden="true"></i>
               </button>
               {% else %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="activate-token" data-token-id="{{ token.id }}" title="Activate" aria-label="Activate token">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="activate-token" data-token-id="{{ token.id }}" title="Activate" aria-label="Activate token">
                 <i class="ti ti-check" aria-hidden="true"></i>
               </button>
               {% endif %}
-              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-action="delete-token" data-token-id="{{ token.id }}" title="Delete" aria-label="Delete token">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-red-500" data-action="delete-token" data-token-id="{{ token.id }}" title="Delete" aria-label="Delete token">
                 <i class="ti ti-trash" aria-hidden="true"></i>
               </button>
             </div>
@@ -265,7 +265,7 @@
       <div class="px-4 py-3.5">
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center min-w-0">
-            <input type="checkbox" class="token-checkbox w-4 h-4 mr-2 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}" aria-label="Select subscription">
+            <input type="checkbox" class="token-checkbox w-4 h-4 mr-2 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}" aria-label="Select subscription">
             <div class="w-8 h-8 rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-semibold mr-2 shrink-0">
               {{ token.user.username[0].upper() if token.user and token.user.username else 'U' }}
             </div>
@@ -294,8 +294,8 @@
           <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium {% if platform == 'iOS' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% elif platform == 'Android' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200{% endif %}">
             <i class="ti ti-{% if platform == 'iOS' %}brand-apple{% elif platform == 'Android' %}brand-android{% else %}world{% endif %} mr-1" aria-hidden="true"></i>{{ platform }}
           </span>
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ token.fcm_token[:14] }}…</code>
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy" aria-label="Copy token">
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm">{{ token.fcm_token[:14] }}…</code>
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy" aria-label="Copy token">
             <i class="ti ti-copy" aria-hidden="true"></i>
           </button>
         </div>
@@ -304,22 +304,22 @@
           {% if token.app_version %}<span>v{{ token.app_version }}</span>{% endif %}
         </div>
         <div class="mt-2 flex items-center gap-1 flex-wrap">
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-token" data-token-id="{{ token.id }}" data-user="{{ token.user.username if token.user else '' }}" data-platform="{{ platform }}" data-status="{{ 'Active' if token.is_active else 'Inactive' }}" data-app-version="{{ token.app_version or '' }}" data-created="{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else '' }}" data-last-used="{{ token.last_used.strftime('%Y-%m-%d %H:%M') if token.last_used else '' }}" data-token="{{ token.fcm_token }}" title="View" aria-label="View token">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500" data-action="view-token" data-token-id="{{ token.id }}" data-user="{{ token.user.username if token.user else '' }}" data-platform="{{ platform }}" data-status="{{ 'Active' if token.is_active else 'Inactive' }}" data-app-version="{{ token.app_version or '' }}" data-created="{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else '' }}" data-last-used="{{ token.last_used.strftime('%Y-%m-%d %H:%M') if token.last_used else '' }}" data-token="{{ token.fcm_token }}" title="View" aria-label="View token">
             <i class="ti ti-eye" aria-hidden="true"></i>
           </button>
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="test-notification" data-token-id="{{ token.id }}" title="Send Test" aria-label="Send test notification">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="test-notification" data-token-id="{{ token.id }}" title="Send Test" aria-label="Send test notification">
             <i class="ti ti-send" aria-hidden="true"></i>
           </button>
           {% if token.is_active %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="deactivate-token" data-token-id="{{ token.id }}" title="Deactivate" aria-label="Deactivate token">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-amber-500" data-action="deactivate-token" data-token-id="{{ token.id }}" title="Deactivate" aria-label="Deactivate token">
             <i class="ti ti-ban" aria-hidden="true"></i>
           </button>
           {% else %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="activate-token" data-token-id="{{ token.id }}" title="Activate" aria-label="Activate token">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="activate-token" data-token-id="{{ token.id }}" title="Activate" aria-label="Activate token">
             <i class="ti ti-check" aria-hidden="true"></i>
           </button>
           {% endif %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-action="delete-token" data-token-id="{{ token.id }}" title="Delete" aria-label="Delete token">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-red-500" data-action="delete-token" data-token-id="{{ token.id }}" title="Delete" aria-label="Delete token">
             <i class="ti ti-trash" aria-hidden="true"></i>
           </button>
         </div>
@@ -334,7 +334,7 @@
 {% else %}
 <!-- Subscription Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-bell text-2xl text-green-600 dark:text-green-400"></i>
@@ -343,7 +343,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Active Subscriptions</span>
         </div>
     </div>
-    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow p-5">
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 mb-3">
                 <i class="ti ti-bell-off text-2xl text-gray-600 dark:text-gray-400"></i>
@@ -352,7 +352,7 @@
             <span class="text-sm text-gray-700 dark:text-gray-300">Inactive Subscriptions</span>
         </div>
     </div>
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
                 <i class="ti ti-trending-up text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -361,7 +361,7 @@
             <span class="text-sm text-blue-700 dark:text-blue-300">New This Week</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-device-mobile text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -373,7 +373,7 @@
 </div>
 
 <!-- Subscription Filters -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-filter mr-2"></i>Filter Subscriptions
@@ -416,7 +416,7 @@
 </div>
 
 <!-- Bulk Management -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -442,7 +442,7 @@
 </div>
 
 <!-- Device Tokens Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-list mr-2"></i>Push Subscriptions
@@ -454,7 +454,7 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">
-                        <input type="checkbox" id="selectAll" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" id="selectAll" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
                     </th>
                     <th scope="col" class="px-4 py-3">User</th>
                     <th scope="col" class="px-4 py-3">Device Token</th>
@@ -469,7 +469,7 @@
                 {% for token in device_tokens %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-4 py-3">
-                        <input type="checkbox" class="token-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}">
+                        <input type="checkbox" class="token-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}">
                     </td>
                     <td class="px-4 py-3">
                         {% if token.user %}
@@ -488,7 +488,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-1">
-                            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ token.fcm_token[:20] }}...{{ token.fcm_token[-10:] if token.fcm_token|length > 30 else '' }}</code>
+                            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm">{{ token.fcm_token[:20] }}...{{ token.fcm_token[-10:] if token.fcm_token|length > 30 else '' }}</code>
                             <button type="button" class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy">
                                 <i class="ti ti-copy"></i>
                             </button>

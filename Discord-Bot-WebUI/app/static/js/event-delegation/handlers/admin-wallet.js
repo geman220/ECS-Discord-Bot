@@ -352,7 +352,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
         if (resultsDiv) resultsDiv.classList.remove('hidden');
 
         if (data.error) {
-            if (resultsContent) resultsContent.innerHTML = `<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert><svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${escapeHtml(data.error)}</div>`;
+            if (resultsContent) resultsContent.innerHTML = `<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert><svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${escapeHtml(data.error)}</div>`;
             return;
         }
 
@@ -376,7 +376,7 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
     .catch(err => {
         btn.disabled = false;
         btn.innerHTML = '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Generate Passes';
-        if (resultsContent) resultsContent.innerHTML = `<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert><svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Error generating passes. Please try again.</div>`;
+        if (resultsContent) resultsContent.innerHTML = `<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert><svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Error generating passes. Please try again.</div>`;
         if (resultsDiv) resultsDiv.classList.remove('hidden');
     });
 });
@@ -412,7 +412,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
                 </div>
 
                 <div class="flex items-center p-4 mb-4 rounded-lg ${data.eligible ? 'bg-green-50 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'}">
-                    ${data.eligible ? '<svg class="w-6 h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : '<svg class="w-6 h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'}
+                    ${data.eligible ? '<svg class="w-6 h-6 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : '<svg class="w-6 h-6 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'}
                     <div>
                         <strong>${data.eligible ? 'Eligible for Wallet Pass' : 'Not Currently Eligible'}</strong>
                         <p class="text-sm">${data.eligible ? 'This player meets all requirements.' : 'See issues below.'}</p>
@@ -423,7 +423,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
             if (data.issues && data.issues.length > 0) {
                 html += '<h6 class="mt-3 mb-2 font-semibold text-gray-900 dark:text-white">Issues to Resolve:</h6><ul class="space-y-2">';
                 data.issues.forEach(issue => {
-                    html += `<li class="flex items-center text-red-600 dark:text-red-400"><svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>${escapeHtml(issue)}</li>`;
+                    html += `<li class="flex items-center text-red-600 dark:text-red-400"><svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>${escapeHtml(issue)}</li>`;
                 });
                 html += '</ul>';
             }
@@ -435,11 +435,11 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${data.info.is_current_player ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${data.info.is_current_player ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">User Account</p>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${data.info.has_user_account ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${data.info.has_user_account ? 'Yes' : 'No'}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium ${data.info.has_user_account ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${data.info.has_user_account ? 'Yes' : 'No'}</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Primary Team</p>
@@ -457,7 +457,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
         })
         .catch(error => {
             if (modalBody) {
-                modalBody.innerHTML = '<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300"><svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Error checking eligibility. Please try again.</div>';
+                modalBody.innerHTML = '<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300"><svg class="w-5 h-5 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Error checking eligibility. Please try again.</div>';
             }
         });
 });

@@ -23,7 +23,7 @@
 #}
 <div class="max-w-[1400px] mx-auto px-4 sm:px-6 py-6">
     <!-- Connection Status -->
-    <div id="connectionStatus" class="fixed top-16 right-4 z-[60] hidden">
+    <div id="connectionStatus" class="fixed top-16 right-4 z-60 hidden">
         <div class="flex items-center gap-2 rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 px-4 py-2.5 text-sm text-red-700 dark:text-red-300 shadow-lg">
             <i class="ti ti-wifi-off" aria-hidden="true"></i>
             <span>Connecting...</span>
@@ -51,13 +51,13 @@
             <div class="flex items-center gap-2 shrink-0">
                 {% if nav_is_admin %}
                 <a href="{{ url_for('admin_panel.draft_setup_page') }}"
-                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-settings" aria-hidden="true"></i>
                     Draft Setup
                 </a>
                 {% endif %}
                 <a href="{{ url_for('draft_enhanced.draft_league_pitch_view', league_name=league_name) }}"
-                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
                     Pitch View
                 </a>
@@ -150,7 +150,7 @@
             </div>
         </div>
         <details class="group border-t border-gray-200 dark:border-gray-700">
-            <summary class="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 cursor-pointer list-none select-none min-h-[44px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded-b-xl">
+            <summary class="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 cursor-pointer list-none select-none min-h-[44px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded-b-xl">
                 <span class="inline-flex items-center gap-2">
                     <i class="ti ti-adjustments-horizontal text-ecs-green" aria-hidden="true"></i>
                     Advanced filters
@@ -201,7 +201,7 @@
                     </div>
                 </div>
                 <div class="mt-3 flex justify-end">
-                    <button data-action="draft-clear-filters" class="inline-flex items-center min-h-[44px] sm:min-h-0 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-1">
+                    <button data-action="draft-clear-filters" class="inline-flex items-center min-h-[44px] sm:min-h-0 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm px-1">
                         <i class="ti ti-x mr-1" aria-hidden="true"></i>Clear Filters
                     </button>
                 </div>
@@ -218,7 +218,7 @@
                         <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
                         Available Players
                     </h3>
-                    <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+                    <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
                         <span id="available-players-count">{{ available_players|length }}</span> shown
                     </span>
                 </div>
@@ -271,36 +271,36 @@
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
                                     {% if player.prev_draft_position %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mono bg-blue-600 text-white shrink-0" title="Last season draft pick #{{ player.prev_draft_position }}">#{{ player.prev_draft_position }}</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold mono bg-blue-600 text-white shrink-0" title="Last season draft pick #{{ player.prev_draft_position }}">#{{ player.prev_draft_position }}</span>
                                     {% endif %}
                                     {% if player.is_ref %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white shrink-0">REF</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-red-500 text-white shrink-0">REF</span>
                                     {% endif %}
                                     {% if player.is_new %}
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>
                                     {% endif %}
                                     {% if player.is_admin %}
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>
                                     {% endif %}
                                     {% if player.is_nad %}
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shrink-0" title="NAD — scouting board player"><i class="ti ti-shield-star text-[9px]"></i>NAD</span>
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shrink-0" title="NAD — scouting board player"><i class="ti ti-shield-star text-[9px]"></i>NAD</span>
                                     {% endif %}
                                 </div>
                                 <!-- position form-pills (primary green / alt orange / avoid red) -->
                                 <div class="flex flex-wrap items-center gap-1 mt-1">
                                     {% if player.favorite_position and player.favorite_position != 'Any' %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
                                         <i class="ti ti-star-filled mr-0.5 text-[9px]" aria-hidden="true"></i>{{ format_position(player.favorite_position) }}
                                     </span>
                                     {% else %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Any</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Any</span>
                                     {% endif %}
                                     {% if player.other_positions %}
                                     {% set clean_positions = player.other_positions|replace('{', '')|replace('}', '') %}
                                     {% for pos in clean_positions.split(',') %}
                                     {% set clean_pos = pos.strip() %}
                                     {% if clean_pos and clean_pos != player.favorite_position %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">{{ format_position(clean_pos) }}</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">{{ format_position(clean_pos) }}</span>
                                     {% endif %}
                                     {% endfor %}
                                     {% endif %}
@@ -309,7 +309,7 @@
                                     {% for pos in clean_not_positions.split(',') %}
                                     {% set clean_pos = pos.strip() %}
                                     {% if clean_pos %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700">
                                         <i class="ti ti-x mr-0.5 text-[9px]" aria-hidden="true"></i>{{ format_position(clean_pos) }}
                                     </span>
                                     {% endif %}
@@ -349,13 +349,13 @@
 
                             <!-- pick action -->
                             <div class="flex items-center gap-1.5 shrink-0 lg:w-[150px] lg:justify-end">
-                                <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                         data-action="draft-player"
                                         data-target-player-id="{{ player.id }}"
                                         data-player-name="{{ player.name|escape }}">
                                     <i class="ti ti-user-plus" aria-hidden="true"></i><span class="hidden sm:inline">Draft</span>
                                 </button>
-                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                         data-action="view-player-profile"
                                         data-target-player-id="{{ player.id }}"
                                         aria-label="More info on {{ player.name|escape }}">
@@ -378,11 +378,11 @@
                             </select>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button data-action="draft-prev-page" aria-label="Previous page" class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            <button data-action="draft-prev-page" aria-label="Previous page" class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                                 <i class="ti ti-chevron-left" aria-hidden="true"></i>
                             </button>
                             <span id="pageInfo" class="text-sm font-mono text-gray-600 dark:text-gray-400 min-w-[100px] text-center">Page 1 of 1</span>
-                            <button data-action="draft-next-page" aria-label="Next page" class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            <button data-action="draft-next-page" aria-label="Next page" class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                                 <i class="ti ti-chevron-right" aria-hidden="true"></i>
                             </button>
                         </div>
@@ -506,7 +506,7 @@
                                 class="h-7 px-2.5 rounded-md text-xs font-semibold transition-colors">Full Board</button>
                     </div>
                     {% else %}
-                    <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams|length }}</span>
+                    <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams|length }}</span>
                     {% endif %}
                 </div>
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -515,7 +515,7 @@
                     {% set _fillpct = ((_count / _ROSTER_TARGET) * 100)|round(0, 'floor')|int %}
                     {% if _fillpct > 100 %}{% set _fillpct = 100 %}{% endif %}
                     <details class="group js-draft-drop-zone js-roster-team" data-team-id="{{ team.id }}" data-drop-target="team">
-                        <summary class="flex items-center gap-3 p-4 cursor-pointer list-none select-none min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                        <summary class="flex items-center gap-3 p-4 cursor-pointer list-none select-none min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
                             <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green" aria-hidden="true">
                                 <i class="ti ti-shield-half text-lg"></i>
                             </span>
@@ -552,7 +552,7 @@
                                         <span class="text-green-600 dark:text-green-400">{{ player.career_goals }}g</span><span class="text-blue-600 dark:text-blue-400">{{ player.career_assists }}a</span>
                                     </span>
                                     {% endif %}
-                                    <button class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    <button class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-red-500"
                                             data-action="remove-player"
                                             data-target-player-id="{{ player.id }}"
                                             data-team-id="{{ team.id }}"
@@ -592,7 +592,7 @@
     </div>
 
     <!-- Draft Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-ecs-green">{{ title }}</h1>
@@ -621,7 +621,7 @@
     </div>
 
     <!-- Search and Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div class="col-span-2 md:col-span-1">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search Players</label>
@@ -696,7 +696,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Available Players -->
         <div class="lg:col-span-8">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-users text-ecs-green"></i>
@@ -706,7 +706,7 @@
                 <div class="p-4">
                     <div id="available-players" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 js-draft-drop-zone" data-drop-target="available">
                         {% for player in available_players %}
-                        <div id="player-{{ player.id }}" class="bg-white dark:bg-gray-700 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden js-draggable-player"
+                        <div id="player-{{ player.id }}" class="bg-white dark:bg-gray-700 rounded-xl shadow-xs border border-gray-200 dark:border-gray-600 overflow-hidden js-draggable-player"
                              data-player-id="{{ player.id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-position="{{ (player.favorite_position or '')|lower }}"
@@ -716,7 +716,7 @@
                              data-prev-draft="{{ player.prev_draft_position or 999 }}"
                              draggable="true">
                             <!-- Player Image -->
-                            <div class="relative h-32 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
+                            <div class="relative h-32 bg-linear-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
                                 <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
                                      alt="{{ player.name }}"
                                      class="w-full h-full object-cover object-top"
@@ -731,16 +731,16 @@
                                 <!-- Previous Draft Position Badge -->
                                 <div class="absolute top-2 left-2 flex flex-col gap-1">
                                     {% if player.prev_draft_position %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white" title="Last season draft pick #{{ player.prev_draft_position }}">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-bold bg-blue-600 text-white" title="Last season draft pick #{{ player.prev_draft_position }}">
                                         #{{ player.prev_draft_position }}
                                     </span>
                                     {% endif %}
                                     {% if player.is_ref %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-red-500 text-white">REF</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-bold bg-red-500 text-white">REF</span>
                                     {% endif %}
                                 </div>
                                 <!-- Name Overlay -->
-                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                <div class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/70 to-transparent p-2">
                                     <h3 class="text-white font-bold text-sm truncate">{{ player.name }}</h3>
                                 </div>
                             </div>
@@ -874,7 +874,7 @@
 
         <!-- Teams Sidebar -->
         <div class="lg:col-span-4">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-4">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-users text-ecs-green"></i>
@@ -904,7 +904,7 @@
                                         <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</div>
                                         <div class="text-xs text-gray-500 dark:text-gray-400">{{ format_position(player.favorite_position) if player.favorite_position else 'Any' }}</div>
                                     </div>
-                                    <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                                    <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm"
                                             data-action="remove-player"
                                             data-target-player-id="{{ player.id }}"
                                             data-team-id="{{ team.id }}"
@@ -943,7 +943,7 @@
 <!-- Player Profile Modal -->
 <div id="playerProfileModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+        <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-800">
             <!-- Modal Header -->
             <div class="flex items-center justify-between p-4 bg-ecs-green rounded-t-lg">
                 <h3 class="text-xl font-semibold text-white flex items-center gap-2">
@@ -966,7 +966,7 @@
             </div>
             <!-- Modal Footer -->
             <div class="flex items-center gap-2 p-4 border-t dark:border-gray-700">
-                <button id="draftFromModal" type="button" class="hidden flex-1 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 focus:ring-4 focus:outline-none focus:ring-green-300">
+                <button id="draftFromModal" type="button" class="hidden flex-1 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 focus:ring-4 focus:outline-hidden focus:ring-green-300">
                     <i class="ti ti-user-plus mr-1"></i>Draft Player
                 </button>
                 <button type="button" data-modal-hide="playerProfileModal" class="flex-1 px-4 py-2 text-sm font-medium text-gray-500 bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-gray-900 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600">
@@ -1007,7 +1007,7 @@
   var btnAll = document.getElementById('rosterScopeAll');
   var rows = Array.prototype.slice.call(sec.querySelectorAll('details.js-roster-team'));
   var KEY = 'draftRosterScope:' + (sec.getAttribute('data-my-teams') || '');
-  var ACTIVE = 'bg-white dark:bg-gray-700 text-ecs-green shadow-sm';
+  var ACTIVE = 'bg-white dark:bg-gray-700 text-ecs-green shadow-xs';
   var IDLE = 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200';
 
   function paint(btn, on) {
@@ -1064,7 +1064,7 @@
   function pill(label, have, need, icon) {
     var ok = have >= need;
     var cls = ok ? 'bg-ecs-green/15 text-ecs-green' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300';
-    return '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ' + cls + '"><i class="ti ' + icon + '"></i>' + label + ' ' + have + '/' + need + (ok ? ' <i class="ti ti-check"></i>' : '') + '</span>';
+    return '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-bold ' + cls + '"><i class="ti ' + icon + '"></i>' + label + ' ' + have + '/' + need + (ok ? ' <i class="ti ti-check"></i>' : '') + '</span>';
   }
   function renderTeam(tid) {
     var badge = sec.querySelector('[data-req-team="' + tid + '"]'); if (!badge) return;

@@ -40,7 +40,7 @@
     </div>
 
     <!-- Configuration Summary -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Configuration Summary</h5>
             <div>
@@ -161,7 +161,7 @@
     </div>
 
     <!-- Database Configuration -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Database Configuration</h5>
         </div>
@@ -176,9 +176,9 @@
                         <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
                             <h6 class="font-medium text-gray-900 dark:text-white">ECS Membership Pass Type</h6>
                             {% if diagnostics.database_checks['Pass Types'].ecs_type.exists %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Found</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Found</span>
                             {% else %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">Missing</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded-sm">Missing</span>
                             {% endif %}
                         </div>
                         <div class="p-4">
@@ -214,7 +214,7 @@
                             </div>
                             {% else %}
                             <p class="text-red-600 dark:text-red-400 text-sm">ECS Membership pass type is not defined in the database.</p>
-                            <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Run <code class="px-1 py-0.5 bg-gray-200 dark:bg-gray-600 rounded">flask wallet init_types</code> to initialize.</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Run <code class="px-1 py-0.5 bg-gray-200 dark:bg-gray-600 rounded-sm">flask wallet init_types</code> to initialize.</p>
                             {% endif %}
                         </div>
                     </div>
@@ -224,9 +224,9 @@
                         <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
                             <h6 class="font-medium text-gray-900 dark:text-white">Pub League Pass Type</h6>
                             {% if diagnostics.database_checks['Pass Types'].pub_type.exists %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Found</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Found</span>
                             {% else %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">Missing</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded-sm">Missing</span>
                             {% endif %}
                         </div>
                         <div class="p-4">
@@ -262,7 +262,7 @@
                             </div>
                             {% else %}
                             <p class="text-red-600 dark:text-red-400 text-sm">Pub League pass type is not defined in the database.</p>
-                            <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Run <code class="px-1 py-0.5 bg-gray-200 dark:bg-gray-600 rounded">flask wallet init_types</code> to initialize.</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Run <code class="px-1 py-0.5 bg-gray-200 dark:bg-gray-600 rounded-sm">flask wallet init_types</code> to initialize.</p>
                             {% endif %}
                         </div>
                     </div>
@@ -270,7 +270,7 @@
                 {% else %}
                 <div class="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <i class="ti ti-alert-circle text-red-600 dark:text-red-400"></i>
-                    <p class="text-red-700 dark:text-red-400 text-sm">No pass types found. Run <code class="px-1 py-0.5 bg-red-100 dark:bg-red-900/50 rounded">flask wallet init_types</code> to initialize them.</p>
+                    <p class="text-red-700 dark:text-red-400 text-sm">No pass types found. Run <code class="px-1 py-0.5 bg-red-100 dark:bg-red-900/50 rounded-sm">flask wallet init_types</code> to initialize them.</p>
                 </div>
                 {% endif %}
             </div>
@@ -283,9 +283,9 @@
                     <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-600">
                         <h6 class="font-medium text-gray-900 dark:text-white">Apple Wallet Certificates</h6>
                         {% if diagnostics.database_checks['Certificates'].complete %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Complete</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Complete</span>
                         {% else %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Incomplete</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-sm">Incomplete</span>
                         {% endif %}
                     </div>
                     <div class="p-4">
@@ -487,7 +487,7 @@
                                             <td class="px-3 py-2">{{ template.platform }}</td>
                                             <td class="px-3 py-2">
                                                 {% if template.is_default %}
-                                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Default</span>
+                                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Default</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -546,7 +546,7 @@
                                             <td class="px-3 py-2">{{ template.platform }}</td>
                                             <td class="px-3 py-2">
                                                 {% if template.is_default %}
-                                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Default</span>
+                                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Default</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
@@ -590,7 +590,7 @@
     </div>
 
     <!-- Troubleshooting Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Troubleshooting Actions</h5>
         </div>

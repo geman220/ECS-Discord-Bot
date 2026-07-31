@@ -22,13 +22,13 @@
   {# Command toolbar: lead with the ONE primary job — open the full user roster — plus the approval queue #}
   {% call page_header('User Management', subtitle='Users, roles, approvals and waitlist') %}
     <a href="{{ url_for('admin_panel.user_approvals') }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 sm:px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 sm:px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-user-check text-base" aria-hidden="true"></i>
       <span class="hidden sm:inline">Approvals</span>
-      {% if stats.pending_approvals %}<span class="font-mono font-bold px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.pending_approvals }}</span>{% endif %}
+      {% if stats.pending_approvals %}<span class="font-mono font-bold px-1.5 py-0.5 rounded-sm text-xs bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.pending_approvals }}</span>{% endif %}
     </a>
     <a href="{{ url_for('admin_panel.users_comprehensive') }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 sm:px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 sm:px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-users text-base" aria-hidden="true"></i>
       <span>Manage Users</span>
     </a>
@@ -37,12 +37,12 @@
   {# KPI band — mono figures with divider footers that double as drill-in links (concept dashboard pattern) #}
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
     {% call stat_card('ti-users', 'Total Users', stats.total_users, tone='primary') %}
-      <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="inline-flex items-center gap-1 hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+      <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="inline-flex items-center gap-1 hover:text-ecs-green focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
         View roster <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
       </a>
     {% endcall %}
     {% call stat_card('ti-user-clock', 'Pending Approvals', stats.pending_approvals, tone='warning') %}
-      <a href="{{ url_for('admin_panel.user_approvals') }}" class="inline-flex items-center gap-1 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+      <a href="{{ url_for('admin_panel.user_approvals') }}" class="inline-flex items-center gap-1 hover:text-amber-600 dark:hover:text-amber-400 focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
         Review queue <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
       </a>
     {% endcall %}
@@ -50,7 +50,7 @@
       <span class="font-mono">{{ stats.total_roles }}</span> role{{ '' if stats.total_roles == 1 else 's' }} defined
     {% endcall %}
     {% call stat_card('ti-user-pause', 'Waitlist Users', stats.waitlist_users, tone='info') %}
-      <a href="{{ url_for('admin_panel.user_waitlist') }}" class="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+      <a href="{{ url_for('admin_panel.user_waitlist') }}" class="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
         Manage waitlist <i class="ti ti-arrow-right text-xs" aria-hidden="true"></i>
       </a>
     {% endcall %}
@@ -65,7 +65,7 @@
       {% call section_card('User Approvals', icon='ti-user-check') %}
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
         <a href="{{ url_for('admin_panel.users_comprehensive') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green flex items-center justify-center"><i class="ti ti-users" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">Advanced User Management</span>
@@ -74,7 +74,7 @@
           <i class="ti ti-external-link text-gray-400 shrink-0" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('admin_panel.user_approvals') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-user-check" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">User Approvals</span>
@@ -83,7 +83,7 @@
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">{{ stats.pending_approvals }}</span>
         </a>
         <a href="{{ url_for('admin_panel.bulk_operations') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-list-check" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">Bulk Operations</span>
@@ -97,7 +97,7 @@
       {% call section_card('Role Management', icon='ti-shield-check') %}
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
         <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green flex items-center justify-center"><i class="ti ti-shield-check" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">Advanced Role Management</span>
@@ -106,7 +106,7 @@
           <i class="ti ti-external-link text-gray-400 shrink-0" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green/10 dark:bg-ecs-green/20 text-ecs-green flex items-center justify-center"><i class="ti ti-shield" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">Role Assignment Tools</span>
@@ -120,7 +120,7 @@
       {% call section_card('Waitlist Management', icon='ti-user-pause') %}
       <div class="divide-y divide-gray-200 dark:divide-gray-700">
         <a href="{{ url_for('admin_panel.user_waitlist') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-user-pause" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">Waitlist Users</span>
@@ -129,7 +129,7 @@
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400 shrink-0">{{ stats.waitlist_users }}</span>
         </a>
         <a href="{{ url_for('admin_panel.user_waitlist') }}"
-           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 sm:px-5 min-h-[56px] py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="shrink-0 w-9 h-9 rounded-lg bg-green-100 dark:bg-green-500/15 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-user-plus" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white">Promote from Waitlist</span>

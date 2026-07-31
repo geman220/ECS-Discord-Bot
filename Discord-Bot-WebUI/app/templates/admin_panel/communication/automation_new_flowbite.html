@@ -74,16 +74,16 @@
           <p class="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">{{ grp }}</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {% for key, meta in trigger_catalog.items() if meta.group == grp %}
-            <label class="relative flex gap-2.5 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-ecs-green transition-colors has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5 dark:has-[:checked]:bg-ecs-green/10">
+            <label class="relative flex gap-2.5 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-ecs-green transition-colors has-checked:border-ecs-green has-checked:bg-ecs-green/5 dark:has-checked:bg-ecs-green/10">
               <input type="radio" name="newTrigger" value="{{ key }}"
                      data-default-audience="{{ meta.default_audience }}"
                      class="new-trigger mt-0.5 w-4 h-4 border-gray-300 text-ecs-green focus:ring-ecs-green shrink-0">
               <span class="min-w-0">
                 <span class="block text-sm font-semibold text-gray-900 dark:text-white">{{ meta.label }}</span>
                 <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ meta.help }}</span>
-                <span class="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ meta.scope }}</span>
+                <span class="inline-block mt-1.5 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ meta.scope }}</span>
                 {% if trigger_overlaps.get(key) %}
-                <span class="inline-flex items-center gap-1 mt-1.5 ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                <span class="inline-flex items-center gap-1 mt-1.5 ml-1 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                       title="{{ trigger_overlaps[key].text }}">
                   <i class="ti ti-alert-triangle text-[9px]"></i>Already notifies
                 </span>

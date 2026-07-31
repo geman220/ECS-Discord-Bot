@@ -58,11 +58,11 @@
       subtitle=('Manage the ECS FC substitute player pool' if pool_context == 'ecs-fc' else ('Manage Classic and Premier substitute pools' if pool_context == 'pub-league' else 'Availability, requests and acceptance across every pool'))
   ) %}
     <a href="{{ url_for('admin_panel.substitute_management') }}"
-       class="inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-clipboard-list" aria-hidden="true"></i><span class="hidden sm:inline">Sub Requests</span>
     </a>
     <button type="button" data-action="search-player"
-            class="js-search-player inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="js-search-player inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-user-plus" aria-hidden="true"></i>Add Player
     </button>
   {% endcall %}
@@ -178,7 +178,7 @@
           <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ _coverage }}</span> matches covered
         </span>
         <a href="{{ url_for('admin_panel.substitute_pool_detail', league_type=league_type) }}"
-           class="inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+           class="inline-flex items-center justify-center gap-1.5 h-9 min-h-[44px] sm:min-h-0 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-settings" aria-hidden="true"></i>Manage Pool
         </a>
       </div>
@@ -229,7 +229,7 @@
 <!-- League Pool Cards -->
 <div class="grid grid-cols-1 {% if pools_data|length == 1 %}md:grid-cols-1 max-w-lg{% elif pools_data|length == 2 %}md:grid-cols-2{% else %}md:grid-cols-3{% endif %} gap-6 mb-6">
     {% for league_type, data in pools_data.items() %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700" style="border-left: 4px solid {{ data.config.color }}">
             <div class="flex items-center justify-between">
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -293,7 +293,7 @@
 </div>
 
 <!-- Overall Statistics -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-chart-bar mr-2"></i>Overall Statistics
@@ -344,7 +344,7 @@
 </div>
 
 <!-- Quick Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-bolt mr-2"></i>Quick Actions

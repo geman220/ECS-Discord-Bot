@@ -62,14 +62,14 @@
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600
               text-gray-700 dark:text-gray-200 text-sm font-semibold bg-white dark:bg-gray-800
               hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">All Users</span>
     </a>
     <button type="button" data-action="refresh"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600
                    text-gray-700 dark:text-gray-200 text-sm font-semibold bg-white dark:bg-gray-800
                    hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
     </button>
   {% endcall %}
@@ -160,7 +160,7 @@
       <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i>
         <span>{% if status_filter == 'approved' %}Approved Users{% elif status_filter == 'denied' %}Denied Users{% elif status_filter == 'all' %}All Users{% else %}Approval Queue{% endif %}</span>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded {% if pending_users %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ pending_users|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm {% if pending_users %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ pending_users|length }}</span>
       </h2>
       {% if oldest_pending and status_filter == 'pending' %}
       <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -173,7 +173,7 @@
     <!-- status segmented control (server-side, real route filters) -->
     <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <div class="flex items-center gap-1 overflow-x-auto" role="group" aria-label="Filter by status">
-        {% set seg_base = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
+        {% set seg_base = 'inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800' %}
         {% set seg_on = 'bg-ecs-green/10 text-ecs-green border border-ecs-green/30' %}
         {% set seg_off = 'border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' %}
         <a href="{{ url_for('admin_panel.user_approvals', status='pending') }}" class="{{ seg_base }} {% if status_filter == 'pending' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}">
@@ -221,7 +221,7 @@
         <tr data-filter-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3">
             <div class="flex items-center">
-              <button type="button" class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden focus:outline-none focus:ring-2 focus:ring-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}" aria-label="View details for {{ user.username }}">
+              <button type="button" class="shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}" aria-label="View details for {{ user.username }}">
                 {% if user.player and user.player.profile_picture_url %}
                 <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
                 {% else %}
@@ -229,12 +229,12 @@
                 {% endif %}
               </button>
               <div class="ml-3 min-w-0">
-                <button type="button" class="block max-w-[14rem] truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-none focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
+                <button type="button" class="block max-w-56 truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-hidden focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
                 <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
                 {% if user.player and user.player.is_current_player %}
-                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" title="Season pass active — awaiting membership approval"><i class="ti ti-ticket text-[11px]" aria-hidden="true"></i>Paid</span>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" title="Season pass active — awaiting membership approval"><i class="ti ti-ticket text-[11px]" aria-hidden="true"></i>Paid</span>
                 {% else %}
-                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
                 {% endif %}
                 {% if user.player %}{{ review_notes_block(notes_by_player.get(user.player.id)) }}{% endif %}
               </div>
@@ -244,15 +244,15 @@
           <td class="px-3 py-3 hidden lg:table-cell">
             {% if user.preferred_league %}
               {% if user.preferred_league == 'pub_league_classic' %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Pub League Classic</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Pub League Classic</span>
               {% elif user.preferred_league == 'pub_league_premier' %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Pub League Premier</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Pub League Premier</span>
               {% elif user.preferred_league == 'ecs_fc' %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">ECS FC</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">ECS FC</span>
               {% elif user.preferred_league == 'not_sure' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
               {% else %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.preferred_league }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.preferred_league }}</span>
               {% endif %}
               {% if user.league_selection_method %}
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">via {{ user.league_selection_method.replace('_', ' ').title() }}</p>
@@ -266,7 +266,7 @@
           </td>
           <td class="px-3 py-3 hidden lg:table-cell">
             {% if user.player and user.player.discord_id %}
-            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ user.player.discord_id }}</code>
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-700 dark:text-gray-300">{{ user.player.discord_id }}</code>
             {% else %}
             <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-brand-discord text-sm" aria-hidden="true"></i>Not linked</span>
             {% endif %}
@@ -276,7 +276,7 @@
             {% if user.roles %}
             <div class="flex flex-wrap gap-1">
               {% for role in user.roles %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
               {% endfor %}
             </div>
             {% else %}
@@ -285,17 +285,17 @@
           </td>
           <td class="px-3 py-3">
             <div class="flex items-center gap-1.5 justify-end">
-              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                 <i class="ti ti-check" aria-hidden="true"></i>Approve
               </button>
               {# On the Denied tab, Deny is a no-op that 400s. Offer the reverse instead —
                  without this there was no UI anywhere that could undo a denial. #}
               {% if user.approval_status == 'denied' %}
-              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="undeny-user" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}">
+              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="undeny-user" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}">
                 <i class="ti ti-arrow-back-up" aria-hidden="true"></i>Undeny
               </button>
               {% else %}
-              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+              <button type="button" class="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                 <i class="ti ti-x" aria-hidden="true"></i>Deny
               </button>
               {% endif %}
@@ -311,7 +311,7 @@
       {% for user in pending_users %}
       <div data-filter-row data-row-card class="px-4 py-3.5">
         <div class="flex items-start gap-3">
-          <button type="button" class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden focus:outline-none focus:ring-2 focus:ring-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}" aria-label="View details for {{ user.username }}">
+          <button type="button" class="shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}" aria-label="View details for {{ user.username }}">
             {% if user.player and user.player.profile_picture_url %}
             <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
             {% else %}
@@ -319,12 +319,12 @@
             {% endif %}
           </button>
           <div class="flex-1 min-w-0">
-            <button type="button" class="block max-w-full truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-none focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
+            <button type="button" class="block max-w-full truncate text-left font-semibold text-gray-900 dark:text-white hover:text-ecs-green focus:outline-hidden focus:underline" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</button>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
             <p class="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league and user.preferred_league != 'not_sure' %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
             {% if user.preferred_league == 'not_sure' %}
-            <p class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30"><i class="ti ti-help-circle text-[11px]" aria-hidden="true"></i>Needs league guidance</p>
+            <p class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-sm text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30"><i class="ti ti-help-circle text-[11px]" aria-hidden="true"></i>Needs league guidance</p>
             {% elif not user.preferred_league and not user.has_completed_onboarding %}
             <p class="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-0.5"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>Onboarding incomplete</p>
             {% endif %}
@@ -332,15 +332,15 @@
           </div>
         </div>
         <div class="flex gap-2 mt-3">
-          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
             <i class="ti ti-check" aria-hidden="true"></i>Approve
           </button>
           {% if user.approval_status == 'denied' %}
-          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="undeny-user" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}">
+          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="undeny-user" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}">
             <i class="ti ti-arrow-back-up" aria-hidden="true"></i>Undeny
           </button>
           {% else %}
-          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+          <button type="button" class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 text-sm font-semibold text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
             <i class="ti ti-x" aria-hidden="true"></i>Deny
           </button>
           {% endif %}
@@ -368,7 +368,7 @@
       <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i>
         <span>Field Profiles</span>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">{{ field_profiles|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">{{ field_profiles|length }}</span>
       </h2>
       <div class="flex items-center gap-2">
         <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono hidden sm:inline">unclaimed · become pl-unverified on register</span>
@@ -440,7 +440,7 @@
       <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-alert-triangle text-amber-500" aria-hidden="true"></i>
         <span>Needs Account</span>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ limbo_profiles|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ limbo_profiles|length }}</span>
       </h2>
       <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono hidden sm:inline">claimed/linked to a player with no login · create an account to route them</span>
     </div>
@@ -459,7 +459,7 @@
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span class="font-semibold text-gray-900 dark:text-white truncate">{{ qp.player_name }}</span>
-            <span class="text-[11px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ qp.status }}</span>
+            <span class="text-[11px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ qp.status }}</span>
           </div>
           <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
             {{ qp.created_at.strftime('%Y-%m-%d') if qp.created_at else '' }}
@@ -500,7 +500,7 @@
       <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-history text-ecs-green" aria-hidden="true"></i>Recently Processed
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_actions|length }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_actions|length }}</span>
         </h2>
       </div>
       <ul class="divide-y divide-gray-200 dark:divide-gray-700 text-sm" role="list">
@@ -532,7 +532,7 @@
       <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>Audit Log
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ audit_logs|length }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ audit_logs|length }}</span>
         </h2>
       </div>
       <ul class="divide-y divide-gray-200 dark:divide-gray-700 text-sm" role="list">
@@ -547,7 +547,7 @@
               {% if log.action == 'approve_user' %}<span class="text-green-600 dark:text-green-400"> approved</span>
               {% elif log.action == 'deny_user' %}<span class="text-red-600 dark:text-red-400"> denied</span>
               {% else %}<span class="text-gray-500 dark:text-gray-400"> {{ log.action.replace('_', ' ') }}</span>{% endif %}
-              <span class="text-gray-500 dark:text-gray-400"> user </span><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ log.resource_id }}</code>
+              <span class="text-gray-500 dark:text-gray-400"> user </span><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm text-gray-700 dark:text-gray-300">{{ log.resource_id }}</code>
             </p>
             <p class="text-[11px] text-gray-500 dark:text-gray-400 font-mono truncate">
               {% if log.old_value %}{{ log.old_value }} &rarr; {{ log.new_value or '-' }} · {% elif log.new_value %}{{ log.new_value }} · {% endif %}{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown' }}
@@ -624,7 +624,7 @@
 {% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <div class="bg-yellow-500 text-white rounded-lg shadow p-5">
+    <div class="bg-yellow-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold">{{ stats.pending_count }}</p>
@@ -633,7 +633,7 @@
             <i class="ti ti-clock text-4xl text-white/50"></i>
         </div>
     </div>
-    <div class="bg-green-500 text-white rounded-lg shadow p-5">
+    <div class="bg-green-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold">{{ stats.total_approved }}</p>
@@ -642,7 +642,7 @@
             <i class="ti ti-check text-4xl text-white/50"></i>
         </div>
     </div>
-    <div class="bg-red-500 text-white rounded-lg shadow p-5">
+    <div class="bg-red-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold">{{ stats.total_denied }}</p>
@@ -651,7 +651,7 @@
             <i class="ti ti-x text-4xl text-white/50"></i>
         </div>
     </div>
-    <div class="bg-blue-500 text-white rounded-lg shadow p-5">
+    <div class="bg-blue-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold">{{ stats.pending_count + stats.total_approved + stats.total_denied }}</p>
@@ -665,7 +665,7 @@
 <!-- Pending Approvals Table -->
 {% call card(title="Pending Approvals", no_padding=true) %}
 <div class="px-4 py-3 border-b dark:border-gray-700 flex items-center justify-between">
-    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+    <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
         {{ stats.pending_count }} pending
     </span>
     <button type="button" class="px-3 py-1.5 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:bg-gray-700 dark:text-ecs-green" data-action="refresh">
@@ -692,7 +692,7 @@
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-4 py-3">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium cursor-pointer" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">
+                        <div class="shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium cursor-pointer" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">
                             {% if user.player and user.player.profile_picture_url %}
                             <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
                             {% else %}
@@ -703,9 +703,9 @@
                             <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green truncate" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
                 {% if user.player and user.player.is_current_player %}
-                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" title="Season pass active — awaiting membership approval"><i class="ti ti-ticket text-[11px]" aria-hidden="true"></i>Paid</span>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400" title="Season pass active — awaiting membership approval"><i class="ti ti-ticket text-[11px]" aria-hidden="true"></i>Paid</span>
                 {% else %}
-                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
+                <span class="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No active season pass yet"><i class="ti ti-ticket-off text-[11px]" aria-hidden="true"></i>Not paid</span>
                 {% endif %}
                             <p class="text-xs text-gray-500 dark:text-gray-400 truncate md:hidden">{{ user.email }}</p>
                             <p class="text-xs text-gray-400 dark:text-gray-500 lg:hidden">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
@@ -716,15 +716,15 @@
                 <td class="px-4 py-3 hidden lg:table-cell">
                     {% if user.preferred_league %}
                         {% if user.preferred_league == 'pub_league_classic' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Pub League Classic</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Pub League Classic</span>
                         {% elif user.preferred_league == 'pub_league_premier' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Pub League Premier</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Pub League Premier</span>
                         {% elif user.preferred_league == 'ecs_fc' %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">ECS FC</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">ECS FC</span>
                         {% elif user.preferred_league == 'not_sure' %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player picked &quot;Not sure yet&quot; — an admin should help them choose a league"><i class="ti ti-help-circle text-[12px]" aria-hidden="true"></i>Needs league guidance</span>
                         {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.preferred_league }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.preferred_league }}</span>
                         {% endif %}
                         {% if user.league_selection_method %}
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">via {{ user.league_selection_method.replace('_', ' ').title() }}</p>
@@ -738,7 +738,7 @@
                 </td>
                 <td class="px-4 py-3 hidden xl:table-cell">
                     {% if user.player and user.player.discord_id %}
-                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ user.player.discord_id }}</code>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{{ user.player.discord_id }}</code>
                     {% else %}
                     <span class="text-gray-400 dark:text-gray-500">No Discord ID</span>
                     {% endif %}
@@ -746,20 +746,20 @@
                 <td class="px-4 py-3 text-xs hidden lg:table-cell">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
                 <td class="px-4 py-3 hidden xl:table-cell">
                     {% for role in user.roles %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1 mb-1">{{ role.name }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1 mb-1">{{ role.name }}</span>
                     {% endfor %}
                 </td>
                 <td class="px-4 py-3">
                     <div class="flex flex-col sm:flex-row gap-1">
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600 whitespace-nowrap" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-green-500 rounded-sm hover:bg-green-600 whitespace-nowrap" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                             <i class="ti ti-check mr-1"></i>Approve
                         </button>
                         {% if user.approval_status == 'denied' %}
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-amber-500 rounded hover:bg-amber-600 whitespace-nowrap" data-action="undeny-user" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-amber-500 rounded-sm hover:bg-amber-600 whitespace-nowrap" data-action="undeny-user" data-user-id="{{ user.id }}" data-user-name="{{ user.username }}">
                             <i class="ti ti-arrow-back-up mr-1"></i>Undeny
                         </button>
                         {% else %}
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600 whitespace-nowrap" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded-sm hover:bg-red-600 whitespace-nowrap" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                             <i class="ti ti-x mr-1"></i>Deny
                         </button>
                         {% endif %}
@@ -801,17 +801,17 @@
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ user.username }}</td>
                 <td class="px-4 py-3">
                     {% if user.approval_status == 'approved' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>
                     {% elif user.approval_status == 'denied' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Denied</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Denied</span>
                     {% endif %}
                 </td>
                 <td class="px-4 py-3">
                     {% if user.approval_league %}
                         {% if user.approval_league.startswith('sub-') %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ user.approval_league[4:].title() }} Sub</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ user.approval_league[4:].title() }} Sub</span>
                         {% else %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ user.approval_league.title() }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ user.approval_league.title() }}</span>
                         {% endif %}
                     {% else %}
                     <span class="text-gray-400">N/A</span>
@@ -854,21 +854,21 @@
                 </td>
                 <td class="px-4 py-3">
                     {% if log.action == 'approve_user' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                         <i class="ti ti-check mr-1"></i>Approved
                     </span>
                     {% elif log.action == 'deny_user' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
                         <i class="ti ti-x mr-1"></i>Denied
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                         {{ log.action.replace('_', ' ').title() }}
                     </span>
                     {% endif %}
                 </td>
                 <td class="px-4 py-3">
-                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ log.resource_id }}</code>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{{ log.resource_id }}</code>
                 </td>
                 <td class="px-4 py-3 text-xs">
                     {% if log.old_value %}
@@ -1084,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', function() {
             red: 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300',
             gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
         };
-        return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ' + (tones[tone] || tones.gray) + '">' + esc(label) + '</span>';
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold ' + (tones[tone] || tones.gray) + '">' + esc(label) + '</span>';
     }
     function titleize(s) { return String(s || '').replace(/-/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); }); }
     function lifecycleStrip(u) {

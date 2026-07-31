@@ -60,19 +60,19 @@
 {# --- Page header with the ONE primary job front and center --- #}
 {% call kit.page_header("Discord Role Mapping", subtitle="Discord · Access Control") %}
     <button type="button" data-action="refresh-roles"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
     </button>
     <button type="button" data-action="create-discord-role"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-plus" aria-hidden="true"></i><span class="hidden sm:inline">Create Role</span>
     </button>
     <button type="button" data-action="auto-map-roles"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-ecs-green/40 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 text-ecs-green dark:text-green-400 text-sm font-semibold hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3.5 rounded-lg border border-ecs-green/40 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10 text-ecs-green dark:text-green-400 text-sm font-semibold hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-wand" aria-hidden="true"></i><span class="hidden sm:inline">Auto-Map</span>
     </button>
     <button type="button" data-action="sync-all-roles"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-cloud-upload" aria-hidden="true"></i>Sync All
     </button>
 {% endcall %}
@@ -197,7 +197,7 @@
                 </td>
                 <td class="px-3 py-3 hidden md:table-cell">
                     <button type="button" data-action="preview-users" data-role-id="{{ role.id }}"
-                            class="inline-flex items-center gap-1.5 min-h-[36px] px-3 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            class="inline-flex items-center gap-1.5 min-h-[36px] px-3 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                         <i class="ti ti-users" aria-hidden="true"></i>
                         <span class="user-count font-mono">{{ role.users|length }}</span>
                     </button>
@@ -218,12 +218,12 @@
                 <td class="px-3 py-3">
                     <div class="flex items-center justify-end gap-2">
                         <button type="button" data-action="save-mapping" data-role-id="{{ role.id }}" title="Save Mapping" aria-label="Save mapping for {{ role.name }}"
-                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                             <i class="ti ti-device-floppy" aria-hidden="true"></i>
                         </button>
                         <button type="button" data-action="sync-role" data-role-id="{{ role.id }}" title="Sync to Discord" aria-label="Sync {{ role.name }} to Discord"
                                 {% if not role.discord_role_id %}disabled{% endif %}
-                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}">
+                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}">
                             <i class="ti ti-cloud-upload" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -273,16 +273,16 @@
             {% endif %}
             <div class="flex items-center gap-2">
                 <button type="button" data-action="preview-users" data-role-id="{{ role.id }}"
-                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-users" aria-hidden="true"></i><span class="user-count font-mono">{{ role.users|length }}</span> users
                 </button>
                 <button type="button" data-action="save-mapping" data-role-id="{{ role.id }}" aria-label="Save mapping for {{ role.name }}"
-                        class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-device-floppy" aria-hidden="true"></i>
                 </button>
                 <button type="button" data-action="sync-role" data-role-id="{{ role.id }}" aria-label="Sync {{ role.name }} to Discord"
                         {% if not role.discord_role_id %}disabled{% endif %}
-                        class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}">
+                        class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}">
                     <i class="ti ti-cloud-upload" aria-hidden="true"></i>
                 </button>
             </div>
@@ -311,7 +311,7 @@
                 </div>
             </div>
             {% if dr.managed %}
-            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" title="Managed by integration">
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" title="Managed by integration">
                 <i class="ti ti-robot text-[12px]" aria-hidden="true"></i>Bot
             </span>
             {% endif %}
@@ -335,14 +335,14 @@
     </div>
     <div class="flex justify-end px-5 py-3 border-t border-gray-200 dark:border-gray-700">
         <button type="button" data-modal-hide="userPreviewModal"
-                class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             Close
         </button>
     </div>
 {% endcall %}
 {% else %}
 <!-- Bot Status Card -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center">
@@ -372,7 +372,7 @@
 </div>
 
 <!-- Role Mapping Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-link mr-2"></i>Role Mappings
@@ -440,13 +440,13 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
-                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
+                            <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-sm hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800"
                                     data-action="save-mapping"
                                     data-role-id="{{ role.id }}"
                                     title="Save Mapping">
                                 <i class="ti ti-device-floppy"></i>
                             </button>
-                            <button type="button" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}"
+                            <button type="button" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded-sm hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800 {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}"
                                     data-action="sync-role"
                                     data-role-id="{{ role.id }}"
                                     {% if not role.discord_role_id %}disabled{% endif %}
@@ -472,7 +472,7 @@
 </div>
 
 <!-- Discord Roles Reference Card -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-brand-discord mr-2"></i>Available Discord Roles
@@ -483,13 +483,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {% for dr in discord_roles %}
             <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                <span class="w-4 h-4 rounded mr-3" style="background-color: {{ dr.color }}"></span>
-                <div class="flex-grow">
+                <span class="w-4 h-4 rounded-sm mr-3" style="background-color: {{ dr.color }}"></span>
+                <div class="grow">
                     <div class="font-medium text-gray-900 dark:text-white">{{ dr.name }}</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">{{ dr.member_count }} members</div>
                 </div>
                 {% if dr.managed %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Managed by integration">Bot</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Managed by integration">Bot</span>
                 {% endif %}
             </div>
             {% endfor %}
@@ -691,8 +691,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <td class="px-4 py-2">${user.discord_username || '<span class="text-gray-400">Not linked</span>'}</td>
                                 <td class="px-4 py-2">
                                     ${user.has_discord
-                                        ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ready</span>'
-                                        : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">No Discord</span>'}
+                                        ? '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ready</span>'
+                                        : '<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">No Discord</span>'}
                                 </td>
                             </tr>
                         `;
@@ -730,7 +730,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="color" id="newRoleColor" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600" value="#1a472a">
                     </div>
                     <div class="flex items-center">
-                        <input class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="newRoleMentionable">
+                        <input class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="newRoleMentionable">
                         <label class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="newRoleMentionable">
                             Allow anyone to @mention this role
                         </label>
@@ -807,11 +807,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 const members = (p.member_count != null) ? ` <span class="text-gray-400">(${p.member_count})</span>` : '';
                 discordCell = `<span class="font-mono text-xs text-gray-900 dark:text-white">${escapeHtml(p.discord_role_name)}</span>${members}`;
                 statusBadge = p.already_mapped
-                    ? '<span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">No change</span>'
-                    : '<span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Will map</span>';
+                    ? '<span class="inline-flex px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">No change</span>'
+                    : '<span class="inline-flex px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Will map</span>';
             } else {
                 discordCell = `<span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(p.reason)}</span>`;
-                statusBadge = '<span class="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Skip</span>';
+                statusBadge = '<span class="inline-flex px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">Skip</span>';
             }
             return `<tr class="border-b dark:border-gray-700">
                 <td class="px-3 py-2 font-medium text-gray-900 dark:text-white">${escapeHtml(p.role_name)}</td>

@@ -51,10 +51,10 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <a href="{{ url_for('ai_prompts.list_prompts') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <a href="{{ url_for('ai_prompts.list_prompts') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to List
                     </a>
-                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-device-floppy" aria-hidden="true"></i>
                         {{ 'Update Prompt' if prompt else 'Create Prompt' }}
                     </button>
@@ -164,23 +164,23 @@
                                 <div>
                                     <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">All prompt types:</p>
                                     <div class="flex flex-wrap gap-1 font-mono">
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{home_team}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{away_team}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{venue}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{competition}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{match_date}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{is_home_game}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{opponent}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{home_team}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{away_team}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{venue}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{competition}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{match_date}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{is_home_game}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{opponent}</code>
                                     </div>
                                 </div>
                                 <div>
                                     <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">Event types (goal, card, substitution):</p>
                                     <div class="flex flex-wrap gap-1 font-mono">
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{scoring_team}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{player}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{minute}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{sounders_score}</code>
-                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{opponent_score}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{scoring_team}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{player}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{minute}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{sounders_score}</code>
+                                        <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{opponent_score}</code>
                                     </div>
                                 </div>
                             </div>
@@ -295,7 +295,7 @@
                     <label for="ai-prompt-is_active" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                         <input type="checkbox" id="ai-prompt-is_active" name="is_active"
                                {{ 'checked' if not prompt or prompt.is_active }}
-                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                         <span class="flex-1 min-w-0">
                             <span class="block text-sm font-medium text-gray-900 dark:text-white">Active</span>
                             <span class="block text-xs text-gray-500 dark:text-gray-400">Available to the commentary engine</span>
@@ -336,11 +336,11 @@
 
                     <!-- Submit Buttons -->
                     <div class="space-y-2 pt-1">
-                        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-device-floppy" aria-hidden="true"></i>
                             {{ 'Update Prompt' if prompt else 'Create Prompt' }}
                         </button>
-                        <a href="{{ url_for('ai_prompts.list_prompts') }}" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <a href="{{ url_for('ai_prompts.list_prompts') }}" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to List
                         </a>
                     </div>
@@ -455,7 +455,7 @@
                 {% call kit.section_card("Quick Templates", icon="ti-copy") %}
                 <div class="p-4 sm:p-5 space-y-2">
                     {% for template in templates[:6] %}
-                    <button type="button" class="w-full inline-flex items-center justify-between gap-2 min-h-[44px] px-3 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-ecs-green hover:bg-ecs-green/5 dark:hover:bg-ecs-green/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    <button type="button" class="w-full inline-flex items-center justify-between gap-2 min-h-[44px] px-3 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-ecs-green hover:bg-ecs-green/5 dark:hover:bg-ecs-green/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                             data-action="load-ai-template"
                             data-template-id="{{ template.id }}">
                         <span class="flex items-center gap-2 min-w-0">
@@ -541,23 +541,23 @@
                             <div>
                                 <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">All prompt types:</p>
                                 <div class="flex flex-wrap gap-1">
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{home_team}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{away_team}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{venue}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{competition}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{match_date}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{is_home_game}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{opponent}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{home_team}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{away_team}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{venue}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{competition}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{match_date}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{is_home_game}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{opponent}</code>
                                 </div>
                             </div>
                             <div>
                                 <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">Event types (goal, card, substitution):</p>
                                 <div class="flex flex-wrap gap-1">
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{scoring_team}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{player}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{minute}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{sounders_score}</code>
-                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{opponent_score}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{scoring_team}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{player}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{minute}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{sounders_score}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm">{opponent_score}</code>
                                 </div>
                             </div>
                         </div>
@@ -646,7 +646,7 @@
                     <div class="flex items-center">
                         <input type="checkbox" id="ai-prompt-is_active" name="is_active"
                                {{ 'checked' if not prompt or prompt.is_active }}
-                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                         <label for="ai-prompt-is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
                     </div>
 

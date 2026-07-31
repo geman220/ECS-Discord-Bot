@@ -30,15 +30,15 @@
 {# Command toolbar: lead with the page's primary job (drill into endpoints) + secondary ops #}
 {% call page_header('API Management', subtitle='Endpoint observability & health') %}
   <a href="{{ url_for('admin_panel.api_analytics') }}"
-     class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+     class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-chart-line" aria-hidden="true"></i><span class="hidden sm:inline">Analytics</span>
   </a>
   <button type="button" data-action="export-api"
-          class="inline-flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] sm:h-10 sm:min-w-0 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          class="inline-flex items-center justify-center gap-2 min-h-[44px] min-w-[44px] sm:h-10 sm:min-w-0 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-download" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
   </button>
   <button type="button" data-action="test-endpoint"
-          class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-test-pipe" aria-hidden="true"></i>Test Endpoint
   </button>
 {% endcall %}
@@ -102,7 +102,7 @@
         <p class="text-sm text-gray-900 dark:text-white truncate">{{ activity.description }}</p>
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ activity.user }} · {{ activity.timestamp.strftime('%H:%M') }}</p>
       </div>
-      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">API</span>
+      <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">API</span>
     </li>
     {% endfor %}
   </ul>
@@ -184,7 +184,7 @@
       {% for endpoint in endpoints %}
       <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50" data-row>
         <td class="px-3 py-2.5">
-          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded">{{ endpoint.path }}</code>
+          <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded-sm">{{ endpoint.path }}</code>
           {% if endpoint.description %}
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>
           {% endif %}
@@ -195,12 +195,12 @@
         <td class="px-3 py-2.5 hidden md:table-cell">
           <div class="flex flex-wrap gap-1">
             {% for method in endpoint.methods %}
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' if method == 'GET' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium font-mono {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' if method == 'GET' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
             {% endfor %}
           </div>
         </td>
         <td class="px-3 py-2.5 hidden lg:table-cell">
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if endpoint.authentication == 'admin' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if endpoint.authentication == 'admin' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
             <i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' }}" aria-hidden="true"></i>{{ endpoint.authentication }}
           </span>
         </td>
@@ -213,10 +213,10 @@
         </td>
         <td class="px-3 py-2.5">
           <div class="flex items-center justify-end gap-1">
-            <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-endpoint" data-endpoint-path="{{ endpoint.path[1:] }}" aria-label="View Details" title="View Details">
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-endpoint" data-endpoint-path="{{ endpoint.path[1:] }}" aria-label="View Details" title="View Details">
               <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
-            <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="test-specific" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" aria-label="Test" title="Test">
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="test-specific" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" aria-label="Test" title="Test">
               <i class="ti ti-test-pipe" aria-hidden="true"></i>
             </button>
           </div>
@@ -229,7 +229,7 @@
     {% for endpoint in endpoints %}
     <div class="px-4 py-3.5" data-row>
       <div class="flex items-center justify-between gap-2">
-        <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded truncate">{{ endpoint.path }}</code>
+        <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1 rounded-sm truncate">{{ endpoint.path }}</code>
         <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if endpoint.status == 'active' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' }}">
           <i class="ti {{ 'ti-circle-check' if endpoint.status == 'active' else 'ti-circle-dot' }}" aria-hidden="true"></i>{{ endpoint.status }}
         </span>
@@ -237,18 +237,18 @@
       {% if endpoint.description %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>{% endif %}
       <div class="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
         <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ endpoint.blueprint }}</span>
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if endpoint.authentication == 'admin' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}"><i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' }}" aria-hidden="true"></i>{{ endpoint.authentication }}</span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if endpoint.authentication == 'admin' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}"><i class="ti {{ 'ti-shield-lock' if endpoint.authentication == 'admin' else 'ti-lock' }}" aria-hidden="true"></i>{{ endpoint.authentication }}</span>
         {% for method in endpoint.methods %}
-        <span class="inline-flex items-center px-2 py-0.5 rounded font-mono {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' if method == 'GET' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-sm font-mono {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' if method == 'GET' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' if method == 'POST' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
         {% endfor %}
       </div>
       <div class="mt-2 flex items-center justify-between gap-2">
         <span class="text-xs text-gray-500 dark:text-gray-400">Requests <span class="font-mono">{{ "{:,}".format(endpoint.request_count) }}</span> · Avg <span class="font-mono">{{ "%.3f"|format(endpoint.avg_response_time) }}s</span></span>
         <div class="flex items-center gap-1">
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-endpoint" data-endpoint-path="{{ endpoint.path[1:] }}" aria-label="View Details" title="View Details">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-endpoint" data-endpoint-path="{{ endpoint.path[1:] }}" aria-label="View Details" title="View Details">
             <i class="ti ti-eye" aria-hidden="true"></i>
           </button>
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="test-specific" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" aria-label="Test" title="Test">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="test-specific" data-endpoint-path="{{ endpoint.path }}" data-methods="{{ endpoint.methods | tojson }}" aria-label="Test" title="Test">
             <i class="ti ti-test-pipe" aria-hidden="true"></i>
           </button>
         </div>
@@ -259,7 +259,7 @@
 {% endcall %}
 <div class="mt-4 text-center">
   <a href="{{ url_for('admin_panel.api_endpoints') }}"
-     class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+     class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-list" aria-hidden="true"></i>View All Endpoints
   </a>
 </div>
@@ -271,7 +271,7 @@
 {% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-500 text-white rounded-lg shadow p-5">
+    <div class="bg-blue-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ stats.total_endpoints }}</p>
@@ -282,7 +282,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-green-500 text-white rounded-lg shadow p-5">
+    <div class="bg-green-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ stats.active_endpoints }}</p>
@@ -293,7 +293,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-500 text-white rounded-lg shadow p-5">
+    <div class="bg-cyan-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ "{:,}".format(stats.total_requests_today) }}</p>
@@ -304,7 +304,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-500 text-white rounded-lg shadow p-5">
+    <div class="bg-yellow-500 text-white rounded-lg shadow-sm p-5">
         <div class="flex justify-between items-center">
             <div>
                 <p class="text-3xl font-bold">{{ "%.1f"|format(stats.error_rate) }}%</p>
@@ -320,7 +320,7 @@
 <!-- Quick Actions & Performance -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- Quick Actions -->
-    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-rocket mr-2"></i>Quick Actions
@@ -345,7 +345,7 @@
     </div>
 
     <!-- Performance -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-gauge mr-2"></i>Performance
@@ -382,7 +382,7 @@
 <!-- Blueprint Breakdown & Recent Activity -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- Blueprint Breakdown -->
-    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-components mr-2"></i>Endpoint Breakdown by Blueprint
@@ -426,7 +426,7 @@
     </div>
 
     <!-- Recent Activity -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-activity mr-2"></i>Recent Activity
@@ -437,14 +437,14 @@
             <div class="space-y-4">
                 {% for activity in recent_activity %}
                 <div class="flex items-start">
-                    <div class="flex-shrink-0 w-3 h-3 mt-1.5 rounded-full bg-blue-500"></div>
+                    <div class="shrink-0 w-3 h-3 mt-1.5 rounded-full bg-blue-500"></div>
                     <div class="ml-4 flex-1">
                         <div class="flex justify-between items-start">
                             <div>
                                 <p class="text-sm text-gray-900 dark:text-white">{{ activity.description }}</p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ activity.timestamp.strftime('%H:%M') }}</p>
                             </div>
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">API</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">API</span>
                         </div>
                     </div>
                 </div>
@@ -477,7 +477,7 @@
             {% for endpoint in endpoints %}
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-4 py-3">
-                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ endpoint.path }}</code>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm">{{ endpoint.path }}</code>
                     {% if endpoint.description %}
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>
                     {% endif %}
@@ -488,7 +488,7 @@
                 <td class="px-4 py-3 hidden md:table-cell">
                     <div class="flex flex-wrap gap-1">
                         {% for method in endpoint.methods %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if method == 'POST' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if method == 'POST' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
                         {% endfor %}
                     </div>
                 </td>

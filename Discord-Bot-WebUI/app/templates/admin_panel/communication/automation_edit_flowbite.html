@@ -19,7 +19,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-[12rem]">{{ rule.name }}</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-48">{{ rule.name }}</span>
     </div>
 </li>
 {% endblock %}
@@ -227,7 +227,7 @@
           <label class="flex items-start gap-2.5 cursor-pointer">
             <input type="checkbox" data-trigger-bool="{{ name }}"
                    {% if cfg.get(name, spec.default) %}checked{% endif %}
-                   class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                   class="mt-0.5 w-4 h-4 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
             <span class="text-sm text-gray-900 dark:text-white">{{ spec.label }}
               {% if spec.help %}
               <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ spec.help }}</span>
@@ -248,7 +248,7 @@
             <label class="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white cursor-pointer">
               <input type="checkbox" value="{{ value }}"
                      {% if value in picked %}checked{% endif %}
-                     class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green">
+                     class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green">
               <span>{{ label }}</span>
             </label>
             {% endfor %}
@@ -331,7 +331,7 @@
         <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <label class="flex items-start gap-2.5 cursor-pointer">
             <input type="checkbox" id="ruleForceSend" {% if rule.force_send %}checked{% endif %}
-                   class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                   class="mt-0.5 w-4 h-4 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
             <span class="text-sm text-gray-900 dark:text-white">
               Ignore email-notification opt-outs
               <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -347,7 +347,7 @@
           <div class="flex items-center justify-between gap-2">
             <p class="text-sm font-medium text-gray-900 dark:text-white">Only if&hellip;</p>
             <button type="button" data-action="automation-add-condition"
-                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
               <i class="ti ti-plus" aria-hidden="true"></i><span>Add</span>
             </button>
           </div>
@@ -415,7 +415,7 @@
                 ('discord', 'Discord DM', 'Direct message from the bot.'),
                 ('in_app', 'In-app alert', 'Notification bell on the website.')] %}
             <label class="flex items-start gap-2.5 cursor-pointer">
-              <input type="checkbox" class="rule-channel mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green"
+              <input type="checkbox" class="rule-channel mt-0.5 w-4 h-4 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green"
                      value="{{ ch }}" {% if ch in active_channels %}checked{% endif %}>
               <span class="text-sm text-gray-900 dark:text-white">{{ ch_label }}
                 <span class="block text-xs text-gray-500 dark:text-gray-400">{{ ch_help }}</span>
@@ -475,7 +475,7 @@
               <div class="flex items-center gap-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1">
                 <i class="ti ti-brand-discord" aria-hidden="true"></i>Discord DM
               </div>
-              <p class="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap break-words" id="discordPreviewBody">&mdash;</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap wrap-break-word" id="discordPreviewBody">&mdash;</p>
             </div>
           </div>
         </div>
@@ -485,7 +485,7 @@
           <div class="flex items-center justify-between gap-2">
             <p class="text-sm font-medium text-gray-900 dark:text-white">Follow-up messages</p>
             <button type="button" data-action="automation-add-step"
-                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
               <i class="ti ti-plus" aria-hidden="true"></i><span>Add a follow-up</span>
             </button>
           </div>
@@ -499,7 +499,7 @@
           <label class="mt-3 flex items-start gap-2.5 cursor-pointer">
             <input type="checkbox" id="ruleStopWhenResolved"
                    {% if rule.stop_when_resolved %}checked{% endif %}
-                   class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                   class="mt-0.5 w-4 h-4 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
             <span class="text-sm text-gray-900 dark:text-white">
               Stop early if the situation sorts itself out
               <span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">
@@ -632,14 +632,14 @@
               <div class="mt-1 sm:ml-32 flex items-center gap-1.5">
                 <input type="text" data-global-var="{{ name }}"
                        value="{{ global_variable_values.get(name, '') }}"
-                       class="flex-1 min-w-0 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs p-1.5 focus:ring-ecs-green focus:border-ecs-green">
+                       class="flex-1 min-w-0 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-xs p-1.5 focus:ring-ecs-green focus:border-ecs-green">
               </div>
             </div>
             {% endfor %}
           </dl>
           <div class="mt-2 flex items-center gap-2">
             <button type="button" data-action="automation-save-variables"
-                    class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                    class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
               <i class="ti ti-device-floppy" aria-hidden="true"></i><span>Save these values</span>
             </button>
             <span class="text-xs text-gray-500 dark:text-gray-400">Applies to <strong>every</strong> automation.</span>

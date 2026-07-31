@@ -64,7 +64,7 @@ function highlightMatch(text, query) {
     const before = escaped.slice(0, idx);
     const match = escaped.slice(idx, idx + lowerQuery.length);
     const after = escaped.slice(idx + lowerQuery.length);
-    return `${before}<mark class="bg-ecs-green/20 text-inherit rounded px-0.5">${match}</mark>${after}`;
+    return `${before}<mark class="bg-ecs-green/20 text-inherit rounded-sm px-0.5">${match}</mark>${after}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +180,7 @@ function renderResults(items, query) {
                    class="admin-search-result flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                    data-action="admin-search-navigate"
                    data-url="${escapeHtml(item.url)}">
-                    <i class="ti ${escapeHtml(item.icon)} text-gray-400 flex-shrink-0"></i>
+                    <i class="ti ${escapeHtml(item.icon)} text-gray-400 shrink-0"></i>
                     <div class="flex flex-col min-w-0 flex-1">
                         <span class="text-sm text-gray-700 dark:text-gray-200 truncate">${highlightedName}</span>
                         ${desc}

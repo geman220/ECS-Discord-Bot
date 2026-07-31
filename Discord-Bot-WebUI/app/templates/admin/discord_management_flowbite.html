@@ -57,7 +57,7 @@
 
     {% if players %}
     <!-- Filter Bar -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div>
             <h5 class="font-semibold text-gray-900 dark:text-white">{{ current_section }}</h5>
             <span class="text-sm text-gray-500 dark:text-gray-400">Showing {{ ((pagination.page - 1) * pagination.per_page) + 1 }}-{{ [pagination.page * pagination.per_page, pagination.total] | min }} of {{ pagination.total }} players</span>
@@ -77,10 +77,10 @@
     <!-- Player List -->
     <div class="space-y-4">
         {% for player in players %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4" data-player-id="{{ player.id }}">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4" data-player-id="{{ player.id }}">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div class="flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center flex-shrink-0">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0">
                         <span class="text-blue-600 dark:text-blue-400 font-bold">{{ player.name[:2].upper() }}</span>
                     </div>
                     <div>
@@ -88,7 +88,7 @@
                         <div class="flex flex-wrap gap-1 mt-1">
                             {% if player_current_teams.get(player.id) %}
                                 {% for team in player_current_teams[player.id] %}
-                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ team.name }}</span>
+                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ team.name }}</span>
                                 {% endfor %}
                             {% else %}
                             <span class="text-xs text-gray-500 dark:text-gray-400">No current team assigned</span>
@@ -182,7 +182,7 @@
 
     {% else %}
     <!-- Empty State -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
         {% if status_filter == 'not_in_server' and stats.not_in_server == 0 %}
         <i class="ti ti-circle-check text-6xl text-green-500 dark:text-green-400 mb-4"></i>
         <h4 class="text-xl font-semibold text-green-600 dark:text-green-400 mb-2">All Players Are In Discord!</h4>

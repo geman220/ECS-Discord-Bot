@@ -35,7 +35,7 @@
     {# Not In Server — the page's primary job: who needs re-inviting #}
     <a href="{{ url_for('admin_panel.discord_players', status='not_in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
        aria-current="{{ 'true' if status_filter == 'not_in_server' else 'false' }}"
-       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'not_in_server' %}border-red-400 dark:border-red-500/60 ring-1 ring-red-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-500/40{% endif %}">
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if status_filter == 'not_in_server' %}border-red-400 dark:border-red-500/60 ring-1 ring-red-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-500/40{% endif %}">
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Not In Server</span>
         <i class="ti ti-user-x text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
@@ -51,7 +51,7 @@
     {# Unknown — never reconciled #}
     <a href="{{ url_for('admin_panel.discord_players', status='unknown', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
        aria-current="{{ 'true' if status_filter == 'unknown' else 'false' }}"
-       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unknown' %}border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-500/40{% endif %}">
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unknown' %}border-amber-400 dark:border-amber-500/60 ring-1 ring-amber-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-500/40{% endif %}">
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">Unknown</span>
         <i class="ti ti-help-circle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
@@ -67,7 +67,7 @@
     {# In Server #}
     <a href="{{ url_for('admin_panel.discord_players', status='in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
        aria-current="{{ 'true' if status_filter == 'in_server' else 'false' }}"
-       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'in_server' %}border-green-400 dark:border-green-500/60 ring-1 ring-green-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-500/40{% endif %}">
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if status_filter == 'in_server' %}border-green-400 dark:border-green-500/60 ring-1 ring-green-400/40{% else %}border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-500/40{% endif %}">
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">In Server</span>
         <i class="ti ti-user-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
@@ -83,7 +83,7 @@
     {# All / coverage — derived from real stats #}
     <a href="{{ url_for('admin_panel.discord_players', status='all', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
        aria-current="{{ 'true' if status_filter == 'all' else 'false' }}"
-       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'all' %}border-ecs-green ring-1 ring-ecs-green/40{% else %}border-gray-200 dark:border-gray-700 hover:border-ecs-green/50{% endif %}">
+       class="group rounded-xl border bg-white dark:bg-gray-800 p-4 sm:p-5 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if status_filter == 'all' %}border-ecs-green ring-1 ring-ecs-green/40{% else %}border-gray-200 dark:border-gray-700 hover:border-ecs-green/50{% endif %}">
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">All Linked</span>
         <i class="ti ti-users text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
@@ -106,12 +106,12 @@
   <div class="flex flex-wrap items-center gap-2">
     <a href="{{ url_for('admin_panel.discord_players', status='unlinked', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
        aria-current="{{ 'true' if status_filter == 'unlinked' else 'false' }}"
-       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-3 rounded-lg border text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unlinked' %}border-ecs-green ring-1 ring-ecs-green/40 text-ecs-green bg-ecs-green/5{% else %}border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ecs-green/50 bg-white dark:bg-gray-800{% endif %}">
+       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-3 rounded-lg border text-sm font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if status_filter == 'unlinked' %}border-ecs-green ring-1 ring-ecs-green/40 text-ecs-green bg-ecs-green/5{% else %}border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ecs-green/50 bg-white dark:bg-gray-800{% endif %}">
       <i class="ti ti-unlink text-base" aria-hidden="true"></i>No Discord linked
       <span class="font-mono font-semibold">{{ stats.unlinked }}</span>
     </a>
     <a href="{{ url_for('admin_panel.discord_account_recovery') }}"
-       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-ecs-green/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:py-2 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-ecs-green/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-lifebuoy text-base" aria-hidden="true"></i>Account Recovery
       {% if nav_relink_requests > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ nav_relink_requests }}</span>{% endif %}
     </a>
@@ -166,7 +166,7 @@
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-list-details text-ecs-green" aria-hidden="true"></i> Roster
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pagination.total }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pagination.total }}</span>
       </h2>
       <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
         <i class="ti ti-arrows-sort text-sm" aria-hidden="true"></i>
@@ -263,7 +263,7 @@
             <td class="px-4 py-3 align-middle text-right">
               <div class="inline-flex items-center gap-1">
                 <button type="button"
-                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         data-action="update-player-roles"
                         data-player-id="{{ player.id }}"
                         data-player-name="{{ player.name }}"
@@ -272,7 +272,7 @@
                   <i class="ti ti-refresh" aria-hidden="true"></i>
                 </button>
                 <button type="button"
-                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         data-action="edit-player-discord"
                         data-player-id="{{ player.id }}"
                         data-player-name="{{ player.name }}"
@@ -283,14 +283,14 @@
                 </button>
                 {% if player.user and player.user.email %}
                 <a href="mailto:{{ player.user.email }}"
-                   class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                    title="Email {{ player.name }}" aria-label="Email {{ player.name }}">
                   <i class="ti ti-mail" aria-hidden="true"></i>
                 </a>
                 {% endif %}
                 {% if player.discord_id %}
                 <button type="button"
-                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         data-action="send-discord-dm"
                         data-player-id="{{ player.id }}"
                         data-discord-id="{{ player.discord_id }}"
@@ -328,7 +328,7 @@
             </div>
             <div class="shrink-0 inline-flex items-center gap-1">
               <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       data-action="update-player-roles"
                       data-player-id="{{ player.id }}"
                       data-player-name="{{ player.name }}"
@@ -337,7 +337,7 @@
                 <i class="ti ti-refresh" aria-hidden="true"></i>
               </button>
               <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       data-action="edit-player-discord"
                       data-player-id="{{ player.id }}"
                       data-player-name="{{ player.name }}"
@@ -348,14 +348,14 @@
               </button>
               {% if player.user and player.user.email %}
               <a href="mailto:{{ player.user.email }}"
-                 class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                 class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                  title="Email {{ player.name }}" aria-label="Email {{ player.name }}">
                 <i class="ti ti-mail" aria-hidden="true"></i>
               </a>
               {% endif %}
               {% if player.discord_id %}
               <button type="button"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       data-action="send-discord-dm"
                       data-player-id="{{ player.id }}"
                       data-discord-id="{{ player.discord_id }}"
@@ -447,7 +447,7 @@
 {% else %}
 <!-- Stats Overview -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
                 <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -456,7 +456,7 @@
             <span class="text-sm text-blue-700 dark:text-blue-300">Total Players</span>
         </div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
@@ -465,7 +465,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">In Server</span>
         </div>
     </div>
-    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow p-5">
+    <div class="bg-red-50 dark:bg-red-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 mb-3">
                 <i class="ti ti-x text-2xl text-red-600 dark:text-red-400"></i>
@@ -474,7 +474,7 @@
             <span class="text-sm text-red-700 dark:text-red-300">Not In Server</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
                 <i class="ti ti-question-mark text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -486,7 +486,7 @@
 </div>
 
 <!-- Filter Controls -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5">
         <!-- Status filter row -->
         <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -547,7 +547,7 @@
 </div>
 
 <!-- Players Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <div class="flex justify-between items-center">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -584,7 +584,7 @@
                             <i class="ti ti-brand-discord mr-1"></i>{{ player.discord_username }}
                         </span>
                         {% else %}
-                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" title="No username available">{{ player.discord_id }}</code>
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm" title="No username available">{{ player.discord_id }}</code>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 hidden md:table-cell">
@@ -711,7 +711,7 @@
                 <button type="button" data-modal-hide="discordDMModal"
                         class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 modal-close-btn">Cancel</button>
                 <button type="button" data-action="submit-discord-dm" data-loading-text="Sending..."
-                        class="px-5 py-2.5 text-sm font-medium text-white rounded-lg focus:ring-4 focus:outline-none bg-ecs-green hover:bg-ecs-green-dark focus:ring-ecs-green">Send Message</button>
+                        class="px-5 py-2.5 text-sm font-medium text-white rounded-lg focus:ring-4 focus:outline-hidden bg-ecs-green hover:bg-ecs-green-dark focus:ring-ecs-green">Send Message</button>
             </div>
         </div>
     </div>

@@ -64,18 +64,18 @@
   <div class="rounded-lg border {% if row.errored %}border-purple-200 dark:border-purple-800{% elif row.count and row.severity == 'high' %}border-red-200 dark:border-red-800{% elif row.count %}border-amber-200 dark:border-amber-800{% else %}border-gray-200 dark:border-gray-700{% endif %} bg-white dark:bg-gray-800 overflow-hidden">
     <button type="button" class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if not row.count and not row.errored %}opacity-60{% endif %}"
             data-collapse-toggle="chk-{{ row.code }}" aria-expanded="false" aria-controls="chk-{{ row.code }}">
-      <span class="w-2.5 h-2.5 rounded-full flex-shrink-0 {{ sev_dot.get(row.severity, 'bg-gray-400') }}"></span>
+      <span class="w-2.5 h-2.5 rounded-full shrink-0 {{ sev_dot.get(row.severity, 'bg-gray-400') }}"></span>
       <span class="flex-1 min-w-0">
         <span class="font-semibold text-gray-900 dark:text-white">{{ row.title }}</span>
-        <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono uppercase {{ sev_pill.get(row.severity, '') }}">{{ row.severity }}</span>
+        <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-mono uppercase {{ sev_pill.get(row.severity, '') }}">{{ row.severity }}</span>
         <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ row.detail }}</span>
       </span>
       {% if row.errored %}
       <span class="inline-flex items-center justify-center h-7 px-2 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" title="This check raised an error and could not run — its result is unknown, not necessarily clean.">err</span>
       {% else %}
-      <span class="inline-flex items-center justify-center min-w-[2rem] h-7 px-2 rounded-full text-sm font-bold {% if row.count %}{{ sev_pill.get(row.severity, '') }}{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700{% endif %}">{{ row.count }}</span>
+      <span class="inline-flex items-center justify-center min-w-8 h-7 px-2 rounded-full text-sm font-bold {% if row.count %}{{ sev_pill.get(row.severity, '') }}{% else %}bg-gray-100 text-gray-400 dark:bg-gray-700{% endif %}">{{ row.count }}</span>
       {% endif %}
-      <i class="ti ti-chevron-down text-gray-400 flex-shrink-0"></i>
+      <i class="ti ti-chevron-down text-gray-400 shrink-0"></i>
     </button>
     <div id="chk-{{ row.code }}" class="hidden border-t border-gray-100 dark:border-gray-700">
       {% if row.errored %}
@@ -97,7 +97,7 @@
             <p class="text-sm font-medium text-gray-900 dark:text-white">{{ f.name or ('Player #' ~ f.player_id) }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ f.detail }}</p>
           </div>
-          <div class="flex items-center gap-2 flex-shrink-0">
+          <div class="flex items-center gap-2 shrink-0">
             {% if f_hub_url %}
             <a href="{{ f_hub_url }}" class="text-xs text-ecs-green hover:underline whitespace-nowrap"><i class="ti ti-id-badge-2"></i> Member Hub</a>
             {% elif f_profile_url %}

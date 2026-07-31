@@ -34,27 +34,27 @@
   {% call(c) page_header(('Edit Template' if template else 'New Template'),
                          subtitle='Communication / Email Templates') %}
     <a href="{{ url_for('admin_panel.email_templates_list') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Back to List</span>
     </a>
     {% if template %}
     <button type="button" data-action="email-tpl-duplicate" data-template-id="{{ template.id }}"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-copy" aria-hidden="true"></i><span class="hidden sm:inline">Duplicate</span>
     </button>
     {% if not template.is_default %}
     <button type="button" data-action="email-tpl-set-default" data-template-id="{{ template.id }}"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-ecs-gold-300 dark:border-ecs-gold-500/40 text-sm font-medium text-ecs-gold-600 dark:text-ecs-gold-400 hover:bg-ecs-gold-50 dark:hover:bg-ecs-gold-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-gold-400">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-ecs-gold-300 dark:border-ecs-gold-500/40 text-sm font-medium text-ecs-gold-600 dark:text-ecs-gold-400 hover:bg-ecs-gold-50 dark:hover:bg-ecs-gold-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-gold-400">
       <i class="ti ti-star" aria-hidden="true"></i><span class="hidden sm:inline">Set Default</span>
     </button>
     {% endif %}
     <button type="button" data-action="email-tpl-delete" data-template-id="{{ template.id }}"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-red-300 dark:border-red-500/40 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-red-300 dark:border-red-500/40 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500">
       <i class="ti ti-trash" aria-hidden="true"></i><span class="hidden sm:inline">Delete</span>
     </button>
     {% endif %}
     <button type="button" data-action="email-tpl-save"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-device-floppy" aria-hidden="true"></i> Save
     </button>
   {% endcall %}
@@ -136,16 +136,16 @@
       <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mr-1">Insert token</span>
         <button type="button" data-action="email-tpl-insert-content"
-                class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-mono font-semibold bg-ecs-green/10 text-ecs-green border border-ecs-green/30 rounded-lg hover:bg-ecs-green/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-mono font-semibold bg-ecs-green/10 text-ecs-green border border-ecs-green/30 rounded-lg hover:bg-ecs-green/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-plus text-[11px]" aria-hidden="true"></i>&#123;content&#125;
         </button>
         <button type="button" data-action="email-tpl-insert-subject"
-                class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-mono font-semibold bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-mono font-semibold bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 transition-colors focus:outline-hidden focus:ring-2 focus:ring-blue-500">
           <i class="ti ti-plus text-[11px]" aria-hidden="true"></i>&#123;subject&#125;
         </button>
       </div>
       <textarea id="templateHtmlContent"
-                class="flex-1 w-full min-h-[500px] [tab-size:4] p-4 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-0 focus:ring-0 focus:outline-none font-mono text-xs leading-relaxed resize-y"
+                class="flex-1 w-full min-h-[500px] tab-4 p-4 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-0 focus:ring-0 focus:outline-hidden font-mono text-xs leading-relaxed resize-y"
                 placeholder="Paste or write your HTML email template here...">{{ template.html_content if template else '<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>{subject}</title>\n    <style>\n        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }\n        .wrapper { width: 100%; padding: 20px 0; }\n        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }\n        .content { padding: 30px; }\n    </style>\n</head>\n<body>\n    <div class=\"wrapper\">\n        <div class=\"container\">\n            <div class=\"content\">\n                {content}\n            </div>\n        </div>\n    </div>\n</body>\n</html>' }}</textarea>
     </section>
 
@@ -157,7 +157,7 @@
         <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 font-mono">sample render</span>
       </div>
       <div class="flex-1 p-2 min-h-[500px] bg-gray-100 dark:bg-gray-900/50">
-        <iframe id="templatePreviewFrame" class="w-full h-full min-h-[490px] rounded-lg border-0 bg-white shadow-sm" title="Email template preview"></iframe>
+        <iframe id="templatePreviewFrame" class="w-full h-full min-h-[490px] rounded-lg border-0 bg-white shadow-xs" title="Email template preview"></iframe>
       </div>
     </section>
   </div>

@@ -155,7 +155,7 @@
          everyone viewing the fixture (not just managers). #}
       <div class="mt-4 flex">
         <a href="{{ url_for('calendar_api.calendar_subscriptions.download_single_event', event_type='ecs_fc_match', event_id=match.id) }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-calendar-plus" aria-hidden="true"></i>Add to calendar
         </a>
       </div>
@@ -173,21 +173,21 @@
     {% if can_manage %}
     {# Command toolbar: ONE primary (status-driven next step), the rest subordinate. #}
     <div class="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
-      <button type="button" class="js-edit-match inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+      <button type="button" class="js-edit-match inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               data-match-id="{{ match.id }}">
         <i class="ti ti-{% if match.status == 'COMPLETED' %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
         {% if match.status == 'COMPLETED' %}Edit Match Report{% else %}Report Results{% endif %}
       </button>
       <div class="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
       <a href="{{ url_for('ecs_fc.lineup_picker', match_id=match.id) }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-layout-grid" aria-hidden="true"></i> Lineup Picker
       </a>
       <button type="button" data-modal-target="subRequestModal" data-modal-toggle="subRequestModal" data-action="request-subs" data-match-id="{{ match.id }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-hand-stop" aria-hidden="true"></i> Request Subs
       </button>
-      <button type="button" class="js-send-reminder inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+      <button type="button" class="js-send-reminder inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               data-match-id="{{ match.id }}">
         <i class="ti ti-bell" aria-hidden="true"></i> Send Reminder
       </button>
@@ -286,7 +286,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="response" value="yes">
           <button type="submit" aria-pressed="{{ 'true' if my_resp == 'yes' else 'false' }}"
-                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                   {% if my_resp == 'yes' %}border-green-500 bg-green-50 dark:bg-green-500/15 text-green-600 dark:text-green-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
             <i class="ti ti-circle-check text-lg" aria-hidden="true"></i> Available
           </button>
@@ -295,7 +295,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="response" value="maybe">
           <button type="submit" aria-pressed="{{ 'true' if my_resp == 'maybe' else 'false' }}"
-                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                   {% if my_resp == 'maybe' %}border-amber-500 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
             <i class="ti ti-help-circle text-lg" aria-hidden="true"></i> Maybe
           </button>
@@ -304,7 +304,7 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="response" value="no">
           <button type="submit" aria-pressed="{{ 'true' if my_resp == 'no' else 'false' }}"
-                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                  class="w-full flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                   {% if my_resp == 'no' %}border-red-500 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
             <i class="ti ti-circle-x text-lg" aria-hidden="true"></i> Can't make it
           </button>
@@ -431,7 +431,7 @@
   {% set rsvp_footer %}
     {% if can_manage %}
     <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
-       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-settings" aria-hidden="true"></i> Manage RSVPs
     </a>
     {% endif %}
@@ -523,7 +523,7 @@
     </nav>
 
     <!-- Match Information Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div class="flex items-center gap-4">
                 <div class="w-14 h-14 bg-ecs-green/10 rounded-full flex items-center justify-center">
@@ -641,28 +641,28 @@
 
     <!-- RSVP Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-green-200 dark:border-green-800 p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-green-200 dark:border-green-800 p-4 text-center">
             <div class="w-12 h-12 mx-auto mb-2 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center">
                 <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
             </div>
             <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Available</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-red-200 dark:border-red-800 p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-red-200 dark:border-red-800 p-4 text-center">
             <div class="w-12 h-12 mx-auto mb-2 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
                 <i class="ti ti-x text-xl text-red-600 dark:text-red-400"></i>
             </div>
             <h3 class="text-2xl font-bold text-red-600 dark:text-red-400">{{ rsvp_summary.no }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Unavailable</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-yellow-200 dark:border-yellow-800 p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-yellow-200 dark:border-yellow-800 p-4 text-center">
             <div class="w-12 h-12 mx-auto mb-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-full flex items-center justify-center">
                 <i class="ti ti-help text-xl text-yellow-600 dark:text-yellow-400"></i>
             </div>
             <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ rsvp_summary.maybe }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Maybe</p>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 text-center">
             <div class="w-12 h-12 mx-auto mb-2 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
                 <i class="ti ti-clock text-xl text-gray-500 dark:text-gray-400"></i>
             </div>
@@ -672,7 +672,7 @@
     </div>
 
     <!-- RSVP Details Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <h2 class="font-semibold text-gray-900 dark:text-white">Player Availability</h2>
             {% if can_manage %}
@@ -742,7 +742,7 @@
 
     {% if can_manage %}
     <!-- Sub Responses Section -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <button type="button" data-action="toggle-sub-responses" class="w-full flex items-center justify-between">
                 <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -843,19 +843,19 @@
                 </label>
                 <div id="positionOptions" class="hidden ml-6 grid grid-cols-2 gap-2">
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="GK" class="text-blue-600 focus:ring-blue-500 rounded">
+                        <input type="checkbox" name="positions" value="GK" class="text-blue-600 focus:ring-blue-500 rounded-sm">
                         <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">GK <span id="gkCount" class="text-gray-500"></span></span>
                     </label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="DEF" class="text-blue-600 focus:ring-blue-500 rounded">
+                        <input type="checkbox" name="positions" value="DEF" class="text-blue-600 focus:ring-blue-500 rounded-sm">
                         <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">DEF <span id="defCount" class="text-gray-500"></span></span>
                     </label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="MID" class="text-blue-600 focus:ring-blue-500 rounded">
+                        <input type="checkbox" name="positions" value="MID" class="text-blue-600 focus:ring-blue-500 rounded-sm">
                         <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">MID <span id="midCount" class="text-gray-500"></span></span>
                     </label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="FWD" class="text-blue-600 focus:ring-blue-500 rounded">
+                        <input type="checkbox" name="positions" value="FWD" class="text-blue-600 focus:ring-blue-500 rounded-sm">
                         <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">FWD <span id="fwdCount" class="text-gray-500"></span></span>
                     </label>
                 </div>
@@ -880,15 +880,15 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Channels</label>
             <div class="flex flex-wrap gap-4">
                 <label class="flex items-center">
-                    <input type="checkbox" name="channels" value="email" checked class="text-blue-600 focus:ring-blue-500 rounded">
+                    <input type="checkbox" name="channels" value="email" checked class="text-blue-600 focus:ring-blue-500 rounded-sm">
                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-mail mr-1"></i>Email</span>
                 </label>
                 <label class="flex items-center">
-                    <input type="checkbox" name="channels" value="discord" checked class="text-blue-600 focus:ring-blue-500 rounded">
+                    <input type="checkbox" name="channels" value="discord" checked class="text-blue-600 focus:ring-blue-500 rounded-sm">
                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-brand-discord mr-1"></i>Discord</span>
                 </label>
                 <label class="flex items-center">
-                    <input type="checkbox" name="channels" value="sms" class="text-blue-600 focus:ring-blue-500 rounded">
+                    <input type="checkbox" name="channels" value="sms" class="text-blue-600 focus:ring-blue-500 rounded-sm">
                     <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-message mr-1"></i>SMS</span>
                 </label>
             </div>
@@ -917,7 +917,7 @@
                 Cancel
             </button>
             <button type="button" data-action="send-sub-request" data-match-id="{{ match.id }}"
-                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-500/50">
+                    class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-hidden focus:ring-blue-500/50">
                 <i class="ti ti-send mr-1"></i> Send Request
             </button>
         </div>
@@ -1058,8 +1058,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function populatePlayerList(players) {
         const list = document.getElementById('playerSelectList');
         list.innerHTML = players.map(p => `
-            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
-                <input type="checkbox" class="player-checkbox text-blue-600 focus:ring-blue-500 rounded" value="${p.id}">
+            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-sm cursor-pointer">
+                <input type="checkbox" class="player-checkbox text-blue-600 focus:ring-blue-500 rounded-sm" value="${p.id}">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">${p.name}</span>
             </label>
         `).join('');

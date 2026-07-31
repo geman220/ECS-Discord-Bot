@@ -137,7 +137,7 @@
                             <span class="text-sm">Choose a header-row CSV exported from your league.</span>
                         </div>
                         <input type="file" name="csv_file" id="csv_file" accept=".csv" required
-                               class="block w-full text-sm text-gray-900 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green file:mr-3 file:border-0 file:bg-ecs-green file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white">
+                               class="block w-full text-sm text-gray-900 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green file:mr-3 file:border-0 file:bg-ecs-green file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-white">
                     </div>
                     <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">First row must be column headers. Multiple date/time formats are supported.</p>
                 </div>
@@ -158,7 +158,7 @@
                     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                         <i class="ti ti-table-options text-ecs-green" aria-hidden="true"></i> Column Reference
                     </h2>
-                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ spec_cols | length }}</span>
+                    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ spec_cols | length }}</span>
                 </div>
 
                 {# Desktop table #}
@@ -175,8 +175,8 @@
                         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                             {% for name, kind, req, fmt, example in spec_cols %}
                             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                <td class="px-4 py-2.5"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">{{ name }}</code></td>
-                                <td class="px-4 py-2.5"><span class="inline-flex text-xs font-bold px-1.5 py-0.5 rounded {{ pill[kind] }}">{{ req }}</span></td>
+                                <td class="px-4 py-2.5"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-900 dark:text-gray-100">{{ name }}</code></td>
+                                <td class="px-4 py-2.5"><span class="inline-flex text-xs font-bold px-1.5 py-0.5 rounded-sm {{ pill[kind] }}">{{ req }}</span></td>
                                 <td class="px-4 py-2.5 text-gray-600 dark:text-gray-300">{{ fmt }}</td>
                                 <td class="px-4 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">{{ example }}</td>
                             </tr>
@@ -190,8 +190,8 @@
                     {% for name, kind, req, fmt, example in spec_cols %}
                     <div class="px-4 py-3">
                         <div class="flex items-center justify-between gap-2">
-                            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">{{ name }}</code>
-                            <span class="inline-flex text-xs font-bold px-1.5 py-0.5 rounded {{ pill[kind] }}">{{ req }}</span>
+                            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-900 dark:text-gray-100">{{ name }}</code>
+                            <span class="inline-flex text-xs font-bold px-1.5 py-0.5 rounded-sm {{ pill[kind] }}">{{ req }}</span>
                         </div>
                         <dl class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                             <div><span class="font-medium text-gray-700 dark:text-gray-300">Format:</span> {{ fmt }}</div>
@@ -232,7 +232,7 @@
                 <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
                     <i class="ti ti-table-options text-ecs-green" aria-hidden="true"></i>
                     <h2 class="font-semibold text-gray-900 dark:text-white">Map Columns</h2>
-                    <span data-detected-count class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">0 detected</span>
+                    <span data-detected-count class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">0 detected</span>
                 </div>
                 <div class="p-4 sm:p-5 space-y-3">
                     <p class="text-sm text-gray-500 dark:text-gray-400">We matched your file's header row to the schedule fields below. Adjust any "Maps To" selection to override the match, or set it to <span class="font-medium">Ignore</span> to skip a column. Your selections are honored on import.</p>
@@ -262,7 +262,7 @@
                 <div class="flex items-center gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
                     <i class="ti ti-eye text-ecs-green" aria-hidden="true"></i>
                     <h2 class="font-semibold text-gray-900 dark:text-white">Preview &amp; Confirm</h2>
-                    <span data-row-count class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">0 rows</span>
+                    <span data-row-count class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">0 rows</span>
                 </div>
                 <div class="p-4 sm:p-5 space-y-4">
                     <div class="flex flex-wrap gap-2 text-xs">
@@ -298,7 +298,7 @@
         <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3">
             <div class="flex items-center gap-2">
                 <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
-                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-arrow-left" aria-hidden="true"></i>Cancel
                 </a>
                 <button type="button" data-step-back
@@ -310,12 +310,12 @@
                 <p data-preview-error class="hidden text-sm text-red-600 dark:text-red-400"></p>
                 {# Step 1 -> 2/3: parse-only preview (no commit) #}
                 <button type="button" data-step-preview
-                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-eye" aria-hidden="true"></i>Preview Schedule
                 </button>
                 {# Step 3: final commit — posts the same form to the existing single-shot import route #}
                 <button type="submit" data-step-commit
-                        class="hidden inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                        class="hidden inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-upload" aria-hidden="true"></i>Import Matches
                 </button>
             </div>
@@ -424,7 +424,7 @@
                 var sample = (data.sample_values && m.field) ? (data.sample_values[m.field] || '') : '';
                 var mapped = !!m.field;
                 html += '<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">'
-                    + '<td class="px-4 py-2.5"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">' + esc(m.header) + '</code></td>'
+                    + '<td class="px-4 py-2.5"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-900 dark:text-gray-100">' + esc(m.header) + '</code></td>'
                     + '<td class="px-4 py-2.5">' + fieldSelect(m.header, m.field || '') + '</td>'
                     + '<td class="px-4 py-2.5 hidden lg:table-cell font-mono text-xs text-gray-500 dark:text-gray-400" data-sample-cell>' + esc(sample) + '</td>'
                     + '<td class="px-4 py-2.5" data-status-cell>' + statusBadge(mapped) + '</td>'
@@ -540,7 +540,7 @@
 </div>
 {% else %}
 <div class="max-w-4xl mx-auto">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-file-import mr-2"></i>Import Schedule from CSV
@@ -572,7 +572,7 @@
                         CSV File <span class="text-red-500">*</span>
                     </label>
                     <input type="file" name="csv_file" id="csv_file" accept=".csv" required
-                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
+                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-hidden dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Upload a CSV file with match schedule</p>
                 </div>
 
@@ -598,50 +598,50 @@
                                     </thead>
                                     <tbody>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Opponent</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">Yes</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Opponent</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-sm dark:bg-red-900 dark:text-red-300">Yes</span></td>
                                             <td class="px-4 py-2">Text or "Bye"</td>
                                             <td class="px-4 py-2">Ice Crushers</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Date</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">Yes</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Date</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-sm dark:bg-red-900 dark:text-red-300">Yes</span></td>
                                             <td class="px-4 py-2">M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD</td>
                                             <td class="px-4 py-2">1/7/2026</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Time</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">Required*</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Time</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-sm dark:bg-yellow-900 dark:text-yellow-300">Required*</span></td>
                                             <td class="px-4 py-2">H:MM AM/PM or HH:MM</td>
                                             <td class="px-4 py-2">8:00 PM</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Location</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Location</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Text</td>
                                             <td class="px-4 py-2">Miller Playfield</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Home or away</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Home or away</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Home/Away or Y/N</td>
                                             <td class="px-4 py-2">Away</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Shirt color</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Shirt color</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Text (your team's color)</td>
                                             <td class="px-4 py-2">Black</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Opponent shirt color</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Opponent shirt color</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Text (opponent's color)</td>
                                             <td class="px-4 py-2">White</td>
                                         </tr>
                                         <tr class="bg-white dark:bg-gray-800">
-                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">Notes</code></td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
+                                            <td class="px-4 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">Notes</code></td>
+                                            <td class="px-4 py-2"><span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">Optional</span></td>
                                             <td class="px-4 py-2">Text</td>
                                             <td class="px-4 py-2">60/40 Koed for this match</td>
                                         </tr>

@@ -18,9 +18,9 @@
 
     <!-- Status Overview Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-calendar-event text-xl"></i>
                 </div>
                 <div>
@@ -30,9 +30,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
                     <i class="ti ti-clock text-xl"></i>
                 </div>
                 <div>
@@ -44,9 +44,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
                     <i class="ti ti-check text-xl"></i>
                 </div>
                 <div>
@@ -58,9 +58,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-soccer-field text-xl"></i>
                 </div>
                 <div>
@@ -73,7 +73,7 @@
     </div>
 
     <!-- Action Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
                 <h5 class="font-semibold text-gray-900 dark:text-white">Schedule RSVP Messages</h5>
@@ -113,7 +113,7 @@
     </div>
 
     <!-- Messages Table Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h5 class="font-semibold text-gray-900 dark:text-white">Scheduled Messages</h5>
             <div class="flex items-center gap-2">
@@ -123,7 +123,7 @@
                     <span id="filterText">All Leagues</span>
                     <i class="ti ti-chevron-down ml-2"></i>
                 </button>
-                <div id="leagueFilterDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                <div id="leagueFilterDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow-sm dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                     <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
                         <li><button class="filter-league-btn w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-filter="all"><i class="ti ti-list mr-2"></i>All Leagues</button></li>
                         <li><button class="filter-league-btn w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-filter="pub_league"><i class="ti ti-soccer-field mr-2"></i>Pub League</button></li>
@@ -135,7 +135,7 @@
                 <button type="button" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-dropdown-toggle="exportDropdown">
                     <i class="ti ti-dots-vertical"></i>
                 </button>
-                <div id="exportDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                <div id="exportDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow-sm dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                     <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
                         <li><button class="export-btn w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-type="copy"><i class="ti ti-copy mr-2"></i>Copy</button></li>
                         <li><button class="export-btn w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-type="excel"><i class="ti ti-file-spreadsheet mr-2"></i>Excel</button></li>

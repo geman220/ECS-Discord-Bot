@@ -34,13 +34,13 @@
     <a href="{{ url_for('admin_panel.push_notifications') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg
               bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600
-              text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-users-group text-base" aria-hidden="true"></i><span class="hidden sm:inline">Subscribers</span>
     </a>
     <a href="{{ url_for('admin_panel.push_notifications') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-send text-base" aria-hidden="true"></i>New Notification
     </a>
   {% endcall %}
@@ -73,7 +73,7 @@
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-chart-line text-ecs-green" aria-hidden="true"></i> Send Volume
         {% if sv_default %}
-        <span data-sv-pill class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">{{ sv_default.total }} / 7d</span>
+        <span data-sv-pill class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/15 text-ecs-green">{{ sv_default.total }} / 7d</span>
         {% endif %}
       </h2>
       {% if sv_has_data %}
@@ -274,7 +274,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-bell text-ecs-green" aria-hidden="true"></i> Recent Send Log
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_notifications|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recent_notifications|length }}</span>
       </h2>
       <div class="flex items-center gap-2">
         <div class="relative flex-1 sm:flex-none">
@@ -285,7 +285,7 @@
         <button type="button" onclick="location.reload()"
                 class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg shrink-0
                        bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600
-                       text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                       text-sm font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 aria-label="Refresh send log">
           <i class="ti ti-refresh text-base" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
         </button>

@@ -58,7 +58,7 @@
       <div class="flex items-center gap-3 min-w-0">
         <span class="font-bold text-gray-900 dark:text-white truncate">{{ row.season.name }}</span>
         <span class="text-xs text-gray-400">{{ row.season.league_type }}</span>
-        {% if row.season.is_current %}<span class="text-xs px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green font-semibold">current</span>{% endif %}
+        {% if row.season.is_current %}<span class="text-xs px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green font-semibold">current</span>{% endif %}
       </div>
       {% if row.status == 'coached' %}
         {% if row.level == 'inactive' %}
@@ -99,7 +99,7 @@
               <span class="text-xs text-gray-400 font-mono">({{ t.reported_matches }}/{{ t.total_matches }} reported)</span>
             </td>
             <td class="px-3 py-2.5 text-center">
-              <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-0.5 rounded-md font-mono text-sm font-bold
+              <span class="inline-flex items-center justify-center min-w-10 px-2 py-0.5 rounded-md font-mono text-sm font-bold
                 {% if t.coach_score >= 70 %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300
                 {% elif t.coach_score >= 40 %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300
                 {% else %}bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300{% endif %}"

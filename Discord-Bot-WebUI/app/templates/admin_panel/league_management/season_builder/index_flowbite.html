@@ -43,7 +43,7 @@
                 <p class="text-xs text-gray-600 dark:text-gray-400">That's the single guided path — preview, automatic backup, teams + schedule, and Discord channel options. This page is for reviewing and editing an existing season's schedule.</p>
             </div>
             <a href="{{ url_for('admin_panel.season_rollover') }}"
-               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 text-sm font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-arrow-right" aria-hidden="true"></i> Go to Season Rollover
             </a>
         </div>
@@ -214,15 +214,15 @@
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Workspace</p>
                     <p class="text-sm font-semibold text-gray-900 dark:text-white">Build a new season or manage existing ones</p>
                 </div>
-                <button type="button" id="restartWizardBtn" class="hidden sm:inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" aria-label="Restart season wizard">
+                <button type="button" id="restartWizardBtn" class="hidden sm:inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900" aria-label="Restart season wizard">
                     <i class="ti ti-wand" aria-hidden="true"></i> Start Over
                 </button>
             </div>
             <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-gray-50 dark:bg-gray-900/40 self-start sm:self-auto" role="group" aria-label="View switcher">
-                <button type="button" id="showCreateBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <button type="button" id="showCreateBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-plus" aria-hidden="true"></i> Create New Season
                 </button>
-                <button type="button" id="showManageBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <button type="button" id="showManageBtn" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-list" aria-hidden="true"></i> Manage Existing Seasons
                 </button>
             </div>
@@ -371,7 +371,7 @@
                             <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                                 <label class="flex items-start gap-3 cursor-pointer">
                                     <input type="checkbox" id="setAsCurrent" checked
-                                           class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                           class="mt-1 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                                     <div>
                                         <p class="font-medium text-gray-900 dark:text-white">Set as current season</p>
                                         <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
@@ -620,27 +620,27 @@
                             </h5>
                             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
                                 <div class="flex items-center gap-2">
-                                    <span class="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"></span>
+                                    <span class="w-4 h-4 rounded-sm bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"></span>
                                     <span class="text-gray-600 dark:text-gray-400">REGULAR - Normal matches</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"></span>
+                                    <span class="w-4 h-4 rounded-sm bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"></span>
                                     <span class="text-gray-600 dark:text-gray-400">TST - Tournament week</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-4 h-4 rounded bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800"></span>
+                                    <span class="w-4 h-4 rounded-sm bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800"></span>
                                     <span class="text-gray-600 dark:text-gray-400">FUN - Fun activities</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-4 h-4 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></span>
+                                    <span class="w-4 h-4 rounded-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></span>
                                     <span class="text-gray-600 dark:text-gray-400">BYE - No matches</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-4 h-4 rounded bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"></span>
+                                    <span class="w-4 h-4 rounded-sm bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"></span>
                                     <span class="text-gray-600 dark:text-gray-400">PRACTICE - Practice session + matches</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="w-4 h-4 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800"></span>
+                                    <span class="w-4 h-4 rounded-sm bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800"></span>
                                     <span class="text-gray-600 dark:text-gray-400">PLAYOFF - Playoffs</span>
                                 </div>
                             </div>
@@ -707,7 +707,7 @@
                                 </div>
                                 <div class="mt-4">
                                     <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox" id="enableTimeRotation" checked class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                        <input type="checkbox" id="enableTimeRotation" checked class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                                         <div>
                                             <p class="font-medium text-gray-900 dark:text-white">Enable Time Slot Rotation</p>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">Balance teams between time slots for fairness</p>
@@ -779,7 +779,7 @@
                         <!-- Final Warning -->
                         <div class="mt-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                             <p class="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
-                                <i class="ti ti-alert-triangle flex-shrink-0 mt-0.5" aria-hidden="true"></i>
+                                <i class="ti ti-alert-triangle shrink-0 mt-0.5" aria-hidden="true"></i>
                                 <span>
                                     <strong>Ready to create?</strong> This will create teams, Discord channels/roles, and schedule entries.
                                     You can modify team names and schedules later, but deleting requires removing all related data.
@@ -792,14 +792,14 @@
 
             <!-- Wizard Footer -->
             <div class="flex justify-between items-center p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-                <button type="button" id="prevStepBtn" class="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 invisible focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="sb-prev-step">
+                <button type="button" id="prevStepBtn" class="inline-flex items-center gap-2 min-h-[44px] px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 invisible focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="sb-prev-step">
                     <i class="ti ti-chevron-left" aria-hidden="true"></i> Previous
                 </button>
                 <div class="flex items-center gap-3">
-                    <button type="button" id="nextStepBtn" class="inline-flex items-center gap-2 min-h-[44px] px-6 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:outline-none focus:ring-ecs-green/50" data-action="sb-next-step">
+                    <button type="button" id="nextStepBtn" class="inline-flex items-center gap-2 min-h-[44px] px-6 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:outline-hidden focus:ring-ecs-green/50" data-action="sb-next-step">
                         Next <i class="ti ti-chevron-right" aria-hidden="true"></i>
                     </button>
-                    <button type="button" id="createSeasonBtn" class="hidden inline-flex items-center gap-2 min-h-[44px] px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-500/50" data-action="sb-create-season">
+                    <button type="button" id="createSeasonBtn" class="hidden inline-flex items-center gap-2 min-h-[44px] px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-hidden focus:ring-green-500/50" data-action="sb-create-season">
                         <i class="ti ti-rocket" aria-hidden="true"></i> Create Season
                     </button>
                 </div>
@@ -816,7 +816,7 @@
               data-season-type expected by js-set-active (verbatim 'Pub League'/'ECS FC').
             #}
             {% macro season_row(season, accent_text, accent_bg, set_type) %}
-            <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors {{ 'bg-ecs-green/[0.03] dark:bg-ecs-green/5' if season.is_current }}">
+            <tr class="border-t border-gray-100 dark:border-gray-700/60 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors {{ 'bg-ecs-green/3 dark:bg-ecs-green/5' if season.is_current }}">
                 <td class="px-3 py-3 align-middle">
                     <div class="flex items-center gap-2 min-w-0">
                         <span class="inline-block w-1.5 h-8 rounded-full {{ accent_bg if season.is_current else 'bg-transparent' }} shrink-0" aria-hidden="true"></span>
@@ -834,7 +834,7 @@
                     {% endif %}
                 </td>
                 <td class="px-3 py-3 align-middle text-center hidden sm:table-cell">
-                    <span class="inline-flex items-center justify-center min-w-[2.5rem] px-2 py-1 text-xs font-mono font-bold {{ accent_text }} {{ accent_bg }}/10 rounded">{{ season.leagues|length }}</span>
+                    <span class="inline-flex items-center justify-center min-w-10 px-2 py-1 text-xs font-mono font-bold {{ accent_text }} {{ accent_bg }}/10 rounded-sm">{{ season.leagues|length }}</span>
                 </td>
                 <td class="px-3 py-3 align-middle">
                     {% if season.is_current %}
@@ -846,19 +846,19 @@
                 <td class="px-3 py-3 align-middle">
                     <div class="flex items-center justify-end gap-1.5">
                         <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
-                           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                             <i class="ti ti-calendar-event" aria-hidden="true"></i> <span class="hidden sm:inline">View</span>
                         </a>
                         {# Manage League: route takes a single league_id. Single-league seasons link directly; multi-league seasons expose a dropdown of their leagues. #}
                         {% if season.leagues|length == 1 %}
                         <a href="{{ url_for('auto_schedule.manage_league_season', league_id=season.leagues[0].id) }}"
-                           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Manage league for {{ season.name }}">
+                           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 focus:outline-hidden focus:ring-2 focus:ring-blue-500" aria-label="Manage league for {{ season.name }}">
                             <i class="ti ti-calendar-cog" aria-hidden="true"></i> <span class="hidden lg:inline">Manage</span>
                         </a>
                         {% elif season.leagues|length > 1 %}
                         <div class="relative">
                             <button type="button" id="manageLeagueBtn-{{ season.id }}" data-dropdown-toggle="manageLeagueMenu-{{ season.id }}"
-                                    class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 focus:outline-none focus:ring-2 focus:ring-blue-500" aria-label="Manage a league in {{ season.name }}">
+                                    class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 focus:outline-hidden focus:ring-2 focus:ring-blue-500" aria-label="Manage a league in {{ season.name }}">
                                 <i class="ti ti-calendar-cog" aria-hidden="true"></i> <span class="hidden lg:inline">Manage</span> <i class="ti ti-chevron-down text-xs" aria-hidden="true"></i>
                             </button>
                             <div id="manageLeagueMenu-{{ season.id }}" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-20">
@@ -871,18 +871,18 @@
                         </div>
                         {% endif %}
                         {% if not season.is_current %}
-                        <button type="button" class="js-set-active inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button type="button" class="js-set-active inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 data-season-id="{{ season.id }}" data-season-type="{{ set_type }}">
                             <i class="ti ti-star" aria-hidden="true"></i> <span class="hidden sm:inline">Set Current</span>
                         </button>
                         {% endif %}
                         {% if current_user.has_role('Global Admin') %}
-                        <button type="button" class="js-recreate-discord inline-flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/40 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        <button type="button" class="js-recreate-discord inline-flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/40 focus:outline-hidden focus:ring-2 focus:ring-amber-500"
                                 data-season-id="{{ season.id }}" data-season-name="{{ season.name }}" aria-label="Recreate Discord resources for {{ season.name }}" title="Recreate Discord Resources">
                             <i class="ti ti-brand-discord" aria-hidden="true"></i>
                         </button>
                         {% endif %}
-                        <button type="button" class="js-delete-season inline-flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        <button type="button" class="js-delete-season inline-flex items-center justify-center gap-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                                 data-season-id="{{ season.id }}" data-season-name="{{ season.name }}" aria-label="Delete {{ season.name }}">
                             <i class="ti ti-trash" aria-hidden="true"></i>
                         </button>
@@ -896,7 +896,7 @@
                 <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                         <i class="ti ti-trophy text-ecs-green" aria-hidden="true"></i> Pub League Seasons
-                        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ pub_count }}</span>
+                        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">{{ pub_count }}</span>
                     </h2>
                     {% if current_pub_season %}<span class="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-ecs-green"><i class="ti ti-circle-check" aria-hidden="true"></i> {{ current_pub_season.name }}</span>{% endif %}
                 </div>
@@ -929,7 +929,7 @@
                 <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
                         <i class="ti ti-shield text-blue-600 dark:text-blue-400" aria-hidden="true"></i> ECS FC Seasons
-                        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{{ ecs_count }}</span>
+                        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">{{ ecs_count }}</span>
                     </h2>
                     {% if current_ecs_season %}<span class="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400"><i class="ti ti-circle-check" aria-hidden="true"></i> {{ current_ecs_season.name }}</span>{% endif %}
                 </div>
@@ -1097,7 +1097,7 @@
                         <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                             <label class="flex items-start gap-3 cursor-pointer">
                                 <input type="checkbox" id="setAsCurrent" checked
-                                       class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                       class="mt-1 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                                 <div>
                                     <p class="font-medium text-gray-900 dark:text-white">Set as current season</p>
                                     <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
@@ -1125,7 +1125,7 @@
                     <!-- Pub League Teams -->
                     <div id="pubLeagueTeamsSection" class="space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="bg-gradient-to-br from-ecs-green/5 to-ecs-green/10 border border-ecs-green/20 rounded-xl p-6">
+                            <div class="bg-linear-to-br from-ecs-green/5 to-ecs-green/10 border border-ecs-green/20 rounded-xl p-6">
                                 <div class="flex items-center gap-3 mb-4">
                                     <div class="w-10 h-10 bg-ecs-green rounded-full flex items-center justify-center">
                                         <i class="ti ti-trophy text-white"></i>
@@ -1144,7 +1144,7 @@
                                 </p>
                             </div>
 
-                            <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+                            <div class="bg-linear-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
                                 <div class="flex items-center gap-3 mb-4">
                                     <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
                                         <i class="ti ti-shield text-white"></i>
@@ -1166,7 +1166,7 @@
 
                     <!-- ECS FC Teams -->
                     <div id="ecsFcTeamsSection" class="hidden">
-                        <div class="max-w-md mx-auto bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-6">
+                        <div class="max-w-md mx-auto bg-linear-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-6">
                             <div class="flex items-center gap-3 mb-4">
                                 <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
                                     <i class="ti ti-users text-white"></i>
@@ -1346,27 +1346,27 @@
                         </h5>
                         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
                             <div class="flex items-center gap-2">
-                                <span class="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"></span>
+                                <span class="w-4 h-4 rounded-sm bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"></span>
                                 <span class="text-gray-600 dark:text-gray-400">REGULAR - Normal matches</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"></span>
+                                <span class="w-4 h-4 rounded-sm bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"></span>
                                 <span class="text-gray-600 dark:text-gray-400">TST - Tournament week</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="w-4 h-4 rounded bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800"></span>
+                                <span class="w-4 h-4 rounded-sm bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800"></span>
                                 <span class="text-gray-600 dark:text-gray-400">FUN - Fun activities</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="w-4 h-4 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></span>
+                                <span class="w-4 h-4 rounded-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></span>
                                 <span class="text-gray-600 dark:text-gray-400">BYE - No matches</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="w-4 h-4 rounded bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"></span>
+                                <span class="w-4 h-4 rounded-sm bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"></span>
                                 <span class="text-gray-600 dark:text-gray-400">PRACTICE - Practice session + matches</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="w-4 h-4 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800"></span>
+                                <span class="w-4 h-4 rounded-sm bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800"></span>
                                 <span class="text-gray-600 dark:text-gray-400">PLAYOFF - Playoffs</span>
                             </div>
                         </div>
@@ -1433,7 +1433,7 @@
                             </div>
                             <div class="mt-4">
                                 <label class="flex items-center gap-3 cursor-pointer">
-                                    <input type="checkbox" id="enableTimeRotation" checked class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                    <input type="checkbox" id="enableTimeRotation" checked class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                                     <div>
                                         <p class="font-medium text-gray-900 dark:text-white">Enable Time Slot Rotation</p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">Balance teams between time slots for fairness</p>
@@ -1505,7 +1505,7 @@
                     <!-- Final Warning -->
                     <div class="mt-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
                         <p class="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
-                            <i class="ti ti-alert-triangle flex-shrink-0 mt-0.5"></i>
+                            <i class="ti ti-alert-triangle shrink-0 mt-0.5"></i>
                             <span>
                                 <strong>Ready to create?</strong> This will create teams, Discord channels/roles, and schedule entries.
                                 You can modify team names and schedules later, but deleting requires removing all related data.
@@ -1522,10 +1522,10 @@
                 <i class="ti ti-chevron-left"></i> Previous
             </button>
             <div class="flex items-center gap-3">
-                <button type="button" id="nextStepBtn" class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 focus:ring-4 focus:outline-none focus:ring-ecs-green/50" data-action="sb-next-step">
+                <button type="button" id="nextStepBtn" class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 focus:ring-4 focus:outline-hidden focus:ring-ecs-green/50" data-action="sb-next-step">
                     Next <i class="ti ti-chevron-right"></i>
                 </button>
-                <button type="button" id="createSeasonBtn" class="hidden inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-500/50" data-action="sb-create-season">
+                <button type="button" id="createSeasonBtn" class="hidden inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-hidden focus:ring-green-500/50" data-action="sb-create-season">
                     <i class="ti ti-rocket"></i> Create Season
                 </button>
             </div>
@@ -1551,7 +1551,7 @@
                             </h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Pub League</p>
                         </div>
-                        <span class="px-2 py-1 text-xs bg-ecs-green/10 text-ecs-green rounded">{{ season.leagues|length }} leagues</span>
+                        <span class="px-2 py-1 text-xs bg-ecs-green/10 text-ecs-green rounded-sm">{{ season.leagues|length }} leagues</span>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
@@ -1584,7 +1584,7 @@
                             </h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400">ECS FC</p>
                         </div>
-                        <span class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">{{ season.leagues|length }} leagues</span>
+                        <span class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-sm">{{ season.leagues|length }} leagues</span>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"

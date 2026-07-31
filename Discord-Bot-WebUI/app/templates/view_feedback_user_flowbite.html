@@ -82,7 +82,7 @@
         <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
           <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
             <i class="ti ti-messages text-ecs-green" aria-hidden="true"></i>Conversation
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ reply_count }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ reply_count }}</span>
           </h2>
         </div>
 
@@ -90,7 +90,7 @@
         <ul role="list" class="divide-y divide-gray-100 dark:divide-gray-700/60">
           {% for reply in feedback.replies %}
           <li class="flex gap-3 px-4 sm:px-5 py-4">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-mono text-sm font-bold {% if reply.is_admin_reply %}bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% endif %}">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-mono text-sm font-bold {% if reply.is_admin_reply %}bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400{% else %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% endif %}">
               {% if reply.is_admin_reply %}A{% else %}{{ feedback.name[0]|upper if feedback.name else 'U' }}{% endif %}
             </div>
             <div class="flex-1 min-w-0">
@@ -99,7 +99,7 @@
                   {% if reply.is_admin_reply %}Admin Response{% else %}Your Response{% endif %}
                 </span>
                 {% if reply.is_admin_reply %}
-                <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300">Staff</span>
+                <span class="inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300">Staff</span>
                 {% endif %}
                 <span class="ml-auto text-xs font-mono text-gray-400 dark:text-gray-500">{{ reply.created_at.strftime('%b %d, %Y · %I:%M %p') }}</span>
               </div>
@@ -126,7 +126,7 @@
             </div>
             <div class="flex flex-wrap items-center gap-3">
               <button type="submit"
-                      class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                      class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-send" aria-hidden="true"></i>
                 Send Reply
               </button>
@@ -137,7 +137,7 @@
           <form method="POST" action="{{ url_for('feedback.close_feedback', feedback_id=feedback.id) }}" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit"
-                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-x-circle" aria-hidden="true"></i>
               Close Feedback
             </button>
@@ -171,19 +171,19 @@
           </div>
           <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
             <dt class="text-gray-500 dark:text-gray-400">Status</dt>
-            <dd><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium {{ sm.pill }}"><span class="w-1.5 h-1.5 rounded-full {{ sm.dot }}"></span>{{ feedback.status }}</span></dd>
+            <dd><span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-sm text-xs font-medium {{ sm.pill }}"><span class="w-1.5 h-1.5 rounded-full {{ sm.dot }}"></span>{{ feedback.status }}</span></dd>
           </div>
           <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
             <dt class="text-gray-500 dark:text-gray-400">Priority</dt>
-            <dd><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ pm.pill }}">{{ feedback.priority }}</span></dd>
+            <dd><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ pm.pill }}">{{ feedback.priority }}</span></dd>
           </div>
           <div class="flex justify-between gap-2 px-4 sm:px-5 py-2.5">
             <dt class="text-gray-500 dark:text-gray-400">Source</dt>
             <dd>
               {% if feedback.source == 'app' %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green-100 dark:bg-ecs-green-900/30 text-ecs-green-700 dark:text-ecs-green-300"><i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>App</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green-100 dark:bg-ecs-green-900/30 text-ecs-green-700 dark:text-ecs-green-300"><i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>App</span>
               {% else %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"><i class="ti ti-world text-xs" aria-hidden="true"></i>Web</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"><i class="ti ti-world text-xs" aria-hidden="true"></i>Web</span>
               {% endif %}
             </dd>
           </div>
@@ -257,15 +257,15 @@
         <!-- Main Content -->
         <div class="lg:col-span-3 space-y-6">
             <!-- Feedback Card -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80 flex items-center justify-between">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-green to-ecs-green/80 flex items-center justify-between">
                     <h2 class="text-lg font-bold text-white">{{ feedback.title }}</h2>
                     {% if feedback.status == 'Open' %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-white text-ecs-green">{{ feedback.status }}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-white text-ecs-green">{{ feedback.status }}</span>
                     {% elif feedback.status == 'In Progress' %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-white text-blue-600">{{ feedback.status }}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-white text-blue-600">{{ feedback.status }}</span>
                     {% elif feedback.status == 'Closed' %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-white text-gray-600">{{ feedback.status }}</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-white text-gray-600">{{ feedback.status }}</span>
                     {% endif %}
                 </div>
                 <div class="p-6">
@@ -275,7 +275,7 @@
             </div>
 
             <!-- Conversation Section -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-messages text-ecs-green"></i>
@@ -287,7 +287,7 @@
                     <div class="space-y-4">
                         {% for reply in feedback.replies %}
                         <div class="flex gap-3">
-                            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 {% if reply.is_admin_reply %}bg-red-100 dark:bg-red-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %}">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 {% if reply.is_admin_reply %}bg-red-100 dark:bg-red-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %}">
                                 <span class="text-sm font-medium {% if reply.is_admin_reply %}text-red-600 dark:text-red-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
                                     {% if reply.is_admin_reply %}A{% else %}{{ feedback.name[0]|upper if feedback.name else 'U' }}{% endif %}
                                 </span>
@@ -321,7 +321,7 @@
                         <form method="POST" action="{{ url_for('feedback.view_feedback', feedback_id=feedback.id) }}">
                             {{ form.hidden_tag() }}
                             <div class="mb-4">
-                                {{ form.content(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", rows="4", placeholder="Enter your reply here...") }}
+                                {{ form.content(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green", rows="4", placeholder="Enter your reply here...") }}
                                 {% for error in form.content.errors %}
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
                                 {% endfor %}
@@ -348,7 +348,7 @@
                     </div>
                     {% else %}
                     <div class="mt-6 flex items-start gap-3 p-4 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <i class="ti ti-lock text-xl flex-shrink-0 mt-0.5"></i>
+                        <i class="ti ti-lock text-xl shrink-0 mt-0.5"></i>
                         <div>
                             <h6 class="font-semibold">This feedback is closed</h6>
                             <p class="text-sm">No further replies can be added.</p>
@@ -362,7 +362,7 @@
         <!-- Sidebar -->
         <div class="space-y-6">
             <!-- Details Card -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-info-circle text-ecs-green"></i>
@@ -379,11 +379,11 @@
                             <dt class="text-gray-500 dark:text-gray-400">Status:</dt>
                             <dd>
                                 {% if feedback.status == 'Open' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ feedback.status }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ feedback.status }}</span>
                                 {% elif feedback.status == 'In Progress' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300">{{ feedback.status }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300">{{ feedback.status }}</span>
                                 {% elif feedback.status == 'Closed' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
                                 {% endif %}
                             </dd>
                         </div>
@@ -391,11 +391,11 @@
                             <dt class="text-gray-500 dark:text-gray-400">Priority:</dt>
                             <dd>
                                 {% if feedback.priority == 'Low' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ feedback.priority }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ feedback.priority }}</span>
                                 {% elif feedback.priority == 'Medium' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300">{{ feedback.priority }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300">{{ feedback.priority }}</span>
                                 {% elif feedback.priority == 'High' %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ feedback.priority }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ feedback.priority }}</span>
                                 {% endif %}
                             </dd>
                         </div>
@@ -403,11 +403,11 @@
                             <dt class="text-gray-500 dark:text-gray-400">Source:</dt>
                             <dd>
                                 {% if feedback.source == 'app' %}
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green-100 dark:bg-ecs-green-900/30 text-ecs-green-700 dark:text-ecs-green-300">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green-100 dark:bg-ecs-green-900/30 text-ecs-green-700 dark:text-ecs-green-300">
                                     <i class="ti ti-device-mobile text-xs"></i>App
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                                     <i class="ti ti-world text-xs"></i>Web
                                 </span>
                                 {% endif %}
@@ -426,7 +426,7 @@
             </div>
 
             <!-- Activity Timeline -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-timeline text-ecs-green"></i>

@@ -59,7 +59,7 @@
             <svg class="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
             {% endif %}
         </div>
-        <div class="flex-grow">
+        <div class="grow">
             <h6 class="font-semibold text-gray-900 dark:text-white">
                 {% if current_step == 'certificates' %}
                 Step 1 of 5: Upload Signing Certificates
@@ -103,7 +103,7 @@
     </div>
 
     <!-- Main Wizard Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <!-- Step Indicator -->
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <ol class="flex items-center w-full text-sm font-medium text-center text-gray-500 dark:text-gray-400 sm:text-base">
@@ -122,7 +122,7 @@
                 {% set is_done = step_index < current_index or (wallet_config.progress and wallet_config.progress.get(step.id)) %}
                 {% set is_active = step.id == current_step %}
 
-                <li class="flex md:w-full items-center {% if not loop.last %}after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mx-4 xl:after:mx-6 dark:after:border-gray-700{% endif %}">
+                <li class="flex md:w-full items-center {% if not loop.last %}after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border after:hidden sm:after:inline-block after:mx-4 xl:after:mx-6 dark:after:border-gray-700{% endif %}">
                     <a href="{{ url_for('wallet_config.setup_wizard', step=step.id) }}" class="flex items-center {% if is_active %}text-blue-600 dark:text-blue-500{% elif is_done %}text-green-600 dark:text-green-500{% endif %}">
                         <span class="flex items-center justify-center w-8 h-8 me-2 text-xs border rounded-full shrink-0 {% if is_active %}border-blue-600 dark:border-blue-500{% elif is_done %}border-green-600 dark:border-green-500 bg-green-100 dark:bg-green-900{% else %}border-gray-300 dark:border-gray-600{% endif %}">
                             {% if is_done and not is_active %}
@@ -146,7 +146,7 @@
             {% if not self.wizard_certificates_flowbite %}
             <div class="space-y-6">
                 <div class="flex items-center p-4 rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
                         <h6 class="font-semibold">Why Certificates Are Needed</h6>
                         <p class="text-sm">Digital wallet passes require cryptographic signing to be recognized as valid by Apple and Google. You'll need to upload the certificate files provided by Apple Developer and Google Cloud.</p>
@@ -163,12 +163,12 @@
                                 Apple Wallet
                             </h6>
                             {% if step_data.apple_certs and ('certificate' in step_data.apple_certs and 'key' in step_data.apple_certs and 'wwdr' in step_data.apple_certs) %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                 Ready
                             </span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 Incomplete
                             </span>
@@ -209,7 +209,7 @@
                                 <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
                                 Google Wallet
                             </h6>
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Optional</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Optional</span>
                         </div>
                         <ul class="space-y-2 text-sm">
                             <li class="flex justify-between items-center py-2">
@@ -266,7 +266,7 @@
 
                                     <div>
                                         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Certificate File</label>
-                                        <input type="file" name="certificate_file" required accept=".p12,.pem,.cer,.crt" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600">
+                                        <input type="file" name="certificate_file" required accept=".p12,.pem,.cer,.crt" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-hidden dark:bg-gray-700 dark:border-gray-600">
                                     </div>
 
                                     <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
@@ -309,7 +309,7 @@
                             </div>
                             <div>
                                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">APNs Key File (.p8)</label>
-                                <input type="file" name="certificate_file" required accept=".p8" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
+                                <input type="file" name="certificate_file" required accept=".p8" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-hidden dark:bg-gray-600 dark:border-gray-500">
                             </div>
                             <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -327,7 +327,7 @@
             <div class="space-y-6">
                 {% if step_data.pass_types_missing %}
                 <div class="flex items-center p-4 rounded-lg bg-yellow-50 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <div>
                         <h6 class="font-semibold">Pass Types Not Initialized</h6>
                         <p class="text-sm mb-2">Before uploading assets, you need to initialize the pass types.</p>
@@ -344,7 +344,7 @@
                 </div>
                 {% else %}
                 <div class="flex items-center p-4 rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
                         <h6 class="font-semibold">Cross-Platform Assets</h6>
                         <p class="text-sm">Assets you upload here are used for both iOS and Android wallet passes. Upload once for both platforms.</p>
@@ -359,9 +359,9 @@
                             <h6 class="font-semibold text-gray-900 dark:text-white">ECS Membership Assets</h6>
                             {% set ecs_complete = 'icon' in step_data.ecs_assets and 'logo' in step_data.ecs_assets %}
                             {% if ecs_complete %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Complete</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Complete</span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Incomplete</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Incomplete</span>
                             {% endif %}
                         </div>
                         <ul class="space-y-2 text-sm">
@@ -390,9 +390,9 @@
                             <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Assets</h6>
                             {% set pub_complete = 'icon' in step_data.pub_assets and 'logo' in step_data.pub_assets %}
                             {% if pub_complete %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Complete</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Complete</span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Incomplete</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Incomplete</span>
                             {% endif %}
                         </div>
                         <ul class="space-y-2 text-sm">
@@ -450,7 +450,7 @@
 
                         <div>
                             <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Image File</label>
-                            <input type="file" name="asset_file" required accept="image/*" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
+                            <input type="file" name="asset_file" required accept="image/*" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-hidden dark:bg-gray-600 dark:border-gray-500">
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">PNG format recommended for transparency support</p>
                         </div>
 
@@ -468,7 +468,7 @@
             <div class="space-y-6">
                 {% if step_data.pass_types_missing %}
                 <div class="flex items-center p-4 rounded-lg bg-yellow-50 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <div>
                         <h6 class="font-semibold">Pass Types Not Initialized</h6>
                         <p class="text-sm mb-2">Initialize pass types first to configure templates.</p>
@@ -482,7 +482,7 @@
                 </div>
                 {% else %}
                 <div class="flex items-center p-4 rounded-lg bg-green-50 text-green-800 dark:bg-green-900/50 dark:text-green-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
                         <h6 class="font-semibold">Single Source of Truth</h6>
                         <p class="text-sm">When you create a pass, both iOS and Android versions are generated from the same data.</p>
@@ -496,9 +496,9 @@
                         <div class="flex justify-between items-center mb-4">
                             <h6 class="font-semibold text-gray-900 dark:text-white">ECS Membership Templates</h6>
                             {% if step_data.ecs_templates %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Configured</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Configured</span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Missing</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Missing</span>
                             {% endif %}
                         </div>
                         {% if step_data.ecs_templates %}
@@ -507,7 +507,7 @@
                             <li class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600 last:border-0">
                                 <span class="text-gray-700 dark:text-gray-300">{{ template.name }}</span>
                                 {% if template.is_default %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Default</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Default</span>
                                 {% endif %}
                             </li>
                             {% endfor %}
@@ -534,9 +534,9 @@
                         <div class="flex justify-between items-center mb-4">
                             <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Templates</h6>
                             {% if step_data.pub_templates %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Configured</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Configured</span>
                             {% else %}
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Missing</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Missing</span>
                             {% endif %}
                         </div>
                         {% if step_data.pub_templates %}
@@ -545,7 +545,7 @@
                             <li class="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-600 last:border-0">
                                 <span class="text-gray-700 dark:text-gray-300">{{ template.name }}</span>
                                 {% if template.is_default %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Default</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Default</span>
                                 {% endif %}
                             </li>
                             {% endfor %}
@@ -574,7 +574,7 @@
             <!-- TESTING STEP -->
             <div class="space-y-6">
                 <div class="flex items-center p-4 rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <div>
                         <h6 class="font-semibold">Test Your Configuration</h6>
                         <p class="text-sm">Generate a test pass to verify everything is working correctly before issuing to members.</p>
@@ -615,7 +615,7 @@
             <!-- WOOCOMMERCE STEP -->
             <div class="space-y-6">
                 <div class="flex items-center p-4 rounded-lg bg-purple-50 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">
-                    <svg class="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <svg class="w-5 h-5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                     <div>
                         <h6 class="font-semibold">WooCommerce Integration</h6>
                         <p class="text-sm">Connect your WooCommerce store so purchases automatically generate wallet passes.</p>
@@ -640,7 +640,7 @@
 
                         <p class="text-sm text-gray-600 dark:text-gray-400">
                             Your webhook endpoint: <br>
-                            <code class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded">{{ request.host_url }}api/v1/wallet/webhook</code>
+                            <code class="text-xs bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded-sm">{{ request.host_url }}api/v1/wallet/webhook</code>
                         </p>
                     </div>
 

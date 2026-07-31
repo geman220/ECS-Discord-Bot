@@ -33,11 +33,11 @@
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-500 dark:text-gray-400">Type</span>
-                        <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">{{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded-sm">{{ wallet_pass.pass_type.name if wallet_pass.pass_type else 'Membership' }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-500 dark:text-gray-400">Validity</span>
-                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">{{ wallet_pass.display_validity }}</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">{{ wallet_pass.display_validity }}</span>
                     </div>
                     {% if wallet_pass.team_name %}
                     <div class="flex justify-between items-center">
@@ -69,7 +69,7 @@
             <!-- iOS Safari Warning (hidden by default) -->
             <div id="safari-warning" class="hidden p-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-700 dark:text-yellow-400 dark:border-yellow-800 text-left mb-6">
                 <div class="flex items-start">
-                    <i class="ti ti-alert-triangle mr-3 flex-shrink-0"></i>
+                    <i class="ti ti-alert-triangle mr-3 shrink-0"></i>
                     <div>
                         <strong class="block mb-1">Safari Required for Apple Wallet</strong>
                         <p class="mb-3">Apple Wallet passes can only be added from Safari on iOS. Please copy this link and open it in Safari.</p>

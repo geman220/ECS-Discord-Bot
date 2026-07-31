@@ -37,8 +37,8 @@
       <button type="button" data-copy="{{ m.url }}" class="w-full text-left text-xs text-gray-500 dark:text-gray-400 truncate hover:text-ecs-green" title="Click to copy URL">{{ m.filename }}</button>
       <form method="POST" action="{{ url_for('admin_panel.public_site_media_save', asset_id=m.id) }}" class="flex gap-1">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="text" name="alt_text" value="{{ m.alt_text or '' }}" placeholder="Alt text" class="flex-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-xs text-gray-900 dark:text-white">
-        <button type="submit" class="rounded bg-gray-100 dark:bg-gray-700 px-2 text-xs hover:bg-gray-200 dark:hover:bg-gray-600" title="Save alt text"><i class="ti ti-check"></i></button>
+        <input type="text" name="alt_text" value="{{ m.alt_text or '' }}" placeholder="Alt text" class="flex-1 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-2 py-1 text-xs text-gray-900 dark:text-white">
+        <button type="submit" class="rounded-sm bg-gray-100 dark:bg-gray-700 px-2 text-xs hover:bg-gray-200 dark:hover:bg-gray-600" title="Save alt text"><i class="ti ti-check"></i></button>
       </form>
       <div class="flex items-center justify-between">
         <label class="text-xs text-ecs-green hover:underline cursor-pointer" title="Replace this image everywhere it's used, keeping the same address">

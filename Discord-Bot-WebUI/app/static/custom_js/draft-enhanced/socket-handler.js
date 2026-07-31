@@ -203,7 +203,7 @@ function addPlayerToTeamSidebar(player, teamId, teamName) {
             <div class="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1 min-w-0"><span class="truncate min-w-0">${escAttr(player.name)}</span>${nadShield}</div>
             <div class="text-xs text-gray-500 dark:text-gray-400">${escAttr(position)}</div>
         </div>
-        <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+        <button class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm"
                 data-action="remove-player"
                 data-target-player-id="${escAttr(player.id)}"
                 data-team-id="${escAttr(teamId)}"
@@ -326,35 +326,35 @@ function addPlayerBackToAvailable(player) {
     // Name-row badges (prev draft pick / ref / new / admin)
     let nameBadges = '';
     if (player.prev_draft_position) {
-        nameBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mono bg-blue-600 text-white shrink-0" title="Last season draft pick #${player.prev_draft_position}">#${player.prev_draft_position}</span>`;
+        nameBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold mono bg-blue-600 text-white shrink-0" title="Last season draft pick #${player.prev_draft_position}">#${player.prev_draft_position}</span>`;
     }
     if (player.is_ref) {
-        nameBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500 text-white shrink-0">REF</span>`;
+        nameBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-red-500 text-white shrink-0">REF</span>`;
     }
     if (player.is_new) {
-        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>`;
+        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300 shrink-0" title="Brand new — no prior team history"><i class="ti ti-sparkles text-[9px]"></i>NEW</span>`;
     }
     // Scouting-notes badge — only present for NADs with notes (server-gated). Click the card to read them.
     if (player.scouting_note_count && player.scouting_note_count > 0) {
         const _n = player.scouting_note_count;
-        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shrink-0" title="${_n} scouting note${_n === 1 ? '' : 's'} — click to view"><i class="ti ti-notes text-[9px]"></i>${_n}</span>`;
+        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shrink-0" title="${_n} scouting note${_n === 1 ? '' : 's'} — click to view"><i class="ti ti-notes text-[9px]"></i>${_n}</span>`;
     }
     if (player.is_admin) {
-        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>`;
+        nameBadges += `<span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300 shrink-0" title="Admin"><i class="ti ti-shield-check text-[9px]"></i>ADMIN</span>`;
     }
 
     // Position pills (primary green / alt orange / avoid red)
     let positionBadges = '';
     if (position && position !== 'Any') {
-        positionBadges = `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700"><i class="ti ti-star-filled mr-0.5 text-[9px]"></i>${esc(fmtPos(position))}</span>`;
+        positionBadges = `<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700"><i class="ti ti-star-filled mr-0.5 text-[9px]"></i>${esc(fmtPos(position))}</span>`;
     } else {
-        positionBadges = `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Any</span>`;
+        positionBadges = `<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Any</span>`;
     }
     if (player.other_positions) {
         player.other_positions.replace(/[{}]/g, '').split(',').forEach((pos) => {
             const cleanPos = pos.trim();
             if (cleanPos && cleanPos !== position) {
-                positionBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">${esc(fmtPos(cleanPos))}</span>`;
+                positionBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">${esc(fmtPos(cleanPos))}</span>`;
             }
         });
     }
@@ -362,7 +362,7 @@ function addPlayerBackToAvailable(player) {
         player.positions_not_to_play.replace(/[{}]/g, '').split(',').forEach((pos) => {
             const cleanPos = pos.trim();
             if (cleanPos) {
-                positionBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700"><i class="ti ti-x mr-0.5 text-[9px]"></i>${esc(fmtPos(cleanPos))}</span>`;
+                positionBadges += `<span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700"><i class="ti ti-x mr-0.5 text-[9px]"></i>${esc(fmtPos(cleanPos))}</span>`;
             }
         });
     }
@@ -409,11 +409,11 @@ function addPlayerBackToAvailable(player) {
         </div>
 
         <div class="flex items-center gap-1.5 shrink-0 lg:w-[150px] lg:justify-end">
-            <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                     data-action="draft-player" data-target-player-id="${player.id}" data-player-name="${esc(player.name)}">
                 <i class="ti ti-user-plus"></i><span class="hidden sm:inline">Draft</span>
             </button>
-            <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="view-player-profile" data-target-player-id="${player.id}" aria-label="More info on ${esc(player.name)}">
                 <i class="ti ti-info-circle"></i>
             </button>

@@ -57,7 +57,7 @@
     <a href="{{ url_for('draft_predictions.admin_dashboard', season_id=season.id) }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-arrow-left text-sm" aria-hidden="true"></i> Back to Dashboard
     </a>
 {% endcall %}
@@ -74,7 +74,7 @@
         </div>
         {% if top_pick %}
         <a href="{% if top_pick.prediction_count > 0 %}{{ url_for('draft_predictions.admin_player_detail', player_id=top_pick.player.id, season_id=season.id, league_type=league_type) }}{% endif %}"
-           class="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <div class="shrink-0 w-12 h-12 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden ring-2 {{ 'ring-ecs-green/40' if is_premier else 'ring-blue-400/40' }}">
                 {% if top_pick.player.profile_picture_url %}
                 <img src="{{ top_pick.player.profile_picture_url }}" alt="{{ top_pick.player.name }}" class="w-12 h-12 rounded-full object-cover">
@@ -155,7 +155,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
             <i class="ti ti-list-numbers {{ accent_text }}" aria-hidden="true"></i> Draft Board
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ player_data|length }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ player_data|length }}</span>
         </h2>
         <div class="relative flex-1 sm:flex-none sm:w-64 min-w-[180px]">
             <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
@@ -197,7 +197,7 @@
                 </td>
             </tr>
             {% endif %}
-            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if item.avg_round and loop.index <= 3 %}bg-gradient-to-r {{ 'from-ecs-green/[0.04]' if is_premier else 'from-blue-500/[0.04]' }} to-transparent{% endif %}" data-player-name="{{ item.player.name|lower }}">
+            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if item.avg_round and loop.index <= 3 %}bg-linear-to-r {{ 'from-ecs-green/4' if is_premier else 'from-blue-500/4' }} to-transparent{% endif %}" data-player-name="{{ item.player.name|lower }}">
                 <td class="px-3 py-3 text-center">
                     {% if item.avg_round %}
                         {% if loop.index <= 3 %}
@@ -211,7 +211,7 @@
                 </td>
                 <td class="px-3 py-3">
                     <div class="flex items-center gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
+                        <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
                             {% if item.player.profile_picture_url %}
                             <img src="{{ item.player.profile_picture_url }}" alt="{{ item.player.name }}" class="w-8 h-8 rounded-full object-cover">
                             {% else %}
@@ -228,7 +228,7 @@
                 </td>
                 <td class="px-3 py-3 hidden lg:table-cell">
                     {% if item.player.favorite_position %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position|format_position }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position|format_position }}</span>
                     {% else %}
                     <span class="text-gray-400 dark:text-gray-500">-</span>
                     {% endif %}
@@ -273,7 +273,7 @@
                 <td class="px-3 py-3 text-right">
                     {% if item.prediction_count > 0 %}
                     <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=item.player.id, season_id=season.id, league_type=league_type) }}"
-                       class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-ecs-green border border-gray-200 dark:border-gray-600 hover:border-ecs-green/40 bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-ecs-green border border-gray-200 dark:border-gray-600 hover:border-ecs-green/40 bg-white dark:bg-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-400 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                        aria-label="View predictions for {{ item.player.name }}">
                         <i class="ti ti-eye" aria-hidden="true"></i>
                     </a>
@@ -290,7 +290,7 @@
         {% for item in player_data %}
         {% set detail_url = url_for('draft_predictions.admin_player_detail', player_id=item.player.id, season_id=season.id, league_type=league_type) if item.prediction_count > 0 else None %}
         <a {% if detail_url %}href="{{ detail_url }}"{% endif %} data-player-name="{{ item.player.name|lower }}"
-           class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+           class="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <div class="shrink-0 w-9 text-center">
                 {% if item.avg_round %}
                 <span class="inline-flex items-center justify-center w-7 h-7 rounded-md text-sm font-mono font-bold {{ ('bg-ecs-green/15 text-ecs-green' if is_premier else 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400') if loop.index <= 3 else 'text-gray-500 dark:text-gray-400' }}">{{ loop.index }}</span>
@@ -331,7 +331,7 @@
 
 {% else %}
 <!-- Header -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap justify-between items-center gap-4">
         <div>
             <h4 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
@@ -348,7 +348,7 @@
 </div>
 
 <!-- Players Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-users mr-2 text-gray-400"></i>Player Predictions
@@ -388,7 +388,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center">
-                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3 overflow-hidden">
+                            <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3 overflow-hidden">
                                 {% if item.player.profile_picture_url %}
                                 <img src="{{ item.player.profile_picture_url }}" alt="{{ item.player.name }}" class="w-8 h-8 rounded-full object-cover">
                                 {% else %}
@@ -405,7 +405,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if item.player.favorite_position %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position|format_position }}</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position|format_position }}</span>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}
@@ -434,7 +434,7 @@
                     <td class="px-4 py-3">
                         {% if item.prediction_count > 0 %}
                         <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=item.player.id, season_id=season.id, league_type=league_type) }}"
-                           class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
+                           class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded-sm hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800">
                             <i class="ti ti-eye"></i>
                         </a>
                         {% endif %}

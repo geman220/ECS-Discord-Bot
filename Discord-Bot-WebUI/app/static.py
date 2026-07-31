@@ -8,11 +8,16 @@ are served by Flask's own built-in /static route. The live cache-control policy 
 in app/compression.py::init_compression (which IS called, via app/assets.py). Change it
 there, not here.
 
-Two things to fix BEFORE ever enabling this module:
+Three things to fix BEFORE ever enabling this module:
   1. `@cache_static_file()` is `cache.memoize(timeout=86400)` keyed only on the
      filename — it is request-insensitive, so it would replay a memoized 200-with-body
      for 24h and never emit a 304.
   2. Confirm the Cache-Control policy below still matches compression.py's.
+  3. `Flask-Caching` is NOT in requirements.txt and never has been, so the
+     `app.database.cache` import on line 28 would ImportError the moment this module
+     is imported. Add the dependency first. Nothing catches that today only because
+     nothing imports this file; `app.database.cache.init_cache()` has no callers
+     either, so the `cache` object is never even initialized.
 
 Kept because it has the correct secure path-traversal handling, and someone clearly
 intended to use it.

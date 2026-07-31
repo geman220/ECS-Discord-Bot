@@ -54,9 +54,9 @@ export function displayQueueStatus(data) {
             const stateColor = getTaskStatusColorTailwind(task.state);
             html += `
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                    <td class="px-3 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${task.task_id.substring(0, 8)}...</code></td>
+                    <td class="px-3 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">${task.task_id.substring(0, 8)}...</code></td>
                     <td class="px-3 py-2 text-gray-900 dark:text-white">${task.name || 'Unknown'}</td>
-                    <td class="px-3 py-2"><span class="px-2 py-0.5 text-xs font-medium rounded ${stateColor}" data-task-state="${task.state}">${task.state}</span></td>
+                    <td class="px-3 py-2"><span class="px-2 py-0.5 text-xs font-medium rounded-sm ${stateColor}" data-task-state="${task.state}">${task.state}</span></td>
                     <td class="px-3 py-2">${task.worker || 'Unknown'}</td>
                     <td class="px-3 py-2">${task.eta ? formatTaskETA(task.eta) : 'N/A'}</td>
                 </tr>
@@ -75,7 +75,7 @@ export function displayQueueStatus(data) {
         data.scheduled_tasks.forEach(task => {
             html += `
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
-                    <td class="px-3 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${task.task_id.substring(0, 8)}...</code></td>
+                    <td class="px-3 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">${task.task_id.substring(0, 8)}...</code></td>
                     <td class="px-3 py-2 text-gray-900 dark:text-white">${task.name || 'Unknown'}</td>
                     <td class="px-3 py-2">${task.eta ? formatScheduledTime(task.eta) : 'N/A'}</td>
                 </tr>

@@ -97,7 +97,7 @@
                    target="_blank"
                    rel="noopener noreferrer"
                    id="discord-join-btn"
-                   class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-[#5865F2] text-white font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                   class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-[#5865F2] text-white font-semibold hover:bg-[#4752c4] transition-colors focus:outline-hidden focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-brand-discord text-xl" aria-hidden="true"></i>
                     Join Discord Server
                 </a>
@@ -164,12 +164,12 @@
     <!-- ===== COMMAND TOOLBAR ===== -->
     <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-3">
         <a href="{{ url_for('main.index') }}"
-           class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+           class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-home" aria-hidden="true"></i>
             Go to Dashboard
         </a>
         <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
-           class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+           class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-user" aria-hidden="true"></i>
             View Profile
         </a>
@@ -178,9 +178,9 @@
 {% else %}
 <div class="container mx-auto px-4 py-8 max-w-3xl">
     <!-- Confirmation Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 p-6">
+        <div class="bg-linear-to-r from-ecs-green to-ecs-green/80 p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold text-white">Waitlist Registration Confirmed</h1>
@@ -196,7 +196,7 @@
         <div class="p-6">
             <!-- Success Message -->
             <div class="flex items-center gap-4 p-4 mb-6 bg-green-50 dark:bg-green-900/30 rounded-xl border border-green-200 dark:border-green-800">
-                <div class="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                <div class="shrink-0 w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                     <i class="ti ti-check-circle text-2xl text-green-600 dark:text-green-400"></i>
                 </div>
                 <div>
@@ -210,7 +210,7 @@
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-4">What Happens Next?</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                             <i class="ti ti-bell text-blue-600 dark:text-blue-400"></i>
                         </div>
                         <div>
@@ -219,7 +219,7 @@
                         </div>
                     </div>
                     <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                             <i class="ti ti-clock text-purple-600 dark:text-purple-400"></i>
                         </div>
                         <div>
@@ -228,7 +228,7 @@
                         </div>
                     </div>
                     <div class="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                        <div class="shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                             <i class="ti ti-user-plus text-green-600 dark:text-green-400"></i>
                         </div>
                         <div>
@@ -242,7 +242,7 @@
             <!-- Discord CTA -->
             <div id="discord-info-card" class="bg-[#5865F2]/10 dark:bg-[#5865F2]/20 rounded-xl p-6 mb-6 border border-[#5865F2]/30">
                 <div class="flex items-start gap-4">
-                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[#5865F2] flex items-center justify-center">
+                    <div class="shrink-0 w-12 h-12 rounded-full bg-[#5865F2] flex items-center justify-center">
                         <i class="ti ti-brand-discord text-2xl text-white"></i>
                     </div>
                     <div class="flex-1">

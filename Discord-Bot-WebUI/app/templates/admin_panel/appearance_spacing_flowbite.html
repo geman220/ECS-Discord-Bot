@@ -135,7 +135,7 @@
                         {% for seg in range(seg_count) %}
                         {% set on = seg < cur_seg %}
                         {% set is_base = (seg == base_seg) %}
-                        <span class="flex-1 h-3 rounded-sm
+                        <span class="flex-1 h-3 rounded-xs
                                      {{ 'bg-ecs-green' if on else 'bg-gray-100 dark:bg-gray-700' }}
                                      {{ 'ring-2 ring-ecs-gold-500 dark:ring-ecs-gold-400' if is_base else '' }}"
                               aria-hidden="true"></span>
@@ -196,7 +196,7 @@
             {% set px = (step * unit_px) | round(1) %}
             <li class="flex items-center gap-3 px-4 sm:px-5 py-2.5">
                 <span class="font-mono text-xs text-gray-400 dark:text-gray-500 w-12 shrink-0">{{ rem }}rem</span>
-                <span class="h-2.5 rounded bg-ecs-green/70 dark:bg-ecs-green/60 shrink-0 {{ bar_w[step] }}" aria-hidden="true"></span>
+                <span class="h-2.5 rounded-sm bg-ecs-green/70 dark:bg-ecs-green/60 shrink-0 {{ bar_w[step] }}" aria-hidden="true"></span>
                 <span class="font-mono text-sm font-bold text-gray-900 dark:text-white ml-auto">{{ px }}px</span>
             </li>
             {% endfor %}
@@ -271,7 +271,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-ruler-2 text-theme-primary"></i>
             <span>Current Spacing</span>

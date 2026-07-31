@@ -14,7 +14,7 @@
         <a href="{{ url_for('main.index') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700
                   text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-arrow-left" aria-hidden="true"></i> Home
         </a>
     {% endcall %}
@@ -133,7 +133,7 @@
                                class="peer sr-only">
                         <div class="cursor-pointer min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-3.5 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
                                     peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30
-                                    peer-checked:text-green-600 dark:peer-checked:text-green-400 peer-checked:shadow-sm
+                                    peer-checked:text-green-600 dark:peer-checked:text-green-400 peer-checked:shadow-xs
                                     peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
                             <span class="inline-flex items-center gap-1.5 text-sm font-semibold"><i class="ti ti-circle-check text-lg" aria-hidden="true"></i> Yes</span>
                             <span class="text-[11px] uppercase tracking-wide opacity-70">I'm in</span>
@@ -145,7 +145,7 @@
                                class="peer sr-only">
                         <div class="cursor-pointer min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-3.5 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
                                     peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30
-                                    peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400 peer-checked:shadow-sm
+                                    peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400 peer-checked:shadow-xs
                                     peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
                             <span class="inline-flex items-center gap-1.5 text-sm font-semibold"><i class="ti ti-help-circle text-lg" aria-hidden="true"></i> Maybe</span>
                             <span class="text-[11px] uppercase tracking-wide opacity-70">Tentative</span>
@@ -157,7 +157,7 @@
                                class="peer sr-only">
                         <div class="cursor-pointer min-h-[44px] flex flex-col items-center justify-center gap-0.5 py-3.5 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
                                     peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30
-                                    peer-checked:text-red-600 dark:peer-checked:text-red-400 peer-checked:shadow-sm
+                                    peer-checked:text-red-600 dark:peer-checked:text-red-400 peer-checked:shadow-xs
                                     peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
                             <span class="inline-flex items-center gap-1.5 text-sm font-semibold"><i class="ti ti-circle-x text-lg" aria-hidden="true"></i> No</span>
                             <span class="text-[11px] uppercase tracking-wide opacity-70">Can't make it</span>
@@ -185,7 +185,7 @@
 
         <button type="submit"
                 class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-6 py-3 rounded-lg bg-ecs-green text-white font-semibold
-                       hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                       hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-send" aria-hidden="true"></i>
             {{ 'Update RSVP' if existing_rsvp else 'Submit RSVP' }}
         </button>
@@ -203,8 +203,8 @@
     </div>
 
     <!-- Match Info Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-green to-ecs-green/80">
             <h3 class="font-bold text-white text-lg">
                 {% if match.opponent %}
                     {{ match.team.name }} vs {{ match.opponent.name }}
@@ -249,7 +249,7 @@
     <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}" class="space-y-6">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Will you be able to attend this match?</h4>
 
             <div class="flex flex-wrap gap-2">
@@ -287,7 +287,7 @@
         </div>
 
         <!-- Notes (optional) -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6">
             <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Notes (optional)
             </label>

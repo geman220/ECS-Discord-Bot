@@ -30,10 +30,10 @@
       <span class="inline-flex items-center gap-1"><i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i><span class="font-mono font-bold">{{ fb_app }}</span> app</span>
     </span>
     <a href="{{ url_for('admin.admin_reports') }}#fbQueue"
-       class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+       class="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-inbox" aria-hidden="true"></i>
       Work Queue
-      {% if fb_active %}<span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20">{{ fb_active }}</span>{% endif %}
+      {% if fb_active %}<span class="font-mono font-bold px-1.5 py-0.5 rounded-sm bg-white/20">{{ fb_active }}</span>{% endif %}
     </a>
   {% endcall %}
 
@@ -93,7 +93,7 @@
           <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
             <i class="ti ti-chart-donut text-ecs-green" aria-hidden="true"></i> By Category
           </h2>
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fb_total }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fb_total }}</span>
         </div>
         {% if feedbacks %}
         <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
@@ -143,11 +143,11 @@
       <div class="flex items-center justify-between gap-2">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-message-report text-ecs-green" aria-hidden="true"></i> Feedback Queue
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fb_total }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ fb_total }}</span>
         </h2>
         {% if has_filters %}
         <a href="{{ url_for('admin.admin_reports') }}"
-           class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center gap-1 h-8 px-2.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-x" aria-hidden="true"></i> Clear
         </a>
         {% endif %}
@@ -183,7 +183,7 @@
           <th scope="col" class="px-3 py-2.5 font-semibold">Ticket</th>
           <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">Category</th>
           <th scope="col" class="px-3 py-2.5 font-semibold">
-            <a href="{{ url_for('admin.admin_reports', sort_by='priority', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <a href="{{ url_for('admin.admin_reports', sort_by='priority', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
               Priority
               {% if request.args.get('sort_by') == 'priority' %}
               <i class="ti ti-arrow-{% if request.args.get('order') == 'asc' %}up{% else %}down{% endif %} text-xs text-ecs-green" aria-hidden="true"></i>
@@ -191,7 +191,7 @@
             </a>
           </th>
           <th scope="col" class="px-3 py-2.5 font-semibold">
-            <a href="{{ url_for('admin.admin_reports', sort_by='status', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <a href="{{ url_for('admin.admin_reports', sort_by='status', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
               Status
               {% if request.args.get('sort_by') == 'status' %}
               <i class="ti ti-arrow-{% if request.args.get('order') == 'asc' %}up{% else %}down{% endif %} text-xs text-ecs-green" aria-hidden="true"></i>
@@ -200,7 +200,7 @@
           </th>
           <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">Submitted By</th>
           <th scope="col" class="px-3 py-2.5 font-semibold hidden lg:table-cell">
-            <a href="{{ url_for('admin.admin_reports', sort_by='created_at', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <a href="{{ url_for('admin.admin_reports', sort_by='created_at', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
               Date
               {% if request.args.get('sort_by') == 'created_at' %}
               <i class="ti ti-arrow-{% if request.args.get('order') == 'asc' %}up{% else %}down{% endif %} text-xs text-ecs-green" aria-hidden="true"></i>
@@ -227,7 +227,7 @@
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3 align-top font-mono font-medium text-gray-900 dark:text-white whitespace-nowrap">#{{ feedback.id }}</td>
           <td class="px-3 py-3 align-top">
-            <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="block max-w-md text-gray-900 dark:text-white font-medium hover:text-ecs-green focus:outline-none focus:underline truncate">{{ feedback.title }}</a>
+            <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}" class="block max-w-md text-gray-900 dark:text-white font-medium hover:text-ecs-green focus:outline-hidden focus:underline truncate">{{ feedback.title }}</a>
             <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
               {% if feedback.source %}
               <span class="inline-flex items-center gap-1"><i class="ti ti-{% if feedback.source == 'app' %}device-mobile{% else %}world{% endif %} text-[11px]" aria-hidden="true"></i>{{ feedback.source }}</span>
@@ -240,22 +240,22 @@
           <td class="px-3 py-3 align-top text-gray-600 dark:text-gray-300 hidden lg:table-cell whitespace-nowrap">{{ feedback.category }}</td>
           <td class="px-3 py-3 align-top">
             {% if feedback.priority == 'Low' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
             {% elif feedback.priority == 'Medium' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"><i class="ti ti-equal text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"><i class="ti ti-equal text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
             {% elif feedback.priority == 'High' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"><i class="ti ti-arrow-up text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"><i class="ti ti-arrow-up text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
             {% else %}
             {{ feedback.priority }}
             {% endif %}
           </td>
           <td class="px-3 py-3 align-top">
             {% if feedback.status == 'Open' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
             {% elif feedback.status == 'In Progress' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"><i class="ti ti-progress text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"><i class="ti ti-progress text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
             {% elif feedback.status == 'Closed' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"><i class="ti ti-circle-check text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"><i class="ti ti-circle-check text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
             {% else %}
             {{ feedback.status }}
             {% endif %}
@@ -274,7 +274,7 @@
           </td>
           <td class="px-3 py-3 align-top text-right">
             <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}"
-               class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+               class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-edit text-sm" aria-hidden="true"></i>
               View
             </a>
@@ -289,7 +289,7 @@
     <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
       {% for feedback in feedbacks %}
       <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}"
-         class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+         class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
         <div class="flex items-center justify-between gap-2">
           <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ feedback.title }}</span>
           <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
@@ -297,18 +297,18 @@
         <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span class="font-mono text-xs text-gray-500 dark:text-gray-400">#{{ feedback.id }}</span>
           {% if feedback.priority == 'Low' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
           {% elif feedback.priority == 'Medium' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"><i class="ti ti-equal text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"><i class="ti ti-equal text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
           {% elif feedback.priority == 'High' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"><i class="ti ti-arrow-up text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"><i class="ti ti-arrow-up text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
           {% endif %}
           {% if feedback.status == 'Open' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
           {% elif feedback.status == 'In Progress' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"><i class="ti ti-progress text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"><i class="ti ti-progress text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
           {% elif feedback.status == 'Closed' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"><i class="ti ti-circle-check text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"><i class="ti ti-circle-check text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
           {% endif %}
         </div>
         <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
@@ -340,7 +340,7 @@
         <div>
             <label for="filterStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
             <select id="filterStatus"
-                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <option value="">All Statuses</option>
                 <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
                 <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
@@ -350,7 +350,7 @@
         <div>
             <label for="filterPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
             <select id="filterPriority"
-                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <option value="">All Priorities</option>
                 <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
                 <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>
@@ -360,7 +360,7 @@
     </div>
 
     <!-- Reports Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
             <h2 class="font-semibold text-gray-900 dark:text-white">Feedback Reports</h2>
         </div>
@@ -409,22 +409,22 @@
                         </td>
                         <td class="px-4 py-3">
                             {% if feedback.priority == 'Low' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ feedback.priority }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">{{ feedback.priority }}</span>
                             {% elif feedback.priority == 'Medium' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300">{{ feedback.priority }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300">{{ feedback.priority }}</span>
                             {% elif feedback.priority == 'High' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ feedback.priority }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ feedback.priority }}</span>
                             {% else %}
                             {{ feedback.priority }}
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
                             {% if feedback.status == 'Open' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ feedback.status }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">{{ feedback.status }}</span>
                             {% elif feedback.status == 'In Progress' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300">{{ feedback.status }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300">{{ feedback.status }}</span>
                             {% elif feedback.status == 'Closed' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300">{{ feedback.status }}</span>
                             {% else %}
                             {{ feedback.status }}
                             {% endif %}

@@ -98,7 +98,7 @@
 
             <!-- Waitlist Notice -->
             <div class="flex items-start gap-3 p-4 mb-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                <i class="ti ti-clock text-yellow-500 flex-shrink-0 mt-0.5"></i>
+                <i class="ti ti-clock text-yellow-500 shrink-0 mt-0.5"></i>
                 <div>
                     <h4 class="font-medium text-yellow-800 dark:text-yellow-300">You're Joining the Waitlist</h4>
                     <p class="text-sm text-yellow-700 dark:text-yellow-400">All spots for the current season are filled, but you'll be first in line for future openings!</p>
@@ -107,7 +107,7 @@
 
             <!-- Discord Account Info -->
             <div class="flex items-start gap-3 p-4 mb-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
-                <i class="ti ti-brand-discord text-indigo-500 flex-shrink-0 mt-0.5"></i>
+                <i class="ti ti-brand-discord text-indigo-500 shrink-0 mt-0.5"></i>
                 <div>
                     <h4 class="font-medium text-indigo-800 dark:text-indigo-300">Discord Connected</h4>
                     <p class="text-sm text-indigo-700 dark:text-indigo-400 font-medium">{{ discord_username }}</p>
@@ -150,7 +150,7 @@
             </h3>
 
             <div class="space-y-3">
-                <label class="flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green dark:hover:border-ecs-green cursor-pointer transition-colors has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5">
+                <label class="flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green dark:hover:border-ecs-green cursor-pointer transition-colors has-checked:border-ecs-green has-checked:bg-ecs-green/5">
                     <input type="radio" name="preferred_league" value="pub_league_classic" required
                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 mt-0.5">
                     <div class="ml-3">
@@ -159,7 +159,7 @@
                     </div>
                 </label>
 
-                <label class="flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green dark:hover:border-ecs-green cursor-pointer transition-colors has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5">
+                <label class="flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green dark:hover:border-ecs-green cursor-pointer transition-colors has-checked:border-ecs-green has-checked:bg-ecs-green/5">
                     <input type="radio" name="preferred_league" value="pub_league_premier"
                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 mt-0.5">
                     <div class="ml-3">
@@ -168,7 +168,7 @@
                     </div>
                 </label>
 
-                <label class="flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green dark:hover:border-ecs-green cursor-pointer transition-colors has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5">
+                <label class="flex items-start p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green dark:hover:border-ecs-green cursor-pointer transition-colors has-checked:border-ecs-green has-checked:bg-ecs-green/5">
                     <input type="radio" name="preferred_league" value="not_sure"
                            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 mt-0.5">
                     <div class="ml-3">
@@ -266,7 +266,7 @@
             <!-- Subbing Checkbox -->
             <div class="flex items-center mb-4">
                 <input type="checkbox" id="waitlist-subbing" name="available_for_subbing" value="true" checked
-                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 <label for="waitlist-subbing" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     I'm interested in substitute opportunities while on the waitlist
                 </label>
@@ -302,7 +302,7 @@
             <!-- Terms Agreement Checkbox -->
             <div class="flex items-start mb-6">
                 <input type="checkbox" id="terms-agreement" name="terms_agreement" required
-                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 mt-0.5">
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 mt-0.5">
                 <label for="terms-agreement" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     I agree to the ECS FC terms, liability waiver, and code of conduct <span class="text-red-500">*</span>
                 </label>

@@ -768,7 +768,7 @@ function createPresetCard(preset) {
     const badgeLabel = preset.is_default ? 'Default' : preset.is_system ? 'System' : null;
     if (badgeLabel) {
         const badge = document.createElement('span');
-        badge.className = 'absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded';
+        badge.className = 'absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-sm';
         badge.textContent = badgeLabel;
         card.appendChild(badge);
     }

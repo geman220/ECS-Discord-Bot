@@ -133,7 +133,7 @@ function filterNeeds(league) {
         const on = b.dataset.league === league;
         b.classList.toggle('bg-white', on);
         b.classList.toggle('text-gray-900', on);
-        b.classList.toggle('shadow-sm', on);
+        b.classList.toggle('shadow-xs', on);
         b.classList.toggle('dark:bg-gray-700', on);
         b.classList.toggle('dark:text-white', on);
     });
@@ -149,7 +149,7 @@ function _poolBtnActive(selector, key, value) {
         const on = b.dataset[key] === value;
         b.classList.toggle('bg-white', on);
         b.classList.toggle('text-gray-900', on);
-        b.classList.toggle('shadow-sm', on);
+        b.classList.toggle('shadow-xs', on);
         b.classList.toggle('dark:bg-gray-700', on);
         b.classList.toggle('dark:text-white', on);
     });
@@ -192,7 +192,7 @@ function avatar(url, name, size) {
 
 function candidateRow(c, ctx) {
     const conflict = c.conflict
-        ? `<span class="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-500/15 dark:text-red-300 px-1.5 py-0.5 rounded"><i class="ti ti-alert-triangle"></i>plays this team</span>` : '';
+        ? `<span class="inline-flex items-center gap-0.5 text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-500/15 dark:text-red-300 px-1.5 py-0.5 rounded-sm"><i class="ti ti-alert-triangle"></i>plays this team</span>` : '';
     const slots = (c.time_slots && c.time_slots.length) ? c.time_slots.join(', ') : (c.is_available ? 'available' : '');
     const rr = Math.round(c.response_rate || 0);
     // Soft signals — never hide a sub, just annotate fit + load for balance.
@@ -645,7 +645,7 @@ function renderReachPicker() {
         return !q || hay.indexOf(q) !== -1;
     }).map(m => `
       <label class="flex items-center gap-2.5 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
-        <input type="checkbox" name="sct-recipient" value="${esc(m.player_id)}" class="rounded text-ecs-green focus:ring-ecs-green">
+        <input type="checkbox" name="sct-recipient" value="${esc(m.player_id)}" class="rounded-sm text-ecs-green focus:ring-ecs-green">
         <span class="text-sm text-gray-700 dark:text-gray-300">${esc(m.name)}</span>
         ${m.positions ? `<span class="text-[11px] text-gray-400">${esc(m.positions)}</span>` : ''}
       </label>`).join('') || '<div class="px-3 py-4 text-xs text-gray-400 text-center">No subs in this league\'s pool.</div>';
@@ -1203,8 +1203,8 @@ async function loadRolesOnInit() {
         }
         box.innerHTML = roles.map(r => {
             const checked = selected.indexOf(String(r.id)) !== -1 ? 'checked' : '';
-            return `<label class="inline-flex items-center gap-2 px-1.5 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600/50 cursor-pointer">
-                <input type="checkbox" value="${esc(r.id)}" ${checked} class="rounded text-ecs-green focus:ring-ecs-green">
+            return `<label class="inline-flex items-center gap-2 px-1.5 py-1 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600/50 cursor-pointer">
+                <input type="checkbox" value="${esc(r.id)}" ${checked} class="rounded-sm text-ecs-green focus:ring-ecs-green">
                 <span class="text-sm text-gray-700 dark:text-gray-300 truncate">${esc(r.name)}</span></label>`;
         }).join('');
     } catch (e) {

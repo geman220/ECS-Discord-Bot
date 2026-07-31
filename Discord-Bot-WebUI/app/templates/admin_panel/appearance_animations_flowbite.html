@@ -137,7 +137,7 @@
               {% for step in speed_scale %}
               <label class="flex-1 sm:flex-none">
                 <input type="radio" name="anim-speed" value="{{ step }}" class="sr-only peer" {{ 'checked' if step == animations.speed else '' }} aria-label="{{ step | capitalize }} speed">
-                <span class="flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-md text-sm font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-900 dark:hover:text-white peer-checked:bg-ecs-green peer-checked:text-white peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green/40">
+                <span class="flex items-center justify-center gap-1.5 px-3.5 h-9 rounded-md text-sm font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-900 dark:hover:text-white peer-checked:bg-ecs-green peer-checked:text-white peer-checked:shadow-xs peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green/40">
                   <i class="ti {{ speed_icons[step] }}" aria-hidden="true"></i>{{ step | capitalize }}
                 </span>
               </label>
@@ -186,9 +186,9 @@
             <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400">{{ 'enabled' if default_animations.enabled else 'disabled' }}</td>
             <td class="px-4 sm:px-5 py-3 text-right">
               {% if motion_custom %}
-                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
               {% else %}
-                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Default</span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Default</span>
               {% endif %}
             </td>
           </tr>
@@ -200,9 +200,9 @@
             <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400">{{ default_animations.speed }}</td>
             <td class="px-4 sm:px-5 py-3 text-right">
               {% if speed_custom %}
-                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Custom</span>
               {% else %}
-                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Default</span>
+                <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-equal text-[11px]" aria-hidden="true"></i> Default</span>
               {% endif %}
             </td>
           </tr>
@@ -355,7 +355,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-wand text-theme-primary"></i>
             <span>Current Animations</span>

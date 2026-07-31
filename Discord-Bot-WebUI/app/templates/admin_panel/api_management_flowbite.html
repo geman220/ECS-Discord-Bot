@@ -32,11 +32,11 @@
   {% call page_header('Service Health', subtitle='API integrations · security · configuration') %}
     {# Drill-downs (these used to be separate top-nav links; reachable here now) #}
     <a href="{{ url_for('admin_panel.api_analytics') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-chart-line" aria-hidden="true"></i>Analytics
     </a>
     <a href="{{ url_for('admin_panel.api_endpoints') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-plug" aria-hidden="true"></i>Endpoints
     </a>
   {% endcall %}
@@ -93,7 +93,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-plug text-ecs-green" aria-hidden="true"></i> External Integrations
-        {% if integrations %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ integrations|length }}</span>{% endif %}
+        {% if integrations %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ integrations|length }}</span>{% endif %}
       </h2>
     </div>
 
@@ -104,13 +104,13 @@
         <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
         <input type="text" id="integrationSearch" aria-label="Search integrations" placeholder="Search services..."
                class="w-full min-h-[44px] sm:min-h-0 sm:h-9 pl-9 pr-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                      text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green" />
+                      text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:border-ecs-green" />
       </div>
       <div class="flex items-center gap-2">
         <label for="integrationStatusFilter" class="sr-only">Filter by status</label>
         <select id="integrationStatusFilter"
                 class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                       text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+                       text-sm text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
           <option value="">All statuses</option>
           <option value="healthy">Healthy</option>
           <option value="warning">Warning</option>
@@ -198,7 +198,7 @@
         <div class="space-y-2">
           <button type="button" data-action="access-logs"
                   class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
-                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green text-left">
             <span class="flex items-center gap-3">
               <i class="ti ti-file-text text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
               <span class="text-gray-900 dark:text-white font-medium">Access Logs</span>
@@ -226,7 +226,7 @@
 {% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.active_integrations or 0 }}</h3>
@@ -237,7 +237,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.api_calls_today or 0 }}</h3>
@@ -248,7 +248,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.failed_requests or 0 }}</h3>
@@ -259,7 +259,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.response_time_avg or '0ms' }}</h3>
@@ -273,7 +273,7 @@
 </div>
 
 <!-- External Integrations -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-plug mr-2"></i>External Integrations
@@ -319,7 +319,7 @@
 <!-- API Management Grid -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- API Keys & Security -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-key mr-2"></i>API Keys & Security
@@ -354,7 +354,7 @@
     </div>
 
     <!-- API Analytics -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-chart-dots mr-2"></i>API Analytics
@@ -397,7 +397,7 @@
 </div>
 
 <!-- Documentation & Tools -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-book mr-2"></i>API Documentation & Tools
