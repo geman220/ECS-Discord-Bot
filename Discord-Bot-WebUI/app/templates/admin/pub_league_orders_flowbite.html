@@ -213,13 +213,122 @@
         </div>
     </div>
 
+    {# ── Money in ────────────────────────────────────────────────────────────
+       Absent entirely (revenue is None) until sql_pub_league_order_revenue.sql
+       has been run, since the columns behind it do not exist yet — an admin
+       should see no revenue section rather than a confident $0.00.
+
+       Every figure honours the SAME filters as the table below, so picking
+       Summer Sprint in the Division select reloads these to Summer Sprint
+       money. The numbers count up and the bars grow on load, which is what
+       makes a filter change read as the figures moving to their new values.
+
+       ⚠️ This lives in the `shell == 'console'` branch. The classic shell has
+       its OWN copy further down; a panel added to only one branch silently does
+       not exist for anyone using the other. #}
+    {% if revenue %}
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
+        <!-- Hero: money actually collected -->
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex flex-col">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Money In</span>
+                <i class="ti ti-cash text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+            </div>
+            <div class="mt-3 flex items-end gap-2">
+                <span class="font-mono text-5xl font-bold leading-none text-ecs-green"
+                      data-countup="{{ revenue.paid }}" data-countup-prefix="{{ revenue.symbol }}">{{ revenue.symbol }}{{ revenue.paid_display }}</span>
+            </div>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                {{ revenue.priced }} pass{{ 'es' if revenue.priced != 1 else '' }} sold
+                {%- if revenue.avg_display %} · {{ revenue.symbol }}{{ revenue.avg_display }} avg{% endif %}
+            </p>
+            <div class="mt-4 grid grid-cols-2 divide-x divide-gray-200 dark:divide-gray-700 border-t border-gray-200 dark:border-gray-700 pt-3 -mx-1">
+                <div class="px-1">
+                    <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Discounts</span>
+                    <span class="block font-mono text-xl font-bold text-blue-600 dark:text-blue-400"
+                          data-countup="{{ revenue.discount }}" data-countup-prefix="{{ revenue.symbol }}">{{ revenue.symbol }}{{ revenue.discount_display }}</span>
+                </div>
+                <div class="px-1">
+                    <span class="block text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Refunded</span>
+                    <span class="block font-mono text-xl font-bold {{ 'text-red-600 dark:text-red-400' if revenue.refunds else 'text-gray-400 dark:text-gray-500' }}"
+                          data-countup="{{ revenue.refunds }}" data-countup-prefix="{{ revenue.symbol }}">{{ revenue.symbol }}{{ revenue.refunds_display }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Per-league breakdown -->
+        <div class="xl:col-span-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 flex flex-col">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">By League</span>
+                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        Paid after any member discount · excludes tax, shipping and cancelled orders
+                        {%- if revenue.currency and revenue.currency != 'USD' %} · {{ revenue.currency }}{% endif %}
+                    </p>
+                </div>
+                {% if revenue.refunds %}
+                <span class="text-xs font-mono text-gray-500 dark:text-gray-400">net {{ revenue.symbol }}{{ revenue.net_display }}</span>
+                {% endif %}
+            </div>
+
+            {# An unpriced pass sums as $0, so a partly-backfilled table would
+               under-report and simply look like a weak season. Say so loudly. #}
+            {% if revenue.unpriced %}
+            <div class="mt-3 flex items-start gap-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3">
+                <i class="ti ti-alert-triangle text-lg shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                <p class="text-sm text-amber-800 dark:text-amber-300">
+                    <span class="font-semibold">{{ revenue.unpriced }}</span> of {{ revenue.passes }} passes have no price recorded, so these totals are LOW.
+                    Run <code class="font-mono text-xs px-1 rounded-sm bg-amber-100 dark:bg-amber-900/40">flask backfill-order-revenue</code>.
+                </p>
+            </div>
+            {% endif %}
+
+            {% if revenue.divisions %}
+            <div class="mt-4 space-y-3">
+                {% for d in revenue.divisions %}
+                <div>
+                    <div class="flex items-baseline justify-between gap-2 mb-1">
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                            {{ d.division }}
+                            {%- if d.unpriced %}
+                            <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400" aria-hidden="true"
+                               title="{{ d.unpriced }} pass(es) here have no price recorded, so this total is low"></i>
+                            {%- endif %}
+                        </span>
+                        <span class="shrink-0 flex items-baseline gap-2">
+                            <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400">{{ d.passes }} pass{{ 'es' if d.passes != 1 else '' }}</span>
+                            <span class="font-mono text-sm font-bold text-gray-900 dark:text-white"
+                                  data-countup="{{ d.paid }}" data-countup-prefix="{{ revenue.symbol }}">{{ revenue.symbol }}{{ d.paid_display }}</span>
+                        </span>
+                    </div>
+                    <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+                        <div class="h-full rounded-full bg-ecs-green transition-all duration-700 ease-out motion-reduce:transition-none"
+                             style="width: 0%" data-bar-pct="{{ d.pct }}"
+                             role="img" aria-label="{{ d.division }}: {{ revenue.symbol }}{{ d.paid_display }}"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">No priced passes match these filters.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Filters + Orders -->
     {% set table_footer %}
         {% if orders and orders.items %}Showing {{ orders.items|length }} of {{ orders.total }} order{{ '' if orders.total == 1 else 's' }}{% endif %}
     {% endset %}
     {% call data_table("Orders", icon="ti-list-details", count=(orders.total if orders else None), filters=False, footer=table_footer) %}
         <!-- Filters -->
-        <div class="flex flex-col md:flex-row gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        {# Filters and actions are deliberately SEPARATE rows. They used to share
+           one non-wrapping flex row; every button added to it stole width from
+           the selects, and at eight children "All Statuses" rendered as
+           "All Statuse:" and the season select as "Current Se:". Splitting them
+           means a future button costs nothing but a wrap. #}
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 space-y-3">
+          <div class="flex flex-col md:flex-row gap-3">
             <form method="get" class="flex-1 flex gap-2">
                 <input type="hidden" name="status" value="{{ status_filter }}">
                 <input type="hidden" name="season" value="{{ season_filter }}">
@@ -271,6 +380,9 @@
                     <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' else '' }}>Cancelled</option>
                 </select>
             </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
             <div class="flex items-center">
                 <a href="{{ url_for('pub_league_orders_admin.export_order_emails', status=status_filter, search=search or None, season=season_filter, division=division_filter) }}"
                    title="Download a CSV of customer emails and their ordered jersey sizes for the orders matching the current filters"
@@ -312,6 +424,7 @@
                 </a>
             </div>
             {% endif %}
+          </div>
         </div>
 
         {% if orders and orders.items %}
@@ -952,6 +1065,60 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // ── Revenue figures: count up, bars grow ────────────────────────────────
+    // The filters reload the page, so the server has already rendered the new
+    // numbers. Animating from 0 on load is what makes "filter to Summer Sprint"
+    // read as the figures MOVING to their new values rather than just blinking.
+    //
+    // The final text is rendered server-side and only ever REPLACED by the
+    // animation, so if this script fails the correct figures are already on
+    // screen. Never render the money client-side.
+    (function animateRevenue() {
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        document.querySelectorAll('[data-bar-pct]').forEach(function(bar) {
+            const pct = parseFloat(bar.dataset.barPct) || 0;
+            if (reduced) { bar.style.width = pct + '%'; return; }
+            // Next frame, so the browser paints width:0 first and the
+            // transition actually runs instead of snapping to the end.
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() { bar.style.width = pct + '%'; });
+            });
+        });
+
+        const money = function(v, prefix) {
+            return prefix + v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        document.querySelectorAll('[data-countup]').forEach(function(el) {
+            const target = parseFloat(el.dataset.countup);
+            const prefix = el.dataset.countupPrefix || '';
+            // A non-numeric or zero target has nothing to animate; leave the
+            // server-rendered text exactly as it is.
+            if (!isFinite(target) || target === 0 || reduced) return;
+
+            const DURATION = 650;
+            let start = null;
+            function step(ts) {
+                if (start === null) start = ts;
+                const p = Math.min((ts - start) / DURATION, 1);
+                // easeOutCubic — fast then settling, so the final value is
+                // legible rather than whipping past.
+                el.textContent = money(target * (1 - Math.pow(1 - p, 3)), prefix);
+                if (p < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    // Land on the SERVER's string, not a re-derived one, so
+                    // rounding here can never disagree with the CSV export.
+                    el.textContent = prefix + target.toLocaleString(undefined,
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            }
+            el.textContent = money(0, prefix);
+            requestAnimationFrame(step);
+        });
+    })();
 
     // Status filter change
     const statusFilter = document.getElementById('statusFilter');

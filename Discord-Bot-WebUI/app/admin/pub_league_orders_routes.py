@@ -583,6 +583,15 @@ def _revenue_stats(filters):
 
     divisions.sort(key=lambda d: d['paid'], reverse=True)
 
+    # Bar width as a share of the BIGGEST league, not of the total: the chart is
+    # a comparison between leagues, and scaling to the total would leave every
+    # bar a stub whenever one program dominates. Computed here rather than in
+    # Jinja because these are Decimals and a template-side divide-by-zero on an
+    # empty season would take the whole page down.
+    top = max((d['paid'] for d in divisions), default=Decimal('0'))
+    for d in divisions:
+        d['pct'] = float(d['paid'] / top * 100) if top > 0 else 0.0
+
     # Refunds live on the ORDER, so they are summed over orders. Summing them
     # through the line-item join above would multiply each refund by that
     # order's pass count.
