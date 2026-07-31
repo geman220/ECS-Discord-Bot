@@ -13,6 +13,7 @@ import io
 import logging
 import re
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from flask import (
     Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect, g,
@@ -408,6 +409,17 @@ def orders_list():
             auto_unconfirmed_q = auto_unconfirmed_q.filter(division_condition)
         stats['auto_unconfirmed'] = auto_unconfirmed_q.scalar() or 0
 
+        # Money in for the same filtered scope. Isolated in its own try: the
+        # columns it reads are added by sql_pub_league_order_revenue.sql, which
+        # is run by hand in pgAdmin, so the code can land before the table has
+        # them. A missing column must degrade to "no revenue section" rather
+        # than blanking a page admins use to link passes.
+        try:
+            revenue = _revenue_stats(filters)
+        except Exception as rev_err:
+            logger.warning(f"revenue stats unavailable: {rev_err}")
+            revenue = None
+
         # Season options for the filter dropdown — only seasons that actually
         # have orders, newest first.
         season_options = [
@@ -431,6 +443,7 @@ def orders_list():
             title='Pub League Orders',
             orders=orders,
             stats=stats,
+            revenue=revenue,
             status_filter=status_filter,
             search=search,
             season_filter=season_filter,
@@ -456,6 +469,7 @@ def orders_list():
             title='Pub League Orders',
             orders=None,
             stats={},
+            revenue=None,
             error=str(e),
             season_filter='current',
             selected_season_id=None,
@@ -496,6 +510,112 @@ def _apply_order_export_filters(query, filters):
     if filters['division_condition'] is not None:
         query = query.filter(filters['division_condition'])
     return query
+
+
+def _money(value):
+    """Format a Decimal/None as a plain grouped amount: 1234.5 -> '1,234.50'."""
+    return f'{(value or 0):,.2f}'
+
+
+_CURRENCY_SYMBOLS = {'USD': '$', 'CAD': 'CA$', 'EUR': '€', 'GBP': '£'}
+
+
+def _revenue_stats(filters):
+    """Money in for the CURRENTLY FILTERED orders, overall and per division.
+
+    Reads the denormalised `amount_paid` / `amount_list` columns rather than
+    re-parsing `woo_order_data`, so a season total is one grouped aggregate
+    instead of a few hundred JSON blobs loaded into the web process.
+
+    Scoped through `_apply_order_export_filters`, the SAME helper the list and
+    the CSV exports use, so the revenue cards can never describe a different set
+    of orders than the rows underneath them. That helper also drops cancelled
+    orders unless they are explicitly filtered for, which is what keeps a
+    cancelled sale out of the revenue figure.
+
+    `paid` is Woo's line `total` (AFTER coupons), so an ECS member's $35 Summer
+    Sprint pass counts as $35, not $40 -- that is the "actual money in" number.
+    `list_` is the pre-coupon `subtotal`, and the gap between them is reported
+    as `discount`.
+
+    ⚠️ `unpriced` is load-bearing, not a curiosity. A pass whose amount is NULL
+    contributes $0 to the sum, so a partly-backfilled table would quietly
+    under-report revenue and look like a bad sales season. The template shows a
+    warning whenever it is non-zero.
+    """
+    li = PubLeagueOrderLineItem
+
+    def _scoped(*columns):
+        return _apply_order_export_filters(
+            db.session.query(*columns).join(
+                PubLeagueOrder, li.order_id == PubLeagueOrder.id),
+            filters,
+        )
+
+    rows = _scoped(
+        li.division,
+        func.coalesce(func.sum(li.amount_paid), 0),
+        func.coalesce(func.sum(li.amount_list), 0),
+        func.count(li.id),
+        func.count(li.amount_paid),  # counts NON-NULL only -> priced passes
+    ).group_by(li.division).all()
+
+    divisions, paid_total, list_total, passes_total, priced_total = [], Decimal('0'), Decimal('0'), 0, 0
+    for division, paid, listed, passes, priced in rows:
+        paid, listed = Decimal(paid or 0), Decimal(listed or 0)
+        divisions.append({
+            'division': division or 'Unknown',
+            'paid': paid,
+            'paid_display': _money(paid),
+            'list': listed,
+            'discount': listed - paid,
+            'discount_display': _money(listed - paid),
+            'passes': passes,
+            'priced': priced,
+            'unpriced': passes - priced,
+            # Blank rather than a divide-by-zero guard that reads as $0.00.
+            'avg_display': _money(paid / priced) if priced else '',
+        })
+        paid_total += paid
+        list_total += listed
+        passes_total += passes
+        priced_total += priced
+
+    divisions.sort(key=lambda d: d['paid'], reverse=True)
+
+    # Refunds live on the ORDER, so they are summed over orders. Summing them
+    # through the line-item join above would multiply each refund by that
+    # order's pass count.
+    refunds = _apply_order_export_filters(
+        db.session.query(func.coalesce(func.sum(PubLeagueOrder.refund_total), 0)),
+        filters,
+    ).scalar() or Decimal('0')
+
+    # One currency in practice; if a stray order disagrees, fall back to a bare
+    # symbol rather than asserting a wrong one.
+    currencies = [c for (c,) in _apply_order_export_filters(
+        db.session.query(PubLeagueOrder.currency).distinct(), filters
+    ).all() if c]
+    currency = currencies[0] if len(currencies) == 1 else None
+
+    return {
+        'symbol': _CURRENCY_SYMBOLS.get(currency, '$'),
+        'currency': currency,
+        'paid': paid_total,
+        'paid_display': _money(paid_total),
+        'list': list_total,
+        'list_display': _money(list_total),
+        'discount': list_total - paid_total,
+        'discount_display': _money(list_total - paid_total),
+        'refunds': refunds,
+        'refunds_display': _money(refunds),
+        'net_display': _money(paid_total - Decimal(refunds or 0)),
+        'passes': passes_total,
+        'priced': priced_total,
+        'unpriced': passes_total - priced_total,
+        'avg_display': _money(paid_total / priced_total) if priced_total else '',
+        'divisions': divisions,
+    }
 
 
 # Smallest-to-largest so the jersey column reads like a size run rather than
@@ -601,6 +721,108 @@ def export_order_emails():
     season_slug = filters['season_filter']
     filename = f'pub-league-order-emails-{season_slug}-{status_slug}.csv'
     # utf-8-sig so Excel detects the encoding
+    return send_file(
+        io.BytesIO(buf.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@pub_league_orders_admin_bp.route('/pub-league-orders/export-revenue')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_order_revenue():
+    """Export money-in for the currently filtered orders as CSV.
+
+    Two sections in one file, because the two questions ("what did we take in
+    per league" and "which order was that") are always asked together and a
+    single download beats reconciling two:
+
+      1. A per-division summary, plus a TOTAL row.
+      2. One row per ORDER with its own paid/list/discount figures.
+
+    Honors the same status/search/season/division params as the list, so the
+    Summer Sprint view exports Summer Sprint money.
+
+    Amounts are per-PASS sums (`amount_paid`, from Woo's post-coupon line
+    total), NOT `order_total` -- an order that also contained merch would
+    otherwise report the scarf as league revenue. `order_total` is included as
+    its own column precisely so the difference is visible rather than guessed
+    at.
+
+    Unlike the email export, rows are NOT deduped by customer: this is a money
+    report, and dropping a repeat buyer's second order would drop its revenue.
+    """
+    import csv
+
+    filters = _parse_order_filters()
+    revenue = _revenue_stats(filters)
+    li = PubLeagueOrderLineItem
+
+    # Per-order money, aggregated in SQL so this stays one query rather than
+    # touching each order's lazy='dynamic' line_items relationship.
+    order_rows = _apply_order_export_filters(
+        db.session.query(
+            PubLeagueOrder,
+            func.coalesce(func.sum(li.amount_paid), 0),
+            func.coalesce(func.sum(li.amount_list), 0),
+            func.count(li.id),
+            func.count(li.amount_paid),
+            func.string_agg(distinct(li.division), ', '),
+        ).outerjoin(li, li.order_id == PubLeagueOrder.id),
+        filters,
+    ).group_by(PubLeagueOrder.id).order_by(
+        desc(PubLeagueOrder.created_at), desc(PubLeagueOrder.id)
+    ).all()
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+
+    writer.writerow(['REVENUE BY LEAGUE'])
+    writer.writerow(['league', 'passes', 'money_in', 'at_list_price',
+                     'discounts', 'avg_per_pass', 'unpriced_passes'])
+    for d in revenue['divisions']:
+        writer.writerow([
+            d['division'], d['passes'], _money(d['paid']), _money(d['list']),
+            _money(d['discount']), d['avg_display'], d['unpriced'],
+        ])
+    writer.writerow([
+        'TOTAL', revenue['passes'], revenue['paid_display'],
+        _money(revenue['list']), revenue['discount_display'],
+        revenue['avg_display'], revenue['unpriced'],
+    ])
+    writer.writerow(['REFUNDED', '', revenue['refunds_display']])
+    writer.writerow(['NET OF REFUNDS', '', revenue['net_display']])
+    writer.writerow([])
+
+    writer.writerow(['ORDERS'])
+    writer.writerow([
+        'woo_order_id', 'date', 'name', 'email', 'status', 'season', 'leagues',
+        'passes', 'money_in', 'at_list_price', 'discount', 'refunded',
+        'woo_order_total', 'currency', 'unpriced_passes',
+    ])
+    for order, paid, listed, passes, priced, divisions in order_rows:
+        writer.writerow([
+            order.woo_order_id,
+            order.created_at.strftime('%Y-%m-%d') if order.created_at else '',
+            order.customer_name or '',
+            order.customer_email or '',
+            order.status,
+            order.season_name or '',
+            divisions or '',
+            passes,
+            _money(paid),
+            _money(listed),
+            _money(Decimal(listed or 0) - Decimal(paid or 0)),
+            _money(order.refund_total) if order.refund_total else '',
+            _money(order.order_total) if order.order_total is not None else '',
+            order.currency or '',
+            passes - priced,
+        ])
+
+    filename = (f'pub-league-revenue-{filters["season_filter"]}'
+                f'-{filters["division_filter"]}-{filters["status_filter"]}.csv')
     return send_file(
         io.BytesIO(buf.getvalue().encode('utf-8-sig')),
         mimetype='text/csv',
@@ -1287,6 +1509,17 @@ def api_refresh_order():
             order.customer_name = new_name
         if new_email:
             order.customer_email = new_email
+
+        # Re-derive the money columns off the FRESH payload. This is the only
+        # path that picks up a refund issued after purchase, since the webhook
+        # copy is frozen at the moment of sale.
+        try:
+            from app.pub_league.revenue import apply_order_revenue
+            apply_order_revenue(order)
+        except Exception as rev_err:
+            logger.warning(
+                f"Could not refresh revenue for order {order_id}: {rev_err}",
+                exc_info=True)
 
         order.updated_at = datetime.utcnow()
         db.session.commit()

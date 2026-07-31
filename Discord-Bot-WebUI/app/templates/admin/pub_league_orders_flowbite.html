@@ -278,6 +278,15 @@
                     <i class="ti ti-download text-base" aria-hidden="true"></i> Export Emails
                 </a>
             </div>
+            {% if revenue %}
+            <div class="flex items-center">
+                <a href="{{ url_for('pub_league_orders_admin.export_order_revenue', status=status_filter, search=search or None, season=season_filter, division=division_filter) }}"
+                   title="Download a CSV of money in — a per-league summary plus one row per order — for the orders matching the current filters"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green whitespace-nowrap">
+                    <i class="ti ti-cash text-base" aria-hidden="true"></i> Export Revenue
+                </a>
+            </div>
+            {% endif %}
             {# Recovery for a sale the Woo webhook never ingested — it creates nothing at
                all when no line item resolves to a program, which is what happened to
                every Summer Sprint purchase made before that program was registered. #}
@@ -596,6 +605,115 @@
         </div>
     </div>
 </div>
+
+{# Money in.
+
+   Absent entirely (revenue is None) until sql_pub_league_order_revenue.sql has
+   been run, because the columns behind it do not exist yet. That is deliberate:
+   an admin should see no revenue section rather than a confident $0.00.
+
+   Every figure honours the SAME filters as the table below, so switching the
+   Division filter to Summer Sprint switches these to Summer Sprint money. #}
+{% if revenue %}
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2">
+        <div>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <i class="ti ti-cash text-ecs-green" aria-hidden="true"></i> Money In
+            </h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                What customers actually paid, after any member discount &mdash; for
+                {% if season_filter == 'current' %}the current season{% elif season_filter == 'all' %}all seasons{% else %}the selected season{% endif %}{% if division_filter != 'all' %}, {{ division_filter }} only{% endif %}.
+                Excludes tax, shipping and cancelled orders.
+            </p>
+        </div>
+        {% if revenue.currency and revenue.currency != 'USD' %}
+        <span class="text-xs font-medium px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ revenue.currency }}</span>
+        {% endif %}
+    </div>
+
+    {# An unpriced pass sums as $0, so a partly-backfilled table would under-report
+       and simply look like a weak season. Say so loudly instead. #}
+    {% if revenue.unpriced %}
+    <div class="mx-4 sm:mx-6 mt-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <p class="text-sm text-amber-800 dark:text-amber-200">
+            <i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i>
+            <span class="font-semibold">{{ revenue.unpriced }}</span> of {{ revenue.passes }} pass{{ 'es' if revenue.passes != 1 else '' }}
+            {{ 'have' if revenue.unpriced != 1 else 'has' }} no price recorded, so the totals below are LOW.
+            Run <code class="px-1 rounded bg-amber-100 dark:bg-amber-900/40 font-mono text-xs">flask backfill-order-revenue</code>,
+            then use Refresh Order on anything still listed.
+        </p>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 p-4 sm:p-6">
+        <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Money In</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ revenue.symbol }}{{ revenue.paid_display }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ revenue.priced }} pass{{ 'es' if revenue.priced != 1 else '' }} sold</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg / Pass</p>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ revenue.symbol }}{{ revenue.avg_display or '—' }}</h3>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Member Discounts</p>
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ revenue.symbol }}{{ revenue.discount_display }}</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">off {{ revenue.symbol }}{{ revenue.list_display }} at list</p>
+        </div>
+        <div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Refunded</p>
+            <h3 class="text-2xl font-bold {{ 'text-red-600 dark:text-red-400' if revenue.refunds else 'text-gray-400 dark:text-gray-500' }}">{{ revenue.symbol }}{{ revenue.refunds_display }}</h3>
+            {% if revenue.refunds %}
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">net {{ revenue.symbol }}{{ revenue.net_display }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if revenue.divisions %}
+    <div class="border-t border-gray-200 dark:border-gray-700 overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-900/40 text-xs uppercase text-gray-500 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 sm:px-6 py-2 text-left font-medium">League</th>
+                    <th scope="col" class="px-4 py-2 text-right font-medium">Passes</th>
+                    <th scope="col" class="px-4 py-2 text-right font-medium">Money In</th>
+                    <th scope="col" class="px-4 py-2 text-right font-medium hidden sm:table-cell">Avg</th>
+                    <th scope="col" class="px-4 sm:px-6 py-2 text-right font-medium hidden md:table-cell">Discounts</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for d in revenue.divisions %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40">
+                    <td class="px-4 sm:px-6 py-2.5 font-medium text-gray-900 dark:text-white">
+                        {{ d.division }}
+                        {% if d.unpriced %}
+                        <span class="ml-1 text-xs text-amber-600 dark:text-amber-400" title="{{ d.unpriced }} pass(es) here have no price recorded, so this total is low">
+                            <i class="ti ti-alert-triangle" aria-hidden="true"></i> {{ d.unpriced }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-2.5 text-right tabular-nums text-gray-600 dark:text-gray-300">{{ d.passes }}</td>
+                    <td class="px-4 py-2.5 text-right tabular-nums font-semibold text-gray-900 dark:text-white">{{ revenue.symbol }}{{ d.paid_display }}</td>
+                    <td class="px-4 py-2.5 text-right tabular-nums text-gray-600 dark:text-gray-300 hidden sm:table-cell">{{ revenue.symbol }}{{ d.avg_display or '—' }}</td>
+                    <td class="px-4 sm:px-6 py-2.5 text-right tabular-nums text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ revenue.symbol }}{{ d.discount_display }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot class="bg-gray-50 dark:bg-gray-900/40 font-semibold text-gray-900 dark:text-white">
+                <tr>
+                    <td class="px-4 sm:px-6 py-2.5">Total</td>
+                    <td class="px-4 py-2.5 text-right tabular-nums">{{ revenue.passes }}</td>
+                    <td class="px-4 py-2.5 text-right tabular-nums">{{ revenue.symbol }}{{ revenue.paid_display }}</td>
+                    <td class="px-4 py-2.5 text-right tabular-nums hidden sm:table-cell">{{ revenue.symbol }}{{ revenue.avg_display or '—' }}</td>
+                    <td class="px-4 sm:px-6 py-2.5 text-right tabular-nums hidden md:table-cell">{{ revenue.symbol }}{{ revenue.discount_display }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
 
 <!-- Main Card -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">

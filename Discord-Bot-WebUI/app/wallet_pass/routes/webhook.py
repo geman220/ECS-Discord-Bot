@@ -294,6 +294,7 @@ def handle_order_completed():
                     db.session.flush()
 
                     # Create line items
+                    new_line_items = []
                     for item_data in pub_league_items:
                         line_item = PubLeagueOrderLineItem(
                             order_id=pl_order.id,
@@ -303,6 +304,24 @@ def handle_order_completed():
                             jersey_size=item_data['jersey_size'],
                         )
                         db.session.add(line_item)
+                        new_line_items.append(line_item)
+
+                    # Price the passes from the SAME payload we just stored.
+                    # Passing the freshly built rows explicitly: they are not
+                    # queryable through the lazy='dynamic' relationship until
+                    # flush, so reading them back here would price nothing.
+                    #
+                    # Never let a money-derivation problem 500 the webhook —
+                    # Woo RETRIES a failed webhook, and a duplicate order is a
+                    # far worse outcome than an order that reports no revenue
+                    # until `flask backfill-order-revenue` runs.
+                    try:
+                        from app.pub_league.revenue import apply_order_revenue
+                        apply_order_revenue(pl_order, line_items=new_line_items)
+                    except Exception as rev_err:
+                        logger.warning(
+                            f"Could not derive revenue for order {order_id}: {rev_err}",
+                            exc_info=True)
 
                     db.session.commit()
                     logger.info(f"Created PubLeagueOrder {pl_order.id} with {len(pub_league_items)} line items for WooCommerce order {order_id}")

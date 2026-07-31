@@ -339,6 +339,7 @@ class PubLeagueOrderService:
         session.flush()  # Get the ID
 
         # Create line items
+        new_line_items = []
         for item_data in pub_league_items:
             line_item = PubLeagueOrderLineItem(
                 order_id=order.id,
@@ -348,6 +349,20 @@ class PubLeagueOrderService:
                 jersey_size=item_data['jersey_size'],
             )
             session.add(line_item)
+            new_line_items.append(line_item)
+
+        # Derive the money columns from the payload we just cached. Rows are
+        # passed explicitly because the lazy='dynamic' relationship cannot see
+        # them before flush. Non-fatal: this is the order-linking path, and a
+        # buyer must never be blocked from claiming a pass they paid for
+        # because a revenue figure could not be computed.
+        try:
+            from app.pub_league.revenue import apply_order_revenue
+            apply_order_revenue(order, line_items=new_line_items)
+        except Exception as rev_err:
+            logger.warning(
+                f"Could not derive revenue for order {woo_order_id}: {rev_err}",
+                exc_info=True)
 
         session.commit()
         return order

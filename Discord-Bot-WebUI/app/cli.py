@@ -1402,3 +1402,98 @@ def preview_discord_role_drain(limit, player_id, show_noop, reconcile):
             click.echo(f"    {n:5d}  {role}")
     click.echo("=========================================")
     click.echo("\nRead-only. Nothing was written to the database or to Discord.")
+
+
+@click.command()
+@click.option('--batch-size', default=200, show_default=True,
+              help='Orders per committed batch. Smaller = shorter transactions.')
+@click.option('--only-missing', is_flag=True,
+              help='Skip orders that already have amounts. Default is to recompute all.')
+@click.option('--dry-run', is_flag=True, help='Compute everything, then roll back.')
+@with_appcontext
+def backfill_order_revenue(batch_size, only_missing, dry_run):
+    """Derive money columns on Pub League orders from their cached Woo payload.
+
+    Run this ONCE after sql_pub_league_order_revenue.sql. Until it does, every
+    amount is NULL and the orders page reports $0.00 with an "unpriced" warning.
+
+    Reads `pub_league_order.woo_order_data` -- the WooCommerce payload already
+    stored at purchase -- and writes `amount_paid` / `amount_list` per pass plus
+    the order-level totals. It makes NO network calls, so it is safe to re-run
+    and cannot be rate-limited by WooCommerce.
+
+    Recomputing all rows by default is deliberate: this is a pure function of
+    the stored payload, so a re-run after a parser fix is how you correct
+    previously mis-priced orders. `--only-missing` is the cheap top-up.
+    """
+    from app.models import PubLeagueOrder
+    from app.pub_league.revenue import apply_order_revenue
+
+    query = db.session.query(PubLeagueOrder).filter(
+        PubLeagueOrder.woo_order_data.isnot(None)
+    ).order_by(PubLeagueOrder.id)
+
+    if only_missing:
+        query = query.filter(PubLeagueOrder.revenue_synced_at.is_(None))
+
+    total = query.count()
+    if not total:
+        click.echo("No orders with cached WooCommerce data. Nothing to do.")
+        return
+
+    click.echo(f"Pricing {total} order(s) from cached WooCommerce payloads"
+               f"{' [DRY RUN]' if dry_run else ''}...")
+
+    priced = unpriced = 0
+    unpriced_orders = []
+
+    for offset in range(0, total, batch_size):
+        batch = query.limit(batch_size).offset(offset).all()
+        for order in batch:
+            try:
+                if apply_order_revenue(order):
+                    priced += 1
+                else:
+                    unpriced += 1
+                    unpriced_orders.append(order)
+            except Exception as exc:
+                unpriced += 1
+                unpriced_orders.append(order)
+                click.echo(f"  ! order {order.woo_order_id}: {exc}")
+
+        if dry_run:
+            db.session.rollback()
+        else:
+            db.session.commit()
+        click.echo(f"  ...{min(offset + batch_size, total)}/{total}")
+
+    click.echo("\n================ SUMMARY ================")
+    click.echo(f"  orders priced   : {priced}")
+    click.echo(f"  no usable money : {unpriced}")
+
+    if unpriced_orders:
+        # These are the orders whose stored payload carried no line totals --
+        # usually very old imports. They are the ONLY ones that need a
+        # Refresh Order (a live Woo re-fetch) to become countable.
+        click.echo("\n  Orders with no usable line totals in their cached payload.")
+        click.echo("  Use Refresh Order on each to re-pull it from WooCommerce:")
+        for order in unpriced_orders[:40]:
+            click.echo(f"    woo #{order.woo_order_id}  {order.customer_email or '<no email>'}"
+                       f"  ({order.season_name or 'no season'})")
+        if len(unpriced_orders) > 40:
+            click.echo(f"    ... and {len(unpriced_orders) - 40} more")
+
+    if not dry_run:
+        # Revenue reads as a plain SUM over these columns, so a season total is
+        # only as complete as the orders that got priced above.
+        from sqlalchemy import func
+        from app.models import PubLeagueOrderLineItem
+        grand = db.session.query(
+            func.sum(PubLeagueOrderLineItem.amount_paid)
+        ).join(PubLeagueOrder, PubLeagueOrderLineItem.order_id == PubLeagueOrder.id).filter(
+            PubLeagueOrder.status != 'cancelled'
+        ).scalar()
+        click.echo(f"\n  All-time money in (non-cancelled): ${grand or 0:,.2f}")
+    click.echo("=========================================")
+    if dry_run:
+        click.echo("\nDRY RUN -- everything was rolled back.")

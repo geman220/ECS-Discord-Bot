@@ -92,6 +92,24 @@ class PubLeagueOrder(db.Model):
     # Cached order data from WooCommerce (JSON blob)
     woo_order_data = db.Column(db.JSON, nullable=True)
 
+    # --- Money -------------------------------------------------------------
+    # Denormalised from woo_order_data so revenue is a SQL aggregate rather
+    # than a Python pass over every order's JSON blob. Reporting one number for
+    # a season must not mean loading a few hundred full Woo payloads inside a
+    # web request (see reference_pgbouncer_transaction_budget).
+    #
+    # ⚠️ `order_total` is the WHOLE Woo order — it includes merch, shipping and
+    # tax bought in the same cart, so it is NOT league revenue. League revenue
+    # is SUM(line_item.amount_paid). The two are kept apart on purpose; the
+    # difference is exactly what a "why don't these match" question is made of.
+    currency = db.Column(db.String(3), nullable=True)
+    order_total = db.Column(db.Numeric(10, 2), nullable=True)
+    # Sum of Woo's refunds[] for this order, stored POSITIVE. Only as fresh as
+    # the last webhook/refresh — a refund issued afterwards is invisible until
+    # the order is refreshed, so never present this as reconciled accounting.
+    refund_total = db.Column(db.Numeric(10, 2), nullable=True)
+    revenue_synced_at = db.Column(db.DateTime, nullable=True)
+
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -213,6 +231,21 @@ class PubLeagueOrderLineItem(db.Model):
 
     # Status tracking
     status = db.Column(db.String(30), default=PubLeagueLineItemStatus.UNASSIGNED.value)
+
+    # --- Money, per pass ---------------------------------------------------
+    # What this ONE pass actually brought in, and what it would have cost at
+    # list price. A Woo line item covers the whole quantity, while this table
+    # is quantity-expanded (one row per pass), so the line's money is split
+    # across its rows to the cent — see app/pub_league/revenue.py.
+    #
+    # amount_paid comes from Woo's line `total` (AFTER coupons), so an ECS
+    # member who paid $35 on a $40 pass stores 35.00 here and 40.00 in
+    # amount_list. `amount_list - amount_paid` is the discount given.
+    #
+    # Both EXCLUDE tax and shipping: they are the league's take, not the
+    # customer's card charge. Order.order_total holds the gross charge.
+    amount_paid = db.Column(db.Numeric(10, 2), nullable=True)
+    amount_list = db.Column(db.Numeric(10, 2), nullable=True)
 
     # Generated wallet pass (after assignment and pass creation)
     wallet_pass_id = db.Column(db.Integer, db.ForeignKey('wallet_pass.id'), nullable=True)
