@@ -49,7 +49,13 @@
 {% set needs_work = s_not_started + s_pending + s_partial %}
 {% set linkable = s_total - s_cancelled %}
 {% set pct_linked = ((s_linked / linkable) * 100) | round | int if linkable > 0 else 0 %}
-<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+{# Full width of the admin shell on purpose. The shell already caps and centres
+   the page at max-w-[1500px] (admin_panel/base_flowbite.html), so a max-w-7xl
+   here nested a SECOND, narrower 1280px column inside it — the content sat
+   ~110px in from each edge while the nav and breadcrumb above ran to the shell
+   edge, which read as the page being oddly small. One container owns the width;
+   this one just fills it. #}
+<div class="w-full space-y-5 sm:space-y-6">
     {% call page_header("Pub League Orders", subtitle="WooCommerce · pass linking queue") %}
         <a href="{{ url_for('pub_league_orders_admin.buy_qr_print') }}"
            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-ecs-green bg-ecs-green/10 hover:bg-ecs-green/20 text-sm font-medium text-ecs-green dark:text-ecs-gold dark:border-ecs-gold dark:bg-ecs-gold/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
