@@ -39,7 +39,7 @@
    ============================================================================ */
 
 .season-overview-table thead th {
-    font-size: var(--text-sm, 0.85rem);
+    font-size: var(--ecs-text-sm, 0.85rem);
     font-weight: var(--font-semibold, 600);
 }
 
@@ -90,7 +90,7 @@
 
 .season-avatar-initial {
     font-weight: var(--font-bold, 700);
-    font-size: var(--text-sm, 0.85rem);
+    font-size: var(--ecs-text-sm, 0.85rem);
 }
 
 /* ============================================================================
@@ -105,13 +105,13 @@
 }
 
 .season-empty-state-icon {
-    font-size: var(--text-5xl, 2.5rem);
+    font-size: var(--ecs-text-5xl, 2.5rem);
     color: var(--color-secondary);
     margin-bottom: var(--space-3, 0.75rem);
 }
 
 .season-empty-state-message {
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     margin: 0;
 }
 
@@ -200,7 +200,7 @@
 
 .season-nav-pills .nav-link {
     padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
-    font-size: var(--text-base, 1rem);
+    font-size: var(--ecs-text-base, 1rem);
     transition: all var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
 }
 
@@ -232,11 +232,11 @@
 
     .season-nav-pills .nav-link {
         padding: var(--space-2, 0.4rem) var(--space-3, 0.8rem);
-        font-size: var(--text-sm, 0.875rem);
+        font-size: var(--ecs-text-sm, 0.875rem);
     }
 
     .season-overview-table thead th {
-        font-size: var(--text-xs, 0.75rem);
+        font-size: var(--ecs-text-xs, 0.75rem);
     }
 }
 
@@ -262,7 +262,7 @@
 
 .season-selector {
     min-width: 150px;
-    border-radius: var(--radius-md, 0.375rem);
+    border-radius: var(--ecs-radius-md, 0.375rem);
     transition: border-color var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out),
                 box-shadow var(--duration-fast, 150ms) var(--ease-smooth, ease-in-out);
 }
@@ -327,7 +327,7 @@
 
 .season-search-box .input-group:focus-within {
     box-shadow: 0 0 0 0.2rem rgba(var(--color-primary-rgb), 0.15);
-    border-radius: var(--radius-md, 0.375rem);
+    border-radius: var(--ecs-radius-md, 0.375rem);
 }
 
 .season-search-box input {
@@ -360,13 +360,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--radius-md, 0.375rem);
+    border-radius: var(--ecs-radius-md, 0.375rem);
     margin-right: var(--space-3, 0.75rem);
 }
 
 .season-stat-icon i {
-    font-size: var(--text-lg, 1.125rem);
-    color: var(--color-neutral-0, var(--color-white));
+    font-size: var(--ecs-text-lg, 1.125rem);
+    color: var(--color-neutral-0, var(--ecs-color-white));
 }
 
 .season-stat-icon.stat-danger {
@@ -387,7 +387,7 @@
 
 .season-stat-details h6 {
     margin-bottom: var(--space-1, 0.25rem);
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     font-weight: var(--font-semibold, 600);
     color: var(--color-text-primary);
 }
@@ -395,7 +395,7 @@
 .season-stat-value {
     color: var(--color-text-muted);
     font-weight: var(--font-bold, 700);
-    font-size: var(--text-base, 1rem);
+    font-size: var(--ecs-text-base, 1rem);
 }
 
 [data-style="dark"] .season-stat-details h6 {
@@ -445,15 +445,15 @@
     }
 
     .season-stat-icon i {
-        font-size: var(--text-base, 1rem);
+        font-size: var(--ecs-text-base, 1rem);
     }
 
     .season-stat-details h6 {
-        font-size: var(--text-xs, 0.75rem);
+        font-size: var(--ecs-text-xs, 0.75rem);
     }
 
     .season-stat-value {
-        font-size: var(--text-sm, 0.875rem);
+        font-size: var(--ecs-text-sm, 0.875rem);
     }
 }
 
@@ -461,7 +461,7 @@
     /* Extra small devices */
     .season-selector {
         min-width: 120px;
-        font-size: var(--text-sm, 0.875rem);
+        font-size: var(--ecs-text-sm, 0.875rem);
     }
 
     .season-search-box {
@@ -501,7 +501,7 @@
     }
 
     .season-overview-table {
-        font-size: var(--text-xs, 0.75rem);
+        font-size: var(--ecs-text-xs, 0.75rem);
     }
 
     .season-legend-card {
@@ -520,7 +520,7 @@
 .season-nav-pills .nav-link:focus-visible {
     outline: 2px solid var(--color-focus-ring);
     outline-offset: 2px;
-    border-radius: var(--radius-sm, 0.25rem);
+    border-radius: var(--ecs-radius-sm, 0.25rem);
 }
 
 /* Reduced motion support */
@@ -604,14 +604,14 @@
 
 .week-section {
     border: 1px solid var(--color-border-primary, var(--bs-border-color));
-    border-radius: var(--radius-md, 0.5rem);
+    border-radius: var(--ecs-radius-md, 0.5rem);
     padding: var(--space-4, 1rem);
     background-color: var(--color-bg-primary, var(--bs-body-bg));
 }
 
 .match-slot {
     border: 1px solid var(--color-border-primary, var(--bs-border-color));
-    border-radius: var(--radius-sm, 0.375rem);
+    border-radius: var(--ecs-radius-sm, 0.375rem);
     padding: var(--space-4, 1rem);
     margin-bottom: var(--space-4, 1rem);
     background-color: var(--color-bg-primary, var(--bs-body-bg));
@@ -621,7 +621,7 @@
     background-color: var(--color-bg-secondary, var(--bs-gray-100));
     padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
     margin: calc(var(--space-4, 1rem) * -1) calc(var(--space-4, 1rem) * -1) var(--space-4, 1rem) calc(var(--space-4, 1rem) * -1);
-    border-radius: var(--radius-sm, 0.375rem) var(--radius-sm, 0.375rem) 0 0;
+    border-radius: var(--ecs-radius-sm, 0.375rem) var(--ecs-radius-sm, 0.375rem) 0 0;
     border-bottom: 1px solid var(--color-border-primary, var(--bs-border-color));
 }
 

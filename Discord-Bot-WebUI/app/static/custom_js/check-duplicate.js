@@ -34,7 +34,7 @@ function initCheckDuplicate() {
             title: 'Claim This Account?',
             html: `
                 <p class="mb-2">You're claiming the account for:</p>
-                <div class="text-start border rounded p-3 bg-light">
+                <div class="text-start border rounded-sm p-3 bg-light">
                     <strong>${playerName}</strong><br>
                     <small class="text-muted">${playerEmail}</small>
                 </div>

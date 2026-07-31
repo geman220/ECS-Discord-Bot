@@ -43,13 +43,13 @@
     <a href="{{ url_for('admin_panel.match_operations') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium
               text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Match Operations</span>
     </a>
     <a href="{{ url_for('admin_panel.league_management_teams') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white
               bg-ecs-green hover:bg-ecs-green-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-edit" aria-hidden="true"></i>Manage Rosters
     </a>
 {% endcall %}
@@ -88,7 +88,7 @@
     <button type="button"
             class="shrink-0 inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                    text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/30
-                   focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+                   focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             data-action="show-teams-without-players">
         <i class="ti ti-eye mr-1.5" aria-hidden="true"></i>View Teams
     </button>
@@ -102,14 +102,14 @@
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
         <i class="ti ti-clipboard-list text-ecs-green" aria-hidden="true"></i>
         <h2 class="font-semibold text-gray-900 dark:text-white">Rosters</h2>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ teams|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{{ teams|length }}</span>
     </div>
     <div class="p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div class="relative flex-1">
             <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
             <label for="rosterSearch" class="sr-only">Filter teams</label>
             <input type="search" id="rosterSearch" data-roster-filter="search" placeholder="Filter teams…"
-                   class="h-9 w-full pl-9 pr-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   class="h-9 w-full pl-9 pr-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                    aria-label="Filter teams">
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -117,7 +117,7 @@
             {# TODO backend: pass a `seasons` list (id/name/is_current) to enable cross-season switching here. #}
             <label for="leagueFilter" class="sr-only">Filter by league</label>
             <select id="leagueFilter" data-roster-filter="league"
-                    class="h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    class="h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     aria-label="Filter by league">
                 <option value="">All Leagues</option>
                 {% for lname in league_names %}
@@ -126,7 +126,7 @@
             </select>
             <label for="rosterStatusFilter" class="sr-only">Filter by roster status</label>
             <select id="rosterStatusFilter" data-roster-filter="status"
-                    class="h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    class="h-9 px-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     aria-label="Filter by roster status">
                 <option value="">All Rosters</option>
                 <option value="active">Has Players</option>
@@ -142,7 +142,7 @@
 <div class="flex items-center gap-2 mb-3 mt-5 first:mt-0" data-roster-group data-group-league="{{ group_league_value }}">
     <span class="font-mono text-xs font-bold text-ecs-green uppercase tracking-wide">{{ group_label }}</span>
     <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
-    <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" data-group-count>{{ league_teams|length }}</span>
+    <span class="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400" data-group-count>{{ league_teams|length }}</span>
 </div>
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
     {% for team in league_teams %}
@@ -155,7 +155,7 @@
          data-team-status="{{ 'active' if player_count else 'empty' }}">
         {# Header bar with status pill #}
         <div class="px-4 h-14 flex items-center gap-3 border-b border-gray-200 dark:border-gray-700">
-            <div class="flex-shrink-0 w-9 h-9 rounded-lg bg-ecs-green flex items-center justify-center" aria-hidden="true">
+            <div class="shrink-0 w-9 h-9 rounded-lg bg-ecs-green flex items-center justify-center" aria-hidden="true">
                 <span class="text-white font-bold">{{ team.name[0] if team.name else 'T' }}</span>
             </div>
             <div class="min-w-0 flex-1">
@@ -201,7 +201,7 @@
                         {% endif %}
                         <span class="text-sm text-gray-700 dark:text-gray-300 truncate">{{ player.display_name or 'Unknown Player' }}</span>
                         {% if player.is_coach %}
-                        <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400" title="Coach">Coach</span>
+                        <span class="shrink-0 inline-flex items-center text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400" title="Coach">Coach</span>
                         {% endif %}
                     </div>
                     {% if player.user and player.user.is_active %}
@@ -234,14 +234,14 @@
             <button type="button"
                     class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-sm font-medium
                            text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="view-team-roster" data-team-id="{{ team.id }}" aria-label="View roster for {{ team.name }}">
                 <i class="ti ti-eye" aria-hidden="true"></i><span class="hidden sm:inline">View</span>
             </button>
             <button type="button"
                     class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-sm font-medium
                            text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="edit-team-roster" data-team-id="{{ team.id }}" aria-label="Edit roster for {{ team.name }}">
                 <i class="ti ti-edit" aria-hidden="true"></i><span class="hidden sm:inline">Edit</span>
             </button>
@@ -345,7 +345,7 @@
         <!-- Team Header -->
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center">
-                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
+                <div class="shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
                     <span class="text-white font-bold text-lg">{{ team.name[0] if team.name else 'T' }}</span>
                 </div>
                 <div>
@@ -364,7 +364,7 @@
                 {% for player in team.players[:10] %}
                 <li class="py-2 flex items-center justify-between {% if loop.first %}pt-0{% endif %}">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2">
+                        <div class="shrink-0 w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2">
                             <span class="text-white text-xs font-medium">{{ player.display_name[0] if player.display_name else 'P' }}</span>
                         </div>
                         <span class="text-sm text-gray-700 dark:text-gray-300">{{ player.display_name or 'Unknown Player' }}</span>

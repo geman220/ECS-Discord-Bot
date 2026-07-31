@@ -11,7 +11,7 @@
   match it. Rendered from base_public.html.
 #}
 {% if is_site_admin %}
-<div id="ecs-admin-bar" class="fixed top-0 inset-x-0 z-[100] h-12 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm flex items-center gap-2 px-3">
+<div id="ecs-admin-bar" class="fixed top-0 inset-x-0 z-100 h-12 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm flex items-center gap-2 px-3">
     <a href="{{ url_for('admin_panel.public_site_hub') }}" title="Website admin"
        class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2 font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
         <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" alt="ECS" class="h-6 w-6">
@@ -31,7 +31,7 @@
                 class="inline-flex h-9 items-center gap-1 rounded-lg px-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
             <i class="ti ti-plus"></i> New <i class="ti ti-chevron-down text-xs"></i>
         </button>
-        <div class="absolute left-0 top-full hidden group-hover:block group-focus-within:block pt-1 min-w-[10rem] z-50">
+        <div class="absolute left-0 top-full hidden group-hover:block group-focus-within:block pt-1 min-w-40 z-50">
             <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg py-1">
                 <a href="{{ url_for('admin_panel.public_site_page_new') }}" class="block px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Page</a>
                 <a href="{{ url_for('admin_panel.public_site_news_new') }}" class="block px-3 py-1.5 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Post</a>

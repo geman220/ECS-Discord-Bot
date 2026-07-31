@@ -51,7 +51,7 @@ export function createTaskCard(taskType, task, matchId) {
     return `
         <div data-component="task-card" data-task-type="${taskType}" data-match-id="${matchId}" class="mb-2 p-2 border rounded-lg ${isFallback ? 'border-blue-300 dark:border-blue-700' : 'border-gray-200 dark:border-gray-700'}">
             <div class="flex justify-between items-center mb-1">
-                <span class="px-2 py-0.5 text-xs font-medium rounded ${statusColor}" data-status="${task.status}">
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${statusColor}" data-status="${task.status}">
                     <i class="ti ${statusIcon}"></i> ${statusDisplay}
                 </span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${countdown} ${fallbackIndicator}</span>
@@ -65,18 +65,18 @@ export function createTaskCard(taskType, task, matchId) {
             </div>
             ${task.result ? `<div class="mb-2"><span class="text-xs text-gray-500 dark:text-gray-400"><strong>Details:</strong> ${task.result}</span></div>` : ''}
             <div class="flex gap-1">
-                <button class="p-1.5 text-xs text-blue-600 border border-blue-600 rounded hover:bg-blue-600 hover:text-white dark:text-blue-400 dark:border-blue-400"
+                <button class="p-1.5 text-xs text-blue-600 border border-blue-600 rounded-sm hover:bg-blue-600 hover:text-white dark:text-blue-400 dark:border-blue-400"
                         data-action="show-task-info"
                         data-task-id="${task.task_id}"
                         data-task-type="${typeName}"
                         data-task-data='${taskDataJson}' aria-label="Info"><i class="ti ti-info-circle"></i></button>
                 ${!isFallback && task.task_id !== 'unknown' && task.task_id !== 'scheduled' ? `
-                <button class="p-1.5 text-xs text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white dark:text-red-400 dark:border-red-400"
+                <button class="p-1.5 text-xs text-red-600 border border-red-600 rounded-sm hover:bg-red-600 hover:text-white dark:text-red-400 dark:border-red-400"
                         data-action="revoke-task"
                         data-task-id="${task.task_id}"
                         data-match-id="${matchId}"
                         data-task-type="${taskType}" aria-label="Revoke"><i class="ti ti-x"></i></button>` : ''}
-                <button class="p-1.5 text-xs text-yellow-600 border border-yellow-600 rounded hover:bg-yellow-600 hover:text-white dark:text-yellow-400 dark:border-yellow-400"
+                <button class="p-1.5 text-xs text-yellow-600 border border-yellow-600 rounded-sm hover:bg-yellow-600 hover:text-white dark:text-yellow-400 dark:border-yellow-400"
                         data-action="reschedule-task"
                         data-match-id="${matchId}"
                         data-task-type="${taskType}" aria-label="Reschedule"><i class="ti ti-refresh"></i></button>
@@ -121,7 +121,7 @@ export function createNoTaskCard(taskName, message) {
                     <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 block">${taskName}</span>
                     <span class="text-xs text-gray-500 dark:text-gray-400">${message}</span>
                 </div>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-status="not-scheduled">Not Scheduled</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-status="not-scheduled">Not Scheduled</span>
             </div>
         </div>
     `;

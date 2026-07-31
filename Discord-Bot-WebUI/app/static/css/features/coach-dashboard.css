@@ -26,15 +26,15 @@
 
 .c-coach-dashboard__header {
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-600) 100%);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     padding: var(--space-5);
     margin-bottom: var(--space-4);
     color: var(--color-neutral-0);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
 }
 
 .c-coach-dashboard__title {
-    font-size: var(--text-3xl);
+    font-size: var(--ecs-text-3xl);
     font-weight: var(--font-bold);
     margin-bottom: var(--space-2);
     display: flex;
@@ -44,7 +44,7 @@
 
 .c-coach-dashboard__subtitle {
     opacity: 0.9;
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
 }
 
 .c-coach-dashboard__teams {
@@ -69,7 +69,7 @@
 .c-team-stats__card {
     background: var(--color-bg-card);
     border: var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     padding: var(--space-4);
     transition: all var(--duration-fast) var(--ease-smooth);
     position: relative;
@@ -90,7 +90,7 @@
 
 .c-team-stats__card:hover {
     transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
 }
 
 .c-team-stats__card:hover::before {
@@ -108,11 +108,11 @@
 
 .c-team-stats__icon {
     color: var(--color-primary);
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
 }
 
 .c-team-stats__title {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin: 0;
@@ -132,13 +132,13 @@
 
 .c-team-stats__label {
     color: var(--color-text-secondary);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 .c-team-stats__value {
     font-weight: var(--font-bold);
-    font-family: var(--font-mono);
-    font-size: var(--text-lg);
+    font-family: var(--ecs-font-mono);
+    font-size: var(--ecs-text-lg);
     color: var(--color-text-primary);
 }
 
@@ -162,7 +162,7 @@
 .c-player-roster {
     background: var(--color-bg-card);
     border: var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     overflow: hidden;
     margin-bottom: var(--space-4);
 }
@@ -184,7 +184,7 @@
 }
 
 .c-player-roster__title {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin: 0;
@@ -194,7 +194,7 @@
 }
 
 .c-player-roster__count {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 .c-player-roster__toggle {
@@ -213,7 +213,7 @@
 .c-player-roster__table th {
     background: var(--color-bg-secondary);
     color: var(--color-text-secondary);
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
     font-weight: var(--font-semibold);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -223,7 +223,7 @@
 .c-player-roster__table td {
     padding: var(--space-3);
     border-bottom: var(--border);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 .c-player-roster__table tr:last-child td {
@@ -240,8 +240,8 @@
 }
 
 .c-player-roster__stat-badge {
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-family: var(--ecs-font-mono);
+    font-size: var(--ecs-text-xs);
 }
 
 /* ============================================================================
@@ -254,7 +254,7 @@
 }
 
 .c-match-section__header {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
     font-weight: var(--font-bold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-3);
@@ -270,7 +270,7 @@
 .c-coach-dashboard .c-match-card-list {
     background: var(--color-bg-card);
     border: var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     overflow: hidden;
 }
 
@@ -282,7 +282,7 @@
 
 .c-coach-dashboard .c-match-card-list--today .c-match-card-list__header {
     background: var(--color-warning);
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
 }
 
 /* Needs reporting - urgent styling */
@@ -306,7 +306,7 @@
 }
 
 .c-coach-dashboard .c-match-card-list__title {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
     font-weight: var(--font-semibold);
     margin: 0;
     display: flex;
@@ -315,7 +315,7 @@
 }
 
 .c-coach-dashboard .c-match-card-list__count {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
 }
 
 /*
@@ -360,8 +360,8 @@
 }
 
 .c-coach-dashboard .c-match-card__score {
-    font-family: var(--font-mono);
-    font-size: var(--text-2xl);
+    font-family: var(--ecs-font-mono);
+    font-size: var(--ecs-text-2xl);
     font-weight: var(--font-bold);
     min-width: 40px;
     text-align: right;
@@ -378,7 +378,7 @@
 .c-coach-dashboard .c-match-card__vs {
     text-align: center;
     color: var(--color-text-muted);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     margin: var(--space-1) 0;
 }
 
@@ -391,7 +391,7 @@
 
 .c-coach-dashboard .c-match-card__detail {
     color: var(--color-text-secondary);
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     display: flex;
     align-items: center;
     gap: var(--space-1);
@@ -426,7 +426,7 @@
 .c-coach-empty {
     background: var(--color-bg-card);
     border: var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     padding: var(--space-8);
     text-align: center;
 }
@@ -438,7 +438,7 @@
 }
 
 .c-coach-empty__title {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-2);
@@ -469,13 +469,13 @@
     }
 
     .c-coach-dashboard__title {
-        font-size: var(--text-2xl);
+        font-size: var(--ecs-text-2xl);
     }
 }
 
 @media (max-width: 767.98px) {
     .c-match-card__score {
-        font-size: var(--text-xl);
+        font-size: var(--ecs-text-xl);
     }
 
     .c-player-roster__table th:not(:first-child):not(:last-child),
@@ -502,8 +502,8 @@
     .c-player-roster,
     .c-match-card-list,
     .c-coach-empty {
-        background: var(--color-neutral-800);
-        border-color: var(--color-neutral-700);
+        background: var(--ecs-color-neutral-800);
+        border-color: var(--ecs-color-neutral-700);
     }
 
     .c-team-stats__card:hover {
@@ -512,16 +512,16 @@
 
     .c-player-roster__header,
     .c-match-card-list__header {
-        background: var(--color-neutral-900);
+        background: var(--ecs-color-neutral-900);
     }
 
     .c-player-roster__header:hover {
-        background: var(--color-neutral-800);
+        background: var(--ecs-color-neutral-800);
     }
 
     .c-match-card:hover,
     .c-player-roster__table tr:hover {
-        background: var(--color-neutral-900);
+        background: var(--ecs-color-neutral-900);
     }
 
     .c-match-card-list--today {
@@ -533,7 +533,7 @@
     }
 
     .c-player-roster__table th {
-        background: var(--color-neutral-900);
+        background: var(--ecs-color-neutral-900);
     }
 }
 

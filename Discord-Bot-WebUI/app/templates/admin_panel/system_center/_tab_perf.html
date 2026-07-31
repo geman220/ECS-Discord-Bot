@@ -59,7 +59,7 @@
   <div class="flex items-baseline justify-between gap-3 px-4 py-2 text-sm">
     <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ m.label }}</dt>
     <dd class="text-right min-w-0 flex items-center gap-1.5 justify-end">
-      <span class="font-mono text-gray-900 dark:text-white break-words">{{ m.value if m.value not in (none, '') else '—' }}</span>
+      <span class="font-mono text-gray-900 dark:text-white wrap-break-word">{{ m.value if m.value not in (none, '') else '—' }}</span>
       {{ honesty_badge(m.honesty) }}
     </dd>
   </div>

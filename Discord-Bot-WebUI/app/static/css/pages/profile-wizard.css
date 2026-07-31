@@ -310,7 +310,7 @@
 [data-component="profile-wizard"] h1,
 [data-component="profile-wizard"] h2,
 [data-component="profile-wizard"] h3 {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-wizard__card-title {

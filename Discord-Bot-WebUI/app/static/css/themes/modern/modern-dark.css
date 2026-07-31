@@ -52,7 +52,7 @@ html[data-theme-variant="modern"][data-style="dark"] {
   --ecs-bg-sidebar: var(--color-bg-primary, var(--color-secondary-950));
   --ecs-bg-navbar: var(--color-bg-card, var(--color-secondary-900));
 
-  --ecs-text-heading: var(--color-text-primary, var(--color-white));
+  --ecs-text-heading: var(--color-text-primary, var(--ecs-color-white));
   --ecs-text-body: var(--color-text-secondary, var(--color-secondary-300));
   --ecs-text-muted: var(--color-text-muted, var(--color-secondary-400));
   --ecs-text-inverse: var(--color-bg-primary, var(--color-secondary-950));
@@ -84,9 +84,9 @@ html[data-theme-variant="modern"][data-style="dark"] {
   --bs-body-color: var(--color-text-secondary, var(--color-secondary-300));
   --bs-secondary-bg: var(--color-bg-card, var(--color-secondary-900));
   --bs-tertiary-bg: var(--color-bg-card, var(--color-secondary-900));
-  --bs-emphasis-color: var(--color-text-primary, var(--color-white));
+  --bs-emphasis-color: var(--color-text-primary, var(--ecs-color-white));
   --bs-border-color: var(--color-border-primary, var(--color-secondary-600, var(--color-secondary-700)));
-  --bs-heading-color: var(--color-text-primary, var(--color-white));
+  --bs-heading-color: var(--color-text-primary, var(--ecs-color-white));
 
   --bs-primary: var(--color-primary-600, var(--color-primary-400));
   --bs-primary-rgb: 96, 165, 250;
@@ -735,7 +735,7 @@ html[data-theme-variant="modern"][data-style="dark"] .dropdown-menu {
     --ecs-bg-sidebar: var(--color-bg-primary, var(--color-secondary-950));
     --ecs-bg-navbar: var(--color-bg-card, var(--color-secondary-900));
 
-    --ecs-text-heading: var(--color-text-primary, var(--color-white));
+    --ecs-text-heading: var(--color-text-primary, var(--ecs-color-white));
     --ecs-text-body: var(--color-text-secondary, var(--color-secondary-300));
     --ecs-text-muted: var(--color-text-muted, var(--color-secondary-400));
 
@@ -748,9 +748,9 @@ html[data-theme-variant="modern"][data-style="dark"] .dropdown-menu {
     --bs-body-color: var(--color-text-secondary, var(--color-secondary-300));
     --bs-secondary-bg: var(--color-bg-card, var(--color-secondary-900));
     --bs-tertiary-bg: var(--color-bg-card, var(--color-secondary-900));
-    --bs-emphasis-color: var(--color-text-primary, var(--color-white));
+    --bs-emphasis-color: var(--color-text-primary, var(--ecs-color-white));
     --bs-border-color: var(--color-border-primary, var(--color-secondary-600, var(--color-secondary-700)));
-    --bs-heading-color: var(--color-text-primary, var(--color-white));
+    --bs-heading-color: var(--color-text-primary, var(--ecs-color-white));
     --bs-card-bg: var(--color-bg-card, var(--color-secondary-900));
     --bs-card-border-color: var(--color-border-primary, var(--color-secondary-600, var(--color-secondary-700)));
     --bs-modal-bg: var(--color-bg-card, var(--color-secondary-900));

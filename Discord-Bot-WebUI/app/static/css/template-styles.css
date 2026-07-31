@@ -20,8 +20,8 @@
     position: absolute;
     top: -40px;
     left: 0;
-    background: var(--color-black, var(--color-neutral-950));
-    color: var(--color-white, var(--color-white));
+    background: var(--color-black, var(--ecs-color-neutral-950));
+    color: var(--ecs-color-white, var(--ecs-color-white));
     padding: 8px 16px;
     text-decoration: none;
     z-index: 100;
@@ -43,19 +43,19 @@
 /* BEM: c-list-group__item--dark */
 [data-style="dark"] .c-list-group__item-action,
 [data-style="dark"] .list-group-item-action {
-    color: var(--ecs-dark-text-primary, var(--color-white));
+    color: var(--ecs-dark-text-primary, var(--ecs-color-white));
     background-color: transparent;
 }
 
 [data-style="dark"] .c-list-group__item-action:hover,
 [data-style="dark"] .list-group-item-action:hover {
-    color: var(--ecs-dark-text-primary, var(--color-white));
+    color: var(--ecs-dark-text-primary, var(--ecs-color-white));
     background-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-style="dark"] .c-list-group__item-action i,
 [data-style="dark"] .list-group-item-action i {
-    color: var(--ecs-dark-text-primary, var(--color-white));
+    color: var(--ecs-dark-text-primary, var(--ecs-color-white));
 }
 
 /* ============================================================================
@@ -318,9 +318,9 @@ html.dark .input-group-text,
 .waiver-content {
     max-height: 300px;
     overflow-y: auto;
-    border: 1px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    border: 1px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
     padding: 15px;
-    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
+    background-color: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
     border-radius: 5px;
     margin-bottom: 15px;
 }
@@ -387,8 +387,8 @@ html.dark .input-group-text,
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    background-color: var(--ecs-bg-card, var(--color-white));
-    border: 2px solid var(--ecs-neutral-20, var(--color-neutral-300));
+    background-color: var(--ecs-bg-card, var(--ecs-color-white));
+    border: 2px solid var(--ecs-neutral-20, var(--ecs-color-neutral-300));
     border-radius: 0.25rem;
 }
 
@@ -670,7 +670,7 @@ table.dataTable thead th.sorting::after {
     opacity: 0.3;
     font-size: 12px;
     line-height: 1;
-    color: var(--ecs-neutral-50, var(--color-neutral-600));
+    color: var(--ecs-neutral-50, var(--ecs-color-neutral-600));
 }
 
 .c-datatable__header--sort-asc::after,
@@ -711,7 +711,7 @@ table.dataTable thead th.sorting:hover::after {
 /* Dark mode compatibility */
 [data-style="dark"] .c-datatable__header--sortable::after,
 [data-style="dark"] table.dataTable thead th.sorting::after {
-    color: var(--ecs-neutral-40, var(--color-neutral-400)ccc);
+    color: var(--ecs-neutral-40, var(--ecs-color-neutral-400)ccc);
 }
 
 [data-style="dark"] .c-datatable__header--sort-asc::after,
@@ -742,7 +742,7 @@ html body table.dataTable thead th.sorting::after {
     opacity: 0.3;
     font-size: 12px;
     line-height: 1;
-    color: var(--ecs-neutral-50, var(--color-neutral-600));
+    color: var(--ecs-neutral-50, var(--ecs-color-neutral-600));
     visibility: visible;
     width: auto;
     height: auto;

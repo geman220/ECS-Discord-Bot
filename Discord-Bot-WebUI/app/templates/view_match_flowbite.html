@@ -44,7 +44,7 @@
 
   {# Back affordance (mock: "Back to matches"). No referrer-aware route is passed
      to this view, so we fall back to the matches/home index. #}
-  <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+  <a href="{{ url_for('main.index') }}" class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
     <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to matches
   </a>
 
@@ -52,13 +52,13 @@
     {% call page_header(team.name ~ ' vs ' ~ ecs_match.opponent_name, subtitle='ECS FC · ' ~ ecs_match.match_date.strftime('%a, %b %d')) %}
       {% if safe_current_user.has_permission('view_rsvps') %}
       <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">Manage RSVPs</span><span class="sm:hidden">RSVPs</span>
       </a>
       {% endif %}
       {% if safe_current_user.has_permission('view_match_reporting') %}
       <button type="button"
-              class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               data-action="edit-match-report" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
         <i class="ti ti-report" aria-hidden="true"></i>Report Match
       </button>
@@ -68,13 +68,13 @@
     {% call page_header(match.home_team.name ~ ' vs ' ~ match.away_team.name, subtitle='Match · ' ~ match.date.strftime('%a, %b %d')) %}
       {% if safe_current_user.has_permission('view_rsvps') %}
       <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">Manage RSVPs</span><span class="sm:hidden">RSVPs</span>
       </a>
       {% endif %}
       {% if safe_current_user.has_permission('view_match_reporting') %}
       <button type="button"
-              class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               data-action="edit-match-report" data-match-id="{{ match.id }}">
         <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}" aria-hidden="true"></i>{% if match.reported %}Edit Report{% else %}Submit Report{% endif %}
       </button>
@@ -98,11 +98,11 @@
         <i class="ti ti-ball-football text-ecs-green" aria-hidden="true"></i>{% if is_ecs_fc_match %}ECS FC Fixture{% else %}League Fixture{% endif %}
       </span>
       {% if is_ecs_fc_match %}
-      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-shield" aria-hidden="true"></i>ECS FC</span>
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-shield" aria-hidden="true"></i>ECS FC</span>
       {% elif is_reported and safe_current_user.has_permission('view_game_results') %}
-      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Final</span>
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Final</span>
       {% else %}
-      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-clock" aria-hidden="true"></i>Scheduled</span>
+      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-clock" aria-hidden="true"></i>Scheduled</span>
       {% endif %}
     </div>
 
@@ -185,7 +185,7 @@
      (calendar_api.calendar_subscriptions.download_single_event). #}
   <div class="flex justify-end">
     <a href="{{ url_for('calendar_api.calendar_subscriptions.download_single_event', event_type=('ecs_fc_match' if is_ecs_fc_match else 'match'), event_id=(ecs_match.id if is_ecs_fc_match else match.id)) }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-calendar-plus" aria-hidden="true"></i>Add to calendar
     </a>
   </div>
@@ -199,7 +199,7 @@
       <p class="text-sm text-amber-800 dark:text-amber-300">Submit the score and goal/card events once the match is played.</p>
     </div>
     <button type="button"
-            class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-amber-50 shrink-0"
+            class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-amber-50 shrink-0"
             data-action="edit-match-report" data-match-id="{{ match.id }}">
       <i class="ti ti-report" aria-hidden="true"></i>Submit Report
     </button>
@@ -239,17 +239,17 @@
       </p>
       <div class="grid grid-cols-3 gap-2 sm:gap-3" role="group" aria-label="Your availability">
         <button type="button" data-rsvp-btn data-rsvp-response="yes" aria-pressed="{{ 'true' if my_resp == 'yes' else 'false' }}"
-                class="self-rsvp-btn flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                class="self-rsvp-btn flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                 {% if my_resp == 'yes' %}border-green-500 bg-green-50 dark:bg-green-500/15 text-green-600 dark:text-green-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
           <i class="ti ti-circle-check text-lg" aria-hidden="true"></i> Available
         </button>
         <button type="button" data-rsvp-btn data-rsvp-response="maybe" aria-pressed="{{ 'true' if my_resp == 'maybe' else 'false' }}"
-                class="self-rsvp-btn flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                class="self-rsvp-btn flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                 {% if my_resp == 'maybe' %}border-amber-500 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
           <i class="ti ti-help-circle text-lg" aria-hidden="true"></i> Maybe
         </button>
         <button type="button" data-rsvp-btn data-rsvp-response="no" aria-pressed="{{ 'true' if my_resp == 'no' else 'false' }}"
-                class="self-rsvp-btn flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+                class="self-rsvp-btn flex flex-col items-center justify-center gap-1 min-h-[64px] rounded-lg text-sm font-semibold border-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                 {% if my_resp == 'no' %}border-red-500 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400{% else %}border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %}">
           <i class="ti ti-circle-x text-lg" aria-hidden="true"></i> Can't make it
         </button>
@@ -295,7 +295,7 @@
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
     <div class="flex items-center justify-between gap-2 px-4 sm:px-5 h-11 border-b border-gray-200 dark:border-gray-700">
       <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2"><i class="ti ti-ball-football text-ecs-green" aria-hidden="true"></i>{{ team.name }} Squad</h3>
-      <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ team.players | length }}</span>
+      <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ team.players | length }}</span>
     </div>
     {% if not team.players and not home_rsvp_data['available'] %}
     {{ empty_state('ti-users-off', 'No squad members', 'This team has no players assigned and no RSVPs yet.') }}
@@ -318,7 +318,7 @@
         <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-3 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
           {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
           <span class="text-sm font-medium truncate">{{ player.name }}</span>
-          <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400 shrink-0">Sub</span>
+          <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400 shrink-0">Sub</span>
         </a>
         {% if safe_current_user.has_permission('view_rsvps') %}{{ avail_badge('yes') }}{% endif %}
       </li>
@@ -333,15 +333,15 @@
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
     <div class="border-b border-gray-200 dark:border-gray-700">
       <nav class="flex -mb-px" role="tablist">
-        <button type="button" class="team-tab flex-1 min-h-[44px] py-3 px-4 text-center border-b-2 border-ecs-green text-ecs-green dark:text-ecs-gold-400 dark:border-ecs-gold-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+        <button type="button" class="team-tab flex-1 min-h-[44px] py-3 px-4 text-center border-b-2 border-ecs-green text-ecs-green dark:text-ecs-gold-400 dark:border-ecs-gold-400 font-semibold text-sm focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green"
                 data-tab="home" aria-selected="true">
           {{ match.home_team.name }}
-          <span class="ml-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">Home</span>
+          <span class="ml-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">Home</span>
         </button>
-        <button type="button" class="team-tab flex-1 min-h-[44px] py-3 px-4 text-center border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+        <button type="button" class="team-tab flex-1 min-h-[44px] py-3 px-4 text-center border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-semibold text-sm focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green"
                 data-tab="away" aria-selected="false">
           {{ match.away_team.name }}
-          <span class="ml-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">Away</span>
+          <span class="ml-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">Away</span>
         </button>
       </nav>
     </div>
@@ -381,7 +381,7 @@
           <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-3 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
             {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
             <span class="text-sm truncate">{{ player.name }}</span>
-            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400 shrink-0">Sub</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400 shrink-0">Sub</span>
           </a>
           {% if safe_current_user.has_permission('view_rsvps') %}{{ avail_badge('yes') }}{% endif %}
         </li>
@@ -425,7 +425,7 @@
           <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-3 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
             {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
             <span class="text-sm truncate">{{ player.name }}</span>
-            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400 shrink-0">Sub</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/20 text-ecs-gold-600 dark:text-ecs-gold-400 shrink-0">Sub</span>
           </a>
           {% if safe_current_user.has_permission('view_rsvps') %}{{ avail_badge('yes') }}{% endif %}
         </li>
@@ -442,12 +442,12 @@
     <span class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5 shrink-0"><i class="ti ti-layout-grid text-ecs-green" aria-hidden="true"></i>Lineups</span>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 flex-1">
       <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.home_team_id) }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
          title="Edit {{ match.home_team.name }} lineup">
         <i class="ti ti-edit" aria-hidden="true"></i><span class="truncate">{{ match.home_team.name }}</span>
       </a>
       <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.away_team_id) }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
          title="Edit {{ match.away_team.name }} lineup">
         <i class="ti ti-edit" aria-hidden="true"></i><span class="truncate">{{ match.away_team.name }}</span>
       </a>
@@ -460,7 +460,7 @@
 {% else %}
 <div class="p-4 space-y-6">
     <!-- Match Header Card -->
-    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
+    <div class="bg-linear-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
         <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div class="flex-1">
                 {% if is_ecs_fc_match %}
@@ -509,11 +509,11 @@
                     <div class="text-3xl font-bold">
                         {{ match.home_team_score }} - {{ match.away_team_score }}
                         {% if match.home_team_score > match.away_team_score %}
-                        <span class="ml-2 px-2 py-1 text-sm rounded bg-green-500/80">{{ match.home_team.name }} Won</span>
+                        <span class="ml-2 px-2 py-1 text-sm rounded-sm bg-green-500/80">{{ match.home_team.name }} Won</span>
                         {% elif match.home_team_score < match.away_team_score %}
-                        <span class="ml-2 px-2 py-1 text-sm rounded bg-green-500/80">{{ match.away_team.name }} Won</span>
+                        <span class="ml-2 px-2 py-1 text-sm rounded-sm bg-green-500/80">{{ match.away_team.name }} Won</span>
                         {% else %}
-                        <span class="ml-2 px-2 py-1 text-sm rounded bg-blue-500/80">Draw</span>
+                        <span class="ml-2 px-2 py-1 text-sm rounded-sm bg-blue-500/80">Draw</span>
                         {% endif %}
                     </div>
                 </div>
@@ -548,7 +548,7 @@
             </div>
 
             {% if safe_current_user.has_permission('view_match_reporting') %}
-            <div class="flex-shrink-0">
+            <div class="shrink-0">
                 {% if is_ecs_fc_match %}
                 <button class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-ecs-green font-medium hover:bg-gray-100 transition-colors edit-match-btn"
                         data-action="edit-match-report" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
@@ -567,14 +567,14 @@
     </div>
 
     <!-- Match Details Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Match Details</h5>
         </div>
         <div class="p-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <i class="ti ti-map-pin text-blue-600 dark:text-blue-400"></i>
                     </div>
                     <div>
@@ -584,7 +584,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <i class="ti ti-calendar text-blue-600 dark:text-blue-400"></i>
                     </div>
                     <div>
@@ -594,7 +594,7 @@
                 </div>
 
                 <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                         <i class="ti ti-clock text-green-600 dark:text-green-400"></i>
                     </div>
                     <div>
@@ -605,7 +605,7 @@
 
                 {% if is_ecs_fc_match and ecs_match.field_name %}
                 <div class="flex items-center gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
                         <i class="ti ti-world text-amber-600 dark:text-amber-400"></i>
                     </div>
                     <div>
@@ -619,7 +619,7 @@
             {% if safe_current_user.has_permission('view_game_results') and ((is_ecs_fc_match and ecs_match.notes) or (not is_ecs_fc_match and match.notes)) %}
             <div class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                 <div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                         <i class="ti ti-notes text-blue-600 dark:text-blue-400"></i>
                     </div>
                     <div>
@@ -634,12 +634,12 @@
 
     {% if is_ecs_fc_match %}
     <!-- ECS FC Match - Single Team Layout -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h5 class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-ball-football"></i>{{ team.name }} Squad
             </h5>
-            <span class="px-2 py-1 text-xs font-medium rounded bg-ecs-gold/20 text-ecs-gold">ECS FC</span>
+            <span class="px-2 py-1 text-xs font-medium rounded-sm bg-ecs-gold/20 text-ecs-gold">ECS FC</span>
         </div>
         <div class="p-4">
             <!-- RSVP Summary Cards -->
@@ -711,7 +711,7 @@
                         <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                              class="w-8 h-8 rounded-full object-cover" alt="{{ player.name }}">
                         <span class="font-medium">{{ player.name }}</span>
-                        <span class="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Sub</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded-sm bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300">Sub</span>
                     </a>
                     <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400">
                         <i class="ti ti-check text-sm"></i>
@@ -725,19 +725,19 @@
 
     {% else %}
     <!-- Regular Match - Two Team Layout with Tabs on Mobile -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700">
         <!-- Tabs for Mobile -->
         <div class="border-b border-gray-200 dark:border-gray-700">
             <nav class="flex -mb-px" role="tablist">
                 <button type="button" class="team-tab flex-1 py-3 px-4 text-center border-b-2 border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold font-medium"
                         data-tab="home" aria-selected="true">
                     {{ match.home_team.name }}
-                    <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">Home</span>
+                    <span class="ml-1 text-xs px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">Home</span>
                 </button>
                 <button type="button" class="team-tab flex-1 py-3 px-4 text-center border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
                         data-tab="away" aria-selected="false">
                     {{ match.away_team.name }}
-                    <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400">Away</span>
+                    <span class="ml-1 text-xs px-1.5 py-0.5 rounded-sm bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400">Away</span>
                 </button>
             </nav>
         </div>
@@ -748,7 +748,7 @@
             <div class="flex items-center justify-between mb-3">
                 <h6 class="font-medium text-gray-900 dark:text-white">RSVP Summary</h6>
                 {% if safe_current_user.has_permission('view_team_record') %}
-                <span class="text-sm px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                <span class="text-sm px-2 py-1 rounded-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
                     Record: {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}
                 </span>
                 {% endif %}
@@ -804,7 +804,7 @@
                         <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                              class="w-7 h-7 rounded-full object-cover" alt="{{ player.name }}">
                         <span class="text-sm">{{ player.name }}</span>
-                        <span class="text-xs px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-500">Sub</span>
+                        <span class="text-xs px-1 py-0.5 rounded-sm bg-gray-200 dark:bg-gray-600 text-gray-500">Sub</span>
                     </a>
                     <i class="ti ti-check text-green-600 dark:text-green-400"></i>
                 </div>
@@ -819,7 +819,7 @@
             <div class="flex items-center justify-between mb-3">
                 <h6 class="font-medium text-gray-900 dark:text-white">RSVP Summary</h6>
                 {% if safe_current_user.has_permission('view_team_record') %}
-                <span class="text-sm px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                <span class="text-sm px-2 py-1 rounded-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
                     Record: {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}
                 </span>
                 {% endif %}
@@ -875,7 +875,7 @@
                         <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                              class="w-7 h-7 rounded-full object-cover" alt="{{ player.name }}">
                         <span class="text-sm">{{ player.name }}</span>
-                        <span class="text-xs px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-500">Sub</span>
+                        <span class="text-xs px-1 py-0.5 rounded-sm bg-gray-200 dark:bg-gray-600 text-gray-500">Sub</span>
                     </a>
                     <i class="ti ti-check text-green-600 dark:text-green-400"></i>
                 </div>

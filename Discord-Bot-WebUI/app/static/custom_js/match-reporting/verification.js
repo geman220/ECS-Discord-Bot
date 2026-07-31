@@ -157,7 +157,7 @@ function buildTeamVerificationCard(config) {
                 <div class="flex items-start">
                     <div class="flex items-center h-5">
                         <input type="checkbox" value="true" id="${inputId}" name="${inputName}" data-verification-input="${teamType}"
-                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                     </div>
                     <div class="ml-2">
                         <label for="${inputId}" class="text-sm font-medium text-gray-900 dark:text-gray-300">

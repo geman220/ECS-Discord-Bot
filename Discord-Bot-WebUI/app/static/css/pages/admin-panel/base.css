@@ -39,7 +39,7 @@
   border-radius: var(--border-radius-lg, 0.5rem);
   padding: 1.5rem;
   color: white;
-  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
+  box-shadow: var(--ecs-shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
 }
 
 .c-admin-panel-base__header-content {
@@ -239,7 +239,7 @@
   padding: 0.75rem 1rem;
   margin: 0;
   list-style: none;
-  background-color: var(--bs-gray-100, var(--color-neutral-50));
+  background-color: var(--bs-gray-100, var(--ecs-color-neutral-50));
   border-radius: var(--border-radius-sm, 0.25rem);
 }
 
@@ -471,7 +471,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__header
     background: none;
     color: black;
     box-shadow: none;
-    border: 1px solid var(--color-black, var(--color-neutral-950));
+    border: 1px solid var(--color-black, var(--ecs-color-neutral-950));
   }
 }
 
@@ -648,7 +648,7 @@ html[data-theme-variant="modern"][data-style="dark"] .c-admin-panel-base__header
 
 .player-search-item.selected {
   background-color: var(--bs-primary);
-  color: var(--color-white);
+  color: var(--ecs-color-white);
 }
 
 .player-search-item .player-name {

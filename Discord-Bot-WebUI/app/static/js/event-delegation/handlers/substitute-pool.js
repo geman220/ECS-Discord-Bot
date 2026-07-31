@@ -997,8 +997,8 @@ function populatePlayerSelectList(subs) {
     selectedPlayerIds = [];
 
     container.innerHTML = subs.map(s => `
-        <label class="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer">
-            <input type="checkbox" value="${s.player_id}" class="player-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+        <label class="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm cursor-pointer">
+            <input type="checkbox" value="${s.player_id}" class="player-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
             <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">${escapeHtml(s.name)}</span>
             <span class="ml-auto text-xs text-gray-400">${s.preferred_positions || ''}</span>
         </label>

@@ -112,7 +112,7 @@ function showModalLoading(options = {}) {
         <div id="loadingModal" tabindex="-1" class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overflow-x-hidden">
             <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
             <div class="relative p-4 w-full max-w-md">
-                <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+                <div class="relative bg-white rounded-lg shadow-sm dark:bg-gray-800">
                     <div class="p-6 text-center">
                         <div class="w-12 h-12 border-4 border-ecs-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">${title}</h3>

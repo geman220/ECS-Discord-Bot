@@ -81,7 +81,7 @@ export function markIssueResolved(issueType, issueId, status) {
         const statusBadge = issueCard.querySelector('.status-badge');
         if (statusBadge) {
             statusBadge.textContent = status;
-            statusBadge.className = 'status-badge px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+            statusBadge.className = 'status-badge px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
         }
     }
 

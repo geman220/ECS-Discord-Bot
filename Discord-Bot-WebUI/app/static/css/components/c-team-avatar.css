@@ -64,7 +64,7 @@
    ============================================================================ */
 
 .c-team-avatar--square {
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
 }
 
 .c-team-avatar--circular {
@@ -84,7 +84,7 @@
 .c-team-avatar__initial {
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* Initial size based on avatar size */
@@ -105,7 +105,7 @@
 }
 
 .c-team-avatar__fallback {
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 700;
 }
 

@@ -93,7 +93,7 @@
                   {% endif %}
                 </div>
                 <button type="button" id="review-profile-btn"
-                        class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                   <i class="ti ti-edit" aria-hidden="true"></i>
                   Review Profile
                 </button>
@@ -160,7 +160,7 @@
           {% endif %}
           <button type="button" id="review-profile-btn-rail"
                   data-modal-target="profileModal" data-modal-toggle="profileModal"
-                  class="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-edit" aria-hidden="true"></i> Review profile details
           </button>
         </div>
@@ -205,9 +205,9 @@
 {% else %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">
     <!-- Waitlist Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 p-6">
+        <div class="bg-linear-to-r from-ecs-green to-ecs-green/80 p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-xs text-white/80 font-medium uppercase tracking-wider">ECS FC Pub League</span>
@@ -224,7 +224,7 @@
             {% if already_on_waitlist %}
             <!-- Already on waitlist -->
             <div class="flex items-start gap-3 p-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
-                <i class="ti ti-check-circle text-xl flex-shrink-0 mt-0.5"></i>
+                <i class="ti ti-check-circle text-xl shrink-0 mt-0.5"></i>
                 <div>
                     <h5 class="font-semibold">You're Already on the Waitlist!</h5>
                     <p class="text-sm mb-4">Great news! You're already on our waitlist for the current season. We'll notify you as soon as spots become available.</p>
@@ -239,7 +239,7 @@
             {% else %}
             <!-- Join waitlist form -->
             <div class="flex items-start gap-3 p-4 mb-6 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/50 rounded-lg border border-amber-200 dark:border-amber-800">
-                <i class="ti ti-clock text-xl flex-shrink-0 mt-0.5"></i>
+                <i class="ti ti-clock text-xl shrink-0 mt-0.5"></i>
                 <div>
                     <h6 class="font-semibold">Season Full</h6>
                     <p class="text-sm">All spots for the current season have been filled. Join our waitlist to be first in line for future openings!</p>
@@ -283,7 +283,7 @@
 
                 <!-- Profile Verification Encouragement -->
                 <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <i class="ti ti-user-check text-xl flex-shrink-0 mt-0.5"></i>
+                    <i class="ti ti-user-check text-xl shrink-0 mt-0.5"></i>
                     <div>
                         <h6 class="font-semibold">Welcome Back!</h6>
                         <p class="text-sm">Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.</p>
@@ -341,7 +341,7 @@
 {% call modal_info('profileModal', 'Review Your Profile', size='xl', footer=false) %}
     <!-- Info Alert -->
     <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
-        <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+        <i class="ti ti-info-circle text-xl shrink-0 mt-0.5"></i>
         <div class="text-sm">
             <h6 class="font-semibold mb-1">Review Your Profile</h6>
             <p class="mb-2">Before joining the waitlist, please review and update your profile information to ensure it's current and accurate.</p>

@@ -147,7 +147,7 @@ main,
 .c-role-banner {
   margin: var(--space-3);
   margin-bottom: 0;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   background: var(--color-warning-subtle);
   border: 1px solid var(--color-warning);
   padding: var(--space-4);
@@ -168,7 +168,7 @@ main,
 
 .role-impersonation-banner .role-banner-icon,
 .c-role-banner__icon {
-  font-size: var(--text-xl);
+  font-size: var(--ecs-text-xl);
   color: var(--color-warning);
   flex-shrink: 0;
 }
@@ -195,7 +195,7 @@ main,
 .c-role-banner__description {
   margin: var(--space-1) 0 0 0;
   color: var(--color-warning-600);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 [data-style="dark"] .role-impersonation-banner .role-banner-description,
@@ -259,7 +259,7 @@ main,
   margin-top: auto;
   flex-shrink: 0; /* Don't shrink footer */
   padding: 1rem 1.5rem;
-  background: var(--color-bg-card, var(--color-white));
+  background: var(--color-bg-card, var(--ecs-color-white));
   border-top: 1px solid var(--color-border-primary, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
   position: relative;
   z-index: 10; /* Above content but below modals and widgets */
@@ -347,7 +347,7 @@ main,
 .footer-link {
   color: var(--color-text-secondary);
   text-decoration: none;
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   margin-right: var(--space-4);
   transition: color var(--duration-fast) var(--ease-smooth);
 }
@@ -534,15 +534,15 @@ main,
   overflow-x: hidden;
   background: var(--color-bg-card);
   border: 1px solid var(--border-color-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--ecs-radius-md);
+  box-shadow: var(--ecs-shadow-lg);
   z-index: var(--z-autocomplete, 1060);
   padding: var(--space-2) 0;
 }
 
 [data-style="dark"] .ui-autocomplete {
-  background: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
+  background: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
 }
 
 /* Autocomplete items */
@@ -571,7 +571,7 @@ main,
 }
 
 [data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper {
-  color: var(--color-neutral-900);
+  color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .ui-autocomplete .ui-menu-item-wrapper:hover,
@@ -591,7 +591,7 @@ main,
 }
 
 [data-style="dark"] .autocomplete-profile-img {
-  border-color: var(--color-neutral-200);
+  border-color: var(--ecs-color-neutral-200);
 }
 
 /* ============================================================================
@@ -613,15 +613,15 @@ main,
 
 .c-flash-toast-container .toast {
   pointer-events: auto;
-  box-shadow: var(--shadow-lg);
-  border-radius: var(--radius-md);
+  box-shadow: var(--ecs-shadow-lg);
+  border-radius: var(--ecs-radius-md);
   background: var(--color-bg-card);
   border: 1px solid var(--border-color-primary);
 }
 
 [data-style="dark"] .c-flash-toast-container .toast {
-  background: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
+  background: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
 }
 
 /* Mobile toast positioning */
@@ -703,7 +703,7 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
 }
 
 [data-style="dark"] button:focus-visible,
@@ -741,7 +741,7 @@ textarea:focus-visible {
   padding: var(--space-2) var(--space-4);
   text-decoration: none;
   z-index: var(--z-modal);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   font-weight: var(--font-semibold);
 }
 
@@ -757,7 +757,7 @@ textarea:focus-visible {
 [data-style="dark"] .skip-link,
 [data-style="dark"] .c-base-layout__skip-link {
   background-color: var(--color-primary-600, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* ============================================================================

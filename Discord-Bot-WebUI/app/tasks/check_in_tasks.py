@@ -82,11 +82,17 @@ def backfill_wallet_passes_for_active_players(self, session, season_id: int = No
 
             if pub_league_team is None:
                 if getattr(p, 'teams', None):
-                    # Has teams but they're all ECS FC.
+                    # Has teams but they're all ECS FC — genuinely not a pub
+                    # league member, so no pub league pass.
                     skipped_ecs_fc += 1
-                else:
-                    skipped_no_team += 1
-                continue
+                    continue
+                # No team at all = paid but not yet drafted. Still gets a pass;
+                # create_pub_league_pass leaves team_name NULL and the pass
+                # renders "Unassigned" until the draft, at which point the
+                # auto-refresh push fills the team in. Skipping them here left
+                # the exact cohort that complains about missing passes with no
+                # WalletPass row — and therefore an unscannable barcode.
+                skipped_no_team += 1
 
             existing = session.query(WalletPass).filter(
                 WalletPass.user_id == p.user_id,
@@ -103,8 +109,8 @@ def backfill_wallet_passes_for_active_players(self, session, season_id: int = No
 
         logger.info(
             f"WalletPass backfill: created {created}, skipped {skipped} (existing), "
-            f"skipped {skipped_no_team} (no team), skipped {skipped_ecs_fc} (ECS FC only); "
-            f"season={season.name}"
+            f"{skipped_no_team} created without a team (undrafted), "
+            f"skipped {skipped_ecs_fc} (ECS FC only); season={season.name}"
         )
         return {
             'success': True,

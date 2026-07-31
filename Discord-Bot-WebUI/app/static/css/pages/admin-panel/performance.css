@@ -46,12 +46,12 @@
 
 .c-perf-monitor .c-perf-metric__label {
   color: var(--color-text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 .c-perf-monitor .c-perf-metric__value {
   color: var(--color-text-primary);
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
   font-weight: var(--font-semibold);
 }
 
@@ -112,7 +112,7 @@
 
 .c-perf-monitor .c-perf-realtime__timestamp {
   color: var(--color-text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--ecs-text-xs);
 }
 
 .c-perf-monitor .c-perf-realtime__grid {
@@ -125,11 +125,11 @@
   text-align: center;
   padding: var(--space-4);
   background: rgba(var(--color-neutral-500-rgb), 0.05);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 .c-perf-monitor .c-perf-realtime__value {
-  font-size: var(--text-3xl);
+  font-size: var(--ecs-text-3xl);
   font-weight: var(--font-bold);
   margin: 0 0 var(--space-2) 0;
 }
@@ -160,7 +160,7 @@
 
 .c-perf-monitor .c-perf-realtime__label {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   margin: 0;
 }
 

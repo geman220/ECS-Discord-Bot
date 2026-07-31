@@ -12,14 +12,14 @@
         </div>
 
         <!-- Error Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <!-- Top accent bar (color based on error type) -->
             {% if error_type == 'expired' %}
-            <div class="h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+            <div class="h-1 bg-linear-to-r from-yellow-500 to-orange-500"></div>
             {% elif error_type in ['already_claimed', 'already_linked'] %}
-            <div class="h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+            <div class="h-1 bg-linear-to-r from-blue-500 to-indigo-500"></div>
             {% else %}
-            <div class="h-1 bg-gradient-to-r from-red-500 to-pink-500"></div>
+            <div class="h-1 bg-linear-to-r from-red-500 to-pink-500"></div>
             {% endif %}
 
             <div class="p-8">

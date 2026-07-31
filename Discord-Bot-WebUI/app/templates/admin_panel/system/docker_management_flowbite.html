@@ -48,7 +48,7 @@
       <span class="font-mono">{{ _running }}/{{ _total }}</span> up
     </span>
     <button id="docker-refresh-btn" type="button"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
     </button>
   {% endcall %}
@@ -95,7 +95,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-box text-ecs-green" aria-hidden="true"></i> Container Fleet
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _total }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _total }}</span>
       </h2>
       <div class="relative flex-1 sm:flex-none min-w-[180px] sm:w-64">
         <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
@@ -122,7 +122,7 @@
               <div class="flex items-center gap-2">
                 <i class="ti {{ group.icon }} text-sm {{ group.cls }}" aria-hidden="true"></i>
                 <span class="text-xs font-bold uppercase tracking-wide {{ group.cls }}">{{ group.label }}</span>
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ group.rows|length }}</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ group.rows|length }}</span>
                 <span class="flex-1 h-px bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
               </div>
             </td>
@@ -145,7 +145,7 @@
               </div>
             </td>
             <td class="px-4 py-3">
-              <span class="inline-flex items-center font-mono text-xs rounded overflow-hidden border border-gray-200 dark:border-gray-700">
+              <span class="inline-flex items-center font-mono text-xs rounded-sm overflow-hidden border border-gray-200 dark:border-gray-700">
                 <span class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">{{ _img_parts[0] }}</span>
                 {% if _img_parts|length > 1 %}<span class="px-2 py-1 bg-ecs-green/10 text-ecs-green dark:text-ecs-green-400">{{ _img_parts[1] }}</span>{% endif %}
               </span>
@@ -168,19 +168,19 @@
             <td class="px-4 py-3">
               <div class="flex items-center justify-end gap-1">
                 {% if container.status.startswith('running') %}
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
                   <i class="ti ti-player-stop" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
                   <i class="ti ti-refresh" aria-hidden="true"></i>
                 </button>
                 {% else %}
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
                   <i class="ti ti-player-play" aria-hidden="true"></i>
                 </button>
                 {% endif %}
                 <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" aria-hidden="true"></span>
-                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
                   <i class="ti ti-file-text" aria-hidden="true"></i>
                 </button>
               </div>
@@ -221,24 +221,24 @@
           {% endif %}
         </div>
         <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          <code class="font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">{{ container.image }}</code>
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded-sm">{{ container.image }}</code>
           <span class="font-mono text-gray-400 dark:text-gray-500">{{ container.id }}</span>
         </div>
         <div class="mt-2 flex items-center gap-1">
           {% if container.status.startswith('running') %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
             <i class="ti ti-player-stop" aria-hidden="true"></i>
           </button>
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
             <i class="ti ti-refresh" aria-hidden="true"></i>
           </button>
           {% else %}
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
             <i class="ti ti-player-play" aria-hidden="true"></i>
           </button>
           {% endif %}
           <span class="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-0.5" aria-hidden="true"></span>
-          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
             <i class="ti ti-file-text" aria-hidden="true"></i>
           </button>
         </div>
@@ -261,22 +261,22 @@
       <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Related Tools</h3>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-200 dark:divide-gray-700">
-      <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+      <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
         <i class="ti ti-heartbeat text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
         <span class="text-sm font-medium text-gray-900 dark:text-white">Health Dashboard</span>
         <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
-      <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+      <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
         <i class="ti ti-database text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
         <span class="text-sm font-medium text-gray-900 dark:text-white">Redis Management</span>
         <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
-      <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+      <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
         <i class="ti ti-activity text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
         <span class="text-sm font-medium text-gray-900 dark:text-white">System Monitoring</span>
         <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
       </a>
-      <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+      <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-3 min-h-[44px] px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
         <i class="ti ti-list-check text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
         <span class="text-sm font-medium text-gray-900 dark:text-white">Task Monitor</span>
         <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
@@ -296,10 +296,10 @@
       </div>
     </div>
     <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
-      <button type="button" data-modal-hide="logModal" class="modal-close-btn inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <button type="button" data-modal-hide="logModal" class="modal-close-btn inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         Close
       </button>
-      <button type="button" onclick="refreshLogs()" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <button type="button" onclick="refreshLogs()" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
       </button>
     </div>
@@ -307,7 +307,7 @@
 {% endcall %}
 {% else %}
 <!-- Header -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-box mr-2"></i>Docker Container Management
@@ -320,7 +320,7 @@
 
 <!-- Container Stats -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-circle-check text-2xl text-green-600 dark:text-green-400"></i>
@@ -329,7 +329,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Running</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
                 <i class="ti ti-circle-pause text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -338,7 +338,7 @@
             <span class="text-sm text-yellow-700 dark:text-yellow-300">Stopped</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-box text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -350,7 +350,7 @@
 </div>
 
 <!-- Container List -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-list mr-2"></i>Containers
@@ -378,7 +378,7 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 hidden md:table-cell">
-                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ container.image }}</code>
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm">{{ container.image }}</code>
                     </td>
                     <td class="px-4 py-3 hidden md:table-cell">
                         {% if container.status.startswith('running') %}
@@ -441,7 +441,7 @@
 </div>
 
 <!-- Quick Links -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-link mr-2"></i>Related Tools

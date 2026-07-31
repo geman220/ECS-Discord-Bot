@@ -101,7 +101,7 @@
          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
                 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-download" aria-hidden="true"></i>Export Config
       </a>
     </div>
@@ -123,7 +123,7 @@
           <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti {{ g.icon }} {{ g.accent }}" aria-hidden="true"></i> {{ g.title }}
           </h3>
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _g_on }}/{{ _feats | length }} on</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ _g_on }}/{{ _feats | length }} on</span>
         </div>
         {% if g.key == 'experimental' %}
         <p class="px-4 sm:px-5 py-2.5 text-xs text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/30 flex items-center gap-2">
@@ -152,7 +152,7 @@
             <label class="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px]">
               <span class="sr-only">Toggle {{ f.label }}</span>
               <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
             </label>
           </li>
           {% endfor %}
@@ -177,7 +177,7 @@
               class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold
                      text-white bg-red-600 border border-red-600 dark:bg-red-600 dark:border-red-500
                      hover:bg-red-700 dark:hover:bg-red-700 transition-colors
-                     focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                     focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-alert-triangle" aria-hidden="true"></i>Disable All Features
       </button>
     </div>
@@ -200,7 +200,7 @@
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
             </label>
         </div>
         {% endfor %}
@@ -218,7 +218,7 @@
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
             </label>
         </div>
         {% endfor %}
@@ -246,7 +246,7 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
                 </label>
             </div>
             {% endfor %}
@@ -256,7 +256,7 @@
 {% endif %}
 
 <!-- Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mt-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-bolt mr-2"></i>Actions

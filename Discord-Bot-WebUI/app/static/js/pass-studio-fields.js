@@ -175,7 +175,7 @@ const FieldsManager = {
         const badge = card.querySelector('.field-location-badge');
         const location = isBackField ? 'back' : field.field_location;
         badge.textContent = location;
-        badge.className = `field-location-badge text-xs font-medium px-2 py-0.5 rounded ${this.getLocationBadgeClass(location)}`;
+        badge.className = `field-location-badge text-xs font-medium px-2 py-0.5 rounded-sm ${this.getLocationBadgeClass(location)}`;
 
         // Set label
         card.querySelector('.label-input').value = field.label || '';
@@ -536,7 +536,7 @@ const FieldsManager = {
                 field.field_location = newLocation;
                 const badge = evt.item.querySelector('.field-location-badge');
                 badge.textContent = newLocation;
-                badge.className = `field-location-badge text-xs font-medium px-2 py-0.5 rounded ${this.getLocationBadgeClass(newLocation)}`;
+                badge.className = `field-location-badge text-xs font-medium px-2 py-0.5 rounded-sm ${this.getLocationBadgeClass(newLocation)}`;
                 const locSelect = evt.item.querySelector('.location-select');
                 if (locSelect) locSelect.value = newLocation;
             }

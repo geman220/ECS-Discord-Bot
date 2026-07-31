@@ -26,13 +26,13 @@
     </p>
     <div class="shrink-0 flex items-center gap-2">
       <button type="button" id="recheckCoachesBtn"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
               title="Re-check every coach's live Discord role status">
         <i class="ti ti-refresh" aria-hidden="true"></i> Re-check
       </button>
       <button type="button" id="syncCoachesBtn"
               data-url="{{ url_for('admin_panel.season_coaches_sync_discord') }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
               title="Push Discord roles only for coaches not already confirmed (green)">
         <i class="ti ti-brand-discord" aria-hidden="true"></i> Sync missing
       </button>
@@ -50,7 +50,7 @@
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti {{ col.icon }} {{ col.tone }}" aria-hidden="true"></i> {{ col.label }} Coaches
         </h2>
-        <span data-coach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
+        <span data-coach-count class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ col.coaches|length }}</span>
       </div>
 
       <div class="p-4 space-y-3">
@@ -78,7 +78,7 @@
             </span>
             <span data-coach-status data-user-id="{{ c.user_id }}" class="shrink-0 inline-flex items-center"></span>
             <button type="button" data-coach-remove data-user-id="{{ c.user_id }}"
-                    class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    class="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                     title="Remove coach">
               <i class="ti ti-x text-sm" aria-hidden="true"></i>
             </button>
@@ -214,7 +214,7 @@
       btn.type = 'button';
       btn.setAttribute('data-coach-remove', '');
       btn.setAttribute('data-user-id', userId);
-      btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500';
+      btn.className = 'shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-hidden focus:ring-2 focus:ring-red-500';
       btn.title = 'Remove coach';
       btn.innerHTML = '<i class="ti ti-x text-sm" aria-hidden="true"></i>';
       li.appendChild(left); li.appendChild(status); li.appendChild(btn);

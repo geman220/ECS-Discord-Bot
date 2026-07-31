@@ -202,11 +202,11 @@ export function createMatchCard(match) {
     const isUpcoming = matchDate > new Date();
     const statusBadge = getStatusBadge(match.status);
     const homeAwayBadge = match.is_home_match
-        ? '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Home</span>'
-        : '<span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Away</span>';
+        ? '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Home</span>'
+        : '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Away</span>';
 
     return `
-        <div class="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 mb-3 js-match-card" data-match-id="${match.id}">
+        <div class="bg-white border border-gray-200 rounded-lg shadow-xs dark:bg-gray-800 dark:border-gray-700 mb-3 js-match-card" data-match-id="${match.id}">
             <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
                 <h6 class="text-sm font-semibold text-gray-900 dark:text-white">
                     <i class="ti ti-ball-football mr-2"></i>
@@ -269,13 +269,13 @@ export function createMatchCard(match) {
 export function getStatusBadge(status) {
     switch (status) {
         case 'SCHEDULED':
-            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Scheduled</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Scheduled</span>';
         case 'COMPLETED':
-            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>';
         case 'CANCELLED':
-            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Cancelled</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Cancelled</span>';
         default:
-            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Unknown</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Unknown</span>';
     }
 }
 
@@ -311,10 +311,10 @@ export function renderRsvpSummary(matchId, summary) {
         <div class="js-rsvp-counts">
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">RSVP Status:</p>
             <div class="flex justify-between gap-1 mt-1">
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">${summary.yes}</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${summary.no}</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">? ${summary.maybe}</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">- ${summary.no_response}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">${summary.yes}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${summary.no}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">? ${summary.maybe}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">- ${summary.no_response}</span>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${responseRate}% responded</p>
         </div>

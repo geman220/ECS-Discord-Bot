@@ -671,7 +671,7 @@ export function updateReportersUI(reporters) {
         $reportersList.append(`
             <li class="px-4 py-3 text-sm border-b border-gray-200 dark:border-gray-700 flex justify-between items-center js-reporter-item">
                 <span class="text-gray-900 dark:text-white">${reporter.username} (${reporter.team_name})</span>
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">${timeSince}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">${timeSince}</span>
             </li>
         `);
     });

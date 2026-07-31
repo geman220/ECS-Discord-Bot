@@ -27,7 +27,7 @@
 
 {% call page_header("Quick Profiles", subtitle="Tryout claim-code lifecycle") %}
   <button type="button" id="create-profile-btn"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-plus" aria-hidden="true"></i><span>Create Quick Profile</span>
   </button>
 {% endcall %}
@@ -66,11 +66,11 @@
       <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-id-badge-2 text-ecs-green" aria-hidden="true"></i> Claim Codes
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profiles|length }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profiles|length }}</span>
         </h2>
         {% if status_filter or search %}
         <a href="{{ url_for('admin_panel.quick_profiles_management') }}"
-           class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-2 py-1">
+           class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-ecs-green focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm px-2 py-1">
           <i class="ti ti-x" aria-hidden="true"></i>Clear filters
         </a>
         {% endif %}
@@ -114,7 +114,7 @@
                 <div class="flex items-center gap-1.5">
                   <code class="font-mono text-base font-bold tracking-[0.2em] text-gray-900 dark:text-white">{{ profile.claim_code }}</code>
                   <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
-                          class="p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green rounded focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           aria-label="Copy claim code">
                     <i class="ti ti-copy text-sm" aria-hidden="true"></i>
                   </button>
@@ -145,12 +145,12 @@
                     {% if profile.jersey_number or profile.pronouns or profile.email or profile.phone_number %}
                     <div class="flex flex-wrap items-center gap-1 mt-1">
                       {% if profile.jersey_number %}
-                      <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_number }}{% if profile.jersey_size %} · {{ profile.jersey_size }}{% endif %}</span>
+                      <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_number }}{% if profile.jersey_size %} · {{ profile.jersey_size }}{% endif %}</span>
                       {% elif profile.jersey_size %}
-                      <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_size }}</span>
+                      <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_size }}</span>
                       {% endif %}
                       {% if profile.pronouns %}
-                      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profile.pronouns }}</span>
+                      <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profile.pronouns }}</span>
                       {% endif %}
                       {% if profile.email %}
                       <span class="inline-flex items-center text-gray-400 dark:text-gray-500" title="Email on file"><i class="ti ti-mail text-xs" aria-hidden="true"></i><span class="sr-only">Email on file</span></span>
@@ -193,24 +193,24 @@
                 <div class="flex items-center justify-end gap-1">
                   {% if profile.status == 'pending' %}
                   <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
-                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           title="Link to player" aria-label="Link to player">
                     <i class="ti ti-link" aria-hidden="true"></i>
                   </button>
                   <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
-                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           title="Delete profile" aria-label="Delete profile">
                     <i class="ti ti-trash" aria-hidden="true"></i>
                   </button>
                   {% else %}
                   <button type="button" onclick="viewProfile({{ profile.id }})"
-                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           title="View details" aria-label="View details">
                     <i class="ti ti-eye" aria-hidden="true"></i>
                   </button>
                   {% if profile.status == 'expired' %}
                   <button type="button" onclick="extendProfile({{ profile.id }}, '{{ profile.player_name }}')"
-                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                           title="Re-issue code &amp; extend 30 days" aria-label="Re-issue code and extend">
                     <i class="ti ti-refresh-dot" aria-hidden="true"></i>
                   </button>
@@ -232,7 +232,7 @@
             <div class="flex items-center gap-1.5 min-w-0">
               <code class="font-mono text-base font-bold tracking-[0.18em] text-gray-900 dark:text-white">{{ profile.claim_code }}</code>
               <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
-                      class="p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-ecs-green rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Copy claim code">
+                      class="p-1.5 inline-flex items-center justify-center text-gray-400 hover:text-ecs-green rounded-sm focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="Copy claim code">
                 <i class="ti ti-copy text-sm" aria-hidden="true"></i>
               </button>
             </div>
@@ -267,12 +267,12 @@
               {% if profile.jersey_number or profile.pronouns or profile.email or profile.phone_number %}
               <div class="flex flex-wrap items-center gap-1 mt-1">
                 {% if profile.jersey_number %}
-                <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_number }}{% if profile.jersey_size %} · {{ profile.jersey_size }}{% endif %}</span>
+                <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_number }}{% if profile.jersey_size %} · {{ profile.jersey_size }}{% endif %}</span>
                 {% elif profile.jersey_size %}
-                <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_size }}</span>
+                <span class="inline-flex items-center gap-0.5 text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shirt-sport text-[11px]" aria-hidden="true"></i>{{ profile.jersey_size }}</span>
                 {% endif %}
                 {% if profile.pronouns %}
-                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profile.pronouns }}</span>
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ profile.pronouns }}</span>
                 {% endif %}
                 {% if profile.email %}
                 <span class="inline-flex items-center text-gray-400 dark:text-gray-500" title="Email on file"><i class="ti ti-mail text-xs" aria-hidden="true"></i><span class="sr-only">Email on file</span></span>
@@ -290,21 +290,21 @@
           <div class="flex items-center gap-2 mt-2.5">
             {% if profile.status == 'pending' %}
             <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
-                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-link" aria-hidden="true"></i>Link
             </button>
             <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
-                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-trash" aria-hidden="true"></i>Delete
             </button>
             {% else %}
             <button type="button" onclick="viewProfile({{ profile.id }})"
-                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-eye" aria-hidden="true"></i>View
             </button>
             {% if profile.status == 'expired' %}
             <button type="button" onclick="extendProfile({{ profile.id }}, '{{ profile.player_name }}')"
-                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-refresh-dot" aria-hidden="true"></i>Re-issue
             </button>
             {% endif %}
@@ -318,7 +318,7 @@
       {% if not (status_filter or search) %}
       <div class="px-4 pb-6 -mt-4 flex justify-center">
         <button type="button" id="create-profile-btn-empty"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-plus" aria-hidden="true"></i><span>Create Quick Profile</span>
         </button>
       </div>
@@ -399,14 +399,14 @@
         <div class="mt-3 flex items-center gap-1.5">
           <code class="flex-1 text-center font-mono text-xl font-bold tracking-[0.25em] text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 rounded-lg py-2">{{ next_expiring.claim_code }}</code>
           <button type="button" onclick="copyCode('{{ next_expiring.claim_code }}')" title="Copy code"
-                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-ecs-green rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-ecs-green rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   aria-label="Copy claim code">
             <i class="ti ti-copy" aria-hidden="true"></i>
           </button>
         </div>
         <div class="mt-3 flex items-center gap-2">
           <button type="button" onclick="openLinkModal({{ next_expiring.id }}, '{{ next_expiring.player_name }}')"
-                  class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-link" aria-hidden="true"></i>Link Now
           </button>
         </div>
@@ -521,7 +521,7 @@
 </div>
 
 <!-- Profiles Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
     {% if profiles %}
     <div class="overflow-x-auto">
         <table class="w-full text-left">
@@ -556,7 +556,7 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-lg font-mono font-bold tracking-wider text-gray-900 dark:text-white">
+                        <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-sm text-lg font-mono font-bold tracking-wider text-gray-900 dark:text-white">
                             {{ profile.claim_code }}
                         </code>
                         <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
@@ -789,7 +789,7 @@
 <!-- Overwrite Photo Option -->
 <div id="overwrite-photo-option" class="hidden">
     <label class="flex items-center gap-2 cursor-pointer">
-        <input type="checkbox" id="overwrite-photo" class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+        <input type="checkbox" id="overwrite-photo" class="rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
         <span class="text-sm text-gray-700 dark:text-gray-300">Overwrite player's existing photo</span>
     </label>
 </div>
@@ -1110,7 +1110,7 @@ function showDuplicateWarning(duplicates) {
     list.innerHTML = duplicates.map(d => {
         const img = dupSafeImageUrl(d.profile_picture_url);
         return `
-        <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded">
+        <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded-sm">
             ${img ?
                 `<img src="${dupEsc(img)}" alt="" class="w-8 h-8 rounded-full object-cover">` :
                 `<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-user text-gray-400"></i></div>`

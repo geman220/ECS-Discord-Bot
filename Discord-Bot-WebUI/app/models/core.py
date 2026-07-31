@@ -226,11 +226,34 @@ class User(UserMixin, db.Model):
             *User.pending_approval_criteria()
         ).scalar() or 0
 
+    # Marker for "this account has no password its owner could know". Django's
+    # convention — a '!' prefix can never be a valid werkzeug hash, so
+    # check_password() fails closed against it.
+    UNUSABLE_PASSWORD_PREFIX = '!'
+
     def set_password(self, password):
         from app.utils.auth_helpers import secure_hash_password
         self.password_hash = secure_hash_password(password)
 
+    def set_unusable_password(self):
+        """Mark this account as having no local password.
+
+        Used for Discord OAuth accounts: OAuth is the auth method, and there is
+        no email/password sign-in surface on mobile at all. Previously these got
+        a random 16-char password that nobody — including the user — could ever
+        produce, which is indistinguishable from a real one.
+        """
+        self.password_hash = f"{self.UNUSABLE_PASSWORD_PREFIX}oauth-only"
+
+    def has_usable_password(self):
+        """True if this account has a password its owner could actually supply."""
+        if not self.password_hash:
+            return False
+        return not self.password_hash.startswith(self.UNUSABLE_PASSWORD_PREFIX)
+
     def check_password(self, password):
+        if not self.has_usable_password():
+            return False
         return check_password_hash(self.password_hash, password)
 
     def has_role(self, role_name):

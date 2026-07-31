@@ -13,7 +13,7 @@
             <i class="ti ti-bookmark-filled text-amber-500" aria-hidden="true"></i>
             My Draft Queue
         </h3>
-        <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+        <span class="text-xs font-mono font-bold px-2 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
             <span id="draftQueueCount">0</span>
         </span>
     </div>
@@ -91,11 +91,11 @@
           '<div class="text-[10px] uppercase tracking-wide font-semibold text-gray-500 dark:text-gray-400">' + esc(posLabel(q.favorite_position)) + '</div>' +
         '</div>' +
         '<div class="flex items-center shrink-0">' +
-          '<button type="button" data-queue-act="up" data-qid="' + q.player_id + '" ' + (i === 0 ? 'disabled ' : '') + 'class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" aria-label="Move up"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>' +
-          '<button type="button" data-queue-act="down" data-qid="' + q.player_id + '" ' + (i === queue.length - 1 ? 'disabled ' : '') + 'class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" aria-label="Move down"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
-          '<button type="button" data-queue-act="locate" data-qid="' + q.player_id + '" class="w-8 h-8 inline-flex items-center justify-center rounded text-gray-400 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Find in pool" title="Find in pool"><i class="ti ti-crosshair" aria-hidden="true"></i></button>' +
+          '<button type="button" data-queue-act="up" data-qid="' + q.player_id + '" ' + (i === 0 ? 'disabled ' : '') + 'class="w-8 h-8 inline-flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" aria-label="Move up"><i class="ti ti-chevron-up" aria-hidden="true"></i></button>' +
+          '<button type="button" data-queue-act="down" data-qid="' + q.player_id + '" ' + (i === queue.length - 1 ? 'disabled ' : '') + 'class="w-8 h-8 inline-flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" aria-label="Move down"><i class="ti ti-chevron-down" aria-hidden="true"></i></button>' +
+          '<button type="button" data-queue-act="locate" data-qid="' + q.player_id + '" class="w-8 h-8 inline-flex items-center justify-center rounded-sm text-gray-400 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Find in pool" title="Find in pool"><i class="ti ti-crosshair" aria-hidden="true"></i></button>' +
           (canDraft ? '<button type="button" data-queue-act="draft" data-qid="' + q.player_id + '" class="ml-1 h-8 px-2.5 inline-flex items-center gap-1 rounded-lg bg-ecs-green text-white text-xs font-semibold hover:bg-ecs-green-700" aria-label="Draft ' + esc(q.name) + '"><i class="ti ti-user-plus" aria-hidden="true"></i>Draft</button>' : '') +
-          '<button type="button" data-queue-act="remove" data-qid="' + q.player_id + '" class="ml-1 w-8 h-8 inline-flex items-center justify-center rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30" aria-label="Remove from queue"><i class="ti ti-x" aria-hidden="true"></i></button>' +
+          '<button type="button" data-queue-act="remove" data-qid="' + q.player_id + '" class="ml-1 w-8 h-8 inline-flex items-center justify-center rounded-sm text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30" aria-label="Remove from queue"><i class="ti ti-x" aria-hidden="true"></i></button>' +
         '</div>' +
       '</div>';
     }).join('');
@@ -110,7 +110,7 @@
     return '<i class="ti ' + (on ? 'ti-bookmark-filled' : 'ti-bookmark') + '" aria-hidden="true"></i>';
   }
   function starClass(pid) {
-    return 'js-queue-star shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[36px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 ' +
+    return 'js-queue-star shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[36px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-400 ' +
       (queued[pid] ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 dark:text-gray-600 hover:text-amber-500');
   }
   function injectStars() {

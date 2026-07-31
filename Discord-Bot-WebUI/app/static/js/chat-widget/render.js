@@ -29,7 +29,7 @@ export function escapeHtml(str) {
 export function renderRoleBadges(user) {
   if (!user) return '';
 
-  const badgeBase = 'inline-flex h-[18px] w-[18px] items-center justify-center rounded text-[11px] leading-none';
+  const badgeBase = 'inline-flex h-[18px] w-[18px] items-center justify-center rounded-sm text-[11px] leading-none';
   const badges = [];
 
   // Global Admin - Crown icon (highest priority)
@@ -108,7 +108,7 @@ export function renderConversations() {
         : '';
 
     return `
-      <div class="c-chat-widget__conversation flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ecs-green dark:hover:bg-gray-700/60 ${rowState}"
+      <div class="c-chat-widget__conversation flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-gray-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ecs-green dark:hover:bg-gray-700/60 ${rowState}"
            data-user-id="${conv.user.id}"
            data-user-name="${escapeHtml(conv.user.name)}"
            data-avatar="${escapeHtml(avatarUrl)}"
@@ -134,7 +134,7 @@ export function renderConversations() {
             ${conv.last_message.sent_by_me && !conv.last_message.is_read ? '<i class="ti ti-check ml-auto shrink-0 text-xs text-gray-400 dark:text-gray-500" title="Sent"></i>' : ''}
           </div>
         </div>
-        ${isUnread ? `<div class="flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-ecs-green px-1.5 text-xs font-semibold text-white">${conv.unread_count}</div>` : ''}
+        ${isUnread ? `<div class="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-ecs-green px-1.5 text-xs font-semibold text-white">${conv.unread_count}</div>` : ''}
       </div>
     `;
   }).join('');
@@ -260,7 +260,7 @@ export function renderMessages(isPrepending = false) {
            data-sender-id="${msg.sender_id}"
            ${isFailed ? 'data-action="retry-message"' : ''}>
         ${!isPending && !isFailed ? `
-        <div class="invisible absolute top-1/2 z-[5] -translate-y-1/2 opacity-0 transition-opacity focus-within:visible focus-within:opacity-100 group-hover/msg:visible group-hover/msg:opacity-100 max-sm:visible max-sm:opacity-100 ${actionPosition}">
+        <div class="invisible absolute top-1/2 z-5 -translate-y-1/2 opacity-0 transition-opacity focus-within:visible focus-within:opacity-100 group-hover/msg:visible group-hover/msg:opacity-100 max-sm:visible max-sm:opacity-100 ${actionPosition}">
           <button class="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition-colors hover:bg-red-100 hover:text-red-600 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-red-900/40 dark:hover:text-red-400"
                   data-action="delete-menu" title="Delete message">
             <i class="ti ti-trash text-sm"></i>
@@ -314,7 +314,7 @@ export function renderSearchResults() {
     const avatarUrl = user.avatar_url || defaultAvatar;
     const roleBadges = renderRoleBadges(user);
     return `
-      <div class="c-chat-widget__search-result flex cursor-pointer items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ecs-green dark:hover:bg-gray-600"
+      <div class="c-chat-widget__search-result flex cursor-pointer items-center gap-2.5 px-3 py-2.5 transition-colors hover:bg-gray-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ecs-green dark:hover:bg-gray-600"
            data-user-id="${user.id}"
            data-user-name="${escapeHtml(user.name)}"
            data-avatar="${escapeHtml(avatarUrl)}"
@@ -361,7 +361,7 @@ export function renderOnlineUsers(users) {
   const html = users.slice(0, 8).map(user => {
     const avatarUrl = user.avatar_url || defaultAvatar;
     return `
-      <div class="c-chat-widget__online-user flex shrink-0 cursor-pointer flex-col items-center gap-1 focus-visible:outline-none"
+      <div class="c-chat-widget__online-user flex shrink-0 cursor-pointer flex-col items-center gap-1 focus-visible:outline-hidden"
            data-user-id="${user.id}"
            data-user-name="${escapeHtml(user.name)}"
            data-avatar="${escapeHtml(avatarUrl)}"

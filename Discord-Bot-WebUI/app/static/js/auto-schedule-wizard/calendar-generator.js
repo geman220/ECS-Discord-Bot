@@ -285,8 +285,8 @@ export function createWeekHTML(weekNumber, date, type, isPractice = false, isSha
                     <span class="week-date text-gray-500 dark:text-gray-400 ms-2">${formatDate(date)}</span>
                 </div>
                 <div>
-                    <span class="px-2 py-0.5 text-xs font-medium rounded ${typeColors[type] || typeColors.regular} week-type">${typeLabels[type] || 'Regular Match'}</span>
-                    ${isShared ? '<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 ms-1">Shared</span>' : ''}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${typeColors[type] || typeColors.regular} week-type">${typeLabels[type] || 'Regular Match'}</span>
+                    ${isShared ? '<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 ms-1">Shared</span>' : ''}
                 </div>
             </div>
         </div>

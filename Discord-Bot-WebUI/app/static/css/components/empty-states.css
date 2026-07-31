@@ -47,7 +47,7 @@
 
 .empty-state-icon {
   font-size: 3rem;
-  color: var(--color-neutral-400);
+  color: var(--ecs-color-neutral-400);
   margin-bottom: var(--space-4);
   opacity: 0.6;
   line-height: 1;
@@ -65,7 +65,7 @@
    ============================================================================ */
 
 .empty-state-title {
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   font-weight: var(--font-semibold);
   color: var(--color-text-secondary);
   margin-bottom: var(--space-2);
@@ -77,10 +77,10 @@
 
 .empty-state-message,
 .empty-state-description {
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   color: var(--color-text-muted);
   max-width: 400px;
-  line-height: var(--leading-relaxed);
+  line-height: var(--ecs-leading-relaxed);
   margin-bottom: var(--space-4);
 }
 
@@ -97,12 +97,12 @@
    ============================================================================ */
 
 [data-style="dark"] .empty-state-icon {
-  color: var(--color-neutral-500);
+  color: var(--ecs-color-neutral-500);
 }
 
 [data-style="dark"] .empty-state-title,
 [data-style="dark"] .empty-state-description {
-  color: var(--color-text-muted-dark, var(--color-neutral-400));
+  color: var(--color-text-muted-dark, var(--ecs-color-neutral-400));
 }
 
 /* ============================================================================
@@ -120,12 +120,12 @@
   }
 
   .empty-state-title {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
   }
 
   .empty-state-message,
   .empty-state-description {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
     max-width: 300px;
   }
 }

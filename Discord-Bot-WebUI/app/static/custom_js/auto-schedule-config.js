@@ -182,7 +182,7 @@ function updatePracticeWeekOptions() {
         const div = document.createElement('div');
         div.className = 'flex items-center mr-4';
         div.innerHTML = `
-            <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="practice-week-${i}" name="practice_weeks" value="${i}">
+            <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="practice-week-${i}" name="practice_weeks" value="${i}">
             <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="practice-week-${i}">Week ${i}</label>
         `;
         container.appendChild(div);

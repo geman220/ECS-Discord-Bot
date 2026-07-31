@@ -33,7 +33,9 @@ def push_wallet_refresh_for_player(self, session, player_id: int, void: bool = F
     try:
         from app.models import Player
         from app.models.wallet import WalletPass
-        from app.wallet_pass.services.push_service import trigger_wallet_refresh
+        from app.wallet_pass.services.push_service import (
+            mark_wallet_pass_updated, push_wallet_pass,
+        )
 
         player = session.query(Player).get(player_id)
         if not player:
@@ -49,16 +51,22 @@ def push_wallet_refresh_for_player(self, session, player_id: int, void: bool = F
         if not passes:
             return {'success': True, 'count': 0, 'note': 'no active passes'}
 
+        # Bump every pass, then COMMIT, and only then push. Pushing inside the
+        # loop raced the commit: the device calls back within ~1s on another
+        # worker, read the un-committed updated_at, and dropped the update as a
+        # "spurious push". See push_wallet_pass() for the full contract.
         results = []
         for wp in passes:
             if void:
                 # Mark voided BEFORE pushing so the regenerated pass reflects it.
                 wp.void(reason=reason or 'player deactivated')
-                session.commit()
                 results.append({'pass_id': wp.id, 'voided': True})
-            r = trigger_wallet_refresh(wp, commit=False)
-            results.append({'pass_id': wp.id, 'apple': r.get('apple'), 'google': r.get('google')})
+            mark_wallet_pass_updated(wp)
         session.commit()
+
+        for wp in passes:
+            r = push_wallet_pass(wp)
+            results.append({'pass_id': wp.id, 'apple': r.get('apple'), 'google': r.get('google')})
         logger.info(f"wallet refresh for player {player_id}: {len(passes)} pass(es), reason={reason or 'attr_change'}")
         return {'success': True, 'count': len(passes), 'results': results}
     except Exception as e:
@@ -83,10 +91,22 @@ def push_wallet_refresh_batch(self, session, players=None, reason=''):
     """
     from app.models import Player
     from app.models.wallet import WalletPass
-    from app.wallet_pass.services.push_service import trigger_wallet_refresh
+    from app.wallet_pass.services.push_service import (
+        mark_wallet_pass_updated, push_wallet_pass,
+    )
 
     players = players or []
     total_passes = 0
+    failed_players = 0
+    # Commit PER PLAYER, then push everything once the loop is done.
+    #
+    # Both halves of that matter. Committing per player keeps one bad row from
+    # taking the batch down with it: a single `session.rollback()` discards every
+    # uncommitted bump in the transaction, so accumulating 500 players' bumps and
+    # committing once means a failure at #300 silently wipes 1-299 and nothing
+    # retries. Pushing only after the commit is the Apple ordering contract —
+    # see push_wallet_pass().
+    to_push = []
     for entry in players:
         pid = entry.get('player_id')
         if not pid:
@@ -104,18 +124,31 @@ def push_wallet_refresh_batch(self, session, players=None, reason=''):
             for wp in passes:
                 if void:
                     wp.void(reason=reason or 'player deactivated')
-                    session.commit()
-                trigger_wallet_refresh(wp, commit=False)
+                mark_wallet_pass_updated(wp)
             session.commit()
+            # Only queue for push once this player's bump is durable.
+            to_push.extend(passes)
             total_passes += len(passes)
         except Exception as e:
             logger.error(f"wallet batch refresh for player {pid} failed: {e}", exc_info=True)
+            failed_players += 1
             try:
                 session.rollback()
             except Exception:
                 pass
-    logger.info(f"wallet batch refresh: {len(players)} player(s), {total_passes} pass(es), reason={reason or 'attr_change'}")
-    return {'success': True, 'players': len(players), 'passes': total_passes}
+
+    for wp in to_push:
+        push_wallet_pass(wp)
+    logger.info(
+        f"wallet batch refresh: {len(players)} player(s), {total_passes} pass(es), "
+        f"{failed_players} failed, reason={reason or 'attr_change'}"
+    )
+    return {
+        'success': failed_players == 0,
+        'players': len(players),
+        'passes': total_passes,
+        'failed_players': failed_players,
+    }
 
 
 @celery_task(
@@ -136,7 +169,9 @@ def push_wallet_refresh_for_match(self, session, league_type: str, match_id: int
         from app.models.ecs_fc import EcsFcMatch
         from app.models.players import player_teams
         from app.models.wallet import WalletPass
-        from app.wallet_pass.services.push_service import trigger_wallet_refresh
+        from app.wallet_pass.services.push_service import (
+            mark_wallet_pass_updated, push_wallet_pass,
+        )
 
         if league_type == 'pub_league':
             match = session.query(Match).get(match_id)
@@ -164,9 +199,12 @@ def push_wallet_refresh_for_match(self, session, league_type: str, match_id: int
             WalletPass.player_id.in_(player_ids_q)
         ).all()
 
+        # Bump-all -> commit -> push-all; see push_wallet_pass().
         for wp in passes:
-            trigger_wallet_refresh(wp, commit=False)
+            mark_wallet_pass_updated(wp)
         session.commit()
+        for wp in passes:
+            push_wallet_pass(wp)
         logger.info(f"wallet refresh for match {league_type}/{match_id}: {len(passes)} pass(es)")
         return {'success': True, 'count': len(passes)}
     except Exception as e:
@@ -196,7 +234,9 @@ def refresh_relevant_dates_daily(self, session):
     try:
         from datetime import timedelta
         from app.models.wallet import WalletPass
-        from app.wallet_pass.services.push_service import trigger_wallet_refresh
+        from app.wallet_pass.services.push_service import (
+            mark_wallet_pass_updated, push_wallet_pass,
+        )
         from app.wallet_pass.generators.apple import _get_next_match_relevance
 
         passes = session.query(WalletPass).filter(
@@ -206,6 +246,7 @@ def refresh_relevant_dates_daily(self, session):
 
         refreshed = 0
         skipped = 0
+        to_push = []
         for wp in passes:
             try:
                 next_info = _get_next_match_relevance(wp)
@@ -224,10 +265,17 @@ def refresh_relevant_dates_daily(self, session):
             # matches), still bump so Apple Wallet drops the stale
             # relevantDate. Otherwise refresh either way to capture any
             # changes since last generation.
-            trigger_wallet_refresh(wp, commit=False)
+            mark_wallet_pass_updated(wp)
+            to_push.append(wp)
             refreshed += 1
 
+        # ONE commit for the whole sweep, then the nudges. This loop is what
+        # produced the 04:00 "Device received spurious push ... returned no
+        # serial numbers" entries: it pushed every device up front and
+        # committed minutes later, so every callback lost the race.
         session.commit()
+        for wp in to_push:
+            push_wallet_pass(wp)
         logger.info(f"daily relevantDate refresh: refreshed={refreshed}, skipped={skipped}")
         return {'success': True, 'refreshed': refreshed, 'skipped': skipped}
     except Exception as e:

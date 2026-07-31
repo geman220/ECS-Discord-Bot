@@ -65,10 +65,10 @@
         <div class="flex flex-wrap gap-1 p-1 rounded-lg bg-gray-100 dark:bg-gray-900/60 flex-1">
             {% for league in leagues %}
             <button type="button"
-                    class="league-tab inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 font-semibold text-sm rounded-md border-b-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}border-ecs-green text-ecs-green bg-ecs-green/10{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-800{% endif %}"
+                    class="league-tab inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 font-semibold text-sm rounded-md border-b-2 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if loop.first %}border-ecs-green text-ecs-green bg-ecs-green/10{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-white dark:hover:bg-gray-800{% endif %}"
                     data-tab="{{ league.name|replace(' ', '-')|lower }}">
                 {{ league.name }}
-                <span class="ml-2 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ league.teams | length }}</span>
+                <span class="ml-2 font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ league.teams | length }}</span>
             </button>
             {% endfor %}
         </div>
@@ -116,7 +116,7 @@
                     </div>
                     <div class="lg:col-span-1">
                         <button type="submit"
-                                class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-plus" aria-hidden="true"></i>
                             Add Match
                         </button>
@@ -157,7 +157,7 @@
         <div class="flex items-center gap-2 pt-2">
             <i class="ti ti-shield-half text-ecs-green" aria-hidden="true"></i>
             <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Teams</h2>
-            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ league.teams | length }}</span>
+            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ league.teams | length }}</span>
             <span class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></span>
         </div>
         <div class="space-y-4">
@@ -175,7 +175,7 @@
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
                         <button type="button"
-                                class="edit-team-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                class="edit-team-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                 data-team-id="{{ team.name|replace(' ', '_') }}">
                             <i class="ti ti-edit" aria-hidden="true"></i>
                             Edit
@@ -194,7 +194,7 @@
                                    class="input-ecs h-10 flex-1 text-sm read-only:bg-gray-50 dark:read-only:bg-gray-700/50">
                             <button type="submit"
                                     id="btn-{{ team.name|replace(' ', '_') }}-save"
-                                    class="hidden inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                    class="hidden inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                 <i class="ti ti-check" aria-hidden="true"></i>
                                 Save
                             </button>
@@ -220,7 +220,7 @@
                                     {% for match in team.schedule %}
                                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
                                         <td class="px-3 py-2">
-                                            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ match.week }}</span>
+                                            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">{{ match.week }}</span>
                                         </td>
                                         <td class="px-3 py-2">
                                             <input type="date" name="date" value="{{ match.date }}"
@@ -249,11 +249,11 @@
                                         <td class="px-3 py-2 text-right whitespace-nowrap">
                                             <button type="button"
                                                     id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}"
-                                                    class="hidden items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white mr-1 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                                    class="hidden items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white mr-1 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                                                 Save
                                             </button>
                                             <button type="button"
-                                                    class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+                                                    class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500">
                                                 <i class="ti ti-trash" aria-hidden="true"></i>
                                                 Remove
                                             </button>
@@ -269,7 +269,7 @@
                     {% endif %}
 
                     <button type="button"
-                            class="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-plus" aria-hidden="true"></i>
                         Add Match
                     </button>
@@ -305,20 +305,20 @@
     {% for league in leagues %}
     <div class="league-content {% if not loop.first %}hidden{% endif %}" id="{{ league.name|replace(' ', '-')|lower }}-content">
         <!-- Add Match Form -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
             <h3 class="font-semibold text-gray-900 dark:text-white mb-4">Add New Match</h3>
             <form method="POST" action="{{ url_for('publeague.add_publeague_match') }}" class="flex flex-wrap gap-3">
                 <input type="hidden" name="league_name" value="{{ league.name }}">
                 <input type="text" name="teamA" placeholder="Team A" required
-                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <input type="text" name="teamB" placeholder="Team B" required
-                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <input type="text" name="time" placeholder="Time (e.g., 9:40 AM)" required
-                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <input type="date" name="date" required
-                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                       class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <select name="location" required
-                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                        class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                     <option value="North">North</option>
                     <option value="South">South</option>
                 </select>
@@ -331,7 +331,7 @@
         </div>
 
         <!-- Schedule Timeline -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
             <h3 class="font-semibold text-gray-900 dark:text-white mb-4">{{ league.name }} Schedule - Sundays</h3>
             {% if league.schedule %}
             <div class="flex flex-wrap gap-4">
@@ -351,7 +351,7 @@
         <!-- Teams -->
         <div class="space-y-4">
             {% for team in league.teams %}
-            <details class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden group">
+            <details class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden group">
                 <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
                     <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }}</h3>
                     <div class="flex items-center gap-2">
@@ -371,7 +371,7 @@
                             <input type="text" name="team_name" value="{{ team.name }}"
                                    id="input-{{ team.name|replace(' ', '_') }}-name"
                                    readonly
-                                   class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green read-only:bg-gray-50 dark:read-only:bg-gray-600">
+                                   class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green read-only:bg-gray-50 dark:read-only:bg-gray-600">
                             <button type="submit"
                                     id="btn-{{ team.name|replace(' ', '_') }}-save"
                                     class="hidden inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
@@ -403,34 +403,34 @@
                                         <input type="date" name="date" value="{{ match.date }}"
                                                id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}"
                                                readonly
-                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent">
+                                               class="rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent">
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" name="time" value="{{ match.time }}"
                                                id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}"
                                                readonly
-                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-24 read-only:bg-transparent read-only:border-transparent">
+                                               class="rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-24 read-only:bg-transparent read-only:border-transparent">
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" name="opponent" value="{{ match.opponent }}"
                                                id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}"
                                                readonly
-                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent">
+                                               class="rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent">
                                     </td>
                                     <td class="px-3 py-2">
                                         <input type="text" name="location" value="{{ match.location }}"
                                                id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}"
                                                readonly
-                                               class="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-20 read-only:bg-transparent read-only:border-transparent">
+                                               class="rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-20 read-only:bg-transparent read-only:border-transparent">
                                     </td>
                                     <td class="px-3 py-2 text-right">
                                         <button type="button"
                                                 id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}"
-                                                class="hidden inline-flex items-center px-2 py-1 text-xs rounded bg-ecs-green text-white hover:bg-ecs-green/90 mr-1">
+                                                class="hidden inline-flex items-center px-2 py-1 text-xs rounded-sm bg-ecs-green text-white hover:bg-ecs-green/90 mr-1">
                                             Save
                                         </button>
                                         <button type="button"
-                                                class="inline-flex items-center px-2 py-1 text-xs rounded bg-red-600 text-white hover:bg-red-700">
+                                                class="inline-flex items-center px-2 py-1 text-xs rounded-sm bg-red-600 text-white hover:bg-red-700">
                                             Remove
                                         </button>
                                     </td>

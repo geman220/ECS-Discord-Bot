@@ -48,13 +48,13 @@
             <!-- actions -->
             <div class="flex items-center gap-2 shrink-0">
                 <a href="{{ url_for('draft_enhanced.draft_league', league_name=league_name) }}"
-                   class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                   class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-list" aria-hidden="true"></i>
                     <span class="hidden sm:inline">List View</span>
                 </a>
                 <div class="relative">
                     <button type="button" data-dropdown-toggle="coachViewMenu"
-                            class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                             aria-haspopup="true">
                         <i class="ti ti-user-check" aria-hidden="true"></i>
                         <span>Coach View</span>
@@ -80,13 +80,13 @@
             <div class="flex flex-wrap gap-1.5 p-1 rounded-lg bg-gray-100 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700" id="team-tabs" role="tablist">
                 {% for team in teams %}
                 <button class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-md text-sm font-semibold transition-colors
-                              {% if loop.first %}bg-ecs-green text-white shadow-sm{% else %}text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
+                              {% if loop.first %}bg-ecs-green text-white shadow-xs{% else %}text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
                         data-team-id="{{ team.id }}"
                         data-target="team-{{ team.id }}-pitch"
                         role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}">
                     <i class="ti ti-shield-half text-base mr-2" aria-hidden="true"></i>
                     {{ team.name }}
-                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-bold {% if loop.first %}bg-white/20{% else %}bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}" id="teamPitchCount{{ team.id }}">
+                    <span class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-mono font-bold {% if loop.first %}bg-white/20{% else %}bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300{% endif %}" id="teamPitchCount{{ team.id }}">
                         {{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}
                     </span>
                 </button>
@@ -194,18 +194,18 @@
                             <div class="flex items-center justify-between gap-2">
                                 <span class="flex items-center gap-1 min-w-0">
                                     <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                    {% if player.is_new %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300" title="Brand new — no prior team history"><i class="ti ti-sparkles"></i>NEW</span>{% endif %}
-                                    {% if player.is_admin %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300" title="Admin"><i class="ti ti-shield-check"></i>ADMIN</span>{% endif %}
-                                    {% if player.is_nad %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300" title="NAD — scouting board player"><i class="ti ti-shield-star"></i>NAD</span>{% endif %}
+                                    {% if player.is_new %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded-sm text-[9px] font-bold bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300" title="Brand new — no prior team history"><i class="ti ti-sparkles"></i>NEW</span>{% endif %}
+                                    {% if player.is_admin %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded-sm text-[9px] font-bold bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300" title="Admin"><i class="ti ti-shield-check"></i>ADMIN</span>{% endif %}
+                                    {% if player.is_nad %}<span class="shrink-0 inline-flex items-center gap-0.5 px-1 py-0.5 rounded-sm text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300" title="NAD — scouting board player"><i class="ti ti-shield-star"></i>NAD</span>{% endif %}
                                 </span>
-                                <span class="shrink-0 inline-flex items-center justify-center min-w-[2.25rem] px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-ecs-green/10 text-ecs-green' if player.favorite_position and player.favorite_position != 'Any' else 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
+                                <span class="shrink-0 inline-flex items-center justify-center min-w-9 px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide font-mono {{ 'bg-ecs-green/10 text-ecs-green' if player.favorite_position and player.favorite_position != 'Any' else 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
                             </div>
                             <div class="flex items-center gap-2.5 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                 <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400" title="Career goals"><i class="ti ti-ball-football" aria-hidden="true"></i> <span class="font-mono">{{ player.career_goals }}</span></span>
                                 <span class="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400" title="Career assists"><i class="ti ti-shoe" aria-hidden="true"></i> <span class="font-mono">{{ player.career_assists }}</span></span>
                                 <span class="inline-flex items-center gap-1" title="League experience"><i class="ti ti-stairs-up" aria-hidden="true"></i> <span class="font-mono">{{ player.league_experience_seasons }}</span></span>
                                 {% if player.attendance_estimate is not none %}
-                                <span class="inline-flex items-center gap-1 ml-auto px-1.5 py-0.5 rounded font-mono font-bold {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if player.attendance_estimate >= 80 else 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' if player.attendance_estimate >= 60 else 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }}" title="Attendance">
+                                <span class="inline-flex items-center gap-1 ml-auto px-1.5 py-0.5 rounded-sm font-mono font-bold {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if player.attendance_estimate >= 80 else 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400' if player.attendance_estimate >= 60 else 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400' }}" title="Attendance">
                                     <i class="ti ti-calendar-check" aria-hidden="true"></i> {{ "%.0f"|format(player.attendance_estimate) }}%
                                 </span>
                                 {% endif %}
@@ -380,7 +380,7 @@
 {% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-ecs-green">{{ title }} - Pitch View</h1>
@@ -412,7 +412,7 @@
     </div>
 
     <!-- Team Selection Tabs -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-2 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-2 mb-6">
         <div class="flex flex-wrap gap-2" id="team-tabs">
             {% for team in teams %}
             <button class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
@@ -431,7 +431,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Available Players Pool -->
         <div class="lg:col-span-4">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-4">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-4">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-users text-ecs-green"></i>
@@ -515,7 +515,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                    <span class="text-xs px-1.5 py-0.5 rounded {{ 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' if player.favorite_position and player.favorite_position != 'Any' else 'text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded-sm {{ 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' if player.favorite_position and player.favorite_position != 'Any' else 'text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position|format_position or 'Any' }}</span>
                                 </div>
                                 <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                     <span class="text-green-500" title="Goals"><i class="ti ti-ball-football"></i> {{ player.career_goals }}</span>
@@ -539,7 +539,7 @@
         <div class="lg:col-span-8">
             {% for team in teams %}
             <div class="{% if not loop.first %}hidden{% endif %}" id="team-{{ team.id }}-pitch" data-team-content>
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }} Formation</h3>
                     </div>

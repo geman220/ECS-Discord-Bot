@@ -31,17 +31,17 @@
                     {% set new_value = new_user_data.get(field, '') %}
 
                     {% if existing_value or new_value %}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                         <h6 class="font-semibold text-gray-900 dark:text-white mb-4">{{ field.replace('_', ' ').title() }}</h6>
 
                         <div class="grid grid-cols-1 md:grid-cols-{{ '3' if field in ['additional_info', 'player_notes'] and existing_value and new_value else '2' }} gap-4">
                             <!-- Keep Existing -->
-                            <label class="relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-colors has-[:checked]:border-green-500 has-[:checked]:bg-green-50 dark:has-[:checked]:bg-green-900/20 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-700">
+                            <label class="relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-colors has-checked:border-green-500 has-checked:bg-green-50 dark:has-checked:bg-green-900/20 border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-700">
                                 <input type="radio" name="field_{{ field }}" value="existing" class="absolute opacity-0" {% if existing_value and not new_value %}checked{% endif %}>
                                 <span class="font-bold text-green-600 dark:text-green-400 mb-2">Keep Existing</span>
                                 <div class="text-sm text-gray-700 dark:text-gray-300">
                                     {% if existing_value %}
-                                    <span class="break-words">{{ existing_value }}</span>
+                                    <span class="wrap-break-word">{{ existing_value }}</span>
                                     {% else %}
                                     <em class="text-gray-400 dark:text-gray-500">No existing value</em>
                                     {% endif %}
@@ -49,12 +49,12 @@
                             </label>
 
                             <!-- Use New -->
-                            <label class="relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 dark:has-[:checked]:bg-blue-900/20 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-700">
+                            <label class="relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-colors has-checked:border-blue-500 has-checked:bg-blue-50 dark:has-checked:bg-blue-900/20 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-700">
                                 <input type="radio" name="field_{{ field }}" value="new" class="absolute opacity-0" {% if new_value and not existing_value %}checked{% endif %}>
                                 <span class="font-bold text-blue-600 dark:text-blue-400 mb-2">Use New</span>
                                 <div class="text-sm text-gray-700 dark:text-gray-300">
                                     {% if new_value %}
-                                    <span class="break-words">{{ new_value }}</span>
+                                    <span class="wrap-break-word">{{ new_value }}</span>
                                     {% else %}
                                     <em class="text-gray-400 dark:text-gray-500">No new value</em>
                                     {% endif %}
@@ -63,7 +63,7 @@
 
                             <!-- Combine (for certain fields) -->
                             {% if field in ['additional_info', 'player_notes'] and existing_value and new_value %}
-                            <label class="relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-colors has-[:checked]:border-yellow-500 has-[:checked]:bg-yellow-50 dark:has-[:checked]:bg-yellow-900/20 border-gray-200 dark:border-gray-600 hover:border-yellow-300 dark:hover:border-yellow-700">
+                            <label class="relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-colors has-checked:border-yellow-500 has-checked:bg-yellow-50 dark:has-checked:bg-yellow-900/20 border-gray-200 dark:border-gray-600 hover:border-yellow-300 dark:hover:border-yellow-700">
                                 <input type="radio" name="field_{{ field }}" value="combine" class="absolute opacity-0">
                                 <span class="font-bold text-yellow-600 dark:text-yellow-400 mb-2">Combine Both</span>
                                 <div class="text-sm text-gray-500 dark:text-gray-400">
@@ -78,7 +78,7 @@
 
                     <!-- Discord Account Linking -->
                     {% if alert.new_discord_email and not existing_player.discord_id %}
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                         <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Discord Account</h6>
                         <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Link Discord Account</h6>
@@ -94,7 +94,7 @@
                     {% endif %}
 
                     <!-- Submit Button -->
-                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Ready to Merge?</h6>
@@ -111,7 +111,7 @@
 
         <!-- Merge Summary Sidebar -->
         <div class="space-y-4">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <h6 class="font-semibold text-gray-900 dark:text-white">Merge Summary</h6>
                 </div>
@@ -131,8 +131,8 @@
                     <div>
                         <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Match Details</span>
                         <div class="flex gap-2 mt-1">
-                            <span class="px-2 py-0.5 text-xs font-medium rounded {% if alert.match_type == 'phone' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.match_type == 'name' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">{{ alert.match_type.replace('_', ' ').title() }}</span>
-                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ (alert.confidence_score * 100)|round|int }}% Match</span>
+                            <span class="px-2 py-0.5 text-xs font-medium rounded-sm {% if alert.match_type == 'phone' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif alert.match_type == 'name' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% else %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% endif %}">{{ alert.match_type.replace('_', ' ').title() }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ (alert.confidence_score * 100)|round|int }}% Match</span>
                         </div>
                     </div>
 

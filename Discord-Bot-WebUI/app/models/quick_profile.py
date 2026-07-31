@@ -468,12 +468,17 @@ class QuickProfile(db.Model):
         if notes:
             logger.info(f"Migrated {len(notes)} waiting-room note(s) from quick profile {self.id} to player {player.id}")
 
-    def to_dict(self, include_created_by=True):
+    def to_dict(self, include_created_by=True, include_contact=True):
         """
         Convert to dictionary for JSON serialization.
 
         Args:
             include_created_by: If True, include created_by user info
+            include_contact: If False, omit email/phone/phone_number and the
+                unredeemed claim_code. Set this for non-admin callers — a coach
+                reviewing a prospect must not see contact details, and has no
+                reason to see a live claim code (it would let them claim the
+                profile themselves).
 
         Returns:
             dict: Profile data as dictionary
@@ -517,5 +522,11 @@ class QuickProfile(db.Model):
                 'name': self.created_by.username,  # Mobile expects 'name'
                 'username': self.created_by.username  # Keep for web
             }
+
+        if not include_contact:
+            # Drop rather than blank the keys so a client can't tell "redacted"
+            # from "empty" and render a stale value.
+            for key in ('email', 'phone', 'phone_number', 'claim_code'):
+                data.pop(key, None)
 
         return data

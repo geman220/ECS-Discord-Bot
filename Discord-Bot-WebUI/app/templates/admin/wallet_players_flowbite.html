@@ -43,25 +43,25 @@
 
     <!-- KPI Tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-users"></i> Total Players
             </div>
             <div class="mt-2 text-2xl font-bold font-mono text-gray-900 dark:text-white">{{ wallet_stats.total }}</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-circle-check"></i> Eligible
             </div>
             <div class="mt-2 text-2xl font-bold font-mono text-ecs-green">{{ wallet_stats.eligible }}</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-alert-triangle"></i> Not Eligible
             </div>
             <div class="mt-2 text-2xl font-bold font-mono text-yellow-600 dark:text-yellow-400">{{ wallet_stats.not_eligible }}</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-id-badge-2"></i> Passes Issued
             </div>
@@ -70,7 +70,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div>
                 <label for="f-search" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search</label>
@@ -111,11 +111,11 @@
     </div>
 
     <!-- Players Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>Players
-                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ players.total }} total</span>
+                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ players.total }} total</span>
             </h5>
         </div>
         <div class="p-6">
@@ -149,18 +149,18 @@
                             </td>
                             <td class="px-6 py-4">
                                 {% if player.is_current_player %}
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Active
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Inactive
                                 </span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4">
                                 {% if player.primary_team %}
-                                <span class="px-2 py-1 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">{{ player.primary_team.name }}</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded-sm">{{ player.primary_team.name }}</span>
                                 {% else %}
                                 <span class="text-gray-400">No team</span>
                                 {% endif %}
@@ -183,19 +183,21 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4">
-                                {% if player.is_current_player and player.primary_team %}
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">
+                                {# Eligibility is payment, not a roster spot — an undrafted player still gets a pass. #}
+                                {% if player.is_current_player %}
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Eligible
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-sm">
                                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>Not Eligible
                                 </span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <div class="flex justify-end gap-1">
-                                    {% if player.is_current_player and player.primary_team %}
+                                    {# Eligibility is payment, not a roster spot — an undrafted player still gets a pass. #}
+                                {% if player.is_current_player %}
                                     <a href="{{ url_for('wallet.get_wallet_pass_by_player', player_id=player.id) }}" class="p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg" title="Generate Pass">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                                     </a>

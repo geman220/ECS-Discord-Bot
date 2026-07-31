@@ -115,28 +115,44 @@
             {% if dark.accent %}--color-accent-rgb: {{ hex_to_rgb(dark.accent) }};{% endif %}
         }
 
-        /* Light mode: remap neutral Tailwind utilities to theme tokens */
-        {% if light.bg_card %}.bg-white { background-color: {{ light.bg_card }}; }{% endif %}
-        {% if light.bg_body %}.bg-gray-50 { background-color: {{ light.bg_body }}; }{% endif %}
-        {% if light.text_heading %}.text-gray-900 { color: {{ light.text_heading }}; }{% endif %}
-        {% if light.text_body %}.text-gray-700 { color: {{ light.text_body }}; }{% endif %}
-        {% if light.text_muted %}.text-gray-500 { color: {{ light.text_muted }}; }{% endif %}
-        {% if light.border %}.border-gray-200 { border-color: {{ light.border }}; }{% endif %}
-        {% if light.border_input %}.border-gray-300 { border-color: {{ light.border_input }}; }{% endif %}
+        /* These rules re-point Tailwind's own neutral utilities at the Appearance tokens, so
+           they MUST sit in the same cascade layer as Tailwind's utilities.
 
-        /* Dark mode: remap neutral Tailwind utilities to theme tokens */
-        {% if dark.bg_card %}.dark .dark\:bg-gray-800 { background-color: {{ dark.bg_card }}; }{% endif %}
-        {% if dark.bg_body %}.dark .dark\:bg-gray-900 { background-color: {{ dark.bg_body }}; }{% endif %}
-        {% if dark.bg_input %}.dark .dark\:bg-gray-700 { background-color: {{ dark.bg_input }}; }{% endif %}
-        {% if dark.text_heading %}.dark .dark\:text-white { color: {{ dark.text_heading }}; }{% endif %}
-        {% if dark.text_body %}.dark .dark\:text-gray-300 { color: {{ dark.text_body }}; }{% endif %}
-        {% if dark.text_muted %}.dark .dark\:text-gray-400 { color: {{ dark.text_muted }}; }{% endif %}
-        {% if dark.border %}.dark .dark\:border-gray-700 { border-color: {{ dark.border }}; }{% endif %}
-        {% if dark.border_input %}.dark .dark\:border-gray-600 { border-color: {{ dark.border_input }}; }{% endif %}
+           Tailwind v4 emits real @layer blocks; v3 emitted none. Unlayered declarations beat
+           every layered one regardless of specificity, so leaving this block unlayered made
+           `.bg-gray-50` (0,1,0) defeat Tailwind's `.dark\:bg-gray-700\/50:is(.dark *)` (0,2,0)
+           — a light header in dark mode, with `.dark .dark\:text-white` below still winning its
+           own match, i.e. white text on a light background. Under v3 both were unlayered and
+           specificity decided correctly.
 
-        /* Sidebar background override (higher specificity than .bg-white remapping) */
-        {% if light.bg_sidebar %}#sidebar > div { background-color: {{ light.bg_sidebar }}; }{% endif %}
-        {% if dark.bg_sidebar %}.dark #sidebar > div { background-color: {{ dark.bg_sidebar }}; }{% endif %}
+           Inside `layer(utilities)` the v3 ordering is restored: the dark remaps below (0,2,0)
+           still beat the light remaps above (0,1,0), Tailwind's own dark variants still beat
+           the light remaps, and where this block ties with Tailwind it wins on source order
+           because this <style> comes after the tailwind.css <link>. Do not un-layer it. */
+        @layer utilities {
+            /* Light mode: remap neutral Tailwind utilities to theme tokens */
+            {% if light.bg_card %}.bg-white { background-color: {{ light.bg_card }}; }{% endif %}
+            {% if light.bg_body %}.bg-gray-50 { background-color: {{ light.bg_body }}; }{% endif %}
+            {% if light.text_heading %}.text-gray-900 { color: {{ light.text_heading }}; }{% endif %}
+            {% if light.text_body %}.text-gray-700 { color: {{ light.text_body }}; }{% endif %}
+            {% if light.text_muted %}.text-gray-500 { color: {{ light.text_muted }}; }{% endif %}
+            {% if light.border %}.border-gray-200 { border-color: {{ light.border }}; }{% endif %}
+            {% if light.border_input %}.border-gray-300 { border-color: {{ light.border_input }}; }{% endif %}
+
+            /* Dark mode: remap neutral Tailwind utilities to theme tokens */
+            {% if dark.bg_card %}.dark .dark\:bg-gray-800 { background-color: {{ dark.bg_card }}; }{% endif %}
+            {% if dark.bg_body %}.dark .dark\:bg-gray-900 { background-color: {{ dark.bg_body }}; }{% endif %}
+            {% if dark.bg_input %}.dark .dark\:bg-gray-700 { background-color: {{ dark.bg_input }}; }{% endif %}
+            {% if dark.text_heading %}.dark .dark\:text-white { color: {{ dark.text_heading }}; }{% endif %}
+            {% if dark.text_body %}.dark .dark\:text-gray-300 { color: {{ dark.text_body }}; }{% endif %}
+            {% if dark.text_muted %}.dark .dark\:text-gray-400 { color: {{ dark.text_muted }}; }{% endif %}
+            {% if dark.border %}.dark .dark\:border-gray-700 { border-color: {{ dark.border }}; }{% endif %}
+            {% if dark.border_input %}.dark .dark\:border-gray-600 { border-color: {{ dark.border_input }}; }{% endif %}
+
+            /* Sidebar background override (higher specificity than .bg-white remapping) */
+            {% if light.bg_sidebar %}#sidebar > div { background-color: {{ light.bg_sidebar }}; }{% endif %}
+            {% if dark.bg_sidebar %}.dark #sidebar > div { background-color: {{ dark.bg_sidebar }}; }{% endif %}
+        }
     </style>
     {% endif %}
 
@@ -194,7 +210,7 @@
             <div class="px-4 py-3 lg:px-6">
                 <div class="flex items-center justify-between">
                     <!-- Mobile menu button (opens the Classic sidebar / Console rail drawer) -->
-                    <button data-drawer-target="sidebar" data-drawer-toggle="sidebar" aria-controls="sidebar" type="button" class="inline-flex items-center p-2 text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600">
+                    <button data-drawer-target="sidebar" data-drawer-toggle="sidebar" aria-controls="sidebar" type="button" class="inline-flex items-center p-2 text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600">
                         <span class="sr-only">Open sidebar</span>
                         <i class="ti ti-menu-2 w-6 h-6"></i>
                     </button>

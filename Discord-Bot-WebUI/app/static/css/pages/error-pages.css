@@ -223,7 +223,7 @@
   line-height: 1;
   opacity: 0.1;
   font-family: Georgia, serif;
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 /* ============================================================================
@@ -238,7 +238,7 @@
   padding: 14px 32px;
   font-size: 16px;
   font-weight: 600;
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   border-radius: 12px;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -256,7 +256,7 @@
   background: linear-gradient(135deg, var(--color-primary-700, var(--color-primary-700)) 0%, var(--color-info-700, #0e7490) 100%);
   transform: translateY(-3px);
   box-shadow: 0 12px 32px rgba(37, 99, 235, 0.45);
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-error-button--500 {
@@ -268,7 +268,7 @@
   background: linear-gradient(135deg, var(--color-danger-700, var(--color-danger-800)) 0%, var(--color-warning-700, #c2410c) 100%);
   transform: translateY(-3px);
   box-shadow: 0 12px 32px rgba(220, 38, 38, 0.45);
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-error-button:active {
@@ -384,26 +384,26 @@
 
 @media print {
   .c-error-page {
-    background: var(--color-white, var(--color-white));
+    background: var(--ecs-color-white, var(--ecs-color-white));
   }
 
   .c-error-container {
     box-shadow: none;
-    border: 1px solid var(--color-secondary-300, var(--color-neutral-400));
+    border: 1px solid var(--color-secondary-300, var(--ecs-color-neutral-400));
   }
 
   .c-error-code--404,
   .c-error-code--500 {
-    -webkit-text-fill-color: var(--color-secondary-700, var(--color-neutral-800));
-    color: var(--color-secondary-700, var(--color-neutral-800));
+    -webkit-text-fill-color: var(--color-secondary-700, var(--ecs-color-neutral-800));
+    color: var(--color-secondary-700, var(--ecs-color-neutral-800));
   }
 
   .c-error-title {
-    color: var(--color-black, var(--color-neutral-950));
+    color: var(--color-black, var(--ecs-color-neutral-950));
   }
 
   .c-error-message,
   .c-error-joke {
-    color: var(--color-secondary-700, var(--color-neutral-800));
+    color: var(--color-secondary-700, var(--ecs-color-neutral-800));
   }
 }

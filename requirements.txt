@@ -6,6 +6,11 @@ fastapi==0.113.0
 itsdangerous==2.2.0
 psycopg2-binary==2.9.9
 pydantic==2.9.0
+# Stays on 8.x deliberately: pytest 9 requires Python >=3.10 and bot-core-ci.yml
+# pins 3.9, so bumping this pin fails the bot build outright. The web app (3.11)
+# is on pytest 9 in Discord-Bot-WebUI/requirements-test.txt. Revisit when the bot
+# moves off 3.9. Note bot-core-ci.yml also reinstalls pytest unpinned, so this pin
+# mostly documents intent rather than controlling CI.
 pytest==8.4.2
 python-dotenv==1.2.2
 python-engineio>=4.9.0

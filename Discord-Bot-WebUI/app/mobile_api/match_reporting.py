@@ -183,17 +183,24 @@ def get_coach_team_id(session, player_id: int, match: Match) -> int:
     return coach_check.team_id if coach_check else None
 
 
-def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str) -> None:
+def _notify_opposing_coaches_to_verify(
+    session, match: Match, just_verified: str, action: str = 'verified'
+) -> None:
     """
     Push-notify the OTHER team's coaches that they should verify the match.
 
-    Called from the verify endpoint after one team verifies. No-op if the match
-    is already fully verified.
+    Called from the verify endpoint after one team verifies, and from the live
+    submit path after one team submits. No-op if already fully verified.
 
     Args:
         session: SQLAlchemy session
         match: Match instance with home_team and away_team eager-loaded
-        just_verified: 'home' or 'away' - which side was just verified
+        just_verified: 'home' or 'away' - which side just acted. This decides
+            BOTH who gets the push (the other side) and whose name appears in
+            the copy, so passing the wrong side notifies the wrong coaches.
+        action: 'verified' or 'submitted'. At submit time nothing is verified
+            yet — _finalize_pub_match calls reset_verification() immediately
+            before — so "confirmed the result" would be untrue.
     """
     if match.fully_verified:
         return
@@ -231,14 +238,22 @@ def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str
         )
         date_str = match.date.strftime('%b %-d') if match.date else 'recent'
         score_str = f"{match.home_team_score}-{match.away_team_score}"
-        orchestrator.send_async(NotificationPayload(
-            notification_type=NotificationType.MATCH_VERIFICATION_NEEDED,
-            title="Match needs your verification",
-            message=(
+        if action == 'submitted':
+            body = (
+                f"{verified_team_name} submitted the {date_str} result "
+                f"({score_str}) against {target_team_name}. "
+                f"Take a look and confirm if it matches your records."
+            )
+        else:
+            body = (
                 f"{verified_team_name} confirmed the {date_str} result "
                 f"({score_str}) against {target_team_name}. "
                 f"Take a look and confirm if it matches your records."
-            ),
+            )
+        orchestrator.send_async(NotificationPayload(
+            notification_type=NotificationType.MATCH_VERIFICATION_NEEDED,
+            title="Match needs your verification",
+            message=body,
             user_ids=coach_user_ids,
             data={
                 'type': 'verify_match',

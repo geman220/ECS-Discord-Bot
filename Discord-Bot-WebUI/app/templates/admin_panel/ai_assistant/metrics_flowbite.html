@@ -23,7 +23,7 @@
             <i class="ti ti-calendar-stats text-ecs-green" aria-hidden="true"></i> 30-day window
         </span>
         <a href="{{ url_for('ai_assistant.admin_metrics') }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-medium text-gray-700 dark:text-gray-200 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
         </a>
     {% endcall %}
@@ -35,10 +35,10 @@
             {% for i in range(5) %}
             <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 animate-pulse" aria-hidden="true">
                 <div class="flex items-center justify-between">
-                    <div class="h-3 w-20 rounded bg-gray-200 dark:bg-gray-700"></div>
-                    <div class="h-4 w-4 rounded bg-gray-200 dark:bg-gray-700"></div>
+                    <div class="h-3 w-20 rounded-sm bg-gray-200 dark:bg-gray-700"></div>
+                    <div class="h-4 w-4 rounded-sm bg-gray-200 dark:bg-gray-700"></div>
                 </div>
-                <div class="mt-3 h-8 w-16 rounded bg-gray-200 dark:bg-gray-700"></div>
+                <div class="mt-3 h-8 w-16 rounded-sm bg-gray-200 dark:bg-gray-700"></div>
             </div>
             {% endfor %}
         </div>
@@ -122,7 +122,7 @@
                     <label class="block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">AI Assistant</label>
                     <button type="button" id="ai-toggle-btn" data-action="ai-config-toggle-enabled"
                             class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg border transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                         <i class="ti ti-power" aria-hidden="true"></i><span>Loading...</span>
                     </button>
                 </div>
@@ -148,7 +148,7 @@
             <div class="flex justify-end">
                 <button type="button" id="ai-save-config-btn" data-action="ai-config-save"
                         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                               focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
                 </button>
             </div>
@@ -165,24 +165,24 @@
     <!-- Stats Cards (loaded via JS) -->
     <div id="ai-metrics-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-sm w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-24"></div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-sm w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-24"></div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-sm w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-24"></div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-sm w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-24"></div>
         </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
-            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
-            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded-sm w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded-sm w-24"></div>
         </div>
     </div>
 
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const questions = data.top_questions || [];
         if (questions.length) {
             qEl.innerHTML = questions.map((q, i) => `
-                <div class="flex items-start gap-2 p-2 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : ''} rounded">
+                <div class="flex items-start gap-2 p-2 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : ''} rounded-sm">
                     <span class="text-xs font-mono text-gray-400 mt-0.5">${q.count}x</span>
                     <span class="text-sm text-gray-700 dark:text-gray-300">${q.question}</span>
                 </div>
@@ -346,7 +346,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const perUser = data.per_user || [];
         if (perUser.length) {
             usersEl.innerHTML = perUser.map((u, i) => `
-                <div class="flex items-center justify-between p-2 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : ''} rounded">
+                <div class="flex items-center justify-between p-2 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : ''} rounded-sm">
                     <span class="text-sm text-gray-700 dark:text-gray-300">${u.username}</span>
                     <span class="text-xs font-mono text-gray-500 dark:text-gray-400">${u.count} requests</span>
                 </div>

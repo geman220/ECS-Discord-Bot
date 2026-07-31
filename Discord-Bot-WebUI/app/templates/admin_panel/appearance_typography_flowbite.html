@@ -58,7 +58,7 @@
         <a href="{{ url_for('admin_panel.appearance') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-palette text-sm" aria-hidden="true"></i> Appearance
         </a>
     {% endcall %}
@@ -120,13 +120,13 @@
                     {# meta row: role tag + family + status pill #}
                     <div class="flex items-center justify-between gap-3 mb-2.5">
                         <div class="flex items-center gap-2.5 min-w-0">
-                            <span class="font-mono text-[11px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shrink-0">{{ role.role_tag }}</span>
+                            <span class="font-mono text-[11px] font-bold tracking-wider px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 shrink-0">{{ role.role_tag }}</span>
                             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ current }}</span>
                         </div>
                         {% if changed %}
-                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
                         {% else %}
-                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
                         {% endif %}
                     </div>
                     {# the specimen itself — big, the point of the page #}
@@ -148,7 +148,7 @@
                 <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                     <i class="ti ti-line-height text-ecs-green" aria-hidden="true"></i> Scale Ladder
                 </h2>
-                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded {% if scale_changed %}bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ typography.scale_multiplier }}×</span>
+                <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm {% if scale_changed %}bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ typography.scale_multiplier }}×</span>
             </div>
             <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700 flex-1">
                 {% for step in scale_steps %}
@@ -185,7 +185,7 @@
             <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                 <i class="ti ti-table text-ecs-green" aria-hidden="true"></i> Token Spec Sheet
             </h2>
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ font_roles | length + 1 }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ font_roles | length + 1 }}</span>
         </div>
         <div class="md:overflow-x-auto">
             {# md+ : real table #}
@@ -256,9 +256,9 @@
                             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ current }}</span>
                         </span>
                         {% if changed %}
-                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
                         {% else %}
-                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
                         {% endif %}
                     </div>
                     <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">{{ role.key }} · {{ role.hint }}</p>
@@ -271,9 +271,9 @@
                             <span class="text-sm font-mono font-semibold text-gray-900 dark:text-white">{{ typography.scale_multiplier }}×</span>
                         </span>
                         {% if scale_changed %}
-                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-ecs-gold-500/10 text-ecs-gold-500 dark:text-ecs-gold-400">Custom</span>
                         {% else %}
-                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
+                        <span class="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Default</span>
                         {% endif %}
                     </div>
                     <p class="mt-1 font-mono text-xs text-gray-500 dark:text-gray-400">scale_multiplier · default {{ default_typography.scale_multiplier }}×</p>
@@ -296,7 +296,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-typography text-theme-primary"></i>
             <span>Current Typography</span>

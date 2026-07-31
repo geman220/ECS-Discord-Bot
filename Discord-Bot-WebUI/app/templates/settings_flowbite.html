@@ -16,7 +16,7 @@
 
     {# ---- Identity feature card: the page's primary object (this account) ---- #}
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
-        <div class="h-1.5 bg-gradient-to-r from-ecs-green to-ecs-gold-500"></div>
+        <div class="h-1.5 bg-linear-to-r from-ecs-green to-ecs-gold-500"></div>
         <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
             <div class="w-14 h-14 shrink-0 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center">
                 <i class="ti ti-user-circle text-3xl" aria-hidden="true"></i>
@@ -71,23 +71,23 @@
     {# Tab Navigation — JS hooks preserved verbatim (.settings-tab / data-tab; settings.js owns the active-class contract) #}
     <div class="mb-6">
         <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="settings-tabs">
-            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium border-b-2 border-ecs-green text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
+            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium border-b-2 border-ecs-green text-ecs-green focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
                     data-tab="account">
                 <i class="ti ti-user-circle mr-1.5" aria-hidden="true"></i> Account
             </button>
-            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
+            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
                     data-tab="appearance">
                 <i class="ti ti-palette mr-1.5" aria-hidden="true"></i> Appearance
             </button>
-            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
+            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
                     data-tab="security">
                 <i class="ti ti-lock mr-1.5" aria-hidden="true"></i> Security
             </button>
-            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
+            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
                     data-tab="notifications">
                 <i class="ti ti-bell mr-1.5" aria-hidden="true"></i> Notifications
             </button>
-            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
+            <button type="button" class="settings-tab inline-flex items-center min-h-[44px] px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 rounded-t-lg"
                     data-tab="integrations">
                 <i class="ti ti-plug mr-1.5" aria-hidden="true"></i> Integrations
             </button>
@@ -127,7 +127,7 @@
                                     {{ notification_form.profile_visibility(class="input-ecs", id="profile-visibility") }}
                                 </div>
                             </div>
-                            <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                                 <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Changes
                             </button>
                         </form>
@@ -184,7 +184,7 @@
                             </div>
                         </div>
                         <button type="button" data-tab="security"
-                                class="settings-tab w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                class="settings-tab w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                             <i class="ti ti-arrow-right" aria-hidden="true"></i> Manage security
                         </button>
                     </div>
@@ -232,7 +232,7 @@
                     <label class="relative flex items-center min-h-[44px] p-4 border-2 border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer transition-all hover:border-ecs-green dark:hover:border-ecs-green theme-option" data-theme="system">
                         <input type="radio" name="theme" value="system" class="sr-only peer">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 bg-gradient-to-br from-white to-gray-800 border border-gray-300 rounded-lg flex items-center justify-center">
+                            <div class="w-10 h-10 bg-linear-to-br from-white to-gray-800 border border-gray-300 rounded-lg flex items-center justify-center">
                                 <i class="ti ti-device-desktop text-gray-600 text-xl" aria-hidden="true"></i>
                             </div>
                             <div>
@@ -263,7 +263,7 @@
                                 <p class="text-sm text-green-600 dark:text-green-400">Your account has enhanced security</p>
                             </div>
                         </div>
-                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-500"
+                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-red-500"
                                 id="disable2FABtn">
                             Disable 2FA
                         </button>
@@ -277,7 +277,7 @@
                                 <p class="text-sm text-amber-600 dark:text-amber-400">Enable for better security</p>
                             </div>
                         </div>
-                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                 id="enable2FABtn" data-modal-target="enable2FAModal" data-modal-toggle="enable2FAModal">
                             Enable 2FA
                         </button>
@@ -304,7 +304,7 @@
                                 <input type="password" id="confirm_password" name="confirm_password" required minlength="8" class="input-ecs">
                             </div>
                         </div>
-                        <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-key" aria-hidden="true"></i> Update Password
                         </button>
                     </form>
@@ -328,7 +328,7 @@
                                 <span class="block text-xs text-gray-500 dark:text-gray-400 font-mono truncate">{{ safe_current_user.email }}</span>
                             </span>
                             <input type="checkbox" name="email_notifications" {{ 'checked' if safe_current_user.email_notifications else '' }}
-                                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         </label>
                     </li>
                     <li>
@@ -341,12 +341,12 @@
                             {% if safe_current_user.sms_opted_in %}
                             <div class="flex items-center gap-2 shrink-0">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-100 dark:bg-green-500/15 text-green-700 dark:text-green-300 rounded-full text-xs font-semibold"><i class="ti ti-circle-check" aria-hidden="true"></i> On</span>
-                                <button type="button" id="smsOptOutBtn" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-500">
+                                <button type="button" id="smsOptOutBtn" class="inline-flex items-center justify-center min-h-[44px] px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-red-500">
                                     Disable
                                 </button>
                             </div>
                             {% else %}
-                            <button type="button" class="shrink-0 inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            <button type="button" class="shrink-0 inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                                     data-modal-target="smsOptInModal" data-modal-toggle="smsOptInModal">
                                 Enable
                             </button>
@@ -361,7 +361,7 @@
                                 <span class="block text-xs text-gray-500 dark:text-gray-400">{{ 'Linked account' if discord_linked else 'Link Discord in Integrations to receive DMs' }}</span>
                             </span>
                             <input type="checkbox" name="discord_notifications" {{ 'checked' if safe_current_user.discord_notifications else '' }}
-                                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         </label>
                     </li>
                     <li>
@@ -372,13 +372,13 @@
                                 <span class="block text-xs text-gray-500 dark:text-gray-400">Day-before &amp; 2-hour reminders for your matches</span>
                             </span>
                             <input type="checkbox" name="match_reminder_notifications" {{ 'checked' if safe_current_user.match_reminder_notifications else '' }}
-                                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                         </label>
                     </li>
                 </ul>
                 <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
                     <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ channels_on }}/4 channels on</p>
-                    <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <button type="submit" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Preferences
                     </button>
                 </div>
@@ -402,7 +402,7 @@
                         </div>
                         <form action="{{ url_for('account.unlink_discord') }}" method="POST" id="unlinkDiscordForm">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-red-500">
+                            <button type="submit" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-red-500">
                                 Disconnect
                             </button>
                         </form>
@@ -416,7 +416,7 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">Link your Discord for full features</p>
                             </div>
                         </div>
-                        <a href="{{ url_for('auth.discord_login') }}" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <a href="{{ url_for('auth.discord_login') }}" class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             Connect Discord
                         </a>
                     </div>
@@ -429,11 +429,11 @@
                     <p class="text-gray-600 dark:text-gray-400 mb-4 text-sm">Add your team's matches to Google Calendar, Apple Calendar, or Outlook.</p>
                     <input type="hidden" id="subscriptionUrl" value="">
                     <div class="flex flex-wrap gap-3">
-                        <button type="button" data-action="copy-subscription-url" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button type="button" data-action="copy-subscription-url" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 id="copyCalendarUrl">
                             <i class="ti ti-link" aria-hidden="true"></i> Copy Calendar URL
                         </button>
-                        <a href="#" data-action="subscribe-google" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        <a href="#" data-action="subscribe-google" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                            id="addToGoogleCalendar">
                             <i class="ti ti-brand-google" aria-hidden="true"></i> Add to Google
                         </a>
@@ -481,7 +481,7 @@
                                     </div>
                                 </div>
                                 <button type="button" id="rsvpResumeBtn"
-                                        class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        class="inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500">
                                     Resume Reminders
                                 </button>
                             </div>
@@ -505,7 +505,7 @@
                             <option value="0">Rest of season</option>
                         </select>
                         <button type="button" id="rsvpSnoozeBtn"
-                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-zzz" aria-hidden="true"></i> Pause Reminders
                         </button>
                     </div>
@@ -537,7 +537,7 @@
                    placeholder="Enter 6-digit code"
                    class="input-ecs text-center text-2xl tracking-widest font-mono">
         </div>
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-shield-check" aria-hidden="true"></i> Verify and Enable 2FA
         </button>
     </form>
@@ -558,13 +558,13 @@
             </div>
             <label class="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" id="smsConsent" required
-                       class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                       class="mt-1 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                     I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
                     Standard message and data rates may apply.
                 </span>
             </label>
-            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <button type="submit" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-send" aria-hidden="true"></i> Send Verification Code
             </button>
         </form>
@@ -583,10 +583,10 @@
                        class="input-ecs text-center text-2xl tracking-widest font-mono">
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-check" aria-hidden="true"></i> Verify Code
                 </button>
-                <button type="button" id="resendCodeBtn" class="hidden inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <button type="button" id="resendCodeBtn" class="hidden inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-refresh" aria-hidden="true"></i> Resend
                 </button>
             </div>
@@ -596,7 +596,7 @@
         <i class="ti ti-circle-check text-green-500 text-5xl" aria-hidden="true"></i>
         <h4 class="text-xl font-semibold text-green-600 dark:text-green-400 mt-4">Success!</h4>
         <p class="text-gray-600 dark:text-gray-400 mt-2">SMS notifications have been enabled.</p>
-        <button type="button" id="smsSuccessRefreshBtn" class="mt-4 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="button" id="smsSuccessRefreshBtn" class="mt-4 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-refresh" aria-hidden="true"></i> Refresh Page
         </button>
     </div>
@@ -648,7 +648,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2 space-y-6">
                     <!-- Personal Information -->
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                             <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg">
                                 <i class="ti ti-user-circle text-xl"></i>
@@ -697,7 +697,7 @@
 
                     <!-- Player Status -->
                     {% if safe_current_user.player %}
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                             <div class="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-lg">
                                 <i class="ti ti-shield-check text-xl"></i>
@@ -758,7 +758,7 @@
 
                 <!-- Quick Actions Sidebar -->
                 <div>
-                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4">
                         <h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                             <i class="ti ti-bolt text-yellow-500"></i> Quick Actions
                         </h4>
@@ -779,7 +779,7 @@
 
         <!-- Appearance Tab -->
         <div class="settings-pane hidden" id="appearance">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                     <div class="w-10 h-10 flex items-center justify-center bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 rounded-lg">
                         <i class="ti ti-palette text-xl"></i>
@@ -830,7 +830,7 @@
                                        data-theme="system">
                                     <input type="radio" name="theme" value="system" class="sr-only peer">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-gradient-to-br from-white to-gray-800 border border-gray-300 rounded-lg flex items-center justify-center">
+                                        <div class="w-10 h-10 bg-linear-to-br from-white to-gray-800 border border-gray-300 rounded-lg flex items-center justify-center">
                                             <i class="ti ti-device-desktop text-gray-600 text-xl"></i>
                                         </div>
                                         <div>
@@ -853,7 +853,7 @@
         <div class="settings-pane hidden" id="security">
             <div class="space-y-6">
                 <!-- Two-Factor Authentication -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                         <div class="w-10 h-10 flex items-center justify-center bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400 rounded-lg">
                             <i class="ti ti-shield text-xl"></i>
@@ -897,7 +897,7 @@
                 </div>
 
                 <!-- Password Change -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                         <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 rounded-lg">
                             <i class="ti ti-key text-xl"></i>
@@ -938,7 +938,7 @@
 
         <!-- Notifications Tab -->
         <div class="settings-pane hidden" id="notifications">
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                     <div class="w-10 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 rounded-lg">
                         <i class="ti ti-bell text-xl"></i>
@@ -958,7 +958,7 @@
                                     <p class="text-sm text-gray-500 dark:text-gray-400">Receive updates via email</p>
                                 </div>
                                 <input type="checkbox" name="email_notifications" {{ 'checked' if safe_current_user.email_notifications else '' }}
-                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                             </label>
                             <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                                 <div>
@@ -985,7 +985,7 @@
                                     <p class="text-sm text-gray-500 dark:text-gray-400">Receive notifications via Discord DM</p>
                                 </div>
                                 <input type="checkbox" name="discord_notifications" {{ 'checked' if safe_current_user.discord_notifications else '' }}
-                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                             </label>
                             <label class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
                                 <div>
@@ -993,7 +993,7 @@
                                     <p class="text-sm text-gray-500 dark:text-gray-400">Day-before and 2-hour reminders for your matches</p>
                                 </div>
                                 <input type="checkbox" name="match_reminder_notifications" {{ 'checked' if safe_current_user.match_reminder_notifications else '' }}
-                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                       class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                             </label>
                         </div>
                         <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
@@ -1008,7 +1008,7 @@
         <div class="settings-pane hidden" id="integrations">
             <div class="space-y-6">
                 <!-- Discord Integration -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                         <div class="w-10 h-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg">
                             <i class="ti ti-brand-discord text-xl"></i>
@@ -1053,7 +1053,7 @@
                 </div>
 
                 <!-- Calendar Subscription -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                         <div class="w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg">
                             <i class="ti ti-calendar text-xl"></i>
@@ -1080,7 +1080,7 @@
 
                 <!-- RSVP Reminder Preferences -->
                 {% if safe_current_user.player and safe_current_user.player.discord_id %}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" id="rsvpReminderCard">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden" id="rsvpReminderCard">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
                         <div class="w-10 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 rounded-lg">
                             <i class="ti ti-bell text-xl"></i>
@@ -1183,7 +1183,7 @@
         </div>
         <label class="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" id="smsConsent" required
-                   class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="mt-1 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             <span class="text-sm text-gray-600 dark:text-gray-400">
                 I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
                 Standard message and data rates may apply.

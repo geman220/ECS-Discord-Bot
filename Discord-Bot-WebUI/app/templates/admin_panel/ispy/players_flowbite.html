@@ -61,7 +61,7 @@
         </div>
         <div class="min-w-0">
           <p class="text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Discord ID</p>
-          <code class="block text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded font-mono text-gray-700 dark:text-gray-300 truncate">{{ leader.discord_id }}</code>
+          <code class="block text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm font-mono text-gray-700 dark:text-gray-300 truncate">{{ leader.discord_id }}</code>
           <p class="mt-1.5 flex items-baseline gap-1.5">
             <span class="font-mono text-2xl font-bold text-gray-900 dark:text-white leading-none">{{ leader.total_points }}</span>
             <span class="text-xs text-gray-500 dark:text-gray-400">pts</span>
@@ -81,7 +81,7 @@
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-list-numbers text-ecs-green" aria-hidden="true"></i> Player Roster
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ players|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ players|length }}</span>
       </h2>
       <div class="flex flex-col sm:flex-row sm:items-center gap-2">
         <div class="relative flex-1 sm:w-64">
@@ -126,7 +126,7 @@
             {% endif %}
           </td>
           <td class="px-3 py-3 align-middle">
-            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300">{{ player.discord_id }}</code>
+            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm font-mono text-gray-700 dark:text-gray-300">{{ player.discord_id }}</code>
           </td>
           <td class="px-3 py-3 align-middle text-right">
             <span class="font-mono font-bold text-gray-900 dark:text-white">{{ player.total_points }}</span>
@@ -172,7 +172,7 @@
           <td class="px-3 py-3 align-middle">
             <div class="flex items-center justify-end gap-1">
               <button type="button"
-                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       title="Send to Jail"
                       aria-label="Send player to jail"
                       data-action="jail-player"
@@ -181,7 +181,7 @@
                 <i class="ti ti-lock" aria-hidden="true"></i>
               </button>
               <button type="button"
-                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       title="Adjust Score"
                       aria-label="Adjust player score"
                       data-action="adjust-score"
@@ -208,7 +208,7 @@
             {% if loop.index <= 3 %}
             <i class="ti ti-trophy {{ podium_tones.get(loop.index, podium_tones[3]) }}" aria-hidden="true"></i>
             {% endif %}
-            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono text-gray-700 dark:text-gray-300 truncate">{{ player.discord_id }}</code>
+            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm font-mono text-gray-700 dark:text-gray-300 truncate">{{ player.discord_id }}</code>
           </div>
           <span class="shrink-0 font-mono font-bold text-gray-900 dark:text-white">{{ player.total_points }} pts</span>
         </div>
@@ -224,14 +224,14 @@
         </div>
         <div class="mt-3 flex items-center gap-2">
           <button type="button"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   data-action="jail-player"
                   data-discord-id="{{ player.discord_id }}"
                   data-points="{{ player.total_points }}">
             <i class="ti ti-lock" aria-hidden="true"></i> Jail
           </button>
           <button type="button"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   data-action="adjust-score"
                   data-discord-id="{{ player.discord_id }}"
                   data-points="{{ player.total_points }}">
@@ -272,7 +272,7 @@
 {% endcall %}
 {% else %}
 <!-- Header Card -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-6 border border-gray-200 dark:border-gray-700">
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -290,7 +290,7 @@
 
 <!-- Player Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ player_stats.total_players }}</p>
@@ -301,7 +301,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ player_stats.active_players }}</p>
@@ -312,7 +312,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ player_stats.players_in_jail }}</p>
@@ -323,7 +323,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ player_stats.avg_points|round(1) }}</p>
@@ -334,7 +334,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ player_stats.top_points }}</p>
@@ -348,7 +348,7 @@
 </div>
 
 <!-- Players Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">All Players</h5>
         <div class="flex flex-wrap items-center gap-3">
@@ -389,7 +389,7 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded font-mono">{{ player.discord_id }}</code>
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm font-mono">{{ player.discord_id }}</code>
                     </td>
                     <td class="px-4 py-3">
                         <span class="font-bold text-gray-900 dark:text-white">{{ player.total_points }}</span>

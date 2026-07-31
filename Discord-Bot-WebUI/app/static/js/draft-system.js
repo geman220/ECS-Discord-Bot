@@ -562,8 +562,8 @@ class DraftSystemV2 {
                                     <td>${match.goals}</td>
                                     <td>${match.assists}</td>
                                     <td>
-                                        ${match.yellow_cards ? `<span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">${match.yellow_cards}Y</span>` : ''}
-                                        ${match.red_cards ? `<span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${match.red_cards}R</span>` : ''}
+                                        ${match.yellow_cards ? `<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">${match.yellow_cards}Y</span>` : ''}
+                                        ${match.red_cards ? `<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${match.red_cards}R</span>` : ''}
                                     </td>
                                 </tr>
                             `).join('')}

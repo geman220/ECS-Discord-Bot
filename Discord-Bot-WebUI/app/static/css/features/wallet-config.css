@@ -34,7 +34,7 @@
 }
 
 .status-card {
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   transition: all 0.2s;
   height: 100%;
   border-radius: 8px;
@@ -47,7 +47,7 @@
 
 .wizard-btn {
   padding: var(--space-5, 20px);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   transition: all 0.2s;
   height: 100%;
   text-align: center;
@@ -69,7 +69,7 @@
 .config-step {
   position: relative;
   padding: 12px 12px 12px 40px;
-  border-radius: var(--radius-sm, 0.375rem);
+  border-radius: var(--ecs-radius-sm, 0.375rem);
   margin-bottom: var(--space-4, 15px);
   background-color: var(--bs-tertiary-bg);
   border-radius: 0.375rem;
@@ -103,7 +103,7 @@
 }
 
 .quick-action-card {
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   transition: all 0.2s;
   height: 100%;
   border-radius: 8px;
@@ -119,11 +119,11 @@
    ============================================================================ */
 
 .code-block {
-  background-color: var(--bs-tertiary-bg, var(--color-neutral-50));
-  border-radius: var(--radius-sm, 4px);
+  background-color: var(--bs-tertiary-bg, var(--ecs-color-neutral-50));
+  border-radius: var(--ecs-radius-sm, 4px);
   padding: var(--space-4, 15px);
   margin: var(--space-4, 15px) 0;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--ecs-font-mono, monospace);
   overflow-x: auto;
   white-space: pre;
   background-color: var(--ecs-dark-bg-card, #2d2d2d);
@@ -157,8 +157,8 @@
 }
 
 .detail-content {
-  background-color: var(--bs-tertiary-bg, var(--color-neutral-50));
-  border-radius: var(--radius-sm, 4px);
+  background-color: var(--bs-tertiary-bg, var(--ecs-color-neutral-50));
+  border-radius: var(--ecs-radius-sm, 4px);
   padding: var(--space-3, 10px);
   margin: var(--space-3, 10px) 0;
   border-radius: 4px;
@@ -168,7 +168,7 @@
 
 .directory-item {
   padding: var(--space-3, 10px);
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--ecs-radius-sm, 4px);
   margin-bottom: var(--space-2, 8px);
   padding: 10px;
   border-radius: 4px;
@@ -185,7 +185,7 @@
 
 .help-card {
   margin-bottom: var(--space-6, 25px);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   transition: all 0.2s;
   height: 100%;
   margin-bottom: 25px;
@@ -250,8 +250,8 @@
 }
 
 .coordinates {
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-sm, 0.85rem);
+  font-family: var(--ecs-font-mono, monospace);
+  font-size: var(--ecs-text-sm, 0.85rem);
   font-family: monospace;
   font-size: 0.85rem;
 }
@@ -263,7 +263,7 @@
 .pass-preview-card {
   width: 320px;
   min-height: 400px;
-  border-radius: var(--radius-xl, 12px);
+  border-radius: var(--ecs-radius-xl, 12px);
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   margin: 0 auto;
@@ -295,7 +295,7 @@
 .pass-logo-img {
   width: 50px;
   height: 50px;
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
@@ -340,11 +340,11 @@
 }
 
 .pass-barcode-area {
-  background: var(--color-white);
+  background: var(--ecs-color-white);
   padding: var(--space-5, 20px);
   text-align: center;
   margin: var(--space-4, 15px);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   padding: 20px;
   margin: 15px;
   border-radius: 8px;
@@ -364,7 +364,7 @@
 .color-swatch {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   border: 2px solid var(--bs-border-color);
   cursor: pointer;
   transition: all 0.2s;
@@ -394,9 +394,9 @@
   padding: 2px 8px;
   background: var(--bs-primary-bg-subtle);
   color: var(--color-primary);
-  border-radius: var(--radius-sm, 4px);
-  font-family: var(--font-mono, monospace);
-  font-size: var(--text-sm, 0.85rem);
+  border-radius: var(--ecs-radius-sm, 4px);
+  font-family: var(--ecs-font-mono, monospace);
+  font-size: var(--ecs-text-sm, 0.85rem);
   cursor: pointer;
   transition: all 0.2s;
   color: var(--bs-primary);
@@ -407,7 +407,7 @@
 
 .variable-tag:hover {
   background: var(--color-primary);
-  color: var(--color-white);
+  color: var(--ecs-color-white);
   background: var(--bs-primary);
 }
 
@@ -415,7 +415,7 @@
   background: var(--bs-warning-bg-subtle);
   border-left: 4px solid var(--color-warning);
   padding: 12px 15px;
-  border-radius: 0 var(--radius-lg, 8px) var(--radius-lg, 8px) 0;
+  border-radius: 0 var(--ecs-radius-lg, 8px) var(--ecs-radius-lg, 8px) 0;
   margin-bottom: var(--space-4, 15px);
   border-left: 4px solid var(--bs-warning);
   border-radius: 0 8px 8px 0;
@@ -430,7 +430,7 @@
   background: var(--bs-tertiary-bg);
   border-radius: var(--radius-full, 20px);
   margin: 4px;
-  font-size: var(--text-sm, 0.85rem);
+  font-size: var(--ecs-text-sm, 0.85rem);
   border-radius: 20px;
   font-size: 0.85rem;
 }
@@ -468,11 +468,11 @@
 }
 
 .template-variable {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--ecs-font-mono, monospace);
   background: var(--bs-light);
   padding: 2px 6px;
   border-radius: var(--radius-xs, 3px);
-  font-size: var(--text-sm, 0.85rem);
+  font-size: var(--ecs-text-sm, 0.85rem);
   font-family: monospace;
   border-radius: 3px;
   font-size: 0.85rem;
@@ -501,8 +501,8 @@
 
 .wallet-config-editor .CodeMirror {
   height: 400px;
-  border: 1px solid var(--bs-border-color, var(--color-neutral-300));
-  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--bs-border-color, var(--ecs-color-neutral-300));
+  border-radius: var(--ecs-radius-sm, 4px);
 }
 
 /* ============================================================================
@@ -511,7 +511,7 @@
 
 .test-result {
   padding: var(--space-4, 15px);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   margin-bottom: var(--space-4, 15px);
   padding: 15px;
   border-radius: 8px;
@@ -557,7 +557,7 @@
   border-left: 3px solid var(--color-danger, var(--color-danger-500));
   background-color: var(--bs-danger-bg-subtle, rgba(234, 84, 85, 0.1));
   margin-bottom: var(--space-3, 10px);
-  border-radius: var(--radius-sm, 4px);
+  border-radius: var(--ecs-radius-sm, 4px);
   border-left: 3px solid var(--ecs-danger, var(--color-danger-500));
   background-color: var(--ecs-danger-subtle, rgba(234, 84, 85, 0.1));
   margin-bottom: 10px;
@@ -565,8 +565,8 @@
 }
 
 .next-steps {
-  border: 1px solid var(--bs-border-color, var(--color-neutral-300));
-  border-radius: var(--radius-lg, 8px);
+  border: 1px solid var(--bs-border-color, var(--ecs-color-neutral-300));
+  border-radius: var(--ecs-radius-lg, 8px);
   padding: var(--space-4, 15px);
   border-radius: 8px;
   padding: 15px;
@@ -581,7 +581,7 @@
    ============================================================================ */
 
 .stat-card {
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   transition: all 0.2s;
   border-radius: 8px;
 }
@@ -597,7 +597,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   border-radius: 8px;
 }
 
@@ -611,7 +611,7 @@
 
 .setup-required-banner {
   background: linear-gradient(135deg, var(--bs-warning-bg-subtle) 0%, var(--color-warning) 100%);
-  border-radius: var(--radius-xl, 12px);
+  border-radius: var(--ecs-radius-xl, 12px);
   padding: var(--space-6, 24px);
   background: linear-gradient(135deg, var(--bs-warning-bg-subtle) 0%, var(--bs-warning) 100%);
   border-radius: 12px;
@@ -623,7 +623,7 @@
    ============================================================================ */
 
 .pass-stat-card {
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   transition: all 0.2s;
   border-radius: 8px;
 }
@@ -635,7 +635,7 @@
 
 .filter-row {
   background-color: var(--bs-tertiary-bg);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   padding: var(--space-4, 16px);
   border-radius: 8px;
   padding: 16px;
@@ -652,7 +652,7 @@
 #scanner-video {
   width: 100%;
   max-height: 350px;
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   background: var(--bs-dark);
   border-radius: 8px;
 }
@@ -669,7 +669,7 @@
   width: 200px;
   height: 200px;
   border: 3px solid rgba(255, 255, 255, 0.8);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   pointer-events: none;
   border: 3px solid rgba(255,255,255,0.8);
   border-radius: 8px;
@@ -690,7 +690,7 @@
   top: -3px;
   left: -3px;
   border-width: 4px 0 0 4px;
-  border-radius: var(--radius-lg, 8px) 0 0 0;
+  border-radius: var(--ecs-radius-lg, 8px) 0 0 0;
   border-radius: 8px 0 0 0;
 }
 
@@ -698,7 +698,7 @@
   bottom: -3px;
   right: -3px;
   border-width: 0 4px 4px 0;
-  border-radius: 0 0 var(--radius-lg, 8px) 0;
+  border-radius: 0 0 var(--ecs-radius-lg, 8px) 0;
   border-radius: 0 0 8px 0;
 }
 
@@ -718,7 +718,7 @@
   padding: var(--space-3, 12px);
   border-left: 4px solid;
   margin-bottom: var(--space-2, 8px);
-  border-radius: 0 var(--radius-lg, 8px) var(--radius-lg, 8px) 0;
+  border-radius: 0 var(--ecs-radius-lg, 8px) var(--ecs-radius-lg, 8px) 0;
   background: var(--bs-tertiary-bg);
   padding: 12px;
   margin-bottom: 8px;
@@ -765,7 +765,7 @@
 
 .stat-box {
   padding: var(--space-4, 16px);
-  border-radius: var(--radius-lg, 8px);
+  border-radius: var(--ecs-radius-lg, 8px);
   text-align: center;
   padding: 16px;
   border-radius: 8px;
@@ -806,7 +806,7 @@
 
 .hero-section {
   background: linear-gradient(135deg, var(--bs-primary) 0%, #1a472a 100%);
-  color: var(--bs-white, var(--color-white));
+  color: var(--bs-white, var(--ecs-color-white));
   border-radius: 16px;
   padding: 40px;
   position: relative;
@@ -1018,7 +1018,7 @@
 }
 
 .screenshot-container {
-  border: 1px solid var(--bs-border-color, var(--color-neutral-300));
+  border: 1px solid var(--bs-border-color, var(--ecs-color-neutral-300));
   border-radius: 8px;
   padding: 10px;
   margin: 15px 0;
@@ -1030,7 +1030,7 @@
 }
 
 .note-box {
-  background-color: var(--bs-warning-bg-subtle, var(--color-white)3cd);
+  background-color: var(--bs-warning-bg-subtle, var(--ecs-color-white)3cd);
   border-left: 4px solid var(--bs-warning, var(--color-warning));
   padding: 15px;
   margin: 15px 0;
@@ -1092,7 +1092,7 @@
 
 .CodeMirror {
   height: 400px;
-  border: 1px solid var(--bs-border-color, var(--color-neutral-300));
+  border: 1px solid var(--bs-border-color, var(--ecs-color-neutral-300));
   border-radius: 4px;
 }
 
@@ -1141,7 +1141,7 @@
   align-items: center;
   justify-content: center;
   margin: 0 auto 10px;
-  color: var(--color-white);
+  color: var(--ecs-color-white);
   position: relative;
 }
 

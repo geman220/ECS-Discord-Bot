@@ -353,7 +353,7 @@ function showTaskMonitorModal(data) {
             tasksHtml += `
           <tr class="border-b dark:border-gray-700">
             <td class="py-2 px-3">${task.name}</td>
-            <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded ${getTaskStatusBadge(task.status)}">${task.status}</span></td>
+            <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded-sm ${getTaskStatusBadge(task.status)}">${task.status}</span></td>
             <td class="py-2 px-3">${task.started || '-'}</td>
             <td class="py-2 px-3">${task.worker || '-'}</td>
             <td class="py-2 px-3 truncate max-w-xs">${task.args || '-'}</td>
@@ -521,7 +521,7 @@ function createToggle(id, label, description, checked, disabled = false) {
       <div class="mb-3">
         <label class="relative inline-flex items-start cursor-pointer">
           <input type="checkbox" id="${id}" class="sr-only peer" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
-          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green ${disabled ? 'opacity-50 cursor-not-allowed' : ''}"></div>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green ${disabled ? 'opacity-50 cursor-not-allowed' : ''}"></div>
           <span class="ml-3 text-sm">
             <strong class="font-medium text-gray-900 dark:text-white">${label}</strong>
             ${description ? `<br><small class="text-gray-500 dark:text-gray-400">${description}</small>` : ''}

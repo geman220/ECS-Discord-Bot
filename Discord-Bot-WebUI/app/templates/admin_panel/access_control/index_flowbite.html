@@ -18,7 +18,7 @@
    class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
    {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
   <i class="ti {{ icon }}"></i>{{ label }}
-  {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+  {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-5 h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
 </a>
 {% endmacro %}
 
@@ -30,7 +30,7 @@
             'referee': ['bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300', 'Referee'],
             'other': ['bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300', 'Other']} %}
 {% set c = m.get(kind, m['other']) %}
-<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ c[0] }}">{{ c[1] }}</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-semibold {{ c[0] }}">{{ c[1] }}</span>
 {% endmacro %}
 
 {% macro role_avatar(kind, label) %}
@@ -75,7 +75,7 @@
     <button type="button" data-ac="role-export" class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold"><i class="ti ti-download"></i>Export</button>
   </div>
 
-  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 dark:bg-gray-700/40 text-xs uppercase text-gray-500 dark:text-gray-400">
@@ -108,11 +108,11 @@
             <td class="px-4 py-2.5 hidden sm:table-cell">{{ kind_badge(r.kind) }}</td>
             <td class="px-4 py-2.5 hidden lg:table-cell">
               {% if r.discord_role_id %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300"><i class="ti ti-brand-discord"></i>{{ r.discord_role_name or 'Mapped' }}</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300"><i class="ti ti-brand-discord"></i>{{ r.discord_role_name or 'Mapped' }}</span>
               {% elif r.discord_expected %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Needs mapping</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Needs mapping</span>
               {% else %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-shield-lock"></i>App-only</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-shield-lock"></i>App-only</span>
               {% endif %}
             </td>
             <td class="px-4 py-2.5 text-right whitespace-nowrap">
@@ -149,7 +149,7 @@
     <i class="ti ti-alert-triangle text-amber-500 text-lg mt-0.5 shrink-0"></i>
     <div>
       <p class="font-semibold">The permissions table isn’t fully seeded ({{ seeded_count }} of {{ enforced_count }} present).</p>
-      <p class="mt-0.5 text-gray-600 dark:text-gray-300">These permissions are enforced in code, but a permission only <em>works</em> once its row exists. Run <code class="font-mono text-xs bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">sql_seed_permissions.sql</code> in pgAdmin, then reload — toggles below only grant real access for seeded rows.</p>
+      <p class="mt-0.5 text-gray-600 dark:text-gray-300">These permissions are enforced in code, but a permission only <em>works</em> once its row exists. Run <code class="font-mono text-xs bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded-sm">sql_seed_permissions.sql</code> in pgAdmin, then reload — toggles below only grant real access for seeded rows.</p>
     </div>
   </div>
   {% endif %}
@@ -196,8 +196,8 @@
               {% elif row.enforced %}<span class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Enforced in code but missing from the DB — run the reconcile/seed"></span>
               {% else %}<span class="w-1.5 h-1.5 rounded-full bg-gray-400" title="Decorative — a DB row that no code checks"></span>{% endif %}
               {{ row.label }}
-              {% if row.enforced and not row.seeded %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" title="Code checks this permission, but there’s no DB row yet, so it can’t be granted. Run the reconcile.">not in DB</span>
-              {% elif not row.enforced %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">gates nothing</span>{% endif %}
+              {% if row.enforced and not row.seeded %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" title="Code checks this permission, but there’s no DB row yet, so it can’t be granted. Run the reconcile.">not in DB</span>
+              {% elif not row.enforced %}<span class="text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">gates nothing</span>{% endif %}
             </div>
             <div class="text-[11.5px] text-gray-500 dark:text-gray-400 mt-0.5">{{ row.impacts }}</div>
             <div class="text-[10px] font-mono text-gray-400 mt-0.5">{{ row.name }}</div>
@@ -209,7 +209,7 @@
               <input type="checkbox" class="ac-perm-toggle sr-only peer" {{ 'checked' if (locked or row.granted[role.id]) else '' }} {{ 'disabled' if locked else '' }}
                      data-role-id="{{ role.id }}" data-perm="{{ row.name }}" {{ 'data-seeded=1' if row.seeded else '' }}>
               <span class="absolute inset-0 rounded-full bg-gray-200 dark:bg-gray-600 border border-gray-300 dark:border-gray-500 peer-checked:bg-ecs-green peer-checked:border-ecs-green transition"></span>
-              <span class="absolute top-[2.5px] left-[2.5px] w-[15px] h-[15px] rounded-full bg-white shadow peer-checked:translate-x-[16px] transition"></span>
+              <span class="absolute top-[2.5px] left-[2.5px] w-[15px] h-[15px] rounded-full bg-white shadow-sm peer-checked:translate-x-[16px] transition"></span>
             </label>
           </td>
           {% endfor %}
@@ -246,7 +246,7 @@
 
   {# ============================================================= DISCORD MAPPING ============================================================= #}
   {% if tab == 'discord' %}
-  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs">
     <div class="flex flex-wrap items-center gap-3 px-4 py-3">
       {% if bot_status == 'online' %}
       <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>Bot online</span>
@@ -272,7 +272,7 @@
     {{ stat_card('ti-brand-discord', 'Discord roles', dstats.discord_roles, tone='info') }}
   </div>
 
-  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs overflow-hidden">
     <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <i class="ti ti-link text-ecs-green"></i><h2 class="text-sm font-semibold text-gray-900 dark:text-white">Role mappings</h2>
       <span class="ml-auto text-xs text-gray-400">Each Flask role maps to one Discord role {{ info_dot('Auto-map matches by name using the canonical map and never touches app-only/admin roles. App-only roles are meant to have no Discord counterpart.') }}</span>
@@ -304,13 +304,13 @@
                 {% endfor %}
               </select>
               {% else %}
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-shield-lock"></i>App-only — not mappable</span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-shield-lock"></i>App-only — not mappable</span>
               {% endif %}
             </td>
             <td class="px-4 py-2.5 hidden sm:table-cell">
-              {% if m.discord_role_id %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><i class="ti ti-check"></i>Mapped</span>
-              {% elif m.discord_expected %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Needs mapping</span>
-              {% else %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-lock"></i>Protected</span>{% endif %}
+              {% if m.discord_role_id %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"><i class="ti ti-check"></i>Mapped</span>
+              {% elif m.discord_expected %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="ti ti-alert-triangle"></i>Needs mapping</span>
+              {% else %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-lock"></i>Protected</span>{% endif %}
             </td>
             <td class="px-4 py-2.5 hidden md:table-cell font-mono text-xs text-gray-400">{{ m.last_synced_at.strftime('%Y-%m-%d %H:%M') if m.last_synced_at else '—' }}</td>
             <td class="px-4 py-2.5 text-right whitespace-nowrap">
@@ -331,7 +331,7 @@
     <i class="ti ti-alert-triangle text-amber-500 text-lg mt-0.5 shrink-0"></i>
     <div>
       <p class="font-semibold">A mapping toggle here is not a global sync kill-switch.</p>
-      <p class="mt-0.5 text-gray-600 dark:text-gray-300">Per-role sync (and <code class="font-mono text-xs bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded">sync_enabled</code>) only controls this <strong>direct mapping</strong>. League / coach / sub / referee Discord roles are <strong>also</strong> recomputed and pushed automatically whenever a player’s membership changes — that path runs regardless of what’s set here.</p>
+      <p class="mt-0.5 text-gray-600 dark:text-gray-300">Per-role sync (and <code class="font-mono text-xs bg-black/5 dark:bg-white/10 px-1 py-0.5 rounded-sm">sync_enabled</code>) only controls this <strong>direct mapping</strong>. League / coach / sub / referee Discord roles are <strong>also</strong> recomputed and pushed automatically whenever a player’s membership changes — that path runs regardless of what’s set here.</p>
     </div>
   </div>
   {% endif %}
@@ -341,7 +341,7 @@
 
 {% block modals %}
 {# Role create/edit modal #}
-<div id="acRoleModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+<div id="acRoleModal" class="hidden fixed inset-0 z-70 flex items-center justify-center bg-black/50 p-4">
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md">
     <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
       <h3 id="acRoleModalTitle" class="font-semibold text-gray-900 dark:text-white">Create role</h3>
@@ -360,7 +360,7 @@
       </div>
       <div id="acRoleDiscordOpt" class="rounded-lg border border-gray-200 dark:border-gray-600 p-3 bg-gray-50 dark:bg-gray-700/40">
         <label class="flex items-start gap-2.5 cursor-pointer">
-          <input type="checkbox" id="acAlsoDiscord" class="mt-0.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+          <input type="checkbox" id="acAlsoDiscord" class="mt-0.5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
           <span class="text-sm text-gray-700 dark:text-gray-200">Also create a matching <strong>Discord role</strong> and link it
             <span class="block text-xs text-gray-400 mt-0.5">Makes a Discord role with the same name and maps it automatically. Leave unchecked for an app-only role (admin/waitlist style). Requires the bot to be online.</span>
           </span>
@@ -375,7 +375,7 @@
 </div>
 
 {# Discord user-preview modal #}
-<div id="acPreviewModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+<div id="acPreviewModal" class="hidden fixed inset-0 z-70 flex items-center justify-center bg-black/50 p-4">
   <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg">
     <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700">
       <h3 class="font-semibold text-gray-900 dark:text-white">Who will sync</h3>

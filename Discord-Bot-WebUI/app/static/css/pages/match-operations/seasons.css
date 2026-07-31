@@ -64,7 +64,7 @@
 .c-stat-card--solid .c-stat-card__value,
 .c-stat-card--solid .c-stat-card__label,
 .c-stat-card--solid .c-stat-card__icon {
-  color: var(--color-neutral-0, var(--color-white));
+  color: var(--color-neutral-0, var(--ecs-color-white));
 }
 
 .c-stat-card--solid .c-stat-card__label {
@@ -86,7 +86,7 @@
 /* Mobile adjustments for solid variant */
 @media (max-width: 767.98px) {
   .c-stat-card--solid .c-stat-card__value {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
   }
 
   .c-stat-card--solid .c-stat-card__icon {

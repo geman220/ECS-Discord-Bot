@@ -71,7 +71,7 @@
 .c-match-card,
 .match-card {
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-2xl);
+  border-radius: var(--ecs-radius-2xl);
   transition: all var(--duration-normal) var(--ease-smooth);
   position: relative;
   overflow: hidden;
@@ -81,7 +81,7 @@
 .c-match-card:hover,
 .match-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--ecs-shadow-lg);
   border-color: rgba(var(--color-primary-rgb), 0.3);
 }
 
@@ -137,7 +137,7 @@
 }
 
 .card-hover:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
   transform: translateY(-2px);
 }
 
@@ -165,7 +165,7 @@
 .status-section {
   background-color: rgba(var(--color-primary-rgb), 0.03);
   padding: var(--space-3);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   border: 1px solid rgba(var(--color-primary-rgb), 0.05);
 }
 
@@ -180,7 +180,7 @@
 .task-details-container {
   background-color: rgba(var(--color-primary-rgb), 0.02);
   border: 1px solid var(--color-border-muted);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   padding: var(--space-3);
   min-height: 60px;
 }
@@ -188,7 +188,7 @@
 .task-card {
   background-color: var(--color-bg-card);
   border: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   padding: var(--space-3);
   margin-bottom: var(--space-2);
   transition: all 0.2s ease;
@@ -212,7 +212,7 @@
 .no-task-card {
   background-color: rgba(var(--color-primary-rgb), 0.02);
   border: 1px dashed rgba(var(--color-primary-rgb), 0.15);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   padding: var(--space-2);
   margin-bottom: var(--space-1);
   color: var(--color-text-muted);
@@ -228,7 +228,7 @@
 
 .filter-search-card .input-group:focus-within {
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--ecs-shadow-sm);
 }
 
 /* ============================================================================
@@ -393,7 +393,7 @@
 
 @media (max-width: 575.98px) {
   .match-card {
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
   }
 
   .match-card:hover {
@@ -421,7 +421,7 @@
 }
 
 [data-style="dark"] .match-card:hover {
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--ecs-shadow-xl);
   border-color: rgba(var(--color-primary-rgb), 0.4);
 }
 
@@ -542,8 +542,8 @@
 
 /* Dropdown enhancements */
 .match-management-container .dropdown-menu {
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  border-radius: var(--ecs-radius-lg);
+  box-shadow: var(--ecs-shadow-lg);
   border: 1px solid var(--color-border-primary);
 }
 
@@ -572,18 +572,18 @@
 
 /* NOTE: Modal base styles in components/modals.css - these are page enhancements */
 .match-management-container .modal-content {
-  border-radius: var(--radius-xl);
+  border-radius: var(--ecs-radius-xl);
   border: 1px solid var(--color-border-primary);
 }
 
 .match-management-container .modal-header {
   border-bottom: 1px solid var(--color-border-primary);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-radius: var(--ecs-radius-xl) var(--ecs-radius-xl) 0 0;
 }
 
 .match-management-container .modal-footer {
   border-top: 1px solid var(--color-border-primary);
-  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  border-radius: 0 0 var(--ecs-radius-xl) var(--ecs-radius-xl);
 }
 
 [data-style="dark"] .match-management-container .modal-content {
@@ -601,7 +601,7 @@
    ============================================================================ */
 
 .match-management-container .alert {
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
   border-width: 1px;
 }
 
@@ -668,7 +668,7 @@
 
 .form-control,
 .form-select {
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   border: 1px solid var(--color-border-input);
   transition: all 0.2s ease;
 }

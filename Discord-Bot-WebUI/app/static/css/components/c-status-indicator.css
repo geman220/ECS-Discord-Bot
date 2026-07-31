@@ -128,7 +128,7 @@
 }
 
 .c-status-indicator__label {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600)));
 }
 

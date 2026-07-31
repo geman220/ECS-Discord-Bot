@@ -154,17 +154,17 @@
      Used for text, backgrounds, borders, and UI elements
      ======================================================================== */
   --color-neutral-0: #FFFFFF;
-  --color-neutral-50: #FAFAFA;
-  --color-neutral-100: #F4F4F5;
-  --color-neutral-200: #E4E4E7;
-  --color-neutral-300: #D4D4D8;
-  --color-neutral-400: #A1A1AA;
-  --color-neutral-500: #71717A;
-  --color-neutral-600: #52525B;
-  --color-neutral-700: #3F3F46;
-  --color-neutral-800: #27272A;
-  --color-neutral-900: #18181B;
-  --color-neutral-950: #09090B;
+  --ecs-color-neutral-50: #FAFAFA;
+  --ecs-color-neutral-100: #F4F4F5;
+  --ecs-color-neutral-200: #E4E4E7;
+  --ecs-color-neutral-300: #D4D4D8;
+  --ecs-color-neutral-400: #A1A1AA;
+  --ecs-color-neutral-500: #71717A;
+  --ecs-color-neutral-600: #52525B;
+  --ecs-color-neutral-700: #3F3F46;
+  --ecs-color-neutral-800: #27272A;
+  --ecs-color-neutral-900: #18181B;
+  --ecs-color-neutral-950: #09090B;
   /* ========================================================================
      9. SEMANTIC COLOR MAPPINGS
      Abstract color purpose for component use
@@ -183,14 +183,14 @@
   --color-text-on-primary: var(--color-neutral-0);
   --color-text-on-secondary: var(--color-neutral-0);
   --color-text-on-success: var(--color-neutral-0);
-  --color-text-on-warning: var(--color-neutral-900);
+  --color-text-on-warning: var(--ecs-color-neutral-900);
   --color-text-on-danger: var(--color-neutral-0);
   --color-text-on-info: var(--color-neutral-0);
-  --color-text-on-accent: var(--color-neutral-900);
+  --color-text-on-accent: var(--ecs-color-neutral-900);
   /* Background Colors */
   --color-bg-primary: var(--color-neutral-0);
-  --color-bg-secondary: var(--color-neutral-50);
-  --color-bg-tertiary: var(--color-neutral-100);
+  --color-bg-secondary: var(--ecs-color-neutral-50);
+  --color-bg-tertiary: var(--ecs-color-neutral-100);
   --color-bg-card: var(--color-neutral-0);
   --color-bg-elevated: var(--color-neutral-0);
   --color-bg-overlay: rgba(0, 0, 0, 0.5);
@@ -199,13 +199,13 @@
   --color-bg-dark-utility: #18181b;   /* Zinc-900 for .bg-dark in light mode */
   --color-bg-white-utility: #FFFFFF;  /* White for .bg-white in light mode */
   /* Border Colors */
-  --color-border-primary: var(--color-neutral-200);
-  --color-border-secondary: var(--color-neutral-300);
-  --color-border-input: var(--color-neutral-300);
+  --color-border-primary: var(--ecs-color-neutral-200);
+  --color-border-secondary: var(--ecs-color-neutral-300);
+  --color-border-input: var(--ecs-color-neutral-300);
   --color-border-focus: var(--color-primary-600);
   /* Interactive Colors */
-  --color-hover-bg: var(--color-neutral-100);
-  --color-active-bg: var(--color-neutral-200);
+  --color-hover-bg: var(--ecs-color-neutral-100);
+  --color-active-bg: var(--ecs-color-neutral-200);
   --color-focus-ring: var(--color-primary-500);
   /* Subtle Background Variants (for badges, alerts, etc.) */
   --color-primary-subtle: var(--color-primary-100);
@@ -216,24 +216,24 @@
   --color-info-subtle: var(--color-info-100);
   --color-accent-subtle: var(--color-primary-100);
   /* Additional Semantic Colors (used by various components) */
-  --color-bg-subtle: var(--color-neutral-100);
-  --color-bg-muted: var(--color-neutral-200);
+  --color-bg-subtle: var(--ecs-color-neutral-100);
+  --color-bg-muted: var(--ecs-color-neutral-200);
   --color-bg-body: var(--color-bg-primary);
   --color-bg-hover: var(--color-hover-bg);
   --color-bg-input: var(--color-neutral-0);
   --color-surface: var(--color-bg-card);
   --color-surface-raised: var(--color-bg-elevated);
   --color-surface-overlay: rgba(0, 0, 0, 0.5);
-  --color-white: #FFFFFF;
+  --ecs-color-white: #FFFFFF;
   /* Text Aliases */
   --color-text: var(--color-text-primary);
-  --color-text-tertiary: var(--color-neutral-400);
-  --color-text-disabled: var(--color-neutral-300);
+  --color-text-tertiary: var(--ecs-color-neutral-400);
+  --color-text-disabled: var(--ecs-color-neutral-300);
   /* Border Aliases */
   --color-border: var(--color-border-primary);
-  --color-border-subtle: var(--color-neutral-100);
-  --color-border-muted: var(--color-neutral-200);
-  --color-border-hover: var(--color-neutral-400);
+  --color-border-subtle: var(--ecs-color-neutral-100);
+  --color-border-muted: var(--ecs-color-neutral-200);
+  --color-border-hover: var(--ecs-color-neutral-400);
   /* Alpha Variants (for focus rings, overlays) */
   --color-primary-alpha: rgba(37, 99, 235, 0.2);
   --color-secondary-alpha: rgba(100, 116, 139, 0.2);
@@ -329,16 +329,16 @@
   --ecs-danger: var(--color-danger);
   --ecs-info: var(--color-info);
   --ecs-neutral-0: var(--color-neutral-0);
-  --ecs-neutral-5: var(--color-neutral-50);
-  --ecs-neutral-10: var(--color-neutral-100);
-  --ecs-neutral-20: var(--color-neutral-200);
-  --ecs-neutral-30: var(--color-neutral-300);
-  --ecs-neutral-40: var(--color-neutral-400);
-  --ecs-neutral-50: var(--color-neutral-500);
-  --ecs-neutral-60: var(--color-neutral-600);
-  --ecs-neutral-70: var(--color-neutral-700);
-  --ecs-neutral-80: var(--color-neutral-800);
-  --ecs-neutral-90: var(--color-neutral-900);
+  --ecs-neutral-5: var(--ecs-color-neutral-50);
+  --ecs-neutral-10: var(--ecs-color-neutral-100);
+  --ecs-neutral-20: var(--ecs-color-neutral-200);
+  --ecs-neutral-30: var(--ecs-color-neutral-300);
+  --ecs-neutral-40: var(--ecs-color-neutral-400);
+  --ecs-neutral-50: var(--ecs-color-neutral-500);
+  --ecs-neutral-60: var(--ecs-color-neutral-600);
+  --ecs-neutral-70: var(--ecs-color-neutral-700);
+  --ecs-neutral-80: var(--ecs-color-neutral-800);
+  --ecs-neutral-90: var(--ecs-color-neutral-900);
   --ecs-bg-body: var(--color-bg-secondary);
   --ecs-bg-card: var(--color-bg-card);
   --ecs-text-body: var(--color-text-secondary);
@@ -351,11 +351,11 @@
   --admin-warning: var(--color-warning, var(--color-warning-500, #f59e0b));
   --admin-danger: var(--color-danger, var(--color-danger-500, #ef4444));
   --admin-info: var(--color-info, #06b6d4);
-  --admin-light: var(--color-neutral-50, var(--color-secondary-50, #f8fafc));
-  --admin-dark: var(--color-neutral-900, #18181b);
-  --admin-border-radius: var(--radius-lg, 0.75rem);
-  --admin-box-shadow: var(--shadow-xs);
-  --admin-box-shadow-hover: var(--shadow-lg);
+  --admin-light: var(--ecs-color-neutral-50, var(--color-secondary-50, #f8fafc));
+  --admin-dark: var(--ecs-color-neutral-900, #18181b);
+  --admin-border-radius: var(--ecs-radius-lg, 0.75rem);
+  --admin-box-shadow: var(--ecs-shadow-xs);
+  --admin-box-shadow-hover: var(--ecs-shadow-lg);
 }
 
 /* ============================================================================
@@ -413,35 +413,35 @@
      ======================================================================== */
   --color-neutral-0: #09090b;
   /* Zinc-950 - Deepest dark */
-  --color-neutral-50: #18181b;
+  --ecs-color-neutral-50: #18181b;
   /* Zinc-900 - Primary dark bg */
-  --color-neutral-100: #27272a;
+  --ecs-color-neutral-100: #27272a;
   /* Zinc-800 - Elevated surfaces */
-  --color-neutral-200: #3f3f46;
+  --ecs-color-neutral-200: #3f3f46;
   /* Zinc-700 - Borders, dividers */
-  --color-neutral-300: #52525b;
+  --ecs-color-neutral-300: #52525b;
   /* Zinc-600 - Secondary borders */
-  --color-neutral-400: #a1a1aa;
+  --ecs-color-neutral-400: #a1a1aa;
   /* Zinc-400 - Muted text */
-  --color-neutral-500: #d4d4d8;
+  --ecs-color-neutral-500: #d4d4d8;
   /* Zinc-300 - Secondary text */
-  --color-neutral-600: #e4e4e7;
+  --ecs-color-neutral-600: #e4e4e7;
   /* Zinc-200 - Primary text */
-  --color-neutral-700: #f4f4f5;
+  --ecs-color-neutral-700: #f4f4f5;
   /* Zinc-100 - Emphasized text */
-  --color-neutral-800: #fafafa;
+  --ecs-color-neutral-800: #fafafa;
   /* Zinc-50 - Bright text */
-  --color-neutral-900: #FFFFFF;
+  --ecs-color-neutral-900: #FFFFFF;
   /* White - Headings */
-  --color-neutral-950: #FFFFFF;
+  --ecs-color-neutral-950: #FFFFFF;
   /* White - Maximum contrast */
   /* ========================================================================
      DARK MODE SEMANTIC MAPPINGS
      ======================================================================== */
   /* Text Colors */
-  --color-text-primary: var(--color-neutral-900);
-  --color-text-secondary: var(--color-neutral-500);
-  --color-text-muted: var(--color-neutral-400);
+  --color-text-primary: var(--ecs-color-neutral-900);
+  --color-text-secondary: var(--ecs-color-neutral-500);
+  --color-text-muted: var(--ecs-color-neutral-400);
   --color-text-inverse: var(--color-neutral-0);
   /* Text-on-Color (same as light mode - buttons/badges keep contrast) */
   --color-text-on-primary: #FFFFFF;
@@ -453,22 +453,22 @@
   --color-text-on-accent: #18181B;
   /* Background Colors */
   --color-bg-primary: var(--color-neutral-0);
-  --color-bg-secondary: var(--color-neutral-50);
-  --color-bg-tertiary: var(--color-neutral-100);
-  --color-bg-card: var(--color-neutral-50);
-  --color-bg-elevated: var(--color-neutral-100);
+  --color-bg-secondary: var(--ecs-color-neutral-50);
+  --color-bg-tertiary: var(--ecs-color-neutral-100);
+  --color-bg-card: var(--ecs-color-neutral-50);
+  --color-bg-elevated: var(--ecs-color-neutral-100);
   --color-bg-overlay: rgba(0, 0, 0, 0.7);
   /* Bootstrap utility overrides - FLIPPED for dark mode */
   --color-bg-light-utility: #27272a;  /* Zinc-800 for .bg-light in dark mode */
   --color-bg-dark-utility: #f4f4f5;   /* Zinc-100 for .bg-dark in dark mode */
   --color-bg-white-utility: #27272a;  /* Zinc-800 for .bg-white in dark mode */
   /* Border Colors */
-  --color-border-primary: var(--color-neutral-200);
-  --color-border-secondary: var(--color-neutral-300);
-  --color-border-input: var(--color-neutral-200);
+  --color-border-primary: var(--ecs-color-neutral-200);
+  --color-border-secondary: var(--ecs-color-neutral-300);
+  --color-border-input: var(--ecs-color-neutral-200);
   /* Interactive Colors */
-  --color-hover-bg: var(--color-neutral-100);
-  --color-active-bg: var(--color-neutral-200);
+  --color-hover-bg: var(--ecs-color-neutral-100);
+  --color-active-bg: var(--ecs-color-neutral-200);
   /* Subtle Backgrounds (darker in dark mode) */
   --color-primary-subtle: rgba(96, 165, 250, 0.15);
   --color-secondary-subtle: rgba(148, 163, 184, 0.15);
@@ -478,24 +478,24 @@
   --color-info-subtle: rgba(96, 165, 250, 0.15);
   --color-accent-subtle: rgba(251, 191, 36, 0.15);
   /* Additional Semantic Colors - Dark Mode */
-  --color-bg-subtle: var(--color-neutral-100);
-  --color-bg-muted: var(--color-neutral-200);
+  --color-bg-subtle: var(--ecs-color-neutral-100);
+  --color-bg-muted: var(--ecs-color-neutral-200);
   --color-bg-body: var(--color-bg-primary);
   --color-bg-hover: var(--color-hover-bg);
-  --color-bg-input: var(--color-neutral-100);
+  --color-bg-input: var(--ecs-color-neutral-100);
   --color-surface: var(--color-bg-card);
   --color-surface-raised: var(--color-bg-elevated);
   --color-surface-overlay: rgba(0, 0, 0, 0.7);
-  --color-white: #FFFFFF;
+  --ecs-color-white: #FFFFFF;
   /* Text Aliases - Dark Mode */
   --color-text: var(--color-text-primary);
-  --color-text-tertiary: var(--color-neutral-400);
-  --color-text-disabled: var(--color-neutral-500);
+  --color-text-tertiary: var(--ecs-color-neutral-400);
+  --color-text-disabled: var(--ecs-color-neutral-500);
   /* Border Aliases - Dark Mode */
   --color-border: var(--color-border-primary);
-  --color-border-subtle: var(--color-neutral-200);
-  --color-border-muted: var(--color-neutral-300);
-  --color-border-hover: var(--color-neutral-400);
+  --color-border-subtle: var(--ecs-color-neutral-200);
+  --color-border-muted: var(--ecs-color-neutral-300);
+  --color-border-hover: var(--ecs-color-neutral-400);
   /* Alpha Variants - Dark Mode (brighter for visibility) */
   --color-primary-alpha: rgba(96, 165, 250, 0.25);
   --color-secondary-alpha: rgba(148, 163, 184, 0.25);
@@ -565,8 +565,8 @@
   --ecs-info-light: #60a5fa;
   --ecs-dark-bg-rgb: 24, 24, 27;
   --ecs-dark-text-rgb: 250, 250, 250;
-  --admin-light: var(--color-neutral-900, #18181b);
-  --admin-dark: var(--color-neutral-50, #fafafa);
+  --admin-light: var(--ecs-color-neutral-900, #18181b);
+  --admin-dark: var(--ecs-color-neutral-50, #fafafa);
 }
 
 /* ============================================================================

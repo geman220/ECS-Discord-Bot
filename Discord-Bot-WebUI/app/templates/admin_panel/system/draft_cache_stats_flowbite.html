@@ -81,7 +81,7 @@
   <button id="draft-cache-stats-refresh-btn" type="button"
           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
   </button>
 {% endcall %}
@@ -133,7 +133,7 @@
       <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-trophy text-ecs-green" aria-hidden="true"></i>League Cache Warmth
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ leagues|length }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ leagues|length }}</span>
         </h2>
         <span class="hidden sm:inline-flex items-center gap-1 text-xs font-mono text-gray-500 dark:text-gray-400">
           <i class="ti ti-key text-xs" aria-hidden="true"></i>{{ ns.present }}/{{ ns.slots }} slots
@@ -166,7 +166,7 @@
                 <span class="inline-flex w-2 h-2 rounded-full shrink-0 {{ 'bg-green-500' if present == total and total > 0 else ('bg-amber-500' if present > 0 else 'bg-gray-400 dark:bg-gray-600') }}" aria-hidden="true"></span>
                 <span class="font-medium text-gray-900 dark:text-white truncate">{{ league }}</span>
                 {% if lcs.get('active_draft_enabled') and league in cache_stats.get('active_drafts', []) %}
-                <span class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400">
+                <span class="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-ecs-gold-500/15 text-ecs-gold-600 dark:text-ecs-gold-400">
                   <i class="ti ti-bolt text-[10px]" aria-hidden="true"></i>Live
                 </span>
                 {% endif %}
@@ -176,22 +176,22 @@
             <td class="px-3 py-3 text-center whitespace-nowrap">
               {% set pa = st.get('players_available', {}) %}
               {% set pd = st.get('players_drafted', {}) %}
-              <span class="inline-flex items-center justify-center w-5 h-5 rounded {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if pa.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}" title="players available">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if pa.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}" title="players available">
                 <i class="ti {{ 'ti-check' if pa.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
               </span>
-              <span class="inline-flex items-center justify-center w-5 h-5 rounded ml-1 {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if pd.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}" title="players drafted">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm ml-1 {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if pd.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}" title="players drafted">
                 <i class="ti {{ 'ti-check' if pd.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
               </span>
             </td>
             <td class="px-3 py-3 text-center">
               {% set an = st.get('analytics', {}) %}
-              <span class="inline-flex items-center justify-center w-5 h-5 rounded {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if an.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if an.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
                 <i class="ti {{ 'ti-check' if an.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
               </span>
             </td>
             <td class="px-3 py-3 text-center">
               {% set tm = st.get('teams', {}) %}
-              <span class="inline-flex items-center justify-center w-5 h-5 rounded {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if tm.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
+              <span class="inline-flex items-center justify-center w-5 h-5 rounded-sm {{ 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400' if tm.get('exists') else 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500' }}">
                 <i class="ti {{ 'ti-check' if tm.get('exists') else 'ti-minus' }} text-xs" aria-hidden="true"></i>
               </span>
             </td>
@@ -202,7 +202,7 @@
               <button type="button" data-league="{{ league }}"
                       class="js-warm-cache inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                              border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-xs font-semibold transition-colors
-                             focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                             focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-flame" aria-hidden="true"></i>Warm
               </button>
             </td>
@@ -238,7 +238,7 @@
           <button type="button" data-league="{{ league }}"
                   class="js-warm-cache mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg
                          border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                         focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-flame" aria-hidden="true"></i>Warm Cache
           </button>
         </div>
@@ -370,21 +370,21 @@
          class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
                 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
                 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Redis Management<i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
       </a>
       <a href="{{ url_for('admin_panel.cache_management') }}"
          class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
                 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
                 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Cache Management<i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
       </a>
       <a href="{{ url_for('admin_panel.system_monitoring') }}"
          class="flex items-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
                 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
                 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>System Monitoring<i class="ti ti-chevron-right ml-auto text-gray-400" aria-hidden="true"></i>
       </a>
     </div>
@@ -392,7 +392,7 @@
 </div>
 {% else %}
 <!-- Header -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-chart-bar mr-2"></i>Draft Cache Statistics
@@ -405,7 +405,7 @@
 
 <!-- Cache Overview Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
                 <i class="ti ti-database text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -414,7 +414,7 @@
             <span class="text-sm text-blue-700 dark:text-blue-300">Total Cache Keys</span>
         </div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
@@ -423,7 +423,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Cache Hit Rate</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-users text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -432,7 +432,7 @@
             <span class="text-sm text-cyan-700 dark:text-cyan-300">Player Data Keys</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
                 <i class="ti ti-shield text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -444,7 +444,7 @@
 </div>
 
 <!-- League Cache Status -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-trophy mr-2"></i>League Cache Status
@@ -506,7 +506,7 @@
 <!-- TTL Settings & Performance -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- TTL Settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-clock mr-2"></i>TTL Settings
@@ -537,7 +537,7 @@
     </div>
 
     <!-- Cache Performance -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-chart-line mr-2"></i>Cache Performance
@@ -567,7 +567,7 @@
 </div>
 
 <!-- Quick Links -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-link mr-2"></i>Related Tools

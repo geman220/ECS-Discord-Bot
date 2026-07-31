@@ -46,7 +46,7 @@
 }
 
 .c-mobile-hub .c-mobile-status__value {
-  font-size: var(--text-2xl);
+  font-size: var(--ecs-text-2xl);
   font-weight: var(--font-bold);
   margin-bottom: var(--space-1);
 }
@@ -69,7 +69,7 @@
 
 .c-mobile-hub .c-mobile-status__label {
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 .c-mobile-info {
@@ -79,7 +79,7 @@
 .c-mobile-api__note {
   margin-top: var(--space-3);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
 }
 
 @media (max-width: 991.98px) {

@@ -24,10 +24,10 @@
 {% if shell == 'console' %}
 {# Command header: primary job is clearing the unscheduled queue. Quick Schedule All is the one primary CTA. #}
 {% call page_header('Schedule Matches', subtitle='Match Operations' ~ (' · ' ~ current_season.name if current_season else '')) %}
-    <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
+    <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
         <i class="ti ti-plus" aria-hidden="true"></i><span class="hidden sm:inline">New Match</span>
     </button>
-    <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
+    <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
         <i class="ti ti-calendar-bolt" aria-hidden="true"></i>Quick Schedule All
     </button>
 {% endcall %}
@@ -87,7 +87,7 @@
                             <span class="hidden lg:inline-flex items-center gap-1.5 mr-2 text-xs font-mono text-amber-600 dark:text-amber-400 align-middle">
                                 <i class="ti ti-clock-off text-sm" aria-hidden="true"></i>no time
                             </span>
-                            <button type="button" class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="schedule-match" data-match-id="{{ match.id }}">
+                            <button type="button" class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="schedule-match" data-match-id="{{ match.id }}">
                                 <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule
                             </button>
                         </td>
@@ -110,7 +110,7 @@
           <h3 class="text-base font-semibold text-gray-900 dark:text-white">Queue Cleared</h3>
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Every match for the current season has a date and time. Create a new match to add one to the schedule.</p>
           <button type="button" data-action="create-new-match"
-                  class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-plus" aria-hidden="true"></i>Create New Match
           </button>
         </div>
@@ -131,10 +131,10 @@
                 </select>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-search" aria-hidden="true"></i>Filter
                 </button>
-                <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-x" aria-hidden="true"></i><span class="sr-only">Clear filter</span>
                 </a>
             </div>
@@ -144,10 +144,10 @@
         {% call section_card('Quick Actions', icon='ti-bolt') %}
         <div class="p-4 sm:p-5 space-y-3">
             <p class="text-sm text-gray-500 dark:text-gray-400">Use quick schedule to automatically assign dates and times to unscheduled matches based on default scheduling rules.</p>
-            <button type="button" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
+            <button type="button" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
                 <i class="ti ti-calendar-bolt" aria-hidden="true"></i>Quick Schedule All
             </button>
-            <button type="button" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
+            <button type="button" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
                 <i class="ti ti-plus" aria-hidden="true"></i>Create New Match
             </button>
         </div>
@@ -256,7 +256,7 @@
 
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Available Teams</p>
@@ -268,7 +268,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Leagues</p>
@@ -280,7 +280,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Unscheduled Matches</p>

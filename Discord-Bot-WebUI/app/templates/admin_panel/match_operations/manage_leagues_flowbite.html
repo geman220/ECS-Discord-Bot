@@ -32,7 +32,7 @@
 
   {% call page_header('League Management', subtitle='Match Operations · Configuration') %}
     <button type="button" data-action="create-league"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-plus" aria-hidden="true"></i>Create League
     </button>
   {% endcall %}
@@ -202,13 +202,13 @@
         </div>
 
         <div class="mt-auto px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center gap-2">
-          <button type="button" class="h-9 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league {{ league.name }}">
+          <button type="button" class="h-9 flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league {{ league.name }}">
             <i class="ti ti-eye" aria-hidden="true"></i>View
           </button>
-          <button type="button" class="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" aria-label="Edit league {{ league.name }}">
+          <button type="button" class="h-9 px-3 inline-flex items-center justify-center gap-1.5 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" aria-label="Edit league {{ league.name }}">
             <i class="ti ti-edit" aria-hidden="true"></i>Edit
           </button>
-          <button type="button" class="w-9 h-9 inline-flex items-center justify-center rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle status" aria-label="Toggle status for league {{ league.name }}">
+          <button type="button" class="w-9 h-9 inline-flex items-center justify-center rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle status" aria-label="Toggle status for league {{ league.name }}">
             <i class="ti ti-toggle-left" aria-hidden="true"></i>
           </button>
         </div>
@@ -223,7 +223,7 @@
 {% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_leagues or 0 }}</h3>
@@ -234,7 +234,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.active_leagues or 0 }}</h3>
@@ -245,7 +245,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.leagues_with_teams or 0 }}</h3>
@@ -256,7 +256,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.leagues_with_matches or 0 }}</h3>
@@ -270,7 +270,7 @@
 </div>
 
 <!-- Leagues Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-flag mr-2"></i>Leagues
@@ -308,13 +308,13 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
-                            <button type="button" class="p-1.5 text-cyan-600 bg-cyan-50 border border-cyan-200 rounded hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="view-league" data-league-id="{{ league.id }}" title="View">
+                            <button type="button" class="p-1.5 text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-sm hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800" data-action="view-league" data-league-id="{{ league.id }}" title="View">
                                 <i class="ti ti-eye"></i>
                             </button>
-                            <button type="button" class="p-1.5 text-yellow-600 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="edit-league" data-league-id="{{ league.id }}" title="Edit">
+                            <button type="button" class="p-1.5 text-yellow-600 bg-yellow-50 border border-yellow-200 rounded-sm hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800" data-action="edit-league" data-league-id="{{ league.id }}" title="Edit">
                                 <i class="ti ti-edit"></i>
                             </button>
-                            <button type="button" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle Status">
+                            <button type="button" class="p-1.5 text-green-600 bg-green-50 border border-green-200 rounded-sm hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle Status">
                                 <i class="ti ti-toggle-left"></i>
                             </button>
                         </div>

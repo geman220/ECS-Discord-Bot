@@ -40,38 +40,38 @@
 {% set pref = (u.preferred_league or '') | lower %}
 <div class="flex flex-wrap items-center gap-1">
   {% if u.waitlist_league %}
-  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-ecs-green/10 text-ecs-green ring-1 ring-ecs-green/30" title="Waitlist lane chosen by an admin (the decided lane, vs the player's own preference)"><i class="ti ti-list-check text-[11px]"></i>{{ lane_label(u.waitlist_league) }} lane</span>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-bold bg-ecs-green/10 text-ecs-green ring-1 ring-ecs-green/30" title="Waitlist lane chosen by an admin (the decided lane, vs the player's own preference)"><i class="ti ti-list-check text-[11px]"></i>{{ lane_label(u.waitlist_league) }} lane</span>
   {% endif %}
   {% if pref in ('not_sure', 'not sure', '') and not u.waitlist_league %}
-  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player hasn’t picked a league — an admin should help them choose"><i class="ti ti-help-circle text-[11px]"></i>Needs guidance</span>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 ring-1 ring-amber-300 dark:ring-amber-500/30" title="Player hasn’t picked a league — an admin should help them choose"><i class="ti ti-help-circle text-[11px]"></i>Needs guidance</span>
   {% elif 'classic' in pref %}
-  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" title="Player’s own preferred league">Prefers Classic</span>
+  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" title="Player’s own preferred league">Prefers Classic</span>
   {% elif 'premier' in pref %}
-  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" title="Player’s own preferred league">Prefers Premier</span>
+  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" title="Player’s own preferred league">Prefers Premier</span>
   {% elif 'ecs' in pref %}
-  <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" title="Player’s own preferred league">Prefers ECS FC</span>
+  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300" title="Player’s own preferred league">Prefers ECS FC</span>
   {% endif %}
   {% if u.player and u.player.interested_in_sub %}
-  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" title="Flagged as willing to substitute while they wait"><i class="ti ti-replace text-[11px]"></i>Open to subbing</span>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" title="Flagged as willing to substitute while they wait"><i class="ti ti-replace text-[11px]"></i>Open to subbing</span>
   {% endif %}
   {% if u.player and u.player.discord_id %}
-  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300" title="Discord account linked — can be DM’d and role-synced"><i class="ti ti-brand-discord text-[11px]"></i>Discord</span>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300" title="Discord account linked — can be DM’d and role-synced"><i class="ti ti-brand-discord text-[11px]"></i>Discord</span>
   {% else %}
-  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No Discord linked — can’t be DM’d or role-synced yet"><i class="ti ti-unlink text-[11px]"></i>No Discord</span>
+  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="No Discord linked — can’t be DM’d or role-synced yet"><i class="ti ti-unlink text-[11px]"></i>No Discord</span>
   {% endif %}
 </div>
 {% endmacro %}
 
 {% macro role_chip(name) %}
-<span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium {% if 'admin' in name|lower %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'waitlist' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'sub' in name|lower %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[11px] font-medium {% if 'admin' in name|lower %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'waitlist' in name|lower %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% elif 'sub' in name|lower %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
 {% endmacro %}
 
 {% macro status_pills(u) %}
-<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium {% if u.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif u.approval_status == 'denied' %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium {% if u.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% elif u.approval_status == 'denied' %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
   <i class="ti {{ 'ti-circle-check' if u.is_approved else ('ti-ban' if u.approval_status == 'denied' else 'ti-clock') }}"></i>{{ 'Approved' if u.is_approved else ('Denied' if u.approval_status == 'denied' else 'Pending') }}
 </span>
-{% if u.player and u.player.is_current_player %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" title="Active on the roster this season"><i class="ti ti-ball-football"></i>Playing</span>{% endif %}
-{% if not u.is_active %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"><i class="ti ti-ban"></i>Disabled</span>{% endif %}
+{% if u.player and u.player.is_current_player %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" title="Active on the roster this season"><i class="ti ti-ball-football"></i>Playing</span>{% endif %}
+{% if not u.is_active %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"><i class="ti ti-ban"></i>Disabled</span>{% endif %}
 {% endmacro %}
 
 {% macro hub_btn(uid) %}
@@ -81,7 +81,7 @@
 {% macro qp_pill(status) %}
 {% set c = {'pending':'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300','claimed':'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300','linked':'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300','expired':'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300'} %}
 {% set ic = {'pending':'ti-clock','claimed':'ti-circle-check','linked':'ti-link','expired':'ti-clock-x'} %}
-<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {{ c.get(status, 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300') }}"><i class="ti {{ ic.get(status, 'ti-point') }}"></i>{{ status }}</span>
+<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold {{ c.get(status, 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300') }}"><i class="ti {{ ic.get(status, 'ti-point') }}"></i>{{ status }}</span>
 {% endmacro %}
 
 <div class="space-y-5 sm:space-y-6">
@@ -130,7 +130,7 @@
      eventually follow without thinking. State the facts; the admin decides. #}
   {% if paid_unapproved_count %}
   <a href="{{ url_for('admin_panel.integrity_dashboard') }}"
-     class="flex items-start gap-3 p-3 sm:p-4 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400">
+     class="flex items-start gap-3 p-3 sm:p-4 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/15 transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-400">
     <i class="ti ti-alert-triangle text-lg text-amber-600 dark:text-amber-400 mt-0.5" aria-hidden="true"></i>
     <span class="min-w-0">
       <span class="block text-sm font-semibold text-amber-800 dark:text-amber-200">
@@ -159,7 +159,7 @@
     {% else %}
     {# clickable filter chip (count) — build the query string with & since tab= is already ? #}
     <a href="{{ url_for('admin_panel.members_worklist', tab=tab) }}{% if k.param %}&{{ k.param }}={{ k.val }}{% endif %}"
-       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-ecs-green/40 hover:shadow-sm transition">
+       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-ecs-green/40 hover:shadow-xs transition">
       <span class="font-mono text-base font-bold {{ tonemap.get(k.tone, tonemap['neutral']) }}">{{ k.value }}</span>
       <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ k.label }}</span>
     </a>
@@ -332,7 +332,7 @@
               <td class="px-4 py-2.5">
                 <div class="flex items-center gap-3">
                   {{ avatar(p, p.player_name, 'w-9 h-9') }}
-                  <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}{% if p.pre_approved_league %}<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Auto-approves into {{ p.pre_approved_league }} on claim"><i class="ti ti-user-check"></i>pre-approved</span>{% endif %}</div>
+                  <div class="min-w-0"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}{% if p.pre_approved_league %}<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Auto-approves into {{ p.pre_approved_league }} on claim"><i class="ti ti-user-check"></i>pre-approved</span>{% endif %}</div>
                     <div class="text-[11px] text-gray-500 dark:text-gray-400">{% if p.email %}{{ p.email }}{% elif p.phone_number %}{{ p.phone_number }}{% else %}no contact{% endif %}</div></div>
                 </div>
               </td>
@@ -381,7 +381,7 @@
         {% for p in profiles %}
         <div class="px-4 py-3.5 flex items-center gap-3">
           {{ avatar(p, p.player_name, 'w-10 h-10') }}
-          <div class="min-w-0 flex-1"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}{% if p.pre_approved_league %}<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Auto-approves into {{ p.pre_approved_league }} on claim"><i class="ti ti-user-check"></i>pre-approved</span>{% endif %}</div>
+          <div class="min-w-0 flex-1"><div class="font-medium text-gray-900 dark:text-white truncate flex items-center gap-2">{{ p.player_name }} {{ qp_pill(p.status) }}{% if p.pre_approved_league %}<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300" title="Auto-approves into {{ p.pre_approved_league }} on claim"><i class="ti ti-user-check"></i>pre-approved</span>{% endif %}</div>
             <div class="text-[11px] font-mono text-gray-500 dark:text-gray-400">{{ p.claim_code }}</div></div>
           <button type="button" data-action="qp-details" data-url="{{ url_for('admin_panel.member_qp_detail', profile_id=p.id) }}" data-name="{{ p.player_name }}" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200">Manage</button>
         </div>
@@ -408,7 +408,7 @@
                   <div class="text-[11px] text-gray-500 dark:text-gray-400">@{{ u.username }}</div></div></div></td>
               <td class="px-4 py-2.5">
                 <div class="flex flex-wrap gap-1">
-                  {% for s in summary %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium {% if s.status == 'active' %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ s.lane }} · {{ s.status }}</span>{% else %}<span class="text-gray-400 text-xs">—</span>{% endfor %}
+                  {% for s in summary %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-[11px] font-medium {% if s.status == 'active' %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ s.lane }} · {{ s.status }}</span>{% else %}<span class="text-gray-400 text-xs">—</span>{% endfor %}
                 </div>
               </td>
               <td class="px-4 py-2.5 hidden md:table-cell">{{ status_pills(u) }}</td>
@@ -714,10 +714,10 @@
     function qpNoteHtml(n) {
       return '<li class="p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60" data-note-id="' + esc(n.id) + '">'
         + '<div class="flex items-start gap-2">'
-        + '<p class="flex-1 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">' + esc(n.content) + '</p>'
+        + '<p class="flex-1 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap wrap-break-word">' + esc(n.content) + '</p>'
         + '<div class="flex items-center gap-0.5 shrink-0">'
-        + '<button type="button" data-action="qp-note-edit" data-note-id="' + esc(n.id) + '" title="Edit note" class="p-1 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><i class="ti ti-pencil text-xs"></i></button>'
-        + '<button type="button" data-action="qp-note-delete" data-note-id="' + esc(n.id) + '" title="Delete note" class="p-1 rounded text-gray-400 hover:text-red-600"><i class="ti ti-trash text-xs"></i></button>'
+        + '<button type="button" data-action="qp-note-edit" data-note-id="' + esc(n.id) + '" title="Edit note" class="p-1 rounded-sm text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"><i class="ti ti-pencil text-xs"></i></button>'
+        + '<button type="button" data-action="qp-note-delete" data-note-id="' + esc(n.id) + '" title="Delete note" class="p-1 rounded-sm text-gray-400 hover:text-red-600"><i class="ti ti-trash text-xs"></i></button>'
         + '</div></div>'
         + '<p class="text-[11px] text-gray-400 mt-0.5">' + esc(n.author) + ' · ' + esc(n.created_at) + (n.edited ? ' · edited' : '') + '</p></li>';
     }
@@ -735,13 +735,13 @@
       var rows = [['Email', p.email], ['Phone', p.phone_number], ['Jersey #', p.jersey_number],
                   ['Jersey size', p.jersey_size], ['Pronouns', p.pronouns]];
       var dl = '';
-      rows.forEach(function (kv) { if (kv[1] !== null && kv[1] !== undefined && kv[1] !== '') dl += '<div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">' + esc(kv[0]) + '</dt><dd class="text-gray-900 dark:text-white text-right break-words">' + esc(kv[1]) + '</dd></div>'; });
+      rows.forEach(function (kv) { if (kv[1] !== null && kv[1] !== undefined && kv[1] !== '') dl += '<div class="flex justify-between gap-3"><dt class="text-gray-500 dark:text-gray-400">' + esc(kv[0]) + '</dt><dd class="text-gray-900 dark:text-white text-right wrap-break-word">' + esc(kv[1]) + '</dd></div>'; });
       html += dl ? '<dl class="space-y-1.5">' + dl + '</dl>' : '<p class="text-sm text-gray-400">No contact or kit details captured.</p>';
 
       if (p.notes) {
         var iby = (p.created_by && (p.created_by.username || p.created_by.name)) || 'admin';
         var ion = p.created_at ? String(p.created_at).slice(0, 16).replace('T', ' ') : '';
-        html += '<div class="mt-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40"><p class="text-[10px] uppercase tracking-wide text-gray-400">Intake note</p><p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">' + esc(p.notes) + '</p><p class="text-[11px] text-gray-400 mt-1">by ' + esc(iby) + (ion ? ' · ' + esc(ion) : '') + '</p></div>';
+        html += '<div class="mt-3 p-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/40"><p class="text-[10px] uppercase tracking-wide text-gray-400">Intake note</p><p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap wrap-break-word">' + esc(p.notes) + '</p><p class="text-[11px] text-gray-400 mt-1">by ' + esc(iby) + (ion ? ' · ' + esc(ion) : '') + '</p></div>';
       }
 
       // Claimed / linked: the profile's data already merged into the Player, so edits here
@@ -761,7 +761,7 @@
         html += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
         html += '<p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Pre-approval <span class="normal-case text-gray-400">· auto-approves them the moment they claim</span></p>';
         if (p.pre_approved_league) {
-          html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
+          html += '<div class="flex items-center justify-between gap-3"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-user-check"></i>Pre-approved: ' + esc(p.pre_approved_league) + '</span>';
           html += '<button data-action="qp-preapprove" data-url="' + esc(preUrl) + '" data-league="" class="text-xs text-red-600 dark:text-red-400 hover:underline">Clear</button></div>';
         } else {
           // Built from APPROVE_PROGRAMS (registry-driven, injected below) rather than a

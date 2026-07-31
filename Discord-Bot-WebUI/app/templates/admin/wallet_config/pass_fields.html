@@ -39,12 +39,12 @@
 
     <!-- Info Alert -->
     <div class="flex p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800" role="alert">
-        <i class="ti ti-info-circle text-xl mr-3 flex-shrink-0"></i>
+        <i class="ti ti-info-circle text-xl mr-3 shrink-0"></i>
         <div>
             <strong>Apple Wallet Field Limits</strong>
             <p class="mt-1 mb-0">
                 Apple Wallet has specific field limits: <strong>1 primary</strong>, <strong>4 secondary</strong>, <strong>4 auxiliary</strong>, and <strong>3 header</strong> fields.
-                Use template variables like <code class="font-mono text-xs bg-blue-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{% raw %}{{member_name}}{% endraw %}</code> for dynamic content.
+                Use template variables like <code class="font-mono text-xs bg-blue-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">{% raw %}{{member_name}}{% endraw %}</code> for dynamic content.
             </p>
         </div>
     </div>
@@ -54,7 +54,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- Front Fields -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-credit-card text-ecs-green"></i>Front of Pass
@@ -66,7 +66,7 @@
                         <div class="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 {% if not field.is_visible %}opacity-50{% endif %}">
                             <div class="p-3">
                                 <div class="flex items-start gap-3">
-                                    <input type="checkbox" class="w-4 h-4 mt-2.5 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                    <input type="checkbox" class="w-4 h-4 mt-2.5 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                                            name="front_field_visible" value="{{ field.field_key }}"
                                            {% if field.is_visible %}checked{% endif %}>
                                     <div class="flex-1 min-w-0">
@@ -109,7 +109,7 @@
             </div>
 
             <!-- Back Fields -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-flip-horizontal text-ecs-green"></i>Back of Pass
@@ -121,7 +121,7 @@
                         <div class="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/50 {% if not field.is_visible %}opacity-50{% endif %}">
                             <div class="p-3">
                                 <div class="flex items-start gap-3">
-                                    <input type="checkbox" class="w-4 h-4 mt-2.5 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                                    <input type="checkbox" class="w-4 h-4 mt-2.5 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                                            name="back_field_visible" value="{{ field.field_key }}"
                                            {% if field.is_visible %}checked{% endif %}>
                                     <div class="flex-1 min-w-0">
@@ -155,7 +155,7 @@
         </div>
 
         <!-- Available Variables -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-variable text-ecs-green"></i>Available Template Variables
@@ -164,31 +164,31 @@
             <div class="p-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-3">
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{member_name}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{member_name}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Member's full name</small>
                     </div>
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{validity}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{validity}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Membership year/season</small>
                     </div>
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{team_name}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{team_name}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Player's team (Pub League)</small>
                     </div>
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{member_since}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{member_since}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Year joined</small>
                     </div>
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{subgroup}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{subgroup}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Supporter subgroup (ECS)</small>
                     </div>
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{barcode_data}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{barcode_data}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Unique barcode value</small>
                     </div>
                     <div>
-                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">{% raw %}{{serial_number}}{% endraw %}</code>
+                        <code class="font-mono text-sm bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">{% raw %}{{serial_number}}{% endraw %}</code>
                         <small class="block text-gray-500 dark:text-gray-400 mt-0.5">Unique pass ID</small>
                     </div>
                 </div>

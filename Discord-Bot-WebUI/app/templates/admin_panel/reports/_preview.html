@@ -68,7 +68,7 @@
     {%- elif w.resp == 'no' -%}{% set cls='bg-red-500' %}{% set h='h-1.5' %}{% set lbl='No' %}
     {%- else -%}{% set cls='bg-gray-300 dark:bg-gray-600' %}{% set h='h-1' %}{% set lbl='No reply' %}
     {%- endif -%}
-    <i class="w-1.5 {{ h }} {{ cls }} rounded-sm block" title="{{ w.date }} · {{ lbl }}"></i>
+    <i class="w-1.5 {{ h }} {{ cls }} rounded-xs block" title="{{ w.date }} · {{ lbl }}"></i>
     {% endfor %}
     {% if not shown %}<span class="text-xs text-gray-400">—</span>{% endif %}
 </span>
@@ -77,10 +77,10 @@
 {# League name → short colored chip. #}
 {% macro league_chip(name) %}
 {%- set n = (name or '') | lower -%}
-{%- if 'premier' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">Premier</span>
-{%- elif 'classic' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">Classic</span>
-{%- elif 'ecs' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">ECS FC</span>
-{%- else -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500">{{ name or '—' }}</span>{%- endif -%}
+{%- if 'premier' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">Premier</span>
+{%- elif 'classic' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-blue-500/10 text-blue-500">Classic</span>
+{%- elif 'ecs' in n -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-purple-500/10 text-purple-500">ECS FC</span>
+{%- else -%}<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-sm bg-gray-400/10 text-gray-500">{{ name or '—' }}</span>{%- endif -%}
 {% endmacro %}
 
 {# Season-to-season movement Sankey (summary counts + ribbon SVG + note). The
@@ -202,7 +202,7 @@
     {% for k in kpis %}
     {% set tile_tag = 'a' if k.url else 'div' %}
     <{{ tile_tag }} {% if k.url %}href="{{ k.url }}"{% endif %}
-        class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4 {% if k.url %}hover:border-ecs-green hover:shadow-sm transition cursor-pointer{% endif %}">
+        class="group rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4 {% if k.url %}hover:border-ecs-green hover:shadow-xs transition cursor-pointer{% endif %}">
         <div class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide flex items-center gap-1">
             <span class="truncate">{{ k.label }}</span>
             {% if k.url %}<i class="ti ti-arrow-up-right shrink-0 opacity-0 group-hover:opacity-100 text-[10px] text-ecs-green"></i>{% endif %}

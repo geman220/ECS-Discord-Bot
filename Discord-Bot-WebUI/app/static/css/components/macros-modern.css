@@ -399,7 +399,7 @@ body[data-style="dark"] {
 
 .c-event-entry__indicator--red {
   background: var(--macro-match-danger);
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-event-entry__select {

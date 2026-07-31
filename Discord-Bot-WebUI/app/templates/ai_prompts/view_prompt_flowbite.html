@@ -47,7 +47,7 @@
         <form method="POST" action="{{ url_for('ai_prompts.duplicate_prompt', prompt_id=prompt.id) }}" class="contents">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-copy" aria-hidden="true"></i> <span class="hidden sm:inline">Duplicate</span>
           </button>
         </form>
@@ -55,7 +55,7 @@
         <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}" class="contents">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-600 bg-white border border-amber-500 hover:bg-amber-50 dark:bg-gray-800 dark:text-amber-400 dark:border-amber-500/60 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-600 bg-white border border-amber-500 hover:bg-amber-50 dark:bg-gray-800 dark:text-amber-400 dark:border-amber-500/60 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500">
             <i class="ti ti-player-pause" aria-hidden="true"></i> <span class="hidden sm:inline">Deactivate</span>
           </button>
         </form>
@@ -63,7 +63,7 @@
         <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}" class="contents">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-green-600 bg-white border border-green-500 hover:bg-green-50 dark:bg-gray-800 dark:text-green-400 dark:border-green-500/60 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-green-600 bg-white border border-green-500 hover:bg-green-50 dark:bg-gray-800 dark:text-green-400 dark:border-green-500/60 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-green-500">
             <i class="ti ti-player-play" aria-hidden="true"></i> <span class="hidden sm:inline">Activate</span>
           </button>
         </form>
@@ -71,13 +71,13 @@
         <form method="POST" action="{{ url_for('ai_prompts.delete_prompt', prompt_id=prompt.id) }}" class="contents">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="button"
-                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-red-600 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 dark:bg-gray-800 dark:text-red-400 dark:border-gray-600 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-red-600 bg-white border border-gray-300 hover:bg-red-50 hover:border-red-300 dark:bg-gray-800 dark:text-red-400 dark:border-gray-600 dark:hover:bg-red-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500"
                   data-action="confirm-delete-prompt" aria-label="Delete prompt">
             <i class="ti ti-trash" aria-hidden="true"></i>
           </button>
         </form>
         <a href="{{ url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
           <i class="ti ti-edit" aria-hidden="true"></i> Edit
         </a>
       </div>
@@ -94,7 +94,7 @@
             </div>
             <div class="min-w-0">
               <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">AI Prompt Configuration</p>
-              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white break-words">{{ prompt.name }}</h1>
+              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white wrap-break-word">{{ prompt.name }}</h1>
               {% if prompt.description %}
               <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ prompt.description }}</p>
               {% endif %}
@@ -188,7 +188,7 @@
           <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Available Variables</p>
           <div class="flex flex-wrap gap-1.5">
             {% for var in ['home_team', 'away_team', 'venue', 'competition', 'opponent', 'match_date', 'is_home_game'] %}
-            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-ecs-green">{{ '{' ~ var ~ '}' }}</code>
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm text-ecs-green">{{ '{' ~ var ~ '}' }}</code>
             {% endfor %}
           </div>
         </div>
@@ -243,7 +243,7 @@
             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">Competition Filter</dt>
             <dd>
               {% if prompt.competition_filter %}
-              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-gray-900 dark:text-white">{{ prompt.competition_filter }}</code>
+              <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-sm text-gray-900 dark:text-white">{{ prompt.competition_filter }}</code>
               {% else %}
               <span class="text-sm text-gray-500 dark:text-gray-400">All competitions</span>
               {% endif %}
@@ -303,7 +303,7 @@
       <div class="p-4 sm:p-5">
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Run this prompt against a sample Sounders match and inspect the AI output.</p>
         <button type="button"
-                class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 data-action="test-prompt"
                 data-prompt-id="{{ prompt.id }}">
           <i class="ti ti-player-play" aria-hidden="true"></i> Run Test
@@ -361,7 +361,7 @@
       <dl class="divide-y divide-gray-100 dark:divide-gray-700/60">
         <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
           <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Version</dt>
-          <dd><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">v{{ prompt.version }}</span></dd>
+          <dd><span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-mono font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">v{{ prompt.version }}</span></dd>
         </div>
         <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
           <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competition</dt>
@@ -464,13 +464,13 @@
             </div>
             <div class="text-sm text-gray-500 dark:text-gray-400">
                 <span class="font-medium">Available Variables:</span>
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green ml-1">{home_team}</code>,
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green">{away_team}</code>,
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green">{venue}</code>,
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green">{competition}</code>,
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green">{opponent}</code>,
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green">{match_date}</code>,
-                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded text-ecs-green">{is_home_game}</code>
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green ml-1">{home_team}</code>,
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green">{away_team}</code>,
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green">{venue}</code>,
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green">{competition}</code>,
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green">{opponent}</code>,
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green">{match_date}</code>,
+                <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded-sm text-ecs-green">{is_home_game}</code>
             </div>
             {% endcall %}
 
@@ -567,7 +567,7 @@
             {% call card(title="Tone Template") %}
             {% if prompt.active_template %}
             <div class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
                     <i class="ti ti-brain text-blue-600 dark:text-blue-400"></i>
                 </div>
                 <div>

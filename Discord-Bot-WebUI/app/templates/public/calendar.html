@@ -16,7 +16,7 @@
 
 {# Subscribe / sync to your own calendar (like WordPress's export links) #}
 <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
-    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-sm flex flex-col sm:flex-row sm:items-center gap-3">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center gap-3">
         <div class="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200"><i class="ti ti-calendar-plus text-ecs-green"></i> Add this calendar to your phone or computer</div>
         <div class="flex flex-wrap gap-2">
             <a href="webcal://{{ request.host }}{{ url_for('public.calendar_ics') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-brand-apple"></i> Subscribe</a>
@@ -54,7 +54,7 @@
                   <div class="text-xs {{ 'font-bold text-ecs-green dark:text-ecs-blue-400' if day == grid.today else 'text-gray-400' }}">{{ day.day }}</div>
                   {% for e in grid.by_day.get(day, []) %}
                   {% set meta = type_meta.get(e.event_type, ('ti-calendar-event', '', 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200')) %}
-                  <div class="mt-1 rounded px-1 py-0.5 text-[10px] leading-tight truncate {{ meta[2] }}" title="{{ e.title }} · {{ e.start_datetime.strftime('%-I:%M %p') }}{% if e.location %} · {{ e.location }}{% endif %}">{{ e.start_datetime.strftime('%-I%p')|lower }} {{ e.title }}</div>
+                  <div class="mt-1 rounded-sm px-1 py-0.5 text-[10px] leading-tight truncate {{ meta[2] }}" title="{{ e.title }} · {{ e.start_datetime.strftime('%-I:%M %p') }}{% if e.location %} · {{ e.location }}{% endif %}">{{ e.start_datetime.strftime('%-I%p')|lower }} {{ e.title }}</div>
                   {% endfor %}
               </div>
               {% endfor %}
@@ -79,7 +79,7 @@
                 {% for e in events %}
                 {% set meta = type_meta.get(e.event_type, ('ti-calendar-event', e.event_type|capitalize, 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200')) %}
                 <li class="flex gap-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4">
-                    <div class="flex flex-col items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2 min-w-[3.5rem] text-center">
+                    <div class="flex flex-col items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2 min-w-14 text-center">
                         <span class="text-xs font-medium uppercase text-gray-400">{{ e.start_datetime.strftime('%a') }}</span>
                         <span class="text-xl font-bold text-gray-900 dark:text-white leading-none">{{ e.start_datetime.strftime('%-d') }}</span>
                         <span class="text-xs text-gray-400">{{ e.start_datetime.strftime('%b') }}</span>

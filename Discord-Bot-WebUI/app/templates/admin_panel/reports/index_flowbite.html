@@ -37,7 +37,7 @@
         {% for c in stat_cards %}
         {% set card_tag = 'a' if c.url else 'div' %}
         <{{ card_tag }} {% if c.url %}href="{{ c.url }}"{% endif %}
-            class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 {% if c.url %}hover:border-ecs-green hover:shadow-sm transition cursor-pointer{% endif %}">
+            class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 {% if c.url %}hover:border-ecs-green hover:shadow-xs transition cursor-pointer{% endif %}">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ c.label }}</span>
                 <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 {{ tone_icon.get(c.tone, tone_icon['primary']) }}">
@@ -162,7 +162,7 @@
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <i class="ti ti-arrows-up-down text-blue-500" aria-hidden="true"></i>
             <h2 class="font-semibold text-gray-900 dark:text-white">Player Movement</h2>
-            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_movers }} moved · {{ movement_total }} tracked</span>
         </div>
         <div class="p-4">
@@ -186,7 +186,7 @@
         <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <i class="ti ti-cards text-red-500" aria-hidden="true"></i>
             <h2 class="font-semibold text-gray-900 dark:text-white">Discipline</h2>
-            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_cards }} cards · {{ players_booked }} players</span>
         </div>
         <div class="p-4">
@@ -223,7 +223,7 @@
     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
         <i class="ti ti-users-group text-emerald-500" aria-hidden="true"></i>
         <h2 class="font-semibold text-gray-900 dark:text-white">Retention &amp; Churn</h2>
-            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-400/10 text-gray-500" title="Not affected by the season filter above">All-time</span>
         <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
             {{ seasons_tracked }} seasons · avg {{ avg_retention }}% retention
         </span>
@@ -280,7 +280,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for r in reports %}
         <a href="{{ r.url }}"
-           class="group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:shadow-md transition-all">
+           class="group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xs p-5 border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:shadow-md transition-all">
             <div class="flex items-center gap-3 mb-2">
                 <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green group-hover:bg-ecs-green group-hover:text-white transition-colors">
                     <i class="ti {{ r.icon }} text-lg"></i>

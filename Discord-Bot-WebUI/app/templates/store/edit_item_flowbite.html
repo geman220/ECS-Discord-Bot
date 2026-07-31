@@ -18,13 +18,13 @@
                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800
                   text-sm font-medium text-gray-700 dark:text-gray-300
                   hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Store Admin
         </a>
         <button type="submit" form="edit-item-form"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-device-floppy" aria-hidden="true"></i>Update Item
         </button>
     {% endcall %}
@@ -36,7 +36,7 @@
 
             {# Feature card: preview + status #}
             <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-                <div class="aspect-[4/3] bg-gray-50 dark:bg-gray-900/40 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
+                <div class="aspect-4/3 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-center border-b border-gray-200 dark:border-gray-700">
                     {% if item.image_url %}
                     <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-contain" referrerpolicy="no-referrer">
                     {% else %}
@@ -162,7 +162,7 @@
                 </div>
 
                 <div class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-3 py-3">
-                    <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="mt-0.5 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="mt-0.5 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                     <label for="is_active" class="text-sm font-medium text-gray-900 dark:text-gray-200">Item is active and available for ordering
                         <span class="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-0.5">Inactive items are hidden from the store front.</span>
                     </label>
@@ -226,13 +226,13 @@
                           border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800
                           text-sm font-medium text-gray-700 dark:text-gray-300
                           hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                          focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                          focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-x" aria-hidden="true"></i>Cancel
                 </a>
                 <button type="submit"
                         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
                                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                               focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                     <i class="ti ti-device-floppy" aria-hidden="true"></i>Update Item
                 </button>
             </div>
@@ -258,7 +258,7 @@
 
     <!-- Edit Form -->
     <div class="max-w-3xl mx-auto">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white">Item Details</h5>
             </div>
@@ -298,7 +298,7 @@
 
                     <div class="mb-6">
                         <div class="flex items-center">
-                            <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                             <label for="is_active" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Item is active and available for ordering</label>
                         </div>
                     </div>

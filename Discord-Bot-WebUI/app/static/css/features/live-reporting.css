@@ -30,7 +30,7 @@
 
 .live-reporting-match-details {
     background-color: var(--color-bg-secondary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     padding: var(--space-5);
     margin-bottom: var(--space-5);
     border: var(--border);
@@ -47,17 +47,17 @@
    ============================================================================ */
 
 .live-reporting-team-score {
-    font-size: var(--text-5xl);
+    font-size: var(--ecs-text-5xl);
     font-weight: var(--font-bold);
-    line-height: var(--leading-tight);
+    line-height: var(--ecs-leading-tight);
     color: var(--color-text-primary);
-    letter-spacing: var(--tracking-tight);
+    letter-spacing: var(--ecs-tracking-tight);
 }
 
 /* Responsive adjustment for smaller screens */
 @media (max-width: 767.98px) {
     .live-reporting-team-score {
-        font-size: var(--text-4xl);
+        font-size: var(--ecs-text-4xl);
     }
 }
 
@@ -67,19 +67,19 @@
    ============================================================================ */
 
 .live-reporting-timer {
-    font-size: var(--text-4xl);
+    font-size: var(--ecs-text-4xl);
     font-weight: var(--font-bold);
-    line-height: var(--leading-tight);
+    line-height: var(--ecs-leading-tight);
     color: var(--color-text-primary);
-    font-family: var(--font-mono);
-    letter-spacing: var(--tracking-wide);
+    font-family: var(--ecs-font-mono);
+    letter-spacing: var(--ecs-tracking-wide);
     text-align: center;
 }
 
 /* Responsive adjustment for mobile */
 @media (max-width: 767.98px) {
     .live-reporting-timer {
-        font-size: var(--text-3xl);
+        font-size: var(--ecs-text-3xl);
     }
 }
 
@@ -100,16 +100,16 @@
 .live-reporting-event-card {
     border-left-width: var(--border-width-4);
     border-left-style: solid;
-    border-left-color: var(--color-neutral-300);
+    border-left-color: var(--ecs-color-neutral-300);
     margin-bottom: var(--space-3);
     padding: var(--space-3);
     background-color: var(--color-bg-card);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     transition: all var(--duration-fast, 0.2s) var(--ease-smooth, ease);
 }
 
 .live-reporting-event-card:hover {
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--ecs-shadow-sm);
     transform: translateX(2px);
 }
 
@@ -135,13 +135,13 @@
 }
 
 .live-reporting-event-card--other {
-    border-left-color: var(--color-neutral-400);
+    border-left-color: var(--ecs-color-neutral-400);
 }
 
 /* Dark mode adjustments */
 [data-style="dark"] .live-reporting-event-card {
     background-color: var(--color-bg-card);
-    border-left-color: var(--color-neutral-400);
+    border-left-color: var(--ecs-color-neutral-400);
 }
 
 [data-style="dark"] .live-reporting-event-card--goal {
@@ -168,7 +168,7 @@
 .live-reporting-player-shift {
     padding: var(--space-3);
     margin-bottom: var(--space-2);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     border: var(--border);
     transition: all var(--duration-fast, 0.2s) var(--ease-smooth, ease);
 }
@@ -229,7 +229,7 @@
     background-color: var(--color-success-subtle);
     border: var(--border);
     border-color: var(--color-success-300);
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     padding: var(--space-4);
     margin-bottom: var(--space-5);
 }
@@ -237,7 +237,7 @@
 .live-reporting-report-complete h4 {
     color: var(--color-success-700);
     margin-bottom: var(--space-2);
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
     font-weight: var(--font-semibold);
 }
 
@@ -273,7 +273,7 @@
 
 .live-reporting-score-display {
     text-align: center;
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     background-color: var(--color-bg-secondary);
@@ -316,7 +316,7 @@
 }
 
 .live-reporting-reporters-list .list-group-item {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     padding: var(--space-2) var(--space-3);
 }
 
@@ -371,7 +371,7 @@
     resize: vertical;
     min-height: 120px;
     font-family: var(--font-body);
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
 }
 
 /* ============================================================================
@@ -408,12 +408,12 @@
     }
 
     .live-reporting-team-score {
-        font-size: var(--text-3xl);
+        font-size: var(--ecs-text-3xl);
         margin-bottom: var(--space-2);
     }
 
     .live-reporting-timer {
-        font-size: var(--text-2xl);
+        font-size: var(--ecs-text-2xl);
     }
 }
 
@@ -423,11 +423,11 @@
     }
 
     .live-reporting-team-score {
-        font-size: var(--text-2xl);
+        font-size: var(--ecs-text-2xl);
     }
 
     .live-reporting-timer {
-        font-size: var(--text-xl);
+        font-size: var(--ecs-text-xl);
     }
 
     .live-reporting-event-card {
@@ -453,7 +453,7 @@
 
 .live-reporting-card .card-header h5 {
     margin-bottom: 0;
-    font-size: var(--text-lg);
+    font-size: var(--ecs-text-lg);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
 }
@@ -474,7 +474,7 @@
    ============================================================================ */
 
 .live-reporting-team-name {
-    font-size: var(--text-2xl);
+    font-size: var(--ecs-text-2xl);
     font-weight: var(--font-semibold);
     color: var(--color-text-primary);
     margin-bottom: var(--space-2);
@@ -482,7 +482,7 @@
 
 @media (max-width: 767.98px) {
     .live-reporting-team-name {
-        font-size: var(--text-xl);
+        font-size: var(--ecs-text-xl);
     }
 }
 
@@ -499,7 +499,7 @@
 .live-reporting-input-group .form-control {
     text-align: center;
     font-weight: var(--font-semibold);
-    font-size: var(--text-lg);
+    font-size: var(--ecs-text-lg);
 }
 
 /* ============================================================================

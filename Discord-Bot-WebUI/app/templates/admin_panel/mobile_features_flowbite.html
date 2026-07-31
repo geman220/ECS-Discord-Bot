@@ -23,11 +23,11 @@
 
   {% call page_header('Mobile Features', subtitle='Mobile app management hub') %}
     <a href="{{ url_for('admin_panel.mobile_app_config') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-settings-cog text-base" aria-hidden="true"></i><span class="hidden sm:inline">App Config</span>
     </a>
     <a href="{{ url_for('admin_panel.push_notifications') }}"
-       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-send text-base" aria-hidden="true"></i>Send Notification
     </a>
   {% endcall %}
@@ -160,7 +160,7 @@
     </ul>
     <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700">
       <a href="{{ url_for('admin_panel.mobile_app_config') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-toggle-right text-base" aria-hidden="true"></i> Manage feature flags
       </a>
     </div>
@@ -173,7 +173,7 @@
         <i class="ti ti-rocket text-ecs-green" aria-hidden="true"></i> Version &amp; Update Control
       </h2>
       <a href="{{ url_for('admin_panel.mobile_app_config') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-settings-cog text-base" aria-hidden="true"></i><span class="hidden sm:inline">Edit builds</span>
       </a>
     </div>
@@ -293,7 +293,7 @@
     </ul>
     <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2">
       <a href="{{ url_for('admin_panel.push_notifications') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-send text-base" aria-hidden="true"></i> Send test push
       </a>
       <span class="text-xs text-gray-500 dark:text-gray-400">Verifies registration via <code class="font-mono">/notifications/test</code>.</span>
@@ -307,7 +307,7 @@
       <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
         <li>
           <a href="{{ url_for('admin_panel.push_notifications') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center shrink-0"><i class="ti ti-send text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Send Notification</span>
@@ -318,7 +318,7 @@
         </li>
         <li>
           <a href="{{ url_for('admin_panel.campaigns_list') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-broadcast text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Push Campaigns</span>
@@ -329,7 +329,7 @@
         </li>
         <li>
           <a href="{{ url_for('admin_panel.push_subscriptions') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-users text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Subscriptions</span>
@@ -341,7 +341,7 @@
         </li>
         <li>
           <a href="{{ url_for('admin_panel.push_history') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-history text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Notification History</span>
@@ -357,7 +357,7 @@
       <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
         <li>
           <a href="{{ url_for('admin_panel.mobile_users') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-device-mobile text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Mobile Users</span>
@@ -369,7 +369,7 @@
         </li>
         <li>
           <a href="{{ url_for('admin_panel.members_worklist') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-users-group text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">All Users</span>
@@ -380,7 +380,7 @@
         </li>
         <li>
           <a href="{{ url_for('admin_panel.mobile_analytics') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-chart-dots text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Usage Analytics</span>
@@ -391,7 +391,7 @@
         </li>
         <li>
           <a href="{{ url_for('admin_panel.mobile_error_analytics') }}"
-             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center gap-3 min-h-[44px] px-4 sm:px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 flex items-center justify-center shrink-0"><i class="ti ti-bug text-lg" aria-hidden="true"></i></span>
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-semibold text-gray-900 dark:text-white">Error Analytics</span>
@@ -419,8 +419,8 @@
     </div>
     <div class="p-4 sm:p-5 space-y-6">
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        All endpoints use base URL <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-900 dark:text-white">/api/v1</code>.
-        Most require JWT auth via <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono text-gray-900 dark:text-white">Authorization: Bearer &lt;token&gt;</code>.
+        All endpoints use base URL <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-sm text-xs font-mono text-gray-900 dark:text-white">/api/v1</code>.
+        Most require JWT auth via <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-sm text-xs font-mono text-gray-900 dark:text-white">Authorization: Bearer &lt;token&gt;</code>.
       </p>
 
       <!-- Section: App Config (No Auth) -->
@@ -498,7 +498,7 @@
           <span class="w-2 h-2 bg-red-500 rounded-full" aria-hidden="true"></span>
           <h3 class="text-xs font-bold uppercase tracking-wide text-gray-900 dark:text-white">Error Reporting &amp; Logging</h3>
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT + <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded font-mono text-gray-900 dark:text-white">X-API-Key</code> header.</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT + <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded-sm font-mono text-gray-900 dark:text-white">X-API-Key</code> header.</p>
         <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
           <table class="w-full text-sm text-left">
             <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
@@ -576,13 +576,13 @@
         </h3>
         <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">The admin dashboard will show real data once the Flutter app implements these:</p>
         <ul class="space-y-2.5 text-sm text-gray-600 dark:text-gray-400" role="list">
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Call <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">GET /api/v1/app_config</code> on app startup (before login) to check for forced updates and fetch feature toggles</span></li>
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Register FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">POST /notifications/register</code> after login (include platform + app_version)</span></li>
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Send <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">POST /telemetry/session</code> with event="start" on app open, event="end" on background/close</span></li>
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Batch screen views via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">POST /telemetry/screens</code> periodically or on session end</span></li>
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Track feature usage via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">POST /telemetry/feature-usage</code> when users interact with gated features</span></li>
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Report errors via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">POST /analytics/errors</code> (include <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">X-API-Key</code> header)</span></li>
-          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Deactivate FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono text-gray-900 dark:text-white">POST /notifications/unregister</code> on logout</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Call <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">GET /api/v1/app_config</code> on app startup (before login) to check for forced updates and fetch feature toggles</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Register FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">POST /notifications/register</code> after login (include platform + app_version)</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Send <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">POST /telemetry/session</code> with event="start" on app open, event="end" on background/close</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Batch screen views via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">POST /telemetry/screens</code> periodically or on session end</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Track feature usage via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">POST /telemetry/feature-usage</code> when users interact with gated features</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Report errors via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">POST /analytics/errors</code> (include <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">X-API-Key</code> header)</span></li>
+          <li class="flex items-start gap-2.5"><i class="ti ti-square text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" aria-hidden="true"></i><span>Deactivate FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm font-mono text-gray-900 dark:text-white">POST /notifications/unregister</code> on logout</span></li>
         </ul>
       </div>
     </div>
@@ -592,7 +592,7 @@
 {% else %}
 <!-- Stats Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-600 rounded-lg shadow p-5">
+    <div class="bg-blue-600 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.total_app_installs or 0 }}</h5>
@@ -603,7 +603,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-green-600 rounded-lg shadow p-5">
+    <div class="bg-green-600 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.mobile_users or 0 }}</h5>
@@ -614,7 +614,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-500 rounded-lg shadow p-5">
+    <div class="bg-yellow-500 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.push_subscriptions or 0 }}</h5>
@@ -625,7 +625,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-600 rounded-lg shadow p-5">
+    <div class="bg-cyan-600 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h5 class="text-2xl font-bold text-white">{{ stats.active_mobile_users or 0 }}</h5>
@@ -641,7 +641,7 @@
 <!-- Management Cards -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Mobile Users -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-users mr-2 text-blue-500"></i>Mobile Users
@@ -672,7 +672,7 @@
     </div>
 
     <!-- App Configuration -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-settings mr-2 text-green-500"></i>App Configuration
@@ -696,7 +696,7 @@
 <!-- Push Notifications & Analytics -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Push Notifications -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-bell mr-2 text-yellow-500"></i>Push Notifications
@@ -741,7 +741,7 @@
     </div>
 
     <!-- Mobile Analytics -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-chart-line mr-2 text-cyan-500"></i>Mobile Analytics
@@ -778,7 +778,7 @@
 
 <!-- Mobile Platform Status -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-device-mobile mr-2 text-blue-500"></i>Mobile Platform Status
@@ -810,7 +810,7 @@
         </div>
     </div>
     <div class="flex items-start p-4 text-blue-800 bg-blue-50 rounded-lg dark:bg-blue-900/30 dark:text-blue-300">
-        <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+        <i class="ti ti-info-circle shrink-0 mr-3 mt-0.5 text-lg"></i>
         <div>
             <h6 class="font-medium mb-1">Mobile App Status Information</h6>
             <p class="text-sm">
@@ -822,7 +822,7 @@
 </div>
 
 <!-- Flutter API Integration Reference -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-api mr-2 text-green-500"></i>Flutter API Integration Reference
@@ -831,8 +831,8 @@
     </div>
     <div class="p-5">
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            All endpoints use base URL <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">/api/v1</code>.
-            Most require JWT auth via <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">Authorization: Bearer &lt;token&gt;</code>.
+            All endpoints use base URL <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-sm text-xs">/api/v1</code>.
+            Most require JWT auth via <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded-sm text-xs">Authorization: Bearer &lt;token&gt;</code>.
         </p>
 
         <!-- Section: App Config (No Auth) -->
@@ -905,7 +905,7 @@
             <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center">
                 <span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>Error Reporting & Logging
             </h6>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT + <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded">X-API-Key</code> header.</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT + <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded-sm">X-API-Key</code> header.</p>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -982,13 +982,13 @@
             </h6>
             <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">The admin dashboard will show real data once the Flutter app implements these:</p>
             <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Call <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">GET /api/v1/app_config</code> on app startup (before login) to check for forced updates and fetch feature toggles</span></div>
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Register FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">POST /notifications/register</code> after login (include platform + app_version)</span></div>
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Send <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">POST /telemetry/session</code> with event="start" on app open, event="end" on background/close</span></div>
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Batch screen views via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">POST /telemetry/screens</code> periodically or on session end</span></div>
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Track feature usage via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">POST /telemetry/feature-usage</code> when users interact with gated features</span></div>
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Report errors via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">POST /analytics/errors</code> (include <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">X-API-Key</code> header)</span></div>
-                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Deactivate FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded">POST /notifications/unregister</code> on logout</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Call <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">GET /api/v1/app_config</code> on app startup (before login) to check for forced updates and fetch feature toggles</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Register FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">POST /notifications/register</code> after login (include platform + app_version)</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Send <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">POST /telemetry/session</code> with event="start" on app open, event="end" on background/close</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Batch screen views via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">POST /telemetry/screens</code> periodically or on session end</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Track feature usage via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">POST /telemetry/feature-usage</code> when users interact with gated features</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Report errors via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">POST /analytics/errors</code> (include <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">X-API-Key</code> header)</span></div>
+                <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5"></i><span>Deactivate FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded-sm">POST /notifications/unregister</code> on logout</span></div>
             </div>
         </div>
     </div>

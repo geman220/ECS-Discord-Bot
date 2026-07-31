@@ -41,12 +41,12 @@
 
 .c-admin-header__breadcrumb {
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   margin-bottom: var(--space-2, 8px);
 }
 
 .c-admin-header__title {
-  font-size: var(--text-2xl, 1.75rem);
+  font-size: var(--ecs-text-2xl, 1.75rem);
   font-weight: var(--font-semibold, 600);
   color: var(--color-text-heading, var(--color-secondary-600));
   margin: 0 0 var(--space-1, 4px) 0;
@@ -68,16 +68,16 @@
    ============================================================================ */
 
 .c-admin-card {
-  background: var(--color-bg-card, var(--color-white));
+  background: var(--color-bg-card, var(--ecs-color-white));
   border: 1px solid var(--color-border-translucent-medium);
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--ecs-radius-lg, 12px);
+  box-shadow: var(--ecs-shadow-sm);
   overflow: visible;
   transition: box-shadow var(--duration-normal, 200ms) ease;
 }
 
 .c-admin-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
 }
 
 .c-admin-card__header {
@@ -92,7 +92,7 @@
 
 .c-admin-card__title {
   margin: 0;
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: var(--font-semibold, 600);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
 }
@@ -160,7 +160,7 @@
 .c-player-row__name {
   font-weight: var(--font-semibold, 600);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
-  line-height: var(--leading-tight, 1.25);
+  line-height: var(--ecs-leading-tight, 1.25);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -168,8 +168,8 @@
 
 .c-player-row__meta {
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600)));
-  font-size: var(--text-sm, 0.875rem);
-  line-height: var(--leading-tight, 1.25);
+  font-size: var(--ecs-text-sm, 0.875rem);
+  line-height: var(--ecs-leading-tight, 1.25);
 }
 
 .c-player-row__actions {
@@ -184,7 +184,7 @@
   padding: var(--space-3, 12px) var(--space-4, 16px);
   vertical-align: middle;
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900)));
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 .c-player-row__cell--name {
@@ -211,8 +211,8 @@
   align-items: center;
   gap: var(--space-2, 8px);
   color: var(--color-text-secondary, var(--color-secondary-600, var(--color-secondary-600)));
-  font-size: var(--text-sm, 0.875rem);
-  line-height: var(--leading-tight, 1.25);
+  font-size: var(--ecs-text-sm, 0.875rem);
+  line-height: var(--ecs-leading-tight, 1.25);
 }
 
 .c-contact-info__icon {
@@ -271,9 +271,9 @@
 }
 
 .c-page-loader__text {
-  color: var(--color-text-primary, var(--color-white));
+  color: var(--color-text-primary, var(--ecs-color-white));
   margin-top: var(--space-4, 16px);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 @keyframes c-page-loader-spin {
@@ -364,9 +364,9 @@
     display: block;
     margin-bottom: var(--space-4, 16px);
     border: 1px solid var(--color-border-translucent-medium);
-    border-radius: var(--radius-lg, 12px);
-    background: var(--color-bg-card, var(--color-white));
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--ecs-radius-lg, 12px);
+    background: var(--color-bg-card, var(--ecs-color-white));
+    box-shadow: var(--ecs-shadow-sm);
   }
 
   .c-player-row--mobile-card:last-child {
@@ -417,6 +417,6 @@
 
   .c-admin-card {
     box-shadow: none;
-    border: 1px solid var(--color-neutral-950);
+    border: 1px solid var(--ecs-color-neutral-950);
   }
 }

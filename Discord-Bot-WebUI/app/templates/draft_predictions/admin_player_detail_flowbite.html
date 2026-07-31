@@ -62,7 +62,7 @@
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
             border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
             text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-            focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-arrow-left" aria-hidden="true"></i><span>{{ league_type }} board</span>
   </a>
 {% endcall %}
@@ -72,7 +72,7 @@
   <div class="px-4 sm:px-5 h-10 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/60 dark:bg-gray-900/30">
     <i class="ti ti-user-star text-ecs-green" aria-hidden="true"></i>
     <span class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">Draft prospect</span>
-    <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' }}">{{ league_type }}</span>
+    <span class="ml-auto inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' }}">{{ league_type }}</span>
   </div>
   <div class="grid grid-cols-1 lg:grid-cols-5">
     {# identity #}
@@ -88,12 +88,12 @@
         <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
         <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
           {% if player.favorite_position %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position|format_position }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ player.favorite_position|format_position }}</span>
           {% endif %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 font-mono"><i class="ti ti-users text-[11px]" aria-hidden="true"></i>{{ stats.count }} vote{{ '' if stats.count == 1 else 's' }}</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 font-mono"><i class="ti ti-users text-[11px]" aria-hidden="true"></i>{{ stats.count }} vote{{ '' if stats.count == 1 else 's' }}</span>
           {% set agree_tone = {'success':'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300','info':'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300','warning':'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300','neutral':'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'} %}
           {% if stats.count %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold {{ agree_tone[agree.tone] }}"><i class="ti {{ agree.icon }} text-[11px]" aria-hidden="true"></i>{{ agree.word }} agreement</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-semibold {{ agree_tone[agree.tone] }}"><i class="ti {{ agree.icon }} text-[11px]" aria-hidden="true"></i>{{ agree.word }} agreement</span>
           {% endif %}
         </div>
       </div>
@@ -143,7 +143,7 @@
     <div class="flex items-center gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
       <i class="ti ti-chart-histogram text-ecs-green" aria-hidden="true"></i>
       <h2 class="font-semibold text-gray-900 dark:text-white">Round consensus</h2>
-      <span class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.count }}</span>
+      <span class="ml-auto text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ stats.count }}</span>
     </div>
     <div class="p-4 space-y-2.5">
       {% for b in counts %}
@@ -151,9 +151,9 @@
       {% set is_modal = (b.round == ns.modal_round and b.n > 0) %}
       <div class="flex items-center gap-3">
         <span class="shrink-0 w-12 text-xs font-mono text-right {{ 'font-bold text-ecs-green' if is_modal else 'text-gray-500 dark:text-gray-400' }}">R{{ b.round }}</span>
-        <div class="flex-1 h-6 rounded bg-gray-100 dark:bg-gray-700/60 overflow-hidden relative">
+        <div class="flex-1 h-6 rounded-sm bg-gray-100 dark:bg-gray-700/60 overflow-hidden relative">
           {% if b.n %}
-          <div class="h-full rounded {{ 'bg-green-500/80 dark:bg-green-500/60' if b.round <= 5 else 'bg-blue-500/80 dark:bg-blue-500/60' if b.round <= 10 else 'bg-amber-500/80 dark:bg-amber-500/60' }}"
+          <div class="h-full rounded-sm {{ 'bg-green-500/80 dark:bg-green-500/60' if b.round <= 5 else 'bg-blue-500/80 dark:bg-blue-500/60' if b.round <= 10 else 'bg-amber-500/80 dark:bg-amber-500/60' }}"
                style="width: {{ pct if pct >= 8 else 8 }}%"></div>
           {% endif %}
         </div>
@@ -229,7 +229,7 @@
           </td>
           <td class="px-3 py-3 text-right">
             <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
-               class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                aria-label="View coach {{ coach.username }}">
               <i class="ti ti-user" aria-hidden="true"></i>
             </a>
@@ -262,10 +262,10 @@
 
 {% else %}
 <!-- Player Header -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-4">
-            <div class="flex-shrink-0 w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
+            <div class="shrink-0 w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
                 {% if player.profile_picture_url %}
                 <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-16 h-16 rounded-full object-cover">
                 {% else %}
@@ -276,9 +276,9 @@
                 <h4 class="text-xl font-bold text-gray-900 dark:text-white">{{ player.name }}</h4>
                 <div class="flex gap-2 mt-1">
                     {% if player.favorite_position %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position|format_position }}</span>
                     {% endif %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">{{ league_type }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }}">{{ league_type }}</span>
                 </div>
             </div>
         </div>
@@ -291,9 +291,9 @@
 
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-chart-bar text-xl text-blue-600 dark:text-blue-400"></i>
             </div>
             <div>
@@ -303,9 +303,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-arrow-up text-xl text-green-600 dark:text-green-400"></i>
             </div>
             <div>
@@ -315,9 +315,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-arrow-down text-xl text-yellow-600 dark:text-yellow-400"></i>
             </div>
             <div>
@@ -327,9 +327,9 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center">
-            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
+            <div class="shrink-0 w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mr-4">
                 <i class="ti ti-users text-xl text-purple-600 dark:text-purple-400"></i>
             </div>
             <div>
@@ -341,7 +341,7 @@
 </div>
 
 <!-- Coach Predictions Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-list mr-2 text-gray-400"></i>Coach Predictions
@@ -366,7 +366,7 @@
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td class="px-4 py-3">
                         <div class="flex items-center">
-                            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3">
+                            <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center mr-3">
                                 <span class="text-xs font-medium text-ecs-green">{{ coach.username[:2]|upper }}</span>
                             </div>
                             <div>
@@ -384,7 +384,7 @@
                     </td>
                     <td class="px-4 py-3">
                         {% if prediction.confidence_level %}
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300">{{ prediction.confidence_level }}/5</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300">{{ prediction.confidence_level }}/5</span>
                         {% else %}
                         <span class="text-gray-400">-</span>
                         {% endif %}
@@ -397,7 +397,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
-                           class="p-1.5 text-gray-600 bg-gray-50 border border-gray-200 rounded hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600">
+                           class="p-1.5 text-gray-600 bg-gray-50 border border-gray-200 rounded-sm hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600">
                             <i class="ti ti-user"></i>
                         </a>
                     </td>

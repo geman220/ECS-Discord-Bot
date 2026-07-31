@@ -537,20 +537,20 @@ export function showPlayerDetails(userId) {
 
                 detailsHtml += '<div>';
                 detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</div>';
-                detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Pending Approval</span></div>';
+                detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-sm">Pending Approval</span></div>';
                 detailsHtml += '</div>';
 
                 if (player && player.discord_id) {
                     detailsHtml += '<div>';
                     detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Discord ID</div>';
-                    detailsHtml += `<div class="text-sm"><code class="px-1 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded">${player.discord_id}</code></div>`;
+                    detailsHtml += `<div class="text-sm"><code class="px-1 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-sm">${player.discord_id}</code></div>`;
                     detailsHtml += '</div>';
                 }
 
                 detailsHtml += '<div>';
                 detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Current Roles</div>';
                 detailsHtml += '<div class="text-sm flex flex-wrap gap-1">';
-                detailsHtml += user.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">${role}</span>`).join('');
+                detailsHtml += user.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">${role}</span>`).join('');
                 detailsHtml += '</div>';
                 detailsHtml += '</div>';
 
@@ -595,27 +595,27 @@ export function showPlayerDetails(userId) {
                     if (user.approval_status === 'approved') {
                         detailsHtml += '<div>';
                         detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Player Status</div>';
-                        detailsHtml += `<div class="text-sm">${player.is_current_player ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>'}</div>`;
+                        detailsHtml += `<div class="text-sm">${player.is_current_player ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Active</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">Inactive</span>'}</div>`;
                         detailsHtml += '</div>';
 
                         if (player.is_coach) {
                             detailsHtml += '<div>';
                             detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Coach Status</div>';
-                            detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Coach</span></div>';
+                            detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded-sm">Coach</span></div>';
                             detailsHtml += '</div>';
                         }
 
                         if (player.is_sub) {
                             detailsHtml += '<div>';
                             detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Substitute Status</div>';
-                            detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 rounded">Substitute</span></div>';
+                            detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 rounded-sm">Substitute</span></div>';
                             detailsHtml += '</div>';
                         }
                     } else {
                         // For pending users, show that they're awaiting approval
                         detailsHtml += '<div>';
                         detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Player Status</div>';
-                        detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Awaiting Approval</span></div>';
+                        detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-sm">Awaiting Approval</span></div>';
                         detailsHtml += '</div>';
                     }
 

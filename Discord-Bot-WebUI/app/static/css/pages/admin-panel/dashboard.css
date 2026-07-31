@@ -106,7 +106,7 @@
   background: transparent;
   color: var(--color-text-primary);
   text-decoration: none;
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
   width: 100%;
   cursor: pointer;
   transition: var(--transition-base);
@@ -139,7 +139,7 @@
 
 .c-admin-dashboard-page .c-link-list__icon {
   flex-shrink: 0;
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   color: var(--color-text-secondary);
   transition: var(--transition-base);
 }
@@ -164,7 +164,7 @@
 }
 
 .c-admin-dashboard-page .c-link-list__arrow {
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   color: var(--color-text-muted);
   transition: var(--transition-base);
 }
@@ -188,7 +188,7 @@
   }
 
   .c-admin-dashboard-page .c-link-list__text {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
   }
 }
 
@@ -255,7 +255,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 .c-alert-inline--warning {
@@ -283,7 +283,7 @@
 
 .c-alert-inline__icon {
   flex-shrink: 0;
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
 }
 
 .c-alert-inline--warning .c-alert-inline__icon {
@@ -337,7 +337,7 @@
 /* Dashboard-specific card title icon styling */
 
 .c-dashboard-card__title-icon {
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   margin-right: var(--space-2);
 }
 

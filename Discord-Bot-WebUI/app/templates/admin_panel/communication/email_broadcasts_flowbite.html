@@ -26,7 +26,7 @@
 
 {% call page_header("Email Blasts", subtitle="One-time emails to a group of members — a division, a team, a role, or people you pick") %}
   <a href="{{ url_for('admin_panel.email_broadcast_compose') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-plus" aria-hidden="true"></i>New Email Blast
   </a>
 {% endcall %}
@@ -90,14 +90,14 @@
        class="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-900/40">
     <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" role="tab"
        aria-selected="{{ 'true' if not status_filter else 'false' }}"
-       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' if not status_filter else 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-xs' if not status_filter else 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
       <i class="ti ti-stack-2" aria-hidden="true"></i>All <span class="font-mono text-xs opacity-70">{{ status_counts.all }}</span>
     </a>
     {% set _seg = {'draft': 'ti-file-text', 'scheduled': 'ti-calendar-time', 'sending': 'ti-loader', 'sent': 'ti-circle-check', 'failed': 'ti-alert-octagon'} %}
     {% for s in ['draft', 'scheduled', 'sending', 'sent', 'failed'] %}
     <a href="{{ url_for('admin_panel.email_broadcasts_list', status=s) }}" role="tab"
        aria-selected="{{ 'true' if status_filter == s else 'false' }}"
-       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' if status_filter == s else 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
+       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {{ 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-xs' if status_filter == s else 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white' }}">
       <i class="ti {{ _seg[s] }}" aria-hidden="true"></i>{{ s|capitalize }} <span class="font-mono text-xs opacity-70">{{ status_counts.get(s, 0) }}</span>
     </a>
     {% endfor %}
@@ -123,7 +123,7 @@
         <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
           <td class="px-3 py-3 align-top">
             <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) }}"
-               class="font-semibold text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">{{ campaign.name }}</a>
+               class="font-semibold text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-green focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">{{ campaign.name }}</a>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ campaign.subject }}</p>
           </td>
           <td class="px-3 py-3 align-top hidden md:table-cell">
@@ -168,14 +168,14 @@
           <td class="px-3 py-3 align-top text-right">
             <div class="flex items-center justify-end gap-1">
               <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) }}"
-                 class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                 class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                  aria-label="View campaign">
                 <i class="ti ti-eye" aria-hidden="true"></i>
               </a>
               <button type="button"
                       data-action="email-duplicate-campaign"
                       data-campaign-id="{{ campaign.id }}"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       aria-label="Duplicate campaign">
                 <i class="ti ti-copy" aria-hidden="true"></i>
               </button>
@@ -183,7 +183,7 @@
               <button type="button"
                       data-action="email-delete-campaign"
                       data-campaign-id="{{ campaign.id }}"
-                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                       aria-label="Delete campaign">
                 <i class="ti ti-trash" aria-hidden="true"></i>
               </button>
@@ -201,7 +201,7 @@
       {% set _pct = ((campaign.sent_count / campaign.total_recipients) * 100)|round(0, 'floor')|int if campaign.total_recipients and campaign.total_recipients > 0 else 0 %}
       <div class="px-4 py-3.5">
         <div class="flex items-start justify-between gap-2">
-          <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) }}" class="min-w-0 flex-1 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+          <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) }}" class="min-w-0 flex-1 focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
             <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ campaign.name }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ campaign.subject }}</p>
           </a>
@@ -239,7 +239,7 @@
           <button type="button"
                   data-action="email-duplicate-campaign"
                   data-campaign-id="{{ campaign.id }}"
-                  class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   aria-label="Duplicate campaign">
             <i class="ti ti-copy" aria-hidden="true"></i>
           </button>
@@ -247,7 +247,7 @@
           <button type="button"
                   data-action="email-delete-campaign"
                   data-campaign-id="{{ campaign.id }}"
-                  class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   aria-label="Delete campaign">
             <i class="ti ti-trash" aria-hidden="true"></i>
           </button>

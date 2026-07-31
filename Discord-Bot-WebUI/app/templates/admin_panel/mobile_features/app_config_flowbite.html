@@ -37,11 +37,11 @@
 
 {% call(slot) page_header("Mobile App Control", subtitle="GET /api/v1/app_config · feature toggles, version gates & rollout") %}
 <a href="{{ url_for('admin_panel.export_feature_config') }}"
-   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-ecs-green dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-ecs-green dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-download text-base" aria-hidden="true"></i>Export Config
 </a>
 <button type="button" id="emergency-kill-switch"
-        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-alert-triangle text-base" aria-hidden="true"></i>Kill Switch
 </button>
 {% endcall %}
@@ -132,7 +132,7 @@
                 <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i>Core
                 </h3>
-                {% if core_list %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">{{ core_on }}/{{ core_list|length }} on</span>{% endif %}
+                {% if core_list %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">{{ core_on }}/{{ core_list|length }} on</span>{% endif %}
             </div>
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% if core_list %}
@@ -141,14 +141,14 @@
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <h6 class="font-semibold text-sm text-gray-900 dark:text-white">{{ f.label }}</h6>
-                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15' if f.enabled else 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' }}">{{ 'ON' if f.enabled else 'OFF' }}</span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-sm {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15' if f.enabled else 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' }}">{{ 'ON' if f.enabled else 'OFF' }}</span>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>
                         <code class="text-[10px] font-mono text-gray-400 dark:text-gray-500">{{ f.key }}</code>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer shrink-0">
                         <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                     </label>
                 </div>
                 {% endfor %}
@@ -166,7 +166,7 @@
                 <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-shield-lock text-ecs-green" aria-hidden="true"></i>Privacy &amp; Data
                 </h3>
-                {% if priv_list %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">{{ priv_on }}/{{ priv_list|length }} on</span>{% endif %}
+                {% if priv_list %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">{{ priv_on }}/{{ priv_list|length }} on</span>{% endif %}
             </div>
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
                 {% if priv_list %}
@@ -175,14 +175,14 @@
                     <div class="min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <h6 class="font-semibold text-sm text-gray-900 dark:text-white">{{ f.label }}</h6>
-                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15' if f.enabled else 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' }}">{{ 'ON' if f.enabled else 'OFF' }}</span>
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded-sm {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15' if f.enabled else 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' }}">{{ 'ON' if f.enabled else 'OFF' }}</span>
                         </div>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>
                         <code class="text-[10px] font-mono text-gray-400 dark:text-gray-500">{{ f.key }}</code>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer shrink-0">
                         <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                     </label>
                 </div>
                 {% endfor %}
@@ -204,7 +204,7 @@
             </h3>
             <span class="text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-2">
                 <span class="hidden sm:inline">Beta — may be unstable</span>
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">{{ exp_on }}/{{ exp_list|length }} on</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300">{{ exp_on }}/{{ exp_list|length }} on</span>
             </span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 p-4 sm:p-5">
@@ -217,7 +217,7 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
                     <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-amber-500"></div>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-amber-500"></div>
                 </label>
             </div>
             {% endfor %}
@@ -233,7 +233,7 @@
         <div class="xl:col-span-2 space-y-5 sm:space-y-6">
             {% call section_card("App Version & Update Gate", icon="ti-device-mobile-up") %}
             <div class="px-4 sm:px-5 pt-4 text-sm text-gray-500 dark:text-gray-400">
-                Controls what the mobile app sees at <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">GET /api/v1/app_config</code>
+                Controls what the mobile app sees at <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm">GET /api/v1/app_config</code>
             </div>
             <div class="p-4 sm:p-5 space-y-5" id="app-version-form">
                 {% for s in settings %}
@@ -246,7 +246,7 @@
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input"
                                {{ 'checked' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else '' }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                         <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
                             {{ 'Enabled' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else 'Disabled' }}
                         </span>
@@ -272,7 +272,7 @@
 
                 <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button type="button" id="save-app-config"
-                            class="inline-flex items-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                            class="inline-flex items-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                         <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Configuration
                     </button>
                 </div>
@@ -285,7 +285,7 @@
                     <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-device-analytics text-ecs-green" aria-hidden="true"></i>Device Version Distribution
                     </h3>
-                    {% if version_dist %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_devices }} devices</span>{% endif %}
+                    {% if version_dist %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_devices }} devices</span>{% endif %}
                 </div>
                 {% if version_dist %}
                 <div class="overflow-x-auto">
@@ -396,7 +396,7 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                 </label>
             </div>
             {% endfor %}
@@ -413,7 +413,7 @@
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
                 </label>
             </div>
             {% endfor %}
@@ -440,7 +440,7 @@
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-yellow-500"></div>
                     </label>
                 </div>
                 {% endfor %}
@@ -450,7 +450,7 @@
     {% endif %}
 
     <!-- Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mt-6">
         <div class="p-5">
             <div class="flex flex-col sm:flex-row justify-between gap-4">
                 <button type="button" id="emergency-kill-switch"
@@ -469,13 +469,13 @@
 <!-- Tab 2: Version & Updates -->
 <div id="version-panel" class="hidden" role="tabpanel" aria-labelledby="version-tab">
     <div class="max-w-3xl">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                     <i class="ti ti-device-mobile-up mr-2"></i>App Version & Update Settings
                 </h5>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Controls what the mobile app sees at <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">GET /api/v1/app_config</code>
+                    Controls what the mobile app sees at <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">GET /api/v1/app_config</code>
                 </p>
             </div>
             <div class="p-5 space-y-6" id="app-version-form">
@@ -488,7 +488,7 @@
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input"
                                {{ 'checked' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else '' }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                         <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
                             {{ 'Enabled' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else 'Disabled' }}
                         </span>
@@ -522,7 +522,7 @@
         </div>
 
         <!-- Quick Reference -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mt-6">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700">
                 <h6 class="font-semibold text-gray-900 dark:text-white"><i class="ti ti-info-circle mr-1"></i> Quick Reference</h6>
             </div>
@@ -534,7 +534,7 @@
         </div>
 
         <!-- Device Version Distribution -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mt-6">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700">
                 <h6 class="font-semibold text-gray-900 dark:text-white"><i class="ti ti-device-analytics mr-1"></i> Device Version Distribution</h6>
             </div>

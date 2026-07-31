@@ -217,13 +217,13 @@ function renderAssignments(container, assignments, playerId) {
             <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 c-assignment-item" data-assignment-id="${a.id}">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-sm font-medium text-gray-900 dark:text-white">${a.home_team_name} vs ${a.away_team_name}</span>
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">${formattedDate}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">${formattedDate}</span>
                 </div>
                 <div class="flex justify-between items-center">
                     <span class="text-xs text-gray-500 dark:text-gray-400">
                         <i class="ti ti-users mr-1"></i> ${a.team_name}
                     </span>
-                    <button class="p-1.5 text-xs text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white dark:text-red-400 dark:border-red-400"
+                    <button class="p-1.5 text-xs text-red-600 border border-red-600 rounded-sm hover:bg-red-600 hover:text-white dark:text-red-400 dark:border-red-400"
                             data-action="remove-assignment"
                             data-assignment-id="${a.id}"
                             title="Remove assignment">

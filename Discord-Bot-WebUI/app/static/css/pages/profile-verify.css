@@ -28,7 +28,7 @@
     --profile-info: var(--color-info-500);
 
     /* Pitch Neutrals */
-    --profile-surface: var(--color-white);
+    --profile-surface: var(--ecs-color-white);
     --profile-surface-alt: var(--color-secondary-50);
     --profile-surface-dark: var(--color-secondary-900, var(--color-secondary-900));
     --profile-border-color: var(--color-border);
@@ -38,7 +38,7 @@
     --profile-text-primary: var(--color-secondary-900, var(--color-secondary-900));
     --profile-text-secondary: var(--color-secondary-600);
     --profile-text-muted: var(--color-secondary-400);
-    --profile-text-inverse: var(--color-white);
+    --profile-text-inverse: var(--ecs-color-white);
 
     /* Spacing */
     --profile-space-xs: 0.5rem;

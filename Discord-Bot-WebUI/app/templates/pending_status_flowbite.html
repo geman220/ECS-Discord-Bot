@@ -25,7 +25,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
 
     <!-- Gate 1: League membership (admin approval) -->
-    <div class="p-5 bg-white border rounded-xl shadow-sm dark:bg-gray-800
+    <div class="p-5 bg-white border rounded-xl shadow-xs dark:bg-gray-800
                 {{ 'border-green-200 dark:border-green-800' if is_approved else 'border-amber-200 dark:border-amber-800' }}">
       <div class="flex items-center gap-3 mb-2">
         <span class="flex items-center justify-center w-9 h-9 rounded-full
@@ -55,7 +55,7 @@
     </div>
 
     <!-- Gate 2: Season pass (paid / active) -->
-    <div class="p-5 bg-white border rounded-xl shadow-sm dark:bg-gray-800
+    <div class="p-5 bg-white border rounded-xl shadow-xs dark:bg-gray-800
                 {{ 'border-green-200 dark:border-green-800' if is_paid else 'border-amber-200 dark:border-amber-800' }}">
       <div class="flex items-center gap-3 mb-2">
         <span class="flex items-center justify-center w-9 h-9 rounded-full
@@ -99,7 +99,7 @@
       </div>
       {% if not is_paid %}
       <a href="{{ shop_url }}" target="_blank" rel="noopener"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-ticket" aria-hidden="true"></i>Buy a season pass
       </a>
       {% endif %}
@@ -108,9 +108,9 @@
   {% endif %}
 
   <!-- Profile summary -->
-  <div class="p-5 mb-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:bg-gray-800 dark:border-gray-700">
+  <div class="p-5 mb-6 bg-white border border-gray-200 rounded-xl shadow-xs dark:bg-gray-800 dark:border-gray-700">
     <div class="flex items-start gap-4">
-      <div class="flex-shrink-0 w-14 h-14 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden">
+      <div class="shrink-0 w-14 h-14 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-semibold overflow-hidden">
         {% if player and player.profile_picture_url %}
         <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-14 h-14 rounded-full object-cover">
         {% elif player and player.name %}
@@ -123,13 +123,13 @@
         <p class="font-semibold text-gray-900 dark:text-white truncate">{{ player.name if player else safe_current_user.username }}</p>
         <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ safe_current_user.email }}</p>
         {% if player and player.preferred_league is defined and safe_current_user.preferred_league %}
-        <span class="inline-flex items-center mt-2 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+        <span class="inline-flex items-center mt-2 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
           {{ safe_current_user.preferred_league.replace('_', ' ').title() }}
         </span>
         {% endif %}
       </div>
       <a href="{{ url_for('main.my_profile') }}" aria-label="Review profile"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green/40 hover:bg-ecs-green/10 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green/40 hover:bg-ecs-green/10 rounded-lg whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-edit" aria-hidden="true"></i><span class="hidden sm:inline">Review profile</span>
       </a>
     </div>
@@ -137,7 +137,7 @@
 
   <!-- Wallet pass (only when active) -->
   {% if is_paid and player %}
-  <div class="p-5 mb-6 bg-white border border-gray-200 rounded-xl shadow-sm dark:bg-gray-800 dark:border-gray-700">
+  <div class="p-5 mb-6 bg-white border border-gray-200 rounded-xl shadow-xs dark:bg-gray-800 dark:border-gray-700">
     <div class="flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
         <span class="flex items-center justify-center w-9 h-9 rounded-full bg-ecs-green/10 text-ecs-green">
@@ -149,7 +149,7 @@
         </div>
       </div>
       <a href="{{ url_for('wallet.get_wallet_pass', user_id=safe_current_user.id) }}"
-         class="inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green/40 hover:bg-ecs-green/10 rounded-lg whitespace-nowrap transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center gap-1.5 min-h-[44px] px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green/40 hover:bg-ecs-green/10 rounded-lg whitespace-nowrap transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-download" aria-hidden="true"></i>Get pass
       </a>
     </div>

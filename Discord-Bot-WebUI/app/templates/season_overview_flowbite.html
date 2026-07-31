@@ -35,12 +35,12 @@
     <div class="mb-6 inline-flex w-full sm:w-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 p-1 gap-1"
          id="division-tabs" role="tablist" aria-label="Division">
         <button type="button"
-                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-tab="premier">
             <i class="ti ti-trophy mr-1.5" aria-hidden="true"></i>Premier
         </button>
         <button type="button"
-                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-tab="classic">
             <i class="ti ti-ball-football mr-1.5" aria-hidden="true"></i>Classic
         </button>
@@ -48,13 +48,13 @@
            the division tabs stay grouped together. #}
         {% for d in extra_divisions or [] %}
         <button type="button"
-                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-tab="division-{{ d.key }}">
             <i class="ti {{ d.icon }} mr-1.5" aria-hidden="true"></i>{{ d.name }}
         </button>
         {% endfor %}
         <button type="button"
-                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                class="division-tab flex-1 sm:flex-none inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-tab="all-stats">
             <i class="ti ti-chart-bar mr-1.5" aria-hidden="true"></i>Leaderboards
         </button>
@@ -171,7 +171,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {% for s in standings[:3] %}
                 {% set m = medals[loop.index0] %}
-                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 {% if loop.first %}ring-2 {{ m.ring }} bg-ecs-gold-50 dark:bg-ecs-gold-500/5{% endif %}">
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 p-4 {% if loop.first %}ring-2 {{ m.ring-3 }} bg-ecs-gold-50 dark:bg-ecs-gold-500/5{% endif %}">
                     <div class="flex items-center justify-between gap-2">
                         <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide {{ m.cls }}">
                             <i class="ti {{ m.i }}" aria-hidden="true"></i> <span class="font-mono">#{{ loop.index }}</span>
@@ -443,7 +443,7 @@
         <!-- Premier Division Tab -->
         <div class="division-pane" id="premier">
             <!-- Premier Standings -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold text-gray-900 dark:text-white">Premier Division Standings</h2>
                 </div>
@@ -498,7 +498,7 @@
             <!-- Premier Stats Cards Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Top Scorers -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-award text-yellow-500"></i> Golden Boot
@@ -544,7 +544,7 @@
                 </div>
 
                 <!-- Top Assisters -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-award text-gray-400"></i> Silver Boot
@@ -593,7 +593,7 @@
             <!-- Premier Disciplinary Cards Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Yellow Cards -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-cards text-yellow-500"></i> Yellow Cards
@@ -639,7 +639,7 @@
                 </div>
 
                 <!-- Red Cards -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-cards text-red-500"></i> Red Cards
@@ -689,7 +689,7 @@
         <!-- Classic Division Tab -->
         <div class="division-pane hidden" id="classic">
             <!-- Classic Standings -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold text-gray-900 dark:text-white">Classic Division Standings</h2>
                 </div>
@@ -744,7 +744,7 @@
             <!-- Classic Stats Cards Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <!-- Top Scorers -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-award text-yellow-500"></i> Golden Boot
@@ -790,7 +790,7 @@
                 </div>
 
                 <!-- Top Assisters -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-award text-gray-400"></i> Silver Boot
@@ -839,7 +839,7 @@
             <!-- Classic Disciplinary Cards Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Yellow Cards -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-cards text-yellow-500"></i> Yellow Cards
@@ -885,7 +885,7 @@
                 </div>
 
                 <!-- Red Cards -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-cards text-red-500"></i> Red Cards
@@ -935,7 +935,7 @@
         <!-- All League Stats Tab -->
         <div class="division-pane hidden" id="all-stats">
             <!-- Season Summary Statistics -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-chart-bar text-ecs-green"></i> Season Summary Statistics
@@ -986,7 +986,7 @@
             <!-- All League Leaderboards -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- All Goal Scorers -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-ball-football text-ecs-green"></i> Top Goal Scorers (All Leagues)
@@ -1047,7 +1047,7 @@
                 </div>
 
                 <!-- All Assist Providers -->
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-hand-finger text-ecs-green"></i> Top Assist Providers (All Leagues)
@@ -1112,7 +1112,7 @@
 
     <!-- Legend -->
     <div class="mt-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4">
             <h3 class="font-medium text-gray-900 dark:text-white mb-3">Legend</h3>
             <div class="flex flex-wrap gap-4 text-sm">
                 <span><strong class="text-gray-700 dark:text-gray-300">P:</strong> <span class="text-gray-500 dark:text-gray-400">Played</span></span>

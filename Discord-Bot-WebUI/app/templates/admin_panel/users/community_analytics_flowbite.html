@@ -29,7 +29,7 @@
   </div>
   <div class="flex items-center gap-2">
     <button type="button" id="backfillBtn"
-            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             data-url="{{ url_for('admin_panel.community_analytics_backfill') }}"
             data-status-url="{{ url_for('admin_panel.community_analytics_backfill_status') }}">
       <i class="ti ti-history"></i> Backfill chat history
@@ -117,7 +117,7 @@
             <td class="px-3 py-2.5 hidden md:table-cell">
               {% if ch.top_sender_name %}
               <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[8rem]">{{ ch.top_sender_name }}</span>
+                <span class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-32">{{ ch.top_sender_name }}</span>
                 <span class="font-mono text-xs {% if ch.top_sender_pct >= 70 %}text-amber-600 dark:text-amber-400 font-semibold{% else %}text-gray-400{% endif %}">{{ ch.top_sender_pct }}%</span>
               </div>
               {% else %}<span class="text-xs text-gray-300 dark:text-gray-600">—</span>{% endif %}

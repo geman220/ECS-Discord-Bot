@@ -53,7 +53,7 @@
 .mobile-wizard-body .form-select {
     border-radius: 12px;
     padding: 15px;
-    border: 2px solid var(--ecs-neutral-10, var(--color-neutral-200));
+    border: 2px solid var(--ecs-neutral-10, var(--ecs-color-neutral-200));
     font-size: 16px; /* Prevents zoom on iOS */
 }
 

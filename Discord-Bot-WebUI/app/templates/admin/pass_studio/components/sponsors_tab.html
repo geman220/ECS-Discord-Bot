@@ -3,7 +3,7 @@
 
 <!-- Sponsor Info -->
 <div class="flex items-center p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
-    <svg class="flex-shrink-0 w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="shrink-0 w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
     </svg>
     <div>
@@ -24,7 +24,7 @@
         Sponsors
     </h6>
     <button type="button"
-            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-hidden focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
             data-action="add-sponsor">
         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
@@ -61,36 +61,36 @@
                     <td class="px-4 py-3 text-gray-900 dark:text-white">{{ sponsor.display_name }}</td>
                     <td class="px-4 py-3">
                         {% if sponsor.sponsor_type == 'presenting' %}
-                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">Presenting</span>
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-yellow-900 dark:text-yellow-300">Presenting</span>
                         {% elif sponsor.sponsor_type == 'venue' %}
-                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Venue</span>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-blue-900 dark:text-blue-300">Venue</span>
                         {% else %}
-                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Partner</span>
+                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-gray-700 dark:text-gray-300">Partner</span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <span class="bg-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-100 text-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-900 dark:text-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-300">
+                        <span class="bg-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-100 text-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-900 dark:text-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-300">
                             {{ sponsor.display_location|title }}
                         </span>
                     </td>
                     <td class="px-4 py-3">
                         {% if sponsor.applies_to == 'all' %}
-                        <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-primary-900 dark:text-primary-300">All</span>
+                        <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-primary-900 dark:text-primary-300">All</span>
                         {% elif sponsor.applies_to == 'ecs_membership' %}
-                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-green-900 dark:text-green-300">ECS</span>
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">ECS</span>
                         {% else %}
-                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Pub League</span>
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-sm dark:bg-blue-900 dark:text-blue-300">Pub League</span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
                         {% if sponsor.is_active %}
-                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Active</span>
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-sm dark:bg-green-900 dark:text-green-300">Active</span>
                         {% else %}
-                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Inactive</span>
+                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-sm dark:bg-gray-700 dark:text-gray-300">Inactive</span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <div class="inline-flex rounded-md shadow-sm" role="group">
+                        <div class="inline-flex rounded-md shadow-xs" role="group">
                             <button type="button"
                                     class="px-2 py-1.5 text-sm font-medium text-primary-700 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-primary-400 dark:hover:bg-gray-600"
                                     data-action="edit-sponsor"
@@ -141,7 +141,7 @@
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add sponsors to display their information on passes.</p>
         <div class="mt-6">
             <button type="button"
-                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-hidden focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
                     data-action="add-sponsor">
                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>

@@ -13,12 +13,12 @@
 <div class="mx-auto max-w-6xl">
     {% call page_header("Provision User", subtitle="User Management / New Account") %}
         <a href="{{ url_for('user_management.manage_users') }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
             <span class="hidden sm:inline">All Users</span>
         </a>
         <button type="submit" form="createUserForm"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-user-plus" aria-hidden="true"></i>
             Create User
         </button>
@@ -237,7 +237,7 @@
 
                     <!-- Is Current Player -->
                     <label for="is_current_player" class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-3 cursor-pointer hover:border-ecs-green/50 transition-colors">
-                        {{ form.is_current_player(class="w-4 h-4 mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
+                        {{ form.is_current_player(class="w-4 h-4 mt-0.5 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
                         <span class="min-w-0">
                             <span class="block text-sm font-medium text-gray-900 dark:text-white">{{ form.is_current_player.label.text }}</span>
                             <span class="block text-xs text-gray-500 dark:text-gray-400">Mark this player as active for the current season.</span>
@@ -249,12 +249,12 @@
             <!-- Command footer -->
             <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
                 <a href="{{ url_for('user_management.manage_users') }}"
-                   class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                   class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-x" aria-hidden="true"></i>
                     Cancel
                 </a>
                 <button type="submit"
-                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-user-plus" aria-hidden="true"></i>
                     Create User
                 </button>
@@ -325,7 +325,7 @@
     </div>
 
     <!-- Create User Form -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-user-plus text-ecs-green"></i>
@@ -343,7 +343,7 @@
                 </label>
                 <div class="relative">
                     <i class="ti ti-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    {{ form.username(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    {{ form.username(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green") }}
                 </div>
                 {% for error in form.username.errors %}
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
@@ -357,7 +357,7 @@
                 </label>
                 <div class="relative">
                     <i class="ti ti-mail absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    {{ form.email(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", inputmode="email", autocomplete="email") }}
+                    {{ form.email(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green", inputmode="email", autocomplete="email") }}
                 </div>
                 {% for error in form.email.errors %}
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
@@ -371,7 +371,7 @@
                 </label>
                 <div class="relative">
                     <i class="ti ti-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    {{ form.password(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                    {{ form.password(class="block w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green") }}
                 </div>
                 {% for error in form.password.errors %}
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
@@ -383,7 +383,7 @@
                 <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {{ form.roles.label.text }}
                 </label>
-                {{ form.roles(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", multiple=True, size=5) }}
+                {{ form.roles(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green", multiple=True, size=5) }}
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple roles</p>
                 {% for error in form.roles.errors %}
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
@@ -395,7 +395,7 @@
                 <label for="league_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     {{ form.league_id.label.text }}
                 </label>
-                {{ form.league_id(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
+                {{ form.league_id(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green") }}
                 {% for error in form.league_id.errors %}
                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
                 {% endfor %}
@@ -403,7 +403,7 @@
 
             <!-- Is Current Player -->
             <div class="flex items-center">
-                {{ form.is_current_player(class="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
+                {{ form.is_current_player(class="w-4 h-4 rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green") }}
                 <label for="is_current_player" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     {{ form.is_current_player.label.text }}
                 </label>

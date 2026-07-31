@@ -374,7 +374,7 @@ class PitchViewSystem {
         if (!hint) {
             hint = document.createElement('div');
             hint.id = 'pvArmHint';
-            hint.className = 'fixed inset-x-0 bottom-4 z-[70] flex justify-center px-4 pointer-events-none';
+            hint.className = 'fixed inset-x-0 bottom-4 z-70 flex justify-center px-4 pointer-events-none';
             document.body.appendChild(hint);
         }
         hint.innerHTML = '<div class="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-ecs-green text-white shadow-lg px-4 py-2.5 text-sm font-semibold">' +

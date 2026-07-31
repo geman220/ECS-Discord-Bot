@@ -34,7 +34,7 @@
 /* Pills variant with Bootstrap active */
 .c-nav-modern--pills .c-nav-modern__link.active,
 .c-nav-modern--pills .c-nav-modern__link--active {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
@@ -47,7 +47,7 @@
 
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link.active,
 [data-style="dark"] .c-nav-modern--pills .c-nav-modern__link--active {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
 
@@ -156,7 +156,7 @@
 /* Experience badge smaller */
 .experience-corner-tag {
   padding: var(--space-1, 4px) var(--space-2, 8px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
 }
 
 /* ============================================================================
@@ -211,7 +211,7 @@
 /* NOTE: c-stat and c-stat-box light mode styles moved to components/c-stat.css */
 
 [data-style="light"] .theme-selection-card {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
 }
 
 /* NOTE: Light mode for .c-form-modern moved to form-modern-additions.css */

@@ -28,7 +28,7 @@
                         <!-- AI Assistant Trigger -->
                         {% if safe_current_user.is_authenticated and ai_assistant_enabled %}
                         <button type="button" data-action="ai-assistant-toggle"
-                                class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}"
+                                class="p-2 rounded-lg focus:outline-hidden focus:ring-2 {{ _ab }}"
                                 title="AI Assistant" aria-label="Open AI Assistant">
                             <i class="ti ti-sparkles w-5 h-5"></i>
                         </button>
@@ -39,7 +39,7 @@
                            main.set_ui_shell endpoint (session['ui_shell']='classic'); no UI exposes it. #}
 
                         <!-- Dark Mode Toggle -->
-                        <button id="theme-toggle" type="button" class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}">
+                        <button id="theme-toggle" type="button" class="p-2 rounded-lg focus:outline-hidden focus:ring-2 {{ _ab }}">
                             <i class="ti ti-sun w-5 h-5 hidden dark:block"></i>
                             <i class="ti ti-moon w-5 h-5 block dark:hidden"></i>
                         </button>
@@ -48,7 +48,7 @@
                         <!-- Role Impersonation Toggle (Global Admin Only) -->
                         <div class="relative">
                             <button type="button" id="role-impersonation-toggle" data-dropdown-toggle="role-impersonation-dropdown"
-                                    class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ 'focus:ring-white/30' if actions_dark else 'focus:ring-gray-200 dark:focus:ring-gray-700' }} {{ 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50' if is_role_impersonation_active() else _ab_idle }}"
+                                    class="p-2 rounded-lg focus:outline-hidden focus:ring-2 {{ 'focus:ring-white/30' if actions_dark else 'focus:ring-gray-200 dark:focus:ring-gray-700' }} {{ 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50' if is_role_impersonation_active() else _ab_idle }}"
                                     title="{{ 'Role Impersonation Active' if is_role_impersonation_active() else 'Impersonate Role' }}">
                                 <i class="ti ti-masks-theater w-5 h-5"></i>
                                 {% if is_role_impersonation_active() %}
@@ -76,7 +76,7 @@
                                     </div>
                                     <div class="mt-2 flex flex-wrap gap-1">
                                         {% for role in user_roles %}
-                                        <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 rounded">
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 rounded-sm">
                                             {{ role }}
                                         </span>
                                         {% endfor %}
@@ -114,7 +114,7 @@
                         </button>
 
                         <!-- User Dropdown -->
-                        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600" id="user-dropdown">
+                        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow-sm dark:bg-gray-700 dark:divide-gray-600" id="user-dropdown">
                             <div class="px-4 py-3">
                                 <span class="block text-sm text-gray-900 dark:text-white">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</span>
                                 <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ safe_current_user.email or '' }}</span>

@@ -65,7 +65,7 @@
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-clipboard-x text-ecs-green" aria-hidden="true"></i> Awaiting score entry
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pending_results|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ pending_results|length }}</span>
       </h2>
       <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">Oldest first</span>
     </div>
@@ -102,11 +102,11 @@
           </td>
           <td class="px-3 py-3 align-top">
             <div class="flex items-center gap-2">
-              <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20" title="Home">H</span>
+              <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20" title="Home">H</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
             </div>
             <div class="flex items-center gap-2 mt-1">
-              <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Away">A</span>
+              <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm font-mono text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" title="Away">A</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
             </div>
             {% if match_league %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ match_league }}</p>{% endif %}
@@ -114,7 +114,7 @@
           <td class="px-3 py-3 align-top hidden lg:table-cell text-gray-500 dark:text-gray-400 truncate max-w-[180px]">{{ match.location or '—' }}</td>
           <td class="px-3 py-3 text-right align-top">
             <button type="button"
-                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                     data-action="enter-result" data-match-id="{{ match.id }}">
               <i class="ti ti-clipboard-check text-sm" aria-hidden="true"></i>Enter score
             </button>
@@ -131,17 +131,17 @@
         <p class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ match.date.strftime('%a %b %d') if match.date else 'TBD' }}{% if match.time %} · {{ match.time.strftime('%-I:%M %p') }}{% endif %}</p>
         <div class="mt-1.5 space-y-1">
           <div class="flex items-center gap-2">
-            <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">H</span>
+            <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">H</span>
             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded font-mono text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">A</span>
+            <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm font-mono text-[10px] font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">A</span>
             <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
           </div>
         </div>
         {% if match_league or match.location %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ match_league }}{% if match_league and match.location %} · {% endif %}{{ match.location or '' }}</p>{% endif %}
         <button type="button"
-                class="mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                class="mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 data-action="enter-result" data-match-id="{{ match.id }}">
           <i class="ti ti-clipboard-check text-sm" aria-hidden="true"></i>Enter score
         </button>
@@ -272,7 +272,7 @@
 {% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.completed_matches }}</h3>
@@ -283,7 +283,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.pending_results }}</h3>
@@ -294,7 +294,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.recent_results|length }}</h3>
@@ -310,7 +310,7 @@
 <!-- Match Results Content -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Matches Awaiting Results -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-clock mr-2"></i>Matches Awaiting Results
@@ -354,7 +354,7 @@
     </div>
 
     <!-- Recent Results -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-history mr-2"></i>Recent Results

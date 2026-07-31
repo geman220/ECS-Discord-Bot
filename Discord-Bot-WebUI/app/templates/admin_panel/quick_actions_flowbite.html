@@ -20,11 +20,11 @@
 
 {% call page_header("Quick Actions", subtitle="Operations Console") %}
   <button type="button" data-action="generate-system-report"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-report" aria-hidden="true"></i><span class="hidden sm:inline">System Report</span>
   </button>
   <a href="{{ url_for('admin_panel.quick_actions') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
   </a>
 {% endcall %}
@@ -100,9 +100,9 @@
           <i class="ti ti-stack-2 text-ecs-green" aria-hidden="true"></i> Bulk Operations
         </h2>
         {% if _open_ops|length > 0 %}
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ _open_ops|length }} actionable</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ _open_ops|length }} actionable</span>
         {% else %}
-        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i> all clear</span>
+        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i> all clear</span>
         {% endif %}
       </div>
 
@@ -159,7 +159,7 @@
                   <button type="submit"
                           {% if not has %}disabled{% endif %}
                           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-xs font-semibold transition-colors
-                                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
                                  {% if has %}bg-ecs-green hover:bg-ecs-green-700 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed{% endif %}">
                     <i class="ti ti-player-play" aria-hidden="true"></i><span>Run</span>
                   </button>
@@ -195,7 +195,7 @@
             <button type="submit"
                     {% if not has %}disabled{% endif %}
                     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800
                            {% if has %}bg-ecs-green hover:bg-ecs-green-700 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed{% endif %}">
               <i class="ti ti-player-play" aria-hidden="true"></i><span>Run</span>
             </button>
@@ -226,7 +226,7 @@
         ] %}
         {% for op in sys_ops %}
         <button type="button" data-action="{{ op.action }}"
-                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 {{ op.tone }}"><i class="ti {{ op.icon }} text-base" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ op.name }}</span>
@@ -249,7 +249,7 @@
         ] %}
         {% for op in maint_ops %}
         <button type="button" data-action="{{ op.action }}"
-                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 {{ op.tone }}"><i class="ti {{ op.icon }} text-base" aria-hidden="true"></i></span>
           <span class="flex-1 min-w-0">
             <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ op.name }}</span>
@@ -275,7 +275,7 @@
     ] %}
     {% for op in uc_ops %}
     <button type="button" data-action="{{ op.action }}"
-            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="flex items-center gap-3 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-left min-h-[44px] focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <span class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 {{ op.tone }}"><i class="ti {{ op.icon }} text-lg" aria-hidden="true"></i></span>
       <span class="flex-1 min-w-0">
         <span class="block text-sm font-semibold text-gray-900 dark:text-white truncate">{{ op.name }}</span>
@@ -319,20 +319,20 @@
       </div>
       <div class="flex items-center mb-4">
         <input type="checkbox" id="confirmBeforeExecution"
-               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
         <label for="confirmBeforeExecution" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Require confirmation before execution</label>
       </div>
       <div class="flex flex-wrap gap-2">
         <button type="button" data-action="execute-custom-action"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-play" aria-hidden="true"></i>Execute Action
         </button>
         <button type="button" data-action="validate-custom-action"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-check" aria-hidden="true"></i>Validate Only
         </button>
         <button type="button" data-action="save-custom-action"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-device-floppy" aria-hidden="true"></i>Save as Template
         </button>
       </div>
@@ -343,7 +343,7 @@
 </div>
 {% else %}
 <!-- Header -->
-<div class="flex items-start p-6 mb-6 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg shadow">
+<div class="flex items-start p-6 mb-6 bg-linear-to-r from-yellow-500 to-orange-500 rounded-lg shadow-sm">
     <div class="p-3 bg-white/20 rounded-full mr-4">
         <i class="ti ti-bolt text-3xl text-white"></i>
     </div>
@@ -492,7 +492,7 @@
 </div>
 
 <!-- Custom Actions -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-code mr-2 text-blue-500"></i>Custom Actions
@@ -523,7 +523,7 @@
                 <textarea id="actionCommand" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter command or parameters..."></textarea>
             </div>
             <div class="flex items-center mb-4">
-                <input type="checkbox" id="confirmBeforeExecution" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <input type="checkbox" id="confirmBeforeExecution" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                 <label for="confirmBeforeExecution" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Require confirmation before execution</label>
             </div>
             <div class="flex flex-wrap gap-2">

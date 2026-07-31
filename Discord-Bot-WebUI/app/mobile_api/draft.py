@@ -1182,10 +1182,25 @@ def get_team_position_analysis(league_name: str, team_id: int):
         for t in all_teams:
             drafted_player_ids.update([p.id for p in t.players])
 
+        # Restrict to players who actually belong to THIS league. Without it the
+        # only filters were "paid this season" and "not drafted in this league",
+        # so a Premier-only player was a valid recommendation for a Classic team.
+        # Same predicate the /available endpoint uses (:479-487).
         available_players = session.query(Player).filter(
             Player.is_current_player == True,
-            ~Player.id.in_(drafted_player_ids)
-        ).limit(50).all()  # Limit for performance
+            ~Player.id.in_(drafted_player_ids),
+            or_(
+                Player.primary_league_id == league.id,
+                exists().where(
+                    and_(
+                        player_league.c.player_id == Player.id,
+                        player_league.c.league_id == league.id
+                    )
+                )
+            )
+        ).order_by(Player.id).limit(50).all()  # order_by: LIMIT on an unordered
+        # query returns an arbitrary 50, so the same request could recommend a
+        # different set each time.
 
         # Calculate fit scores
         player_recommendations = []

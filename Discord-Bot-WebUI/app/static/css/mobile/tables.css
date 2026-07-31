@@ -63,14 +63,14 @@
     border-radius: var(--mobile-radius-lg);
     margin-bottom: var(--mobile-space-base);
     padding: var(--mobile-card-padding);
-    box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.08));
+    box-shadow: var(--ecs-shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.08));
     transition: all 150ms ease;
     position: relative;
     z-index: 1;
   }
 
   .table-responsive tr:hover {
-    box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.12));
+    box-shadow: var(--ecs-shadow-md, 0 4px 8px rgba(0, 0, 0, 0.12));
     transform: translateY(-2px);
     z-index: 10;
   }

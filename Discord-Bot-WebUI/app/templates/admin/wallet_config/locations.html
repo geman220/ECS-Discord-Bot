@@ -42,7 +42,7 @@
 
     <!-- Info Alert -->
     <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg">
-        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 flex-shrink-0"></i>
+        <i class="ti ti-info-circle text-blue-500 text-xl mr-3 mt-0.5 shrink-0"></i>
         <div class="text-sm text-blue-700 dark:text-blue-300">
             <strong>Location-Based Notifications</strong>
             <p class="mt-1">When a member with your pass approaches one of these locations, their phone can show a notification reminding them they have the pass. Apple Wallet supports up to <strong>10 locations per pass</strong>.</p>
@@ -51,7 +51,7 @@
 
     <!-- Location Count -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Locations</p>
@@ -62,7 +62,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Partner Bars</p>
@@ -73,7 +73,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex justify-between items-center">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Stadiums</p>
@@ -90,7 +90,7 @@
     {% if locations %}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for location in locations %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5 flex flex-col {% if not location.is_active %}opacity-60{% endif %}">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 flex flex-col {% if not location.is_active %}opacity-60{% endif %}">
             <div class="flex justify-between items-start mb-3">
                 <div>
                     <h5 class="font-semibold text-gray-900 dark:text-white mb-1">{{ location.name }}</h5>
@@ -100,9 +100,9 @@
                 </div>
                 <div>
                     {% if location.is_active %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Active</span>
                     {% else %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">Inactive</span>
                     {% endif %}
                 </div>
             </div>
@@ -120,11 +120,11 @@
             <div class="flex justify-between items-center mt-auto">
                 <div>
                     {% if location.applies_to == 'all' %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">All Passes</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">All Passes</span>
                     {% elif location.applies_to == 'ecs_membership' %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">ECS Only</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">ECS Only</span>
                     {% elif location.applies_to == 'pub_league' %}
-                    <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">Pub League Only</span>
+                    <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded-sm">Pub League Only</span>
                     {% endif %}
                 </div>
                 <div class="flex gap-1">
@@ -145,7 +145,7 @@
         {% endfor %}
     </div>
     {% else %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="text-center py-12 px-6">
             <i class="ti ti-map-pin-off text-5xl text-gray-400 dark:text-gray-600"></i>
             <h5 class="mt-4 text-lg font-semibold text-gray-900 dark:text-white">No Locations Configured</h5>
@@ -181,7 +181,7 @@
         </div>
     </div>
     <div class="flex items-start p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-        <i class="ti ti-bulb text-blue-500 mr-2 mt-0.5 flex-shrink-0"></i>
+        <i class="ti ti-bulb text-blue-500 mr-2 mt-0.5 shrink-0"></i>
         <p class="text-xs text-blue-700 dark:text-blue-300">Find coordinates on Google Maps: Right-click any location and click the coordinates to copy them.</p>
     </div>
     <div>
@@ -230,7 +230,7 @@
     </div>
     <div class="flex items-center">
         <input type="checkbox" name="is_active" id="newActive" checked
-               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
         <label for="newActive" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}
@@ -301,7 +301,7 @@
     <div class="flex items-center">
         <input type="checkbox" name="is_active" id="editActive{{ location.id }}"
                {% if location.is_active %}checked{% endif %}
-               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
         <label for="editActive{{ location.id }}" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Active</label>
     </div>
 {% endcall %}

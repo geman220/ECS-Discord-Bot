@@ -27,9 +27,9 @@
 
 .c-settings-page {
   --settings-bg-page: var(--color-bg-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
-  --settings-bg-card: var(--color-bg-card, var(--color-white));
+  --settings-bg-card: var(--color-bg-card, var(--ecs-color-white));
   --settings-bg-elevated: var(--color-bg-elevated, var(--color-secondary-100, var(--color-secondary-100, var(--color-secondary-100))));
-  --settings-bg-input: var(--color-bg-primary, var(--color-white));
+  --settings-bg-input: var(--color-bg-primary, var(--ecs-color-white));
 
   --settings-border: var(--color-border-primary, rgba(0, 0, 0, 0.08));
   --settings-border-focus: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));

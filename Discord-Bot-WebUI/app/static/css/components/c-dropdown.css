@@ -32,14 +32,14 @@
 .c-dropdown,
 [data-dropdown] {
   /* Light mode defaults */
-  --dropdown-bg: var(--color-white, var(--color-white)fff);
+  --dropdown-bg: var(--ecs-color-white, var(--ecs-color-white)fff);
   --dropdown-border-color: var(--color-border);
   --dropdown-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
                      0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --dropdown-radius: 0.5rem;
 
   /* Item colors */
-  --dropdown-item-color: var(--color-neutral-800);
+  --dropdown-item-color: var(--ecs-color-neutral-800);
   --dropdown-item-hover-bg: var(--color-translucent);
   --dropdown-item-active-bg: var(--color-translucent-medium);
 
@@ -52,10 +52,10 @@
   --dropdown-item-success-hover-bg: rgba(22, 163, 74, 0.08);
 
   /* Divider */
-  --dropdown-divider: var(--color-neutral-200);
+  --dropdown-divider: var(--ecs-color-neutral-200);
 
   /* Icon colors */
-  --dropdown-icon-color: var(--color-neutral-500);
+  --dropdown-icon-color: var(--ecs-color-neutral-500);
 
   position: relative;
 }

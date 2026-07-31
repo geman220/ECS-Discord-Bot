@@ -44,7 +44,7 @@
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                    border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white bg-white dark:bg-gray-800
                    hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-check" aria-hidden="true"></i><span class="hidden sm:inline">Set Current</span>
     </button>
     {% endif %}
@@ -53,7 +53,7 @@
             data-season-end="{{ season.end_date.strftime('%Y-%m-%d') if season.end_date else '' }}"
             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
                    bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-edit" aria-hidden="true"></i>Edit Season
     </button>
 {% endcall %}
@@ -100,7 +100,7 @@
                 <div class="min-w-0 flex-1">
                     <h3 class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ season.name }}</h3>
                     <div class="mt-1 flex flex-wrap items-center gap-2">
-                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
                         <span class="text-xs text-gray-500 dark:text-gray-400">Season ID <span class="font-mono text-gray-700 dark:text-gray-200">#{{ season.id }}</span></span>
                     </div>
                 </div>
@@ -141,7 +141,7 @@
         <a href="{{ url_for('admin_panel.league_management_teams') }}?season_id={{ season.id }}"
            class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
                   text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-users-group text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
             <span class="flex-1 text-sm font-medium">View Teams</span>
             <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
@@ -149,7 +149,7 @@
         <a href="{{ url_for('admin_panel.draft_history') }}?season={{ season.id }}"
            class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
                   text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-list-numbers text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
             <span class="flex-1 text-sm font-medium">Draft History</span>
             <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
@@ -157,7 +157,7 @@
         <a href="{{ url_for('draft_predictions.admin_dashboard') }}?season_id={{ season.id }}"
            class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
                   text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-chart-dots text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
             <span class="flex-1 text-sm font-medium">Draft Predictions</span>
             <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
@@ -165,7 +165,7 @@
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
            class="group flex items-center gap-3 min-h-[44px] px-3 py-2 rounded-lg
                   text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-calendar-event text-lg text-gray-400 shrink-0" aria-hidden="true"></i>
             <span class="flex-1 text-sm font-medium">Auto Schedule</span>
             <i class="ti ti-chevron-right text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-200" aria-hidden="true"></i>
@@ -179,7 +179,7 @@
     <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
             <i class="ti ti-trophy text-ecs-green" aria-hidden="true"></i>Leagues
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ season.leagues|length }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ season.leagues|length }}</span>
         </h2>
     </div>
     {% if season.leagues %}
@@ -209,10 +209,10 @@
                     {% if league.teams %}
                     <div class="flex flex-wrap gap-1">
                         {% for team in league.teams[:5] %}
-                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
                         {% endfor %}
                         {% if league.teams|length > 5 %}
-                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400 font-mono">+{{ league.teams|length - 5 }}</span>
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400 font-mono">+{{ league.teams|length - 5 }}</span>
                         {% endif %}
                     </div>
                     {% else %}
@@ -224,7 +224,7 @@
                        class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold
                               text-ecs-green border border-ecs-green/30 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10
                               hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors
-                              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                              focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                         <i class="ti ti-eye" aria-hidden="true"></i>Teams
                     </a>
                 </td>
@@ -240,7 +240,7 @@
                 <span class="font-semibold text-gray-900 dark:text-white truncate flex items-center gap-2">
                     <i class="ti ti-shield-half text-ecs-green shrink-0" aria-hidden="true"></i>{{ league.name }}
                 </span>
-                <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
                     <span class="font-mono">{{ league.teams|length }}</span> Teams
                 </span>
             </div>
@@ -248,10 +248,10 @@
                 {% if league.teams %}
                 <div class="flex flex-wrap gap-1">
                     {% for team in league.teams[:5] %}
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
                     {% endfor %}
                     {% if league.teams|length > 5 %}
-                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400 font-mono">+{{ league.teams|length - 5 }} more</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-200 text-gray-600 dark:bg-gray-600 dark:text-gray-400 font-mono">+{{ league.teams|length - 5 }} more</span>
                     {% endif %}
                 </div>
                 {% else %}
@@ -262,7 +262,7 @@
                class="mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2 rounded-lg text-sm font-semibold
                       text-ecs-green border border-ecs-green/30 dark:border-ecs-green/40 bg-ecs-green/5 dark:bg-ecs-green/10
                       hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                      focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-eye" aria-hidden="true"></i>View Teams
             </a>
         </div>
@@ -276,7 +276,7 @@
 {% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- Season Overview Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-calendar mr-2"></i>Season Overview
@@ -289,16 +289,16 @@
                 </div>
                 <h4 class="text-xl font-semibold text-gray-900 dark:text-white mb-1">{{ season.name }}</h4>
                 {% if season.is_current %}
-                <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">Current Season</span>
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-sm dark:bg-green-900 dark:text-green-300">Current Season</span>
                 {% else %}
-                <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Inactive</span>
+                <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">Inactive</span>
                 {% endif %}
             </div>
 
             <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                 <div class="flex justify-between">
                     <span class="text-gray-500 dark:text-gray-400 text-sm">League Type:</span>
-                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-sm dark:bg-blue-900 dark:text-blue-300">{{ season.league_type }}</span>
                 </div>
                 {% if season.start_date %}
                 <div class="flex justify-between">
@@ -333,7 +333,7 @@
     </div>
 
     <!-- Statistics Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-chart-bar mr-2"></i>Statistics
@@ -362,7 +362,7 @@
     </div>
 
     <!-- Quick Actions Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-bolt mr-2"></i>Quick Actions
@@ -390,7 +390,7 @@
 </div>
 
 <!-- Leagues Section -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-trophy mr-2"></i>Leagues ({{ season.leagues|length }})
@@ -403,16 +403,16 @@
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                     <h6 class="font-semibold text-gray-900 dark:text-white">{{ league.name }}</h6>
-                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ league.teams|length }} Teams</span>
+                    <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-sm dark:bg-blue-900 dark:text-blue-300">{{ league.teams|length }} Teams</span>
                 </div>
                 <div class="p-4">
                     {% if league.teams %}
                     <div class="flex flex-wrap gap-1">
                         {% for team in league.teams[:5] %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300">{{ team.name }}</span>
                         {% endfor %}
                         {% if league.teams|length > 5 %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded dark:bg-gray-600 dark:text-gray-400">+{{ league.teams|length - 5 }} more</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-600 rounded-sm dark:bg-gray-600 dark:text-gray-400">+{{ league.teams|length - 5 }} more</span>
                         {% endif %}
                     </div>
                     {% else %}

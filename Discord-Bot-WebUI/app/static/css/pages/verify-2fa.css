@@ -20,7 +20,7 @@
     --auth-accent-bright: #5FE396;
 
     /* Secure Neutrals */
-    --auth-surface: var(--color-white);
+    --auth-surface: var(--ecs-color-white);
     --auth-surface-alt: var(--color-secondary-50);
     --auth-border-color: var(--color-border);
     --auth-text: var(--color-secondary-900, var(--color-secondary-900));

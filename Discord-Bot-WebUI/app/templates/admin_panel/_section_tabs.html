@@ -90,7 +90,7 @@
       {% for tab in ns.active_group %}
         {% set is_active = (tab[0] == current) %}
         <a href="{{ url_for(tab[0]) }}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 rounded-t-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green
+           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 rounded-t-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green
                   {% if is_active %}border-ecs-green text-ecs-green bg-green-50/50 dark:bg-ecs-green/10{% else %}border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600{% endif %}"
            {% if is_active %}aria-current="page"{% endif %}>
           <i class="ti {{ tab[2] }} text-base"></i>{{ tab[1] }}

@@ -21,7 +21,7 @@
     --confirm-discord: var(--color-discord);
 
     /* Friendly Neutrals */
-    --confirm-surface: var(--color-white);
+    --confirm-surface: var(--ecs-color-white);
     --confirm-surface-alt: var(--color-secondary-50);
     --confirm-border-color: var(--color-border);
     --confirm-text: var(--color-secondary-900, var(--color-secondary-900));

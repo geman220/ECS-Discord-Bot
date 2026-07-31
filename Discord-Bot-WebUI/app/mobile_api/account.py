@@ -25,6 +25,42 @@ from app.models import User, Player
 logger = logging.getLogger(__name__)
 
 
+def password_required(user) -> bool:
+    """Whether this account must supply a password to confirm a sensitive action.
+
+    Discord OAuth accounts have no password their owner could ever supply — the
+    mobile app is Discord-only and has no email/password sign-in surface at all.
+    Requiring one made account deletion, deactivation and email change impossible
+    for every mobile user, with no recovery path (changing the password itself
+    required the password they don't have). Apple requires an app that supports
+    account creation to also support in-app account deletion.
+
+    For those accounts the valid JWT plus the route's own confirmation step (the
+    "DELETE MY ACCOUNT" string, the 2FA code) is the gate.
+
+    Why this keys on `discord_id` rather than has_usable_password() alone:
+    accounts created before set_unusable_password() existed hold a random 16-char
+    hash indistinguishable from a real one, so the marker only identifies NEW
+    accounts — keying on discord_id also unsticks the users who are locked out
+    today. Once every OAuth account carries the marker this can tighten to
+    `not user.has_usable_password()`.
+
+    NOTE: discord_id lives on PLAYER, not User (models/players.py:268) — reading
+    user.discord_id raises AttributeError.
+    """
+    player = getattr(user, 'player', None)
+    if player is not None and getattr(player, 'discord_id', None):
+        return False
+    return user.has_usable_password()
+
+
+def password_confirmation_ok(user, supplied) -> bool:
+    """Whether the caller has satisfied this route's "confirm it's you" gate."""
+    if not password_required(user):
+        return True
+    return user.check_password(supplied or '')
+
+
 @mobile_api_v2.route('/account/password', methods=['PUT'])
 @jwt_required()
 def change_password():
@@ -47,8 +83,8 @@ def change_password():
     current_password = data.get('current_password')
     new_password = data.get('new_password')
 
-    if not current_password or not new_password:
-        return jsonify({"msg": "current_password and new_password are required"}), 400
+    if not new_password:
+        return jsonify({"msg": "new_password is required"}), 400
 
     if len(new_password) < 8:
         return jsonify({"msg": "New password must be at least 8 characters"}), 400
@@ -58,8 +94,13 @@ def change_password():
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
-        # Verify current password
-        if not user.check_password(current_password):
+        # current_password is required only for accounts that HAVE one. A
+        # Discord-only user setting their first password can't supply it, and
+        # demanding it here is what made this endpoint useless as a recovery path.
+        if password_required(user) and not current_password:
+            return jsonify({"msg": "current_password and new_password are required"}), 400
+
+        if not password_confirmation_ok(user, current_password):
             return jsonify({"msg": "Current password is incorrect"}), 401
 
         # Set new password
@@ -193,19 +234,24 @@ def disable_2fa():
     password = data.get('password')
     token = data.get('token')
 
-    if not password or not token:
-        return jsonify({"msg": "Password and token are required to disable 2FA"}), 400
+    if not token:
+        return jsonify({"msg": "Token is required to disable 2FA"}), 400
 
     with managed_session() as session:
         user = session.query(User).get(current_user_id)
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
+        # Password required only for accounts that have one — otherwise this
+        # 400'd Discord-only users before the check below could exempt them.
+        if password_required(user) and not password:
+            return jsonify({"msg": "Password and token are required to disable 2FA"}), 400
+
         if not user.is_2fa_enabled:
             return jsonify({"msg": "2FA is not enabled"}), 400
 
-        # Verify password
-        if not user.check_password(password):
+        # Verify password (OAuth-only accounts are gated by the 2FA code below)
+        if not password_confirmation_ok(user, password):
             return jsonify({"msg": "Incorrect password"}), 401
 
         # Verify 2FA token
@@ -307,10 +353,13 @@ def update_profile():
             if 'additional_info' in data:
                 player.additional_info = data['additional_info']
             if 'expected_weeks_available' in data:
-                try:
-                    player.expected_weeks_available = int(data['expected_weeks_available'])
-                except (ValueError, TypeError):
-                    pass
+                # Player.expected_weeks_available is db.String(20), not an int
+                # column (models/players.py:218) — coercing to int here would
+                # write the wrong type the moment mobile started sending it.
+                raw_weeks = data['expected_weeks_available']
+                player.expected_weeks_available = (
+                    None if raw_weeks in (None, '') else str(raw_weeks)
+                )
             if 'jersey_size' in data:
                 player.jersey_size = data['jersey_size']
             if 'jersey_number' in data:
@@ -680,7 +729,7 @@ def change_email():
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
-        if not user.check_password(password):
+        if not password_confirmation_ok(user, password):
             return jsonify({"msg": "Incorrect password"}), 401
 
         # Check uniqueness via email hash
@@ -806,15 +855,17 @@ def deactivate_account():
 
     password = data.get('password')
     reason = data.get('reason')
-    if not password:
-        return jsonify({"msg": "Password is required"}), 400
 
     with managed_session() as session:
         user = session.query(User).get(current_user_id)
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
-        if not user.check_password(password):
+        # Password required only for accounts that have one.
+        if password_required(user) and not password:
+            return jsonify({"msg": "Password is required"}), 400
+
+        if not password_confirmation_ok(user, password):
             return jsonify({"msg": "Incorrect password"}), 401
 
         # Deactivate account
@@ -875,9 +926,6 @@ def delete_account():
     password = data.get('password')
     confirmation = data.get('confirmation')
 
-    if not password:
-        return jsonify({"msg": "Password is required"}), 400
-
     if confirmation != "DELETE MY ACCOUNT":
         return jsonify({"msg": "Invalid confirmation string"}), 400
 
@@ -886,7 +934,13 @@ def delete_account():
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
-        if not user.check_password(password):
+        # Password required only for accounts that have one. For a Discord-only
+        # account the JWT plus the exact confirmation string above is the gate —
+        # otherwise no mobile user could ever delete their account.
+        if password_required(user) and not password:
+            return jsonify({"msg": "Password is required"}), 400
+
+        if not password_confirmation_ok(user, password):
             return jsonify({"msg": "Incorrect password"}), 401
 
         username = user.username  # capture for logging before clearing

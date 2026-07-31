@@ -29,7 +29,7 @@
     </div>
 
     <!-- Subs Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Substitute Player Pool</h5>
         </div>
@@ -64,9 +64,9 @@
                         </td>
                         <td class="px-4 py-3">
                             {% if sub.primary_team_name %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ sub.primary_team_name }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ sub.primary_team_name }}</span>
                             {% else %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded">No Primary Team</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-sm">No Primary Team</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">

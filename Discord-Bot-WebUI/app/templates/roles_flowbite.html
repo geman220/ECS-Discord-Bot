@@ -39,7 +39,7 @@
         <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-settings text-base" aria-hidden="true"></i>
             <span>Manage roles</span>
         </a>
@@ -47,7 +47,7 @@
 
     {# Feature card: the primary object — the roles management hub #}
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-5 sm:mb-6">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green/10 to-transparent dark:from-ecs-green/15">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-ecs-green/10 to-transparent dark:from-ecs-green/15">
             <div class="flex items-start gap-3">
                 <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-ecs-green/15 text-ecs-green" aria-hidden="true">
                     <i class="ti ti-shield-check text-2xl"></i>
@@ -74,7 +74,7 @@
                 <a href="{{ d.url }}"
                    class="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 min-h-[44px]
                           hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group
-                          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                          focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
                     <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg
                                  {% if d.primary %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400{% endif %}"
                           aria-hidden="true">
@@ -111,7 +111,7 @@
     </div>
 
     <!-- Content Placeholder -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-12 text-center">
         <div class="w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
             <i class="ti ti-shield-check text-2xl text-gray-400"></i>
         </div>

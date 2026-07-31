@@ -68,7 +68,7 @@
        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px whitespace-nowrap
        {% if tab == key %}border-ecs-green text-ecs-green{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300{% endif %}">
       <i class="ti {{ icon }}"></i>{{ label }}
-      {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-[1.25rem] h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
+      {% if count is not none %}<span class="inline-flex items-center justify-center px-1.5 min-w-5 h-5 text-[11px] font-semibold font-mono rounded-full {% if tab == key %}bg-ecs-green/15 text-ecs-green{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ count }}</span>{% endif %}
     </a>
     {% endfor %}
   </div>
@@ -220,10 +220,10 @@
                   {# Channels are not a setting for a built-in: the sender picks
                      each person's best one. Listing rule.channels here would
                      read as a configuration that does not exist. #}
-                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Best channel each</span>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Best channel each</span>
                   {% else %}
                   {% for ch in (rule.channels or ['email']) %}
-                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ ch.replace('_', ' ') }}</span>
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ ch.replace('_', ' ') }}</span>
                   {% endfor %}
                   {% endif %}
                 </dd>
@@ -448,13 +448,13 @@
               {% if (run.status == 'pending' or run.status == 'skipped') and user_roles and 'Global Admin' in user_roles %}
               <button type="button" data-action="automation-run-now" data-run-id="{{ run.id }}"
                       data-run-label="{{ run.rule.name if run.rule else 'this run' }}"
-                      class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700">
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-semibold text-white bg-ecs-green hover:bg-ecs-green-700">
                 <i class="ti ti-send" aria-hidden="true"></i><span>Send now</span>
               </button>
               {% endif %}
               {% if run.status == 'pending' %}
               <button type="button" data-action="automation-cancel-run" data-run-id="{{ run.id }}"
-                      class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
                 <i class="ti ti-x" aria-hidden="true"></i><span>Cancel</span>
               </button>
               {% endif %}

@@ -17,9 +17,9 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                <div class="shrink-0 w-12 h-12 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-soccer-field text-2xl"></i>
                 </div>
                 <div>
@@ -29,9 +29,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
+                <div class="shrink-0 w-12 h-12 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
                     <i class="ti ti-hand-stop text-2xl"></i>
                 </div>
                 <div>
@@ -41,9 +41,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                <div class="shrink-0 w-12 h-12 flex items-center justify-center bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                     <i class="ti ti-clock text-2xl"></i>
                 </div>
                 <div>
@@ -53,9 +53,9 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+                <div class="shrink-0 w-12 h-12 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
                     <i class="ti ti-check text-2xl"></i>
                 </div>
                 <div>
@@ -68,7 +68,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-filter text-gray-500"></i>Filter Matches
@@ -106,7 +106,7 @@
     </div>
 
     <!-- Upcoming Matches -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-list text-gray-500"></i>Upcoming Matches
@@ -210,7 +210,7 @@
     </div>
 
     <!-- Pending Sub Requests -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-hand-stop text-yellow-500"></i>Pending Sub Requests
@@ -335,7 +335,7 @@
         {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
         <div class="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
             <input type="checkbox" name="re_notify" id="re_notify_{{ request.id }}" value="1"
-                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-700 dark:border-gray-600">
+                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-700 dark:border-gray-600">
             <label for="re_notify_{{ request.id }}" class="text-sm text-gray-700 dark:text-gray-300">Re-notify substitute pool</label>
         </div>
         {% endif %}

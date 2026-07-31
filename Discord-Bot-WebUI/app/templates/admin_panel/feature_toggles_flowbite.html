@@ -72,7 +72,7 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">Walk through the exact onboarding a new player sees — a live, always-in-sync copy that saves nothing. Toggle Registration above to preview the register vs. waitlist entry screens.</p>
     </div>
     <a href="{{ url_for('admin_panel.onboarding_demo') }}" target="_blank" rel="noopener"
-       class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+       class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-external-link" aria-hidden="true"></i>Open demo
     </a>
   </div>
@@ -96,12 +96,12 @@
         {% set cm = cat_meta.get(category, {'icon': 'ti-settings', 'label': category.replace('_', ' ').title()}) %}
         <li>
           <a href="#cat-{{ category }}"
-             class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+             class="flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
             <span class="flex items-center gap-2 min-w-0">
               <i class="ti {{ cm.icon }} text-ecs-green shrink-0" aria-hidden="true"></i>
               <span class="truncate">{{ cm.label }}</span>
             </span>
-            <span class="shrink-0 font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ settings | length }}</span>
+            <span class="shrink-0 font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ settings | length }}</span>
           </a>
         </li>
         {% endfor %}
@@ -127,15 +127,15 @@
               <span class="font-mono font-bold text-green-600 dark:text-green-400">{{ cat_on }}</span>/<span class="font-mono">{{ cat_bools | length }}</span> on
             </span>
             {% endif %}
-            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ settings | length }}</span>
+            <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ settings | length }}</span>
           </div>
         </div>
         <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
           {% for setting in settings %}
           <li id="setting-{{ setting.key }}" class="scroll-mt-24 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-setting-key="{{ setting.key }}">
             <div class="flex items-start min-w-0">
-              {# Icon wrapper — JS targets `.flex-shrink-0 span` here; keep classes verbatim #}
-              <div class="flex-shrink-0 mr-3 mt-0.5">
+              {# Icon wrapper — JS targets `.shrink-0 span` here; keep classes verbatim #}
+              <div class="shrink-0 mr-3 mt-0.5">
                 {% if setting.data_type == 'boolean' %}
                   {% if setting.parsed_value %}
                     <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
@@ -157,11 +157,11 @@
                   <h6 class="font-semibold text-gray-900 dark:text-white">{{ setting.key.replace('_', ' ').title() }}</h6>
                   {% if setting.data_type == 'boolean' %}
                     {% if setting.parsed_value %}
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[11px] font-bold uppercase tracking-wide bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">
                       <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i> On
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[11px] font-bold uppercase tracking-wide bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
                       <i class="ti ti-circle text-[11px]" aria-hidden="true"></i> Off
                     </span>
                     {% endif %}
@@ -173,7 +173,7 @@
                     <i class="ti ti-key text-[12px]" aria-hidden="true"></i>
                     <code class="font-mono text-gray-500 dark:text-gray-400">{{ setting.key }}</code>
                   </span>
-                  <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-mono uppercase tracking-wide">
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 font-mono uppercase tracking-wide">
                     {{ setting.data_type }}
                   </span>
                   <span class="inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 font-mono">
@@ -190,7 +190,7 @@
                 <input type="checkbox" class="sr-only peer setting-toggle"
                        data-setting-key="{{ setting.key }}"
                        {% if setting.parsed_value %}checked{% endif %}>
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
                 <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 toggle-status">
                   {% if setting.parsed_value %}Enabled{% else %}Disabled{% endif %}
                 </span>
@@ -209,7 +209,7 @@
                        placeholder="Value">
                 {% endif %}
                 <button type="submit"
-                        class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                        class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                         title="Save" aria-label="Save {{ setting.key.replace('_', ' ').title() }}">
                   <i class="ti ti-check" aria-hidden="true"></i>
                 </button>
@@ -228,7 +228,7 @@
 {% else %}
 <div class="space-y-6">
     {% for category, settings in categories.items() %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 {% if category == 'navigation' %}
@@ -248,7 +248,7 @@
             {% for setting in settings %}
             <div id="setting-{{ setting.key }}" class="scroll-mt-24 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4" data-setting-key="{{ setting.key }}">
                 <div class="flex items-start">
-                    <div class="flex-shrink-0 mr-3 mt-1">
+                    <div class="shrink-0 mr-3 mt-1">
                         {% if setting.data_type == 'boolean' %}
                             {% if setting.parsed_value %}
                                 <span class="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30">
@@ -269,7 +269,7 @@
                         <h6 class="font-medium text-gray-900 dark:text-white">{{ setting.key.replace('_', ' ').title() }}</h6>
                         <p class="text-sm text-gray-500 dark:text-gray-400">{{ setting.description or 'No description available' }}</p>
                         <div class="flex items-center gap-2 mt-2">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                                 {{ setting.data_type }}
                             </span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">
@@ -284,7 +284,7 @@
                         <input type="checkbox" class="sr-only peer setting-toggle"
                                data-setting-key="{{ setting.key }}"
                                {% if setting.parsed_value %}checked{% endif %}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
                         <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300 toggle-status">
                             {% if setting.parsed_value %}Enabled{% else %}Disabled{% endif %}
                         </span>
@@ -316,7 +316,7 @@
 
     <!-- Warning Alert -->
     <div class="flex items-start p-4 text-yellow-800 bg-yellow-50 rounded-lg dark:bg-yellow-900/30 dark:text-yellow-300">
-        <i class="ti ti-alert-triangle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+        <i class="ti ti-alert-triangle shrink-0 mr-3 mt-0.5 text-lg"></i>
         <div>
             <span class="font-medium">Important:</span> Changes to these settings take effect immediately. Be careful when modifying critical features like Teams navigation and Waitlist registration, as they directly affect user experience.
         </div>
@@ -343,7 +343,7 @@ document.querySelectorAll('.setting-toggle').forEach(toggle => {
 
         // Update icon
         const container = this.closest('[data-setting-key]');
-        const iconContainer = container.querySelector('.flex-shrink-0 span');
+        const iconContainer = container.querySelector('.shrink-0 span');
         if (iconContainer) {
             if (enabled) {
                 iconContainer.className = 'flex items-center justify-center w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30';

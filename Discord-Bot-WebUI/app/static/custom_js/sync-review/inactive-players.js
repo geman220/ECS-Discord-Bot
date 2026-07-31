@@ -86,7 +86,7 @@ export function updateInactivePlayersDisplay(remainingInactive, assignedPlayerId
                     <strong class="font-semibold">${remainingInactive.length}</strong> players will be marked inactive
                 </span>
                 <div class="flex items-center">
-                    <input type="checkbox" id="confirmInactiveProcess" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <input type="checkbox" id="confirmInactiveProcess" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                     <label for="confirmInactiveProcess" class="ml-2 text-sm font-semibold text-gray-900 dark:text-gray-300">
                         Proceed with marking these players inactive
                     </label>
@@ -128,11 +128,11 @@ export function updateInactivePlayersDisplay(remainingInactive, assignedPlayerId
                         </p>
                     </div>
                     <div class="text-center">
-                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Currently Active</span>
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Currently Active</span>
                         <div class="my-2">
                             <i class="ti ti-arrow-down text-yellow-500"></i>
                         </div>
-                        <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-badge>Will be Inactive</span>
+                        <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-badge>Will be Inactive</span>
                     </div>
                     <div class="text-right">
                         <p class="text-xs text-gray-500 dark:text-gray-400">

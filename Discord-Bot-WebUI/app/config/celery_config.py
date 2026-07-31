@@ -354,6 +354,40 @@ class CeleryConfig:
             'options': {'queue': 'celery'},
         },
 
+        # Drain Player.discord_needs_update.
+        #
+        # EIGHT call sites set this flag (season-pass activation, profile coach/ref
+        # toggles, discord_utils, db_utils, mobile admin, comprehensive user mgmt).
+        # NOTHING drained it automatically: there was no tasks_discord.* entry in
+        # beat_schedule at all, and the flag's only consumers were the two admin
+        # "Sync All Roles" buttons and `flask` CLI commands. app/discord_utils.py's
+        # process_role_updates() looks like the intended drainer but has zero
+        # callers outside tests.
+        #
+        # Net effect: "player pays -> gets the Flask role -> gets the Discord role"
+        # only completed when the player next logged in (app/auth/helpers.py:82
+        # fires assign_roles_to_player_task on Discord OAuth) or an admin pressed a
+        # button. A returning member who never re-logs in stays flagged forever.
+        # That is why Summer Sprint buyers needed manual cleanup.
+        #
+        # only_add=True is deliberate and load-bearing. The no-arg default is a FULL
+        # RECONCILE, which on a schedule means one bad expected-role calculation
+        # silently strips the whole league's Discord access unattended. Programs now
+        # run CONCURRENTLY (a Summer Sprint buyer legitimately keeps pl-premier), so
+        # add-only is also semantically right here. Revocation stays with the
+        # explicit, human-triggered callers (rollover cleanup, sub-pool removal,
+        # admin reconcile) where a wrong answer is noticed immediately.
+        #
+        # Every 10 min: fast enough that a purchase feels automatic, and a no-op
+        # (one indexed query returning zero rows) when nothing is flagged.
+        # expires=540 so a backlog after an outage doesn't stack duplicate runs.
+        'drain-discord-role-updates': {
+            'task': 'app.tasks.tasks_discord.process_discord_role_updates',
+            'schedule': crontab(minute='*/10'),
+            'kwargs': {'only_add': True},
+            'options': {'queue': 'discord', 'expires': 540},
+        },
+
         # Same dead-signal bug, second victim: the draft "on the clock" enforcer was
         # registered by an @celery.on_after_configure.connect handler in
         # app/tasks/tasks_draft_clock.py that never fired — so the draft timer has

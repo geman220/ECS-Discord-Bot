@@ -24,12 +24,12 @@
 {% if shell == 'console' %}
 {% call page_header("Discord Role Sync", subtitle="Discord Management") %}
     <button id="refresh-tasks-btn" type="button"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             aria-label="Refresh tasks">
         <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
     </button>
     <button id="header-mass-sync-btn" type="button"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             aria-label="Start mass sync">
         <i class="ti ti-bolt" aria-hidden="true"></i> Start Mass Sync
     </button>
@@ -75,7 +75,7 @@
                     <h3 class="mt-2 text-sm font-bold text-gray-900 dark:text-white">Sync All Players</h3>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex-1">Updates Discord roles for every player with a linked Discord ID.</p>
                     <button id="mass-sync-btn" type="button"
-                            class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-bolt" aria-hidden="true"></i>Start Mass Sync
                     </button>
                 </div>
@@ -89,7 +89,7 @@
                     <h3 class="mt-2 text-sm font-bold text-gray-900 dark:text-white">Sync Flagged Players</h3>
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex-1">Only re-sync players explicitly flagged as needing an update.</p>
                     <button id="sync-flagged-btn" type="button"
-                            class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            class="mt-4 inline-flex items-center justify-center gap-1.5 min-h-[44px] w-full px-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                         <i class="ti ti-flag" aria-hidden="true"></i>Sync Flagged Only
                     </button>
                 </div>
@@ -165,7 +165,7 @@
                 <i class="ti ti-search"></i>
             </span>
             <input type="text" id="sync-player-search"
-                   class="block w-full sm:max-w-sm pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   class="block w-full sm:max-w-sm pl-9 pr-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                    placeholder="Search by name or Discord tag" autocomplete="off">
         </div>
         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
@@ -207,7 +207,7 @@
                     </td>
                     <td class="py-3 pl-3 text-right">
                         <button type="button"
-                                class="sync-player-btn inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                class="sync-player-btn inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 data-player-id="{{ player.id }}" data-player-name="{{ player.name }}">
                             <i class="ti ti-refresh" aria-hidden="true"></i> Sync
                         </button>
@@ -233,7 +233,7 @@
 {% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ players_needing_sync }}</h3>
@@ -244,7 +244,7 @@
             </div>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ players_needs_update }}</h3>
@@ -258,7 +258,7 @@
 </div>
 
 <!-- Mass Sync Section -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-bolt mr-2"></i>Mass Role Synchronization
@@ -298,7 +298,7 @@
 </div>
 
 <!-- Task Status Section -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-list-check mr-2"></i>Recent Sync Tasks
@@ -315,7 +315,7 @@
 </div>
 
 <!-- Information -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-info-circle mr-2"></i>Role Sync Information

@@ -52,7 +52,7 @@
         {% if user_team and user_team|length > 0 %}
             {% for team in user_team %}
             <a href="{{ url_for('teams.team_details', team_id=team.id) }}"
-               class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 dark:text-ecs-green hover:bg-ecs-green/20 dark:hover:bg-ecs-green/30 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+               class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 dark:text-ecs-green hover:bg-ecs-green/20 dark:hover:bg-ecs-green/30 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-shield-half" aria-hidden="true"></i>{{ team.name }}
             </a>
             {% endfor %}
@@ -145,7 +145,7 @@
             </div>
             {% if announcements|length > 1 %}
             <button type="button" id="nextAnnouncement"
-                    class="shrink-0 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    class="shrink-0 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     aria-label="Next announcement">
                 <i class="ti ti-chevron-right text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
             </button>
@@ -240,12 +240,12 @@
                 {% if has_permission('view_match_page') %}
                 {% if fm.get('is_ecs_fc') %}
                 <a href="{{ url_for('ecs_fc.match_details', match_id=fm['match_id']) }}"
-                   class="inline-flex items-center justify-center gap-2 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                   class="inline-flex items-center justify-center gap-2 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-arrow-right" aria-hidden="true"></i> Match Details
                 </a>
                 {% else %}
                 <a href="{{ url_for('match_pages.view_match', match_id=fm['match_id']) }}"
-                   class="inline-flex items-center justify-center gap-2 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                   class="inline-flex items-center justify-center gap-2 h-11 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-arrow-right" aria-hidden="true"></i> Match Details
                 </a>
                 {% endif %}
@@ -267,7 +267,7 @@
                 {{ onboarding_form.hidden_tag() }}
                 <input type="hidden" name="form_action" id="form_action" value="reset_skip_profile">
                 <button type="submit"
-                        class="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        class="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-user-plus" aria-hidden="true"></i>Create Player Profile
                 </button>
             </form>
@@ -290,7 +290,7 @@
                 {% if user_team and user_team|length > 0 %}
                 <div class="flex flex-wrap gap-1.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 self-start sm:self-auto" id="match-tabs" role="tablist">
                     {% for t in user_team %}
-                    <button class="team-tab px-3 h-8 rounded-md text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white{% endif %}"
+                    <button class="team-tab px-3 h-8 rounded-md text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white{% endif %}"
                             data-tab="team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
                         {{ t.name }}
                     </button>
@@ -344,7 +344,7 @@
                                 <div class="min-w-0">
                                     <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">
                                         {% if match_data['week_type'] in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400">
+                                        <span class="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-400">
                                             {% if match_data['week_type'] == 'FUN' %}Fun Week
                                             {% elif match_data['week_type'] == 'TST' %}TST Week
                                             {% elif match_data['week_type'] == 'BYE' %}Bye Week
@@ -396,12 +396,12 @@
                                 {% if has_permission('view_match_page') %}
                                 {% if match_data.get('is_ecs_fc') %}
                                 <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
-                                   class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                   class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                                     Details
                                 </a>
                                 {% else %}
                                 <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
-                                   class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                   class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                                     Details
                                 </a>
                                 {% endif %}
@@ -409,12 +409,12 @@
 
                                 {% if has_permission('report_match') %}
                                 {% if match_data.get('is_ecs_fc') %}
-                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green edit-match-btn"
                                         data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
                                     <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
                                 </button>
                                 {% else %}
-                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green edit-match-btn"
                                         data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
                                     <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
                                 </button>
@@ -447,7 +447,7 @@
                 {% if user_team and user_team|length > 0 %}
                 <div class="flex flex-wrap gap-1.5 p-0.5 rounded-lg bg-gray-100 dark:bg-gray-700 self-start sm:self-auto" id="recent-match-tabs" role="tablist">
                     {% for t in user_team %}
-                    <button class="recent-team-tab px-3 h-8 rounded-md text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white{% endif %}"
+                    <button class="recent-team-tab px-3 h-8 rounded-md text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if loop.first %}bg-ecs-green text-white{% else %}text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white{% endif %}"
                             data-tab="recent-team-{{ t.id }}" role="tab" aria-selected="{% if loop.first %}true{% else %}false{% endif %}">
                         {{ t.name }}
                     </button>
@@ -492,17 +492,17 @@
                         <div class="px-4 sm:px-5 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                             <div class="flex items-center justify-between gap-2 mb-1.5">
                                 {% if match_data.get('week_type') == 'BYE' %}
-                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Bye</span>
+                                <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Bye</span>
                                 {% elif has_score %}
                                     {% if my_score > opp_score %}
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">W {{ my_score }}–{{ opp_score }}</span>
+                                    <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold font-mono uppercase bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">W {{ my_score }}–{{ opp_score }}</span>
                                     {% elif my_score < opp_score %}
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">L {{ my_score }}–{{ opp_score }}</span>
+                                    <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold font-mono uppercase bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">L {{ my_score }}–{{ opp_score }}</span>
                                     {% else %}
-                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-ecs-gold/15 text-ecs-gold-600 dark:text-ecs-gold-400">D {{ my_score }}–{{ opp_score }}</span>
+                                    <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold font-mono uppercase bg-ecs-gold/15 text-ecs-gold-600 dark:text-ecs-gold-400">D {{ my_score }}–{{ opp_score }}</span>
                                     {% endif %}
                                 {% else %}
-                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">No result</span>
+                                <span class="px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">No result</span>
                                 {% endif %}
                                 <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">{{ date.strftime('%a, %b %d') }}</span>
                             </div>
@@ -523,21 +523,21 @@
                                     {% if has_permission('view_match_page') %}
                                     {% if match_data.get('is_ecs_fc') %}
                                     <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
-                                       class="text-xs font-semibold text-ecs-green dark:text-ecs-gold-400 hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Details</a>
+                                       class="text-xs font-semibold text-ecs-green dark:text-ecs-gold-400 hover:underline focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">Details</a>
                                     {% else %}
                                     <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
-                                       class="text-xs font-semibold text-ecs-green dark:text-ecs-gold-400 hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Details</a>
+                                       class="text-xs font-semibold text-ecs-green dark:text-ecs-gold-400 hover:underline focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">Details</a>
                                     {% endif %}
                                     {% endif %}
 
                                     {% if has_permission('report_match') %}
                                     {% if match_data.get('is_ecs_fc') %}
-                                    <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                    <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green edit-match-btn"
                                             data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
                                     </button>
                                     {% else %}
-                                    <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green edit-match-btn"
+                                    <button class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green edit-match-btn"
                                             data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" title="{% if match_data['reported'] %}Edit result{% else %}Report result{% endif %}">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
                                     </button>
@@ -576,7 +576,7 @@
     {% endif %}
 
     <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
+    <div class="bg-linear-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
         {% if player %}
         <h2 class="text-2xl font-bold mb-2">Welcome, {{ player.name }}!</h2>
         {% if user_team and user_team|length > 0 %}
@@ -602,9 +602,9 @@
     {% if not show_onboarding %}
     <!-- Announcements Card -->
     {% if announcements %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="flex items-center gap-4 p-4">
-            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-ecs-gold/20 flex items-center justify-center">
+            <div class="shrink-0 w-12 h-12 rounded-full bg-ecs-gold/20 flex items-center justify-center">
                 <i class="ti ti-bell text-ecs-gold text-xl"></i>
             </div>
             <div class="flex-1 min-w-0" id="announcementsCarousel">
@@ -617,7 +617,7 @@
                 {% endfor %}
             </div>
             {% if announcements|length > 1 %}
-            <button type="button" class="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="nextAnnouncement">
+            <button type="button" class="shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" id="nextAnnouncement">
                 <i class="ti ti-chevron-right text-gray-500"></i>
             </button>
             {% endif %}
@@ -628,7 +628,7 @@
 
     {% if not player %}
     <!-- Create Profile Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
         <img src="{{ url_for('static', filename='img/undraw_profile_details_re_ch9r.svg') }}"
              alt="Create Profile" class="w-48 h-48 mx-auto mb-4 opacity-80">
         <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Get Started</h3>
@@ -668,14 +668,14 @@
 
                 {% if team_next_matches|length > 0 %}
                 {% for date, matches in team_next_matches.items() | sort %}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-4 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 mb-4 overflow-hidden">
                     <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between">
                         <h5 class="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-calendar-event text-ecs-green dark:text-ecs-gold"></i>
                             {{ date.strftime('%A, %B %d, %Y') }}
                         </h5>
                         {% if t.league %}
-                        <span class="px-2 py-0.5 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">{{ t.league.name }}</span>
+                        <span class="px-2 py-0.5 text-xs rounded-sm bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">{{ t.league.name }}</span>
                         {% endif %}
                     </div>
                     <div class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -695,18 +695,18 @@
                             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div class="flex items-start gap-3">
                                     {% if match_data['week_type'] == 'BYE' %}
-                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                                         <i class="ti ti-moon"></i>
                                     </div>
                                     {% else %}
-                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
+                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
                                         {% if is_home %}H{% else %}A{% endif %}
                                     </div>
                                     {% endif %}
                                     <div>
                                         <h6 class="font-medium text-gray-900 dark:text-white">
                                             {% if match_data['week_type'] in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
-                                            <span class="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 mr-2">
+                                            <span class="px-2 py-0.5 text-xs rounded-sm bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 mr-2">
                                                 {% if match_data['week_type'] == 'FUN' %}Fun Week
                                                 {% elif match_data['week_type'] == 'TST' %}TST Week
                                                 {% elif match_data['week_type'] == 'BYE' %}Bye Week
@@ -795,7 +795,7 @@
                 </div>
                 {% endfor %}
                 {% else %}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
                     <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
                          alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
                     <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Upcoming Matches</h5>
@@ -805,7 +805,7 @@
             </div>
             {% endfor %}
             {% else %}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
                 <img src="{{ url_for('static', filename='img/undraw_notify_re_65on.svg') }}"
                      alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
                 <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Upcoming Matches</h5>
@@ -838,7 +838,7 @@
                 {% set team_prev_matches = team_matches.get(t.id, {}).get('prev', {}) %}
 
                 {% if team_prev_matches|length > 0 %}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div class="divide-y divide-gray-200 dark:divide-gray-700">
                         {% for date, matches in team_prev_matches.items() | sort(reverse=true) %}
                         {% for match_data in matches %}
@@ -857,18 +857,18 @@
                             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div class="flex items-start gap-3">
                                     {% if match_data.get('week_type') == 'BYE' %}
-                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
                                         <i class="ti ti-moon"></i>
                                     </div>
                                     {% else %}
-                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
+                                    <div class="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
                                         {% if is_home %}H{% else %}A{% endif %}
                                     </div>
                                     {% endif %}
                                     <div>
                                         <h6 class="font-medium text-gray-900 dark:text-white">
                                             {% if match_data.get('week_type') == 'BYE' %}
-                                            <span class="px-2 py-0.5 text-xs rounded bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
+                                            <span class="px-2 py-0.5 text-xs rounded-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
                                             {% elif is_home %}
                                             <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span> vs {{ opponent_name }}
                                             {% else %}
@@ -919,7 +919,7 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
                     <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
                          alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
                     <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Recent Matches</h5>
@@ -929,7 +929,7 @@
             </div>
             {% endfor %}
             {% else %}
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-8 text-center">
                 <img src="{{ url_for('static', filename='img/undraw_goal_-0-v5v.svg') }}"
                      alt="No Matches" class="w-32 h-32 mx-auto mb-4 opacity-60">
                 <h5 class="font-semibold text-gray-900 dark:text-white mb-1">No Recent Matches</h5>

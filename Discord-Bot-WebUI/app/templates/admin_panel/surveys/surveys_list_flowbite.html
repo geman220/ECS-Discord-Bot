@@ -97,7 +97,7 @@
           {% set is_poll = s.survey_type == 'poll' %}
           <td class="px-4 py-3">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded {{ 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}"
+              <span class="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-sm {{ 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}"
                     title="{{ 'Poll — one question, votable in Discord' if is_poll else 'Survey — multi-question web form' }}">
                 <i class="ti {{ 'ti-chart-bar' if is_poll else 'ti-clipboard-list' }} text-sm" aria-hidden="true"></i>
               </span>
@@ -105,7 +105,7 @@
               {% if s.is_anonymous %}<span class="shrink-0 text-xs text-gray-400" title="Anonymous"><i class="ti ti-eye-off"></i></span>{% endif %}
             </div>
             {# Type is hidden on small screens as its own column — surface it inline instead. #}
-            <span class="md:hidden mt-1 inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide {{ 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}">{{ 'Poll' if is_poll else 'Survey' }}</span>
+            <span class="md:hidden mt-1 inline-flex px-1.5 py-0.5 rounded-sm text-[10px] font-semibold uppercase tracking-wide {{ 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}">{{ 'Poll' if is_poll else 'Survey' }}</span>
           </td>
           <td class="px-4 py-3 hidden md:table-cell">
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {{ 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300' if is_poll else 'bg-ecs-green/10 text-ecs-green' }}">

@@ -67,7 +67,7 @@
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: var(--color-neutral-300, var(--color-secondary-300));
+  background: var(--ecs-color-neutral-300, var(--color-secondary-300));
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -81,14 +81,14 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--color-white, var(--color-white));
+  background: var(--ecs-color-white, var(--ecs-color-white));
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s ease, left 0.2s ease;
 }
 
 /* Optional label text */
 .c-toggle__text {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: var(--font-medium, 500);
   color: var(--color-text-primary, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   line-height: 1.4;
@@ -126,7 +126,7 @@
 }
 
 .c-toggle__input:disabled + .c-toggle__label::before {
-  background: var(--color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
+  background: var(--ecs-color-neutral-200, var(--color-secondary-200, var(--color-secondary-200, var(--color-secondary-200))));
 }
 
 /* ============================================================================
@@ -203,7 +203,7 @@
    ============================================================================ */
 
 [data-style="dark"] .c-toggle__label::before {
-  background: var(--color-neutral-600, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
+  background: var(--ecs-color-neutral-600, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
 [data-style="dark"] .c-toggle__text {
@@ -215,7 +215,7 @@
 }
 
 [data-style="dark"] .c-toggle__input:disabled + .c-toggle__label::before {
-  background: var(--color-neutral-700, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
+  background: var(--ecs-color-neutral-700, var(--color-secondary-800, var(--color-secondary-800, var(--color-secondary-800))));
 }
 
 /* ============================================================================

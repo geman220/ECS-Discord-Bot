@@ -77,7 +77,7 @@
     <!-- Section 1: Campaign Info — feature card with header bar -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">1</span>
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-sm font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">1</span>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
           <i class="ti ti-mail text-ecs-green" aria-hidden="true"></i> Blast Details
         </h2>
@@ -107,7 +107,7 @@
     <!-- Section 2: Recipient Filters — feature card -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">2</span>
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-sm font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">2</span>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
           <i class="ti ti-users text-ecs-green" aria-hidden="true"></i> Audience
         </h2>
@@ -142,10 +142,10 @@
           <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/40 space-y-1">
             {% set selected_teams = (fc.get('team_ids', []) if fc else [])|map('string')|list %}
             {% for team in teams %}
-            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm text-sm text-gray-700 dark:text-gray-300">
               <input type="checkbox" name="team_ids" value="{{ team.id }}" data-on-change="email-subfilter-change"
                      {{ 'checked' if team.id|string in selected_teams }}
-                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded-sm border-gray-300 dark:border-gray-500">
               {{ team.name }}
             </label>
             {% endfor %}
@@ -157,10 +157,10 @@
           <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/40 space-y-1">
             {% set selected_leagues = (fc.get('league_ids', []) if fc else [])|map('string')|list %}
             {% for league in leagues %}
-            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm text-sm text-gray-700 dark:text-gray-300">
               <input type="checkbox" name="league_ids" value="{{ league.id }}" data-on-change="email-subfilter-change"
                      {{ 'checked' if league.id|string in selected_leagues }}
-                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded-sm border-gray-300 dark:border-gray-500">
               {{ league.name }}
             </label>
             {% endfor %}
@@ -168,7 +168,7 @@
           <label class="flex items-center gap-2 cursor-pointer mt-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" id="leagueActiveOnly" data-on-change="email-subfilter-change"
                    {{ 'checked' if fc and fc.get('active_only') }}
-                   class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                   class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded-sm border-gray-300 dark:border-gray-500">
             Active players only <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(current season)</span>
           </label>
         </div>
@@ -178,10 +178,10 @@
           <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/40 space-y-1">
             {% set selected_roles = (fc.get('role_names', []) if fc else []) %}
             {% for role in roles %}
-            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-sm text-sm text-gray-700 dark:text-gray-300">
               <input type="checkbox" name="role_names" value="{{ role.name }}" data-on-change="email-subfilter-change"
                      {{ 'checked' if role.name in selected_roles }}
-                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded-sm border-gray-300 dark:border-gray-500">
               {{ role.name }}
             </label>
             {% endfor %}
@@ -212,7 +212,7 @@
         <i class="ti ti-list-search text-lg text-gray-400 dark:text-gray-500 shrink-0" aria-hidden="true"></i>
         <p class="flex-1 text-xs text-gray-500 dark:text-gray-400">Resolve who matches this audience before sending. The live count appears in the launch panel.</p>
         <button type="button" data-action="email-preview-recipients"
-                class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-eye" aria-hidden="true"></i> Preview Recipients
         </button>
       </div>
@@ -222,7 +222,7 @@
     <!-- Section 3: Email Template — feature card -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">3</span>
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-sm font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">3</span>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
           <i class="ti ti-template text-ecs-green" aria-hidden="true"></i> Wrapper Template
         </h2>
@@ -247,7 +247,7 @@
           </div>
           <div>
             <button type="button" data-action="email-preview-template"
-                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
               <i class="ti ti-eye" aria-hidden="true"></i> Preview with Template
             </button>
           </div>
@@ -258,7 +258,7 @@
     <!-- Section 4: Send Options — feature card -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">4</span>
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-sm font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">4</span>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
           <i class="ti ti-settings text-ecs-green" aria-hidden="true"></i> Delivery Options
         </h2>
@@ -297,7 +297,7 @@
             <input type="checkbox" id="forceSend" name="force_send" value="1"
                    {{ 'checked' if is_edit and campaign.force_send }}
                    data-on-change="email-force-send-toggle"
-                   class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded">
+                   class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded-sm">
             <span class="text-sm font-medium text-gray-900 dark:text-white">Force Send</span>
           </label>
           <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -327,7 +327,7 @@
     <!-- Section 5: Email Body — feature card -->
     <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
       <div class="flex items-center gap-2.5 px-4 sm:px-5 h-12 border-b border-gray-200 dark:border-gray-700">
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">5</span>
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-sm font-mono text-xs font-bold bg-ecs-green/10 text-ecs-green">5</span>
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-1.5">
           <i class="ti ti-file-text text-ecs-green" aria-hidden="true"></i> Message Content
         </h2>
@@ -337,11 +337,11 @@
         <div id="tokenHelp" class="{{ '' if is_edit and campaign.send_mode == 'individual' else 'hidden' }} mb-4 p-3 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10">
           <p class="text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300 mb-2">Personalization Tokens</p>
           <div class="flex flex-wrap gap-2 text-xs">
-            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{name}</code>
-            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{first_name}</code>
-            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{team}</code>
-            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{league}</code>
-            <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{season}</code>
+            <code class="px-2 py-1 rounded-sm font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{name}</code>
+            <code class="px-2 py-1 rounded-sm font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{first_name}</code>
+            <code class="px-2 py-1 rounded-sm font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{team}</code>
+            <code class="px-2 py-1 rounded-sm font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{league}</code>
+            <code class="px-2 py-1 rounded-sm font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{season}</code>
           </div>
         </div>
 
@@ -367,7 +367,7 @@
         </div>
         <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
           <button type="button" data-action="email-preview-recipients"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-refresh" aria-hidden="true"></i> Recalculate
           </button>
         </div>
@@ -387,21 +387,21 @@
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to send immediately.</p>
           </div>
           <button type="button" data-action="email-send-campaign"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-bold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-send" aria-hidden="true"></i> {{ 'Save & Send' if is_edit else 'Create &amp; Send' }}
           </button>
           <button type="button" data-action="email-save-draft"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-device-floppy" aria-hidden="true"></i> {{ 'Update Draft' if is_edit else 'Save as Draft' }}
           </button>
           <button type="button" data-action="email-send-test"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-test-pipe" aria-hidden="true"></i> Send Test to Me
           </button>
         </div>
         <div class="px-4 sm:px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) if is_edit else url_for('admin_panel.email_broadcasts_list') }}"
-             class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+             class="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
             <i class="ti ti-arrow-left" aria-hidden="true"></i> Cancel
           </a>
           {% if is_edit %}

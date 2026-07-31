@@ -82,9 +82,9 @@
 
     <!-- Status Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-database text-xl"></i>
                 </div>
                 <div>
@@ -95,9 +95,9 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center {{ 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' if validation.database_status.ready_to_send > 0 else 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' }} rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center {{ 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' if validation.database_status.ready_to_send > 0 else 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' }} rounded-lg">
                     <i class="ti ti-clock text-xl"></i>
                 </div>
                 <div>
@@ -110,9 +110,9 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center {{ 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' if validation.celery_status.connected else 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }} rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center {{ 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' if validation.celery_status.connected else 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }} rounded-lg">
                     <i class="ti ti-server text-xl"></i>
                 </div>
                 <div>
@@ -125,9 +125,9 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-3">
-                <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center {{ 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' if validation.beat_schedule.configured else 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }} rounded-lg">
+                <div class="shrink-0 w-10 h-10 flex items-center justify-center {{ 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' if validation.beat_schedule.configured else 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }} rounded-lg">
                     <i class="ti ti-calendar-cog text-xl"></i>
                 </div>
                 <div>
@@ -145,7 +145,7 @@
     {% if validation.issues or validation.recommendations %}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% if validation.issues %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
                     <i class="ti ti-alert-triangle"></i>
@@ -163,7 +163,7 @@
         {% endif %}
 
         {% if validation.recommendations %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-bulb"></i>
@@ -183,7 +183,7 @@
     {% endif %}
 
     <!-- System Configuration -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <div class="w-8 h-8 flex items-center justify-center {{ 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' if validation.beat_schedule.configured else 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' }} rounded-lg">
                 <i class="ti ti-settings"></i>
@@ -220,7 +220,7 @@
     </div>
 
     <!-- Upcoming Messages -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
@@ -289,7 +289,7 @@
     <!-- Recent Activity & Actions -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {% if validation.recent_sends %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
@@ -315,7 +315,7 @@
         </div>
         {% endif %}
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 {{ 'lg:col-span-2' if not validation.recent_sends else '' }}">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 {{ 'lg:col-span-2' if not validation.recent_sends else '' }}">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-tool"></i>
@@ -342,7 +342,7 @@
     </div>
 
     <!-- How It Works -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
             <div class="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg">
                 <i class="ti ti-info-circle"></i>
@@ -353,21 +353,21 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="space-y-4">
                     <div class="flex gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-full font-bold text-sm">1</div>
+                        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-full font-bold text-sm">1</div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white">Message Creation</h6>
                             <p class="text-sm text-gray-500 dark:text-gray-400">When matches are scheduled, messages are created with status='PENDING' and a scheduled send time</p>
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-cyan-600 text-white rounded-full font-bold text-sm">2</div>
+                        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-cyan-600 text-white rounded-full font-bold text-sm">2</div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white">Beat Schedule</h6>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Every 5 minutes, Celery Beat automatically triggers the 'process_scheduled_messages' task</p>
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-yellow-500 text-white rounded-full font-bold text-sm">3</div>
+                        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-yellow-500 text-white rounded-full font-bold text-sm">3</div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white">Message Processing</h6>
                             <p class="text-sm text-gray-500 dark:text-gray-400">The task finds all PENDING messages where scheduled_send_time <= now and queues them</p>
@@ -376,21 +376,21 @@
                 </div>
                 <div class="space-y-4">
                     <div class="flex gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-green-600 text-white rounded-full font-bold text-sm">4</div>
+                        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-green-600 text-white rounded-full font-bold text-sm">4</div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white">Discord Send</h6>
                             <p class="text-sm text-gray-500 dark:text-gray-400">The send task posts messages to Discord and updates status to 'SENT' or 'FAILED'</p>
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-gray-500 text-white rounded-full font-bold text-sm">5</div>
+                        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-gray-500 text-white rounded-full font-bold text-sm">5</div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white">RSVP Collection</h6>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Users respond via Discord reactions, which automatically update the database</p>
                         </div>
                     </div>
                     <div class="flex gap-3">
-                        <div class="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-green-500 text-white rounded-full font-bold text-sm">6</div>
+                        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-green-500 text-white rounded-full font-bold text-sm">6</div>
                         <div>
                             <h6 class="font-semibold text-gray-900 dark:text-white">Complete</h6>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Match day coordination is fully automated with real-time RSVP tracking</p>

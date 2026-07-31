@@ -11,7 +11,7 @@
   {# PRIMARY OBJECT — the unlinked Discord identity, rendered as a feature card
      with a header status bar, status pill, and a mono identity readout. #}
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
-    <div class="h-1 bg-gradient-to-r from-ecs-gold-500 to-amber-500"></div>
+    <div class="h-1 bg-linear-to-r from-ecs-gold-500 to-amber-500"></div>
     <div class="flex items-center justify-between gap-3 px-4 sm:px-5 h-14 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white min-w-0">
         <i class="ti ti-brand-discord text-[#5865F2] shrink-0" aria-hidden="true"></i>
@@ -59,7 +59,7 @@
           <a href="https://discord.com/invite/weareecs" target="_blank" rel="noopener noreferrer"
              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
                     bg-[#5865F2] hover:bg-[#4752c4] text-white text-sm font-semibold transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    focus:outline-hidden focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-brand-discord" aria-hidden="true"></i>
             Join Our Discord
             <i class="ti ti-external-link text-sm opacity-80" aria-hidden="true"></i>
@@ -86,7 +86,7 @@
           <a href="{{ url_for('auth.discord_login') }}"
              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-brand-discord" aria-hidden="true"></i>
             My coach updated my email
             <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
@@ -100,8 +100,8 @@
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
         <!-- Notice Card -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div class="h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="h-1 bg-linear-to-r from-yellow-500 to-orange-500"></div>
             <div class="p-8">
                 <!-- Icon -->
                 <div class="w-16 h-16 mx-auto rounded-full bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center mb-6">

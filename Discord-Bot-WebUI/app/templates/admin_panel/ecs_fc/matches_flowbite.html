@@ -41,7 +41,7 @@
   <a href="{{ url_for('admin_panel.ecs_fc_match_create') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
             bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
     <i class="ti ti-plus" aria-hidden="true"></i>Create Match
   </a>
 {% endcall %}
@@ -76,7 +76,7 @@
   <label class="inline-flex items-center cursor-pointer min-h-[44px] sm:min-h-0 shrink-0">
     <input type="checkbox" class="sr-only peer" name="show_past" value="true"
            {% if show_past %}checked{% endif %} onchange="this.form.submit()">
-    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
     <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Show past matches</span>
   </label>
 </form>
@@ -87,7 +87,7 @@
   <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
     <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
     <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">{{ "All Matches" if show_past else "Upcoming Matches" }}</h3>
-    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">{{ matches|length }}</span>
+    <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">{{ matches|length }}</span>
   </div>
 
   {% set date_ns = namespace(current='') %}
@@ -131,9 +131,9 @@
       <div class="flex items-center gap-2 shrink-0 pl-10 lg:pl-0 flex-wrap">
         {# RSVP pill cluster — links to RSVP status #}
         <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1 font-mono" title="View RSVP" aria-label="View RSVP responses">
-          <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">{{ match.rsvp_counts.yes }}</span>
-          <span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ match.rsvp_counts.maybe }}</span>
-          <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">{{ match.rsvp_counts.no }}</span>
+          <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">{{ match.rsvp_counts.yes }}</span>
+          <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ match.rsvp_counts.maybe }}</span>
+          <span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">{{ match.rsvp_counts.no }}</span>
         </a>
         {# status pill #}
         <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full
@@ -147,13 +147,13 @@
         {# action toolbar #}
         <div class="flex items-center gap-1">
           <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='ecs_fc', match_id=match.id) }}"
-             class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+             class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
              title="Check-In" aria-label="Check-In"><i class="ti ti-qrcode" aria-hidden="true"></i></a>
           <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
-             class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+             class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
              title="Edit" aria-label="Edit"><i class="ti ti-edit" aria-hidden="true"></i></a>
           <button type="button"
-                  class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="inline-flex items-center justify-center w-11 h-11 sm:w-9 sm:h-9 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   title="Delete" aria-label="Delete" onclick="deleteMatch({{ match.id }})"><i class="ti ti-trash" aria-hidden="true"></i></button>
         </div>
       </div>
@@ -166,7 +166,7 @@
 </section>
 {% else %}
 <!-- Filters -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-4">
         <form method="get" class="flex flex-wrap items-center gap-4">
             <select name="team_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -178,7 +178,7 @@
             <label class="inline-flex items-center cursor-pointer">
                 <input type="checkbox" class="sr-only peer" name="show_past" value="true"
                        {% if show_past %}checked{% endif %} onchange="this.form.submit()">
-                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Show past matches</span>
             </label>
             <div class="ml-auto">
@@ -191,7 +191,7 @@
 </div>
 
 <!-- Matches Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-calendar mr-2"></i>
@@ -227,9 +227,9 @@
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ match.match_time.strftime('%I:%M %p') }}</td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if match.is_home_match %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300 mr-1">H</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-sm dark:bg-green-900 dark:text-green-300 mr-1">H</span>
                         {% else %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
                         {% endif %}
                         {{ match.opponent_name }}
                     </td>
@@ -241,9 +241,9 @@
                     </td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1">
-                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
-                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
-                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-sm dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-sm dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-sm dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
                         </a>
                     </td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
@@ -258,19 +258,19 @@
                     <td class="px-3 sm:px-6 py-4">
                         <div class="flex gap-1">
                             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
-                               class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">
+                               class="p-2 text-blue-600 hover:bg-blue-100 rounded-sm dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">
                                 <i class="ti ti-users"></i>
                             </a>
                             <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='ecs_fc', match_id=match.id) }}"
-                               class="p-2 text-emerald-600 hover:bg-emerald-100 rounded dark:text-emerald-400 dark:hover:bg-gray-700" title="Check-In">
+                               class="p-2 text-emerald-600 hover:bg-emerald-100 rounded-sm dark:text-emerald-400 dark:hover:bg-gray-700" title="Check-In">
                                 <i class="ti ti-qrcode"></i>
                             </a>
                             <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
-                               class="p-2 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Edit">
+                               class="p-2 text-gray-600 hover:bg-gray-100 rounded-sm dark:text-gray-400 dark:hover:bg-gray-700" title="Edit">
                                 <i class="ti ti-edit"></i>
                             </a>
                             <button type="button"
-                                    class="p-2 text-red-600 hover:bg-red-100 rounded dark:text-red-400 dark:hover:bg-gray-700"
+                                    class="p-2 text-red-600 hover:bg-red-100 rounded-sm dark:text-red-400 dark:hover:bg-gray-700"
                                     title="Delete" onclick="deleteMatch({{ match.id }})">
                                 <i class="ti ti-trash"></i>
                             </button>
@@ -295,7 +295,7 @@
 
 {% else %}
 <!-- Filters -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-4">
         <form method="get" class="flex flex-wrap items-center gap-4">
             <select name="team_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
@@ -307,7 +307,7 @@
             <label class="inline-flex items-center cursor-pointer">
                 <input type="checkbox" class="sr-only peer" name="show_past" value="true"
                        {% if show_past %}checked{% endif %} onchange="this.form.submit()">
-                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Show past matches</span>
             </label>
             <div class="ml-auto">
@@ -320,7 +320,7 @@
 </div>
 
 <!-- Matches Table -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-calendar mr-2"></i>
@@ -356,9 +356,9 @@
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ match.match_time.strftime('%I:%M %p') }}</td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if match.is_home_match %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300 mr-1">H</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-sm dark:bg-green-900 dark:text-green-300 mr-1">H</span>
                         {% else %}
-                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
+                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-sm dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
                         {% endif %}
                         {{ match.opponent_name }}
                     </td>
@@ -370,9 +370,9 @@
                     </td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1">
-                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
-                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
-                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-sm dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-sm dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-sm dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
                         </a>
                     </td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
@@ -387,19 +387,19 @@
                     <td class="px-3 sm:px-6 py-4">
                         <div class="flex gap-1">
                             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
-                               class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">
+                               class="p-2 text-blue-600 hover:bg-blue-100 rounded-sm dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">
                                 <i class="ti ti-users"></i>
                             </a>
                             <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='ecs_fc', match_id=match.id) }}"
-                               class="p-2 text-emerald-600 hover:bg-emerald-100 rounded dark:text-emerald-400 dark:hover:bg-gray-700" title="Check-In">
+                               class="p-2 text-emerald-600 hover:bg-emerald-100 rounded-sm dark:text-emerald-400 dark:hover:bg-gray-700" title="Check-In">
                                 <i class="ti ti-qrcode"></i>
                             </a>
                             <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
-                               class="p-2 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Edit">
+                               class="p-2 text-gray-600 hover:bg-gray-100 rounded-sm dark:text-gray-400 dark:hover:bg-gray-700" title="Edit">
                                 <i class="ti ti-edit"></i>
                             </a>
                             <button type="button"
-                                    class="p-2 text-red-600 hover:bg-red-100 rounded dark:text-red-400 dark:hover:bg-gray-700"
+                                    class="p-2 text-red-600 hover:bg-red-100 rounded-sm dark:text-red-400 dark:hover:bg-gray-700"
                                     title="Delete" onclick="deleteMatch({{ match.id }})">
                                 <i class="ti ti-trash"></i>
                             </button>

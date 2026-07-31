@@ -35,7 +35,7 @@
   <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden" role="group" aria-label="Reporting period">
     {% for d in [7, 30, 90] %}
     <a href="{{ url_for('admin_panel.mobile_analytics', days=d) }}"
-       class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green
+       class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green
               {% if analytics_data.period_days == d %}bg-ecs-green text-white{% else %}bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50{% endif %}
               {% if not loop.first %}border-l border-gray-200 dark:border-gray-700{% endif %}"
        {% if analytics_data.period_days == d %}aria-current="true"{% endif %}>
@@ -133,7 +133,7 @@
         <div class="flex items-center gap-3 text-xs font-mono text-gray-500 dark:text-gray-400">
           <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:rgb(75,192,192)" aria-hidden="true"></span> DAU</span>
           <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:rgb(255,99,132)" aria-hidden="true"></span> Sessions</span>
-          <span class="hidden sm:inline px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ analytics_data.period_days }}d</span>
+          <span class="hidden sm:inline px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ analytics_data.period_days }}d</span>
         </div>
       </div>
       <div class="p-4 sm:p-5">
@@ -155,7 +155,7 @@
         <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
           <i class="ti ti-device-mobile text-ecs-green" aria-hidden="true"></i> Platform Mix
         </h2>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ '{:,}'.format(_plat_total) }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ '{:,}'.format(_plat_total) }}</span>
       </div>
       <div class="p-4 sm:p-5 flex-1 flex flex-col">
         <div class="relative h-[160px] mb-4">
@@ -287,12 +287,12 @@
 {% else %}
 {% if analytics_data.data_source == 'device_tokens' %}
 <div class="flex items-start p-4 mb-6 text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300" role="alert">
-    <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
+    <i class="ti ti-info-circle shrink-0 mr-3 mt-0.5 text-lg"></i>
     <div>
         <h6 class="font-medium mb-1">Limited Analytics Data</h6>
         <p class="text-sm">
             Analytics are currently derived from push token activity. For comprehensive data (sessions, screen views, feature usage),
-            the Flutter app needs to integrate with the telemetry API (<code class="text-xs bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded">POST /api/v1/telemetry/*</code>).
+            the Flutter app needs to integrate with the telemetry API (<code class="text-xs bg-blue-100 dark:bg-blue-900 px-1 py-0.5 rounded-sm">POST /api/v1/telemetry/*</code>).
         </p>
     </div>
 </div>
@@ -303,7 +303,7 @@
     <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
         <i class="ti ti-chart-line mr-2"></i>Analytics Overview
     </h5>
-    <div class="inline-flex rounded-lg shadow-sm" role="group">
+    <div class="inline-flex rounded-lg shadow-xs" role="group">
         {% for d in [7, 30, 90] %}
         <a href="{{ url_for('admin_panel.mobile_analytics', days=d) }}"
            class="px-3 py-1.5 text-sm font-medium {{ 'text-blue-700 bg-blue-100 dark:bg-blue-900 dark:text-blue-300' if analytics_data.period_days == d else 'text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300' }} {{ 'rounded-l-lg' if d == 7 }}{{ 'rounded-r-lg' if d == 90 }}">
@@ -315,7 +315,7 @@
 
 <!-- Stats Grid -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 mb-3">
                 <i class="ti ti-users text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -324,7 +324,7 @@
             <span class="text-sm text-blue-700 dark:text-blue-300">Total Mobile Users</span>
         </div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-3">
                 <i class="ti ti-activity text-2xl text-green-600 dark:text-green-400"></i>
@@ -333,7 +333,7 @@
             <span class="text-sm text-green-700 dark:text-green-300">Daily Active Users</span>
         </div>
     </div>
-    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
+    <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
                 <i class="ti ti-trending-up text-2xl text-cyan-600 dark:text-cyan-400"></i>
@@ -342,7 +342,7 @@
             <span class="text-sm text-cyan-700 dark:text-cyan-300">Retention Rate</span>
         </div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 mb-3">
                 <i class="ti ti-clock text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -356,7 +356,7 @@
 <!-- Engagement Chart + Platform Breakdown -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
     <!-- User Engagement Chart -->
-    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-chart-line mr-2"></i>Daily Engagement ({{ analytics_data.period_days }}d)
@@ -378,7 +378,7 @@
     </div>
 
     <!-- Platform Breakdown -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-device-mobile mr-2"></i>Platform Breakdown
@@ -418,7 +418,7 @@
 <!-- Feature Usage & Top Screens -->
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <!-- Feature Usage -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-star mr-2"></i>Feature Usage
@@ -450,7 +450,7 @@
     </div>
 
     <!-- Top Screens -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
                 <i class="ti ti-screen-share mr-2"></i>Top Screens
@@ -490,7 +490,7 @@
 </div>
 
 <!-- User Behavior Analytics -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
             <i class="ti ti-users mr-2"></i>User Activity

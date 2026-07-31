@@ -307,7 +307,7 @@ function updateCalendarPreview() {
 
     // Generate HTML
     let html = `
-        <div class="mb-3 p-3 bg-light rounded">
+        <div class="mb-3 p-3 bg-light rounded-sm">
             <h6 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>Season Calendar Preview</h6>
             <small class="text-gray-500 dark:text-gray-400">${unifiedWeeks.length} weeks total</small><br>
             <small class="text-blue-500 dark:text-blue-400"><i class="fas fa-hand-pointer me-1"></i>Drag any week to swap positions</small>
@@ -500,7 +500,7 @@ function generateSeasonSummary() {
             <p class="mb-0">Review configuration before creating season.</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
+            <div class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xs">
                 <div class="bg-gray-500 text-white px-4 py-3 rounded-t-lg">
                     <h6 class="mb-0 font-semibold"><i class="fas fa-calendar me-2"></i>Season Details</h6>
                 </div>
@@ -522,7 +522,7 @@ function generateSeasonSummary() {
 
         summary += `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="bg-white dark:bg-gray-800 border border-ecs-green dark:border-ecs-green rounded-lg shadow-sm">
+                <div class="bg-white dark:bg-gray-800 border border-ecs-green dark:border-ecs-green rounded-lg shadow-xs">
                     <div class="bg-ecs-green text-white px-4 py-3 rounded-t-lg">
                         <h6 class="mb-0 font-semibold"><i class="fas fa-trophy me-2"></i>Premier Division</h6>
                     </div>
@@ -530,7 +530,7 @@ function generateSeasonSummary() {
                         <p><strong>Total Weeks:</strong> ${premierWeeks.length}</p>
                     </div>
                 </div>
-                <div class="bg-white dark:bg-gray-800 border border-green-500 dark:border-green-500 rounded-lg shadow-sm">
+                <div class="bg-white dark:bg-gray-800 border border-green-500 dark:border-green-500 rounded-lg shadow-xs">
                     <div class="bg-green-500 text-white px-4 py-3 rounded-t-lg">
                         <h6 class="mb-0 font-semibold"><i class="fas fa-users me-2"></i>Classic Division</h6>
                     </div>

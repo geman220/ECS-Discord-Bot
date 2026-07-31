@@ -2,17 +2,17 @@
 <div id="ai-assistant-widget" class="hidden" data-page="ai-assistant">
     {# Backdrop #}
     <div id="ai-assistant-backdrop" data-action="ai-assistant-toggle"
-         class="fixed inset-0 z-[80] bg-gray-900/50 dark:bg-gray-900/70 transition-opacity"></div>
+         class="fixed inset-0 z-80 bg-gray-900/50 dark:bg-gray-900/70 transition-opacity"></div>
 
     {# Modal #}
-    <div class="fixed inset-0 z-[81] flex items-start justify-center pt-12 sm:pt-16 px-4 pb-4"
+    <div class="fixed inset-0 z-81 flex items-start justify-center pt-12 sm:pt-16 px-4 pb-4"
          id="ai-assistant-modal-wrapper">
         <div class="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
              style="max-height: calc(100vh - 6rem); height: 700px;"
              role="dialog" aria-label="AI Assistant" aria-modal="true">
 
             {# Header #}
-            <div class="flex items-center justify-between px-4 py-3 bg-ecs-green text-white flex-shrink-0">
+            <div class="flex items-center justify-between px-4 py-3 bg-ecs-green text-white shrink-0">
                 <div class="flex items-center gap-2">
                     <i class="ti ti-sparkles text-lg"></i>
                     <span class="font-semibold text-sm">AI Assistant</span>
@@ -33,7 +33,7 @@
             </div>
 
             {# Suggestion Chips #}
-            <div id="ai-assistant-suggestions" class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div id="ai-assistant-suggestions" class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 shrink-0">
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick questions:</p>
                 <div class="flex flex-wrap gap-1.5" id="ai-assistant-chips"></div>
             </div>
@@ -59,7 +59,7 @@
             </div>
 
             {# Input Area #}
-            <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+            <div class="shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
                 <div class="flex items-end gap-2">
                     <div class="flex-1 relative">
                         <textarea id="ai-assistant-input"
@@ -71,7 +71,7 @@
                         <span id="ai-assistant-char-count" class="absolute right-3 bottom-2 text-[10px] text-gray-400"></span>
                     </div>
                     <button type="button" data-action="ai-assistant-send"
-                            class="flex-shrink-0 p-2.5 rounded-xl bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="shrink-0 p-2.5 rounded-xl bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             id="ai-assistant-send-btn" disabled aria-label="Send">
                         <i class="ti ti-send text-lg"></i>
                     </button>

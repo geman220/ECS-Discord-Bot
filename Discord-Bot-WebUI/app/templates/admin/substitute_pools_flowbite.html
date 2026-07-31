@@ -26,19 +26,19 @@
     <!-- Global Stats Overview -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         {% for league_type, data in pools_data.items() %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ data.total_active }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ league_type }} Active</p>
         </div>
         {% endfor %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
             <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ pools_data.values() | map(attribute='available_players') | map('length') | sum }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approval</p>
         </div>
     </div>
 
     <!-- Player Search -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-search text-gray-500"></i>Player Search
@@ -65,8 +65,8 @@
 
     <!-- League Sections -->
     {% for league_type, data in pools_data.items() %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-lg">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-600 to-blue-700 rounded-t-lg">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div class="text-white">
                     <h3 class="text-lg font-semibold flex items-center gap-2">
@@ -104,11 +104,11 @@
                             <div class="flex items-center gap-3">
                                 <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}" alt="{{ player.name }}"
                                      class="w-10 h-10 rounded-full object-cover" onerror="this.src='/static/img/default_player.png'">
-                                <div class="flex-grow min-w-0">
+                                <div class="grow min-w-0">
                                     <h6 class="font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</h6>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.user.email if player.user else 'No email' }}</p>
                                 </div>
-                                <div class="flex-shrink-0 flex items-center gap-1">
+                                <div class="shrink-0 flex items-center gap-1">
                                     <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">Pending</span>
                                     <button type="button" class="approve-btn p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                                             data-player-id="{{ player.id }}" data-league="{{ league_type }}" title="Approve">
@@ -153,14 +153,14 @@
                             <div class="flex items-center gap-3">
                                 <img src="{{ pool.player.profile_picture_url or '/static/img/default_player.png' }}" alt="{{ pool.player.name }}"
                                      class="w-10 h-10 rounded-full object-cover" onerror="this.src='/static/img/default_player.png'">
-                                <div class="flex-grow min-w-0">
+                                <div class="grow min-w-0">
                                     <h6 class="font-medium text-gray-900 dark:text-white truncate">{{ pool.player.name }}</h6>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ pool.player.user.email if pool.player.user else 'No email' }}</p>
                                     {% if pool.preferred_positions %}
                                     <p class="text-xs text-blue-600 dark:text-blue-400"><i class="ti ti-target"></i> {{ pool.preferred_positions }}</p>
                                     {% endif %}
                                 </div>
-                                <div class="flex-shrink-0">
+                                <div class="shrink-0">
                                     <div class="flex gap-2 text-center text-xs mb-1">
                                         <div>
                                             <span class="block font-bold text-blue-600 dark:text-blue-400">{{ pool.requests_received }}</span>
@@ -177,10 +177,10 @@
                                     </div>
                                     <div class="flex items-center gap-1">
                                         {% if pool.sms_for_sub_requests %}
-                                        <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">SMS</span>
+                                        <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-sm">SMS</span>
                                         {% endif %}
                                         {% if pool.discord_for_sub_requests %}
-                                        <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">Discord</span>
+                                        <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-sm">Discord</span>
                                         {% endif %}
                                         <button type="button" class="remove-btn p-1 text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
                                                 data-player-id="{{ pool.player_id }}" data-league="{{ league_type }}" title="Remove">
@@ -242,15 +242,15 @@
         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
         <div class="space-y-2">
             <label class="flex items-center">
-                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
             </label>
             <label class="flex items-center">
-                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
             </label>
             <label class="flex items-center">
-                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
             </label>
         </div>

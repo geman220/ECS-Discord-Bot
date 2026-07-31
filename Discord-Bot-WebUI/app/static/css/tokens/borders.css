@@ -22,29 +22,29 @@
      Rounded corners for modern, friendly feel
      ======================================================================== */
   --radius-none: 0;
-  --radius-sm: 0.25rem;
+  --ecs-radius-sm: 0.25rem;
   /* 4px - Subtle rounding */
-  --radius-md: 0.375rem;
+  --ecs-radius-md: 0.375rem;
   /* 6px - Standard rounding */
-  --radius-lg: 0.5rem;
+  --ecs-radius-lg: 0.5rem;
   /* 8px - Generous rounding */
-  --radius-xl: 0.75rem;
+  --ecs-radius-xl: 0.75rem;
   /* 12px - Large rounding */
-  --radius-2xl: 1rem;
+  --ecs-radius-2xl: 1rem;
   /* 16px - Extra large rounding */
-  --radius-3xl: 1.5rem;
+  --ecs-radius-3xl: 1.5rem;
   /* 24px - Huge rounding */
   --radius-full: 9999px;
   /* Pill shape / circular */
   /* Semantic radius mappings */
-  --radius-button: var(--radius-md);
-  --radius-input: var(--radius-md);
-  --radius-card: var(--radius-lg);
-  --radius-modal: var(--radius-lg);
-  --radius-dropdown: var(--radius-md);
+  --radius-button: var(--ecs-radius-md);
+  --radius-input: var(--ecs-radius-md);
+  --radius-card: var(--ecs-radius-lg);
+  --radius-modal: var(--ecs-radius-lg);
+  --radius-dropdown: var(--ecs-radius-md);
   --radius-badge: var(--radius-full);
   --radius-avatar: var(--radius-full);
-  --radius-tooltip: var(--radius-sm);
+  --radius-tooltip: var(--ecs-radius-sm);
   /* ========================================================================
      2. BORDER WIDTHS
      ======================================================================== */
@@ -61,16 +61,16 @@
      3. BORDER COLORS
      ======================================================================== */
   /* Default borders */
-  --border-color-primary: var(--color-neutral-200);
-  --border-color-secondary: var(--color-neutral-300);
-  --border-color-muted: var(--color-neutral-100);
+  --border-color-primary: var(--ecs-color-neutral-200);
+  --border-color-secondary: var(--ecs-color-neutral-300);
+  --border-color-muted: var(--ecs-color-neutral-100);
   /* Interactive borders */
-  --border-color-hover: var(--color-neutral-300);
+  --border-color-hover: var(--ecs-color-neutral-300);
   --border-color-focus: var(--color-primary-600);
   --border-color-active: var(--color-primary-600);
   /* Input borders */
-  --border-color-input: var(--color-neutral-300);
-  --border-color-input-hover: var(--color-neutral-400);
+  --border-color-input: var(--ecs-color-neutral-300);
+  --border-color-input-hover: var(--ecs-color-neutral-400);
   --border-color-input-focus: var(--color-primary-600);
   --border-color-input-error: var(--color-danger-600);
   /* Semantic borders */
@@ -79,8 +79,8 @@
   --border-color-danger: var(--color-danger-600);
   --border-color-info: var(--color-info-600);
   /* Dividers */
-  --border-color-divider: var(--color-neutral-200);
-  --border-color-divider-strong: var(--color-neutral-300);
+  --border-color-divider: var(--ecs-color-neutral-200);
+  --border-color-divider-strong: var(--ecs-color-neutral-300);
   /* ========================================================================
      4. BORDER STYLES
      ======================================================================== */
@@ -110,11 +110,11 @@
   --divider-vertical: 1px solid var(--border-color-divider);
   --divider-horizontal-strong: 2px solid var(--border-color-divider-strong);
   --divider-vertical-strong: 2px solid var(--border-color-divider-strong);
-  --ecs-radius-sm: var(--radius-sm);
-  --ecs-radius-md: var(--radius-md);
-  --ecs-radius-lg: var(--radius-lg);
-  --ecs-radius-xl: var(--radius-xl);
-  --ecs-radius-2xl: var(--radius-2xl);
+  --ecs-radius-sm: var(--ecs-radius-sm);
+  --ecs-radius-md: var(--ecs-radius-md);
+  --ecs-radius-lg: var(--ecs-radius-lg);
+  --ecs-radius-xl: var(--ecs-radius-xl);
+  --ecs-radius-2xl: var(--ecs-radius-2xl);
   --ecs-radius-full: var(--radius-full);
   --ecs-border-width: var(--border-width);
   --ecs-border-color: var(--border-color-primary);
@@ -127,16 +127,16 @@
 
 [data-style="dark"] {
   /* Border colors */
-  --border-color-primary: var(--color-neutral-200);
-  --border-color-secondary: var(--color-neutral-300);
-  --border-color-muted: var(--color-neutral-100);
-  --border-color-hover: var(--color-neutral-300);
+  --border-color-primary: var(--ecs-color-neutral-200);
+  --border-color-secondary: var(--ecs-color-neutral-300);
+  --border-color-muted: var(--ecs-color-neutral-100);
+  --border-color-hover: var(--ecs-color-neutral-300);
   /* Input borders */
-  --border-color-input: var(--color-neutral-200);
-  --border-color-input-hover: var(--color-neutral-300);
+  --border-color-input: var(--ecs-color-neutral-200);
+  --border-color-input-hover: var(--ecs-color-neutral-300);
   /* Dividers */
-  --border-color-divider: var(--color-neutral-200);
-  --border-color-divider-strong: var(--color-neutral-300);
+  --border-color-divider: var(--ecs-color-neutral-200);
+  --border-color-divider-strong: var(--ecs-color-neutral-300);
   /* Outline for focus */
   --outline-color-focus: var(--color-primary-500);
 }
@@ -148,21 +148,21 @@
 
 [data-theme-variant="modern-v2"] {
   /* Modern V2 uses more generous rounding */
-  --radius-sm: 0.5rem;
+  --ecs-radius-sm: 0.5rem;
   /* 8px */
-  --radius-md: 0.75rem;
+  --ecs-radius-md: 0.75rem;
   /* 12px */
-  --radius-lg: 1rem;
+  --ecs-radius-lg: 1rem;
   /* 16px */
-  --radius-xl: 1.25rem;
+  --ecs-radius-xl: 1.25rem;
   /* 20px */
-  --radius-2xl: 1.5rem;
+  --ecs-radius-2xl: 1.5rem;
   /* 24px */
   /* Component rounding */
-  --radius-button: var(--radius-md);
-  --radius-input: var(--radius-md);
-  --radius-card: var(--radius-xl);
-  --radius-modal: var(--radius-xl);
+  --radius-button: var(--ecs-radius-md);
+  --radius-input: var(--ecs-radius-md);
+  --radius-card: var(--ecs-radius-xl);
+  --radius-modal: var(--ecs-radius-xl);
 }
 
 /* ============================================================================
@@ -272,27 +272,27 @@
 }
 
 .rounded-sm {
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
 }
 
 .rounded-md {
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
 }
 
 .rounded-lg {
-  border-radius: var(--radius-lg);
+  border-radius: var(--ecs-radius-lg);
 }
 
 .rounded-xl {
-  border-radius: var(--radius-xl);
+  border-radius: var(--ecs-radius-xl);
 }
 
 .rounded-2xl {
-  border-radius: var(--radius-2xl);
+  border-radius: var(--ecs-radius-2xl);
 }
 
 .rounded-3xl {
-  border-radius: var(--radius-3xl);
+  border-radius: var(--ecs-radius-3xl);
 }
 
 .rounded-full {
@@ -322,63 +322,63 @@
 }
 
 .rounded-t-sm {
-  border-top-left-radius: var(--radius-sm);
-  border-top-right-radius: var(--radius-sm);
+  border-top-left-radius: var(--ecs-radius-sm);
+  border-top-right-radius: var(--ecs-radius-sm);
 }
 
 .rounded-r-sm {
-  border-top-right-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
+  border-top-right-radius: var(--ecs-radius-sm);
+  border-bottom-right-radius: var(--ecs-radius-sm);
 }
 
 .rounded-b-sm {
-  border-bottom-left-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
+  border-bottom-left-radius: var(--ecs-radius-sm);
+  border-bottom-right-radius: var(--ecs-radius-sm);
 }
 
 .rounded-l-sm {
-  border-top-left-radius: var(--radius-sm);
-  border-bottom-left-radius: var(--radius-sm);
+  border-top-left-radius: var(--ecs-radius-sm);
+  border-bottom-left-radius: var(--ecs-radius-sm);
 }
 
 .rounded-t-md {
-  border-top-left-radius: var(--radius-md);
-  border-top-right-radius: var(--radius-md);
+  border-top-left-radius: var(--ecs-radius-md);
+  border-top-right-radius: var(--ecs-radius-md);
 }
 
 .rounded-r-md {
-  border-top-right-radius: var(--radius-md);
-  border-bottom-right-radius: var(--radius-md);
+  border-top-right-radius: var(--ecs-radius-md);
+  border-bottom-right-radius: var(--ecs-radius-md);
 }
 
 .rounded-b-md {
-  border-bottom-left-radius: var(--radius-md);
-  border-bottom-right-radius: var(--radius-md);
+  border-bottom-left-radius: var(--ecs-radius-md);
+  border-bottom-right-radius: var(--ecs-radius-md);
 }
 
 .rounded-l-md {
-  border-top-left-radius: var(--radius-md);
-  border-bottom-left-radius: var(--radius-md);
+  border-top-left-radius: var(--ecs-radius-md);
+  border-bottom-left-radius: var(--ecs-radius-md);
 }
 
 .rounded-t-lg {
-  border-top-left-radius: var(--radius-lg);
-  border-top-right-radius: var(--radius-lg);
+  border-top-left-radius: var(--ecs-radius-lg);
+  border-top-right-radius: var(--ecs-radius-lg);
 }
 
 .rounded-r-lg {
-  border-top-right-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+  border-top-right-radius: var(--ecs-radius-lg);
+  border-bottom-right-radius: var(--ecs-radius-lg);
 }
 
 .rounded-b-lg {
-  border-bottom-left-radius: var(--radius-lg);
-  border-bottom-right-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--ecs-radius-lg);
+  border-bottom-right-radius: var(--ecs-radius-lg);
 }
 
 .rounded-l-lg {
-  border-top-left-radius: var(--radius-lg);
-  border-bottom-left-radius: var(--radius-lg);
+  border-top-left-radius: var(--ecs-radius-lg);
+  border-bottom-left-radius: var(--ecs-radius-lg);
 }
 
 /* Dividers */

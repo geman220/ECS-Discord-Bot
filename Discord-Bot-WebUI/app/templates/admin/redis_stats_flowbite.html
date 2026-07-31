@@ -34,7 +34,7 @@
     <div class="flex items-center gap-4">
         <label class="inline-flex items-center cursor-pointer">
             <input type="checkbox" id="redis-auto-refresh" checked class="sr-only peer">
-            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:inset-s-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh every 5 seconds</span>
         </label>
         <span id="redis-last-updated" class="text-sm text-gray-500 dark:text-gray-400"></span>
@@ -42,7 +42,7 @@
 
     <!-- Connection Health Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <h5 class="font-semibold text-gray-900 dark:text-white mb-3">Connection Health</h5>
             <div id="health-status" class="flex items-center gap-2 mb-2">
                 {% if connection_health.overall %}
@@ -59,12 +59,12 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center">
             <h3 class="text-4xl font-bold text-gray-900 dark:text-white mb-2" id="redis-max-connections">{{ stats.pool_stats.max_connections|default(0) }}</h3>
             <span class="text-sm text-gray-500 dark:text-gray-400">Max Connections</span>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center">
             <h3 class="text-4xl font-bold text-gray-900 dark:text-white mb-2" id="utilization">{{ stats.pool_stats.utilization_percent|default(0) }}%</h3>
             <span class="text-sm text-gray-500 dark:text-gray-400">Pool Utilization</span>
         </div>
@@ -72,7 +72,7 @@
 
     <!-- Connection Pool Details -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white">Connection Pool Statistics</h5>
             </div>
@@ -104,7 +104,7 @@
             </div>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white">Redis Server Metrics</h5>
             </div>
@@ -134,7 +134,7 @@
     </div>
 
     <!-- Test Results -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Connection Test Results</h5>
         </div>

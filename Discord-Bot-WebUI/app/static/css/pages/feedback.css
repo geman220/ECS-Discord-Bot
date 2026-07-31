@@ -28,7 +28,7 @@
     border: 1px solid var(--ecs-border, #d9dee3);
     border-right: none;
     border-radius: var(--ecs-border-radius, 0.375rem) 0 0 var(--ecs-border-radius, 0.375rem);
-    background-color: var(--ecs-bg, var(--color-white));
+    background-color: var(--ecs-bg, var(--ecs-color-white));
     color: var(--ecs-text, var(--color-secondary-600));
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -50,12 +50,12 @@
 /* Dark mode for input group */
 [data-style="dark"] .c-feedback-header .c-input-group__input {
     background-color: var(--ecs-dark-bg-card, var(--color-secondary-900));
-    border-color: var(--ecs-dark-border, var(--color-neutral-700)564);
-    color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+    border-color: var(--ecs-dark-border, var(--ecs-color-neutral-700)564);
+    color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
 }
 
 [data-style="dark"] .c-feedback-header .c-input-group__input::placeholder {
-    color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+    color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 [data-style="dark"] .c-feedback-header .c-input-group__input:focus {
@@ -99,7 +99,7 @@
 }
 
 .c-feedback-item:hover {
-    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
+    background-color: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
 }
 
 [data-style="dark"] .c-feedback-item:hover {
@@ -183,7 +183,7 @@
 
 .c-feedback-detail__content {
     padding: 1rem;
-    background-color: var(--ecs-neutral-5, var(--color-neutral-50));
+    background-color: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
     border-radius: var(--ecs-border-radius, 0.375rem);
     color: var(--ecs-text, var(--color-secondary-600));
     line-height: 1.6;
@@ -233,14 +233,14 @@
     padding: 1rem;
     border: 1px solid var(--ecs-border, #d9dee3);
     border-radius: var(--ecs-border-radius, 0.375rem);
-    background-color: var(--ecs-bg, var(--color-white));
+    background-color: var(--ecs-bg, var(--ecs-color-white));
     color: var(--ecs-text, var(--color-secondary-600));
     line-height: 1.6;
 }
 
 [data-style="dark"] .c-conversation__content {
     background-color: var(--ecs-dark-bg-card, var(--color-secondary-900));
-    border-color: var(--ecs-dark-border, var(--color-neutral-700)564);
+    border-color: var(--ecs-dark-border, var(--ecs-color-neutral-700)564);
 }
 
 /* ==========================================================================
@@ -291,7 +291,7 @@
 }
 
 [data-style="dark"] .timeline-with-icons .timeline-item:not(:last-child) {
-    border-left-color: var(--ecs-dark-border, var(--color-neutral-700)564);
+    border-left-color: var(--ecs-dark-border, var(--ecs-color-neutral-700)564);
 }
 
 .timeline-with-icons .timeline-indicator {
@@ -329,11 +329,11 @@
 
 /* Dark mode for timeline header */
 [data-style="dark"] .timeline-with-icons .timeline-header h6 {
-    color: var(--ecs-dark-text-primary, var(--color-neutral-50));
+    color: var(--ecs-dark-text-primary, var(--ecs-color-neutral-50));
 }
 
 [data-style="dark"] .timeline-with-icons .timeline-header small {
-    color: var(--ecs-dark-text-muted, var(--color-neutral-400));
+    color: var(--ecs-dark-text-muted, var(--ecs-color-neutral-400));
 }
 
 /* NOTE: .empty-state base styles in components/empty-states.css (source of truth) */
@@ -412,7 +412,7 @@
 }
 
 .c-feedback-list::-webkit-scrollbar-track {
-    background: var(--ecs-neutral-5, var(--color-neutral-50));
+    background: var(--ecs-neutral-5, var(--ecs-color-neutral-50));
 }
 
 .c-feedback-list::-webkit-scrollbar-thumb {
@@ -429,5 +429,5 @@
 }
 
 [data-style="dark"] .c-feedback-list::-webkit-scrollbar-thumb {
-    background: var(--ecs-dark-border, var(--color-neutral-700)564);
+    background: var(--ecs-dark-border, var(--ecs-color-neutral-700)564);
 }

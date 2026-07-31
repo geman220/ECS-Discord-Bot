@@ -23,13 +23,13 @@
         <a href="{{ url_for('auto_schedule.schedule_manager') }}"
            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-3.5 rounded-lg
                   border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-arrow-left" aria-hidden="true"></i> <span class="hidden sm:inline">Season Builder</span>
         </a>
         <button type="button"
                 class="js-add-week inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-10 px-4 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-action="add-week">
             <i class="ti ti-plus" aria-hidden="true"></i> Add New Week
         </button>
@@ -60,13 +60,13 @@
         <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-3.5 rounded-lg
                   border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-calendar-event" aria-hidden="true"></i> View Full Season
         </a>
         <button type="button"
                 class="js-toggle-bulk inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-3.5 rounded-lg
                        border border-blue-500 text-blue-600 dark:text-blue-400 hover:bg-blue-500 hover:text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                       focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 data-action="toggle-bulk">
             <i class="ti ti-edit" aria-hidden="true"></i> Bulk Edit Mode
         </button>
@@ -105,14 +105,14 @@
                     <button type="button"
                             class="js-edit-week inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 rounded-lg
                                    text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30
-                                   focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                             data-action="edit-week" data-week-num="{{ week_num }}" title="Edit Week" aria-label="Edit Week {{ week_num }}">
                         <i class="ti ti-edit" aria-hidden="true"></i>
                     </button>
                     <button type="button"
                             class="js-delete-week inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:h-9 sm:w-9 rounded-lg
                                    text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30
-                                   focus:outline-none focus:ring-2 focus:ring-red-500"
+                                   focus:outline-hidden focus:ring-2 focus:ring-red-500"
                             data-action="delete-week" data-week-num="{{ week_num }}" title="Delete Week" aria-label="Delete Week {{ week_num }}">
                         <i class="ti ti-trash" aria-hidden="true"></i>
                     </button>
@@ -139,16 +139,16 @@
                             </span>
                         </td>
                         <td class="px-3 py-3">
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
                                 <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
                             </span>
                         </td>
                         <td class="px-3 py-3">
                             <div class="flex items-center gap-2 text-gray-900 dark:text-white">
                                 <span class="font-medium truncate">{{ match.home_team.name }}</span>
-                                <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono bg-ecs-green/10 text-ecs-green" title="Home">H</span>
+                                <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-bold font-mono bg-ecs-green/10 text-ecs-green" title="Home">H</span>
                                 <span class="text-gray-300 dark:text-gray-600">vs</span>
-                                <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-bold font-mono bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Away">A</span>
+                                <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-bold font-mono bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Away">A</span>
                                 <span class="font-medium truncate">{{ match.away_team.name }}</span>
                             </div>
                         </td>
@@ -166,12 +166,12 @@
                         <td class="px-3 py-3">
                             <div class="flex justify-end gap-1">
                                 <button type="button"
-                                        class="js-edit-match inline-flex items-center justify-center h-9 w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        class="js-edit-match inline-flex items-center justify-center h-9 w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                         data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
                                     <i class="ti ti-edit" aria-hidden="true"></i>
                                 </button>
                                 <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-                                   class="inline-flex items-center justify-center h-9 w-9 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View match">
+                                   class="inline-flex items-center justify-center h-9 w-9 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View match">
                                     <i class="ti ti-eye" aria-hidden="true"></i>
                                 </a>
                             </div>
@@ -203,12 +203,12 @@
                     </div>
                     <div class="mt-2 flex gap-2">
                         <button type="button"
-                                class="js-edit-match inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                class="js-edit-match inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                                 data-action="edit-match-report" data-match-id="{{ match.id }}" aria-label="Edit match">
                             <i class="ti ti-edit" aria-hidden="true"></i> Edit
                         </button>
                         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-                           class="inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="View match">
+                           class="inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="View match">
                             <i class="ti ti-eye" aria-hidden="true"></i> View
                         </a>
                     </div>
@@ -226,7 +226,7 @@
         <button type="button"
                 class="js-add-week inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 data-action="add-week">
             <i class="ti ti-plus" aria-hidden="true"></i> Add First Week
         </button>
@@ -250,7 +250,7 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 class="font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
         <div class="flex flex-wrap gap-3">
             <button type="button" class="js-add-week inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
@@ -269,7 +269,7 @@
     </div>
 
     <!-- Current Schedule -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <h2 class="font-semibold text-gray-900 dark:text-white">Current Schedule - {{ league.name }}</h2>
             <span class="px-3 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full text-sm">
@@ -319,7 +319,7 @@
                                     {{ match.time.strftime('%I:%M %p') }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <span class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded">{{ match.location }}</span>
+                                    <span class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-sm">{{ match.location }}</span>
                                 </td>
                                 <td class="px-4 py-3 text-gray-900 dark:text-white">{{ match.home_team.name }}</td>
                                 <td class="px-4 py-3 text-gray-900 dark:text-white">{{ match.away_team.name }}</td>
@@ -332,12 +332,12 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex gap-1">
-                                        <button type="button" class="js-edit-match p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                                        <button type="button" class="js-edit-match p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-sm"
                                                 data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit">
                                             <i class="ti ti-edit"></i>
                                         </button>
                                         <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
-                                           class="p-2 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded" title="View">
+                                           class="p-2 text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-sm" title="View">
                                             <i class="ti ti-eye"></i>
                                         </a>
                                     </div>
@@ -562,7 +562,7 @@ function addMatchSlot() {
     matchSlot.innerHTML = `
         <div class="flex justify-between items-center mb-3">
             <h5 class="font-medium text-gray-900 dark:text-white">Match ${matchSlotCount}</h5>
-            <button type="button" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" data-action="remove-match-slot">
+            <button type="button" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-sm" data-action="remove-match-slot">
                 <i class="ti ti-x"></i>
             </button>
         </div>

@@ -27,14 +27,14 @@
                class="inline-flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg border border-gray-200 dark:border-gray-700
                       bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-semibold transition-colors
                       hover:bg-gray-50 dark:hover:bg-gray-700/50
-                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                      focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-users text-sm" aria-hidden="true"></i> All Players
             </a>
             {% if first %}
             <a href="{{ url_for('players.player_profile', player_id=first.id) }}"
                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] h-10 px-4 rounded-lg
                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                      focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                 <i class="ti ti-player-track-next text-sm" aria-hidden="true"></i> Review next
             </a>
             {% endif %}
@@ -87,7 +87,7 @@
         <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                 <i class="ti ti-alert-circle text-ecs-green" aria-hidden="true"></i> Review Queue
-                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total }}</span>
+                <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total }}</span>
             </h2>
         </div>
         {{ data_table_filter_bar("Filter by name, email, Discord or league…", "reviewFilter") }}
@@ -130,15 +130,15 @@
                                 <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
                                     <span class="text-[11px] text-gray-500 dark:text-gray-400 font-mono">PID {{ player.id }}</span>
                                     {% if player.is_current_player %}
-                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
+                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">
                                         <i class="ti ti-circle-check text-[10px]" aria-hidden="true"></i> Active
                                     </span>
                                     {% endif %}
                                     {% if player.is_sub %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400">Sub</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-400">Sub</span>
                                     {% endif %}
                                     {% if player.is_coach %}
-                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">Coach</span>
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-semibold bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">Coach</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -181,7 +181,7 @@
                         <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] h-9 px-3 rounded-lg
                                   bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
-                                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-eye text-sm" aria-hidden="true"></i> Review
                         </a>
                     </td>
@@ -199,7 +199,7 @@
             {% set reason_cls = 'text-blue-600 dark:text-blue-400' if player.linked_primary_player_id else ('text-amber-600 dark:text-amber-400' if is_placeholder else 'text-gray-500 dark:text-gray-400') %}
             {% set reason_icon = 'ti-git-merge' if player.linked_primary_player_id else ('ti-copy' if is_placeholder else 'ti-flag') %}
             <a data-row data-row-card href="{{ url_for('players.player_profile', player_id=player.id) }}"
-               class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+               class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
                 <div class="flex items-start gap-3">
                     {% if player.profile_picture_url %}
                     <img src="{{ player.profile_picture_url }}" alt="" loading="lazy"
@@ -250,7 +250,7 @@
 
     {% if players %}
     <!-- Players Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-alert-circle text-yellow-500"></i>
@@ -299,7 +299,7 @@
     </div>
     {% else %}
     <!-- Empty State -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-12 text-center">
         <div class="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center mb-4">
             <i class="ti ti-check text-2xl text-green-600 dark:text-green-400"></i>
         </div>

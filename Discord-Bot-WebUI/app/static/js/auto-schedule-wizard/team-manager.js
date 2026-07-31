@@ -70,7 +70,7 @@ export function updateTeamPreview(leagueType) {
     previewDiv.innerHTML = `
         <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">${rangeText} to be created:</div>
         <div class="flex flex-wrap gap-1">
-            ${teamLabels.map(name => `<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">${name}</span>`).join('')}
+            ${teamLabels.map(name => `<span class="px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">${name}</span>`).join('')}
         </div>
     `;
 }

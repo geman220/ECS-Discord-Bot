@@ -41,10 +41,10 @@
 {# ── Header + primary command toolbar ── #}
 {% call page_header("Matches", subtitle="Match Operations" + (" · " + current_season.name if current_season else "")) %}
     {{ season_selector(seasons, current_season) }}
-    <a href="{{ url_for('admin_panel.view_matches', status='awaiting_score') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <a href="{{ url_for('admin_panel.view_matches', status='awaiting_score') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-clipboard-check" aria-hidden="true"></i><span class="hidden sm:inline">Enter Results</span>
     </a>
-    <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule matches">
+    <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:px-3.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Schedule matches">
         <i class="ti ti-calendar-plus" aria-hidden="true"></i><span class="hidden sm:inline">Schedule</span>
     </a>
 {% endcall %}
@@ -128,7 +128,7 @@
         <input type="date" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
     </div>
     <div class="flex items-end gap-2">
-        <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-[42px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-[42px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-search" aria-hidden="true"></i>Filter
         </button>
         <a href="{{ url_for('admin_panel.view_matches') }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-[42px] sm:w-[42px] rounded-lg text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600" aria-label="Clear filters">
@@ -181,11 +181,11 @@
                 </td>
                 <td class="px-3 py-3">
                     <div class="flex items-center gap-2">
-                        <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15" title="Home">H</span>
+                        <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15" title="Home">H</span>
                         <span class="font-medium text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                     </div>
                     <div class="flex items-center gap-2 mt-1">
-                        <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded text-[10px] font-mono font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Away">A</span>
+                        <span class="shrink-0 inline-flex items-center justify-center w-5 h-5 rounded-sm text-[10px] font-mono font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400" title="Away">A</span>
                         <span class="text-gray-600 dark:text-gray-300 truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
                     </div>
                 </td>
@@ -225,13 +225,13 @@
                 </td>
                 <td class="px-3 py-3 align-middle">
                     <div class="flex items-center justify-end gap-1">
-                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
+                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
                             <i class="ti ti-eye" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
+                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
                             <i class="ti ti-edit" aria-hidden="true"></i>
                         </button>
-                        <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Check-In" aria-label="Match check-in">
+                        <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Check-In" aria-label="Match check-in">
                             <i class="ti ti-qrcode" aria-hidden="true"></i>
                         </a>
                     </div>
@@ -256,11 +256,11 @@
             <div class="flex items-start justify-between gap-2">
                 <div class="min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">H</span>
+                        <span class="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-sm text-[9px] font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/15">H</span>
                         <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                     </div>
                     <div class="flex items-center gap-2 mt-0.5">
-                        <span class="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded text-[9px] font-mono font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">A</span>
+                        <span class="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-sm text-[9px] font-mono font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">A</span>
                         <span class="text-sm text-gray-600 dark:text-gray-300 truncate">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
                     </div>
                 </div>
@@ -287,13 +287,13 @@
                 {% endif %}
             </div>
             <div class="mt-2.5 flex items-center gap-1">
-                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
                     <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
-                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
                     <i class="ti ti-edit" aria-hidden="true"></i>
                 </button>
-                <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Check-In" aria-label="Match check-in">
+                <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green" title="Check-In" aria-label="Match check-in">
                     <i class="ti ti-qrcode" aria-hidden="true"></i>
                 </a>
             </div>

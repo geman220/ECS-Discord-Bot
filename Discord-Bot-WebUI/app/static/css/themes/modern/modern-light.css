@@ -115,9 +115,9 @@ html[data-theme-variant="modern"]:not([data-style="dark"]) .layout-menu {
 }
 
 /* Sidebar menu links - BEM: theme-modern__menu-link
-   Improved contrast: Using var(--color-neutral-700) for 9.6:1 ratio (WCAG AAA) */
+   Improved contrast: Using var(--ecs-color-neutral-700) for 9.6:1 ratio (WCAG AAA) */
 [data-theme-variant="modern"]:not([data-style="dark"]) .menu-link {
-  color: var(--color-text-secondary, var(--color-neutral-700));
+  color: var(--color-text-secondary, var(--ecs-color-neutral-700));
 }
 
 [data-theme-variant="modern"]:not([data-style="dark"]) .menu-link:hover {

@@ -59,7 +59,7 @@
     ('Calendar', 'ti-calendar', 'Events (mark which show publicly)', 'calendar.calendar_view', None),
   ] %}
   {% for title, icon, desc, endpoint, count in cards %}
-  <a href="{{ url_for(endpoint) }}" class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-sm transition">
+  <a href="{{ url_for(endpoint) }}" class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 hover:border-ecs-green hover:shadow-xs transition">
     <div class="flex items-center justify-between">
       <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-ecs-green/10 text-ecs-green"><i class="ti {{ icon }} text-xl"></i></span>
       {% if count is not none %}<span class="text-2xl font-bold text-gray-900 dark:text-white">{{ count }}</span>{% endif %}

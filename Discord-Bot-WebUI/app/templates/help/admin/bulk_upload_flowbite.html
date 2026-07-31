@@ -30,13 +30,13 @@
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
                   text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-arrow-left text-base" aria-hidden="true"></i><span>Topics</span>
         </a>
         <button type="submit" form="bulkUploadForm"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-upload text-base" aria-hidden="true"></i><span>Run Upload</span>
         </button>
     {% endcall %}
@@ -49,7 +49,7 @@
                     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                         <i class="ti ti-cloud-upload text-ecs-green" aria-hidden="true"></i> Markdown Drop
                     </h2>
-                    <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">.md only</span>
+                    <span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">.md only</span>
                 </div>
                 <form method="POST"
                       id="bulkUploadForm"
@@ -84,8 +84,8 @@
                         <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
                         <p class="flex-1 min-w-0 text-sm text-blue-800 dark:text-blue-300">
                             A file whose title already exists <span class="font-semibold">updates that topic in place</span>. Files with no
-                            <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">Role Access</code> marker default to
-                            <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded">Global Admin</code>.
+                            <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded-sm">Role Access</code> marker default to
+                            <code class="font-mono bg-blue-100 dark:bg-blue-900/50 px-1 rounded-sm">Global Admin</code>.
                         </p>
                     </div>
 
@@ -94,14 +94,14 @@
                         <button type="submit"
                                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
                                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                             <i class="ti ti-upload text-base" aria-hidden="true"></i><span>Upload Help Topics</span>
                         </button>
                         <a href="{{ url_for('help.admin_help_topics') }}"
                            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
                                   border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
                                   text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-                                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
                             <span>Cancel</span>
                         </a>
                     </div>
@@ -115,14 +115,14 @@
                     <span class="shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-ecs-green font-mono font-bold text-sm flex items-center justify-center">1</span>
                     <div class="min-w-0">
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">Read the title</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-800 dark:text-gray-200"># heading</code> becomes the topic title. No heading &rarr; file is skipped with an error.</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">First <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded-sm text-gray-800 dark:text-gray-200"># heading</code> becomes the topic title. No heading &rarr; file is skipped with an error.</p>
                     </div>
                 </li>
                 <li class="flex items-start gap-3 px-4 sm:px-5 py-3.5">
                     <span class="shrink-0 w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 text-ecs-green font-mono font-bold text-sm flex items-center justify-center">2</span>
                     <div class="min-w-0">
                         <p class="text-sm font-semibold text-gray-900 dark:text-white">Resolve role access</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Names after <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-800 dark:text-gray-200">**Role Access**:</code> are matched to roles. <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded text-gray-800 dark:text-gray-200">Public</code> assigns none (everyone sees it).</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Names after <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded-sm text-gray-800 dark:text-gray-200">**Role Access**:</code> are matched to roles. <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded-sm text-gray-800 dark:text-gray-200">Public</code> assigns none (everyone sees it).</p>
                     </div>
                 </li>
                 <li class="flex items-start gap-3 px-4 sm:px-5 py-3.5">
@@ -157,15 +157,15 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                         <tr>
-                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200"># Title</code></td>
+                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200"># Title</code></td>
                             <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">Topic title <span class="text-gray-400 dark:text-gray-500">(required)</span></td>
                         </tr>
                         <tr>
-                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">**Role Access**:</code></td>
+                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">**Role Access**:</code></td>
                             <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">Who can view it</td>
                         </tr>
                         <tr>
-                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">**Priority**:</code></td>
+                            <td class="px-4 sm:px-5 py-3 align-top"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">**Priority**:</code></td>
                             <td class="px-3 py-3 text-gray-500 dark:text-gray-400 text-xs">Optional hint, kept in body</td>
                         </tr>
                     </tbody>
@@ -213,21 +213,21 @@ regardless of their role.</code></pre>
             {% call section_card("Role Access values", icon="ti-shield-lock") %}
             <div class="p-4 sm:p-5">
                 <div class="flex items-start gap-2 mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-                    <code class="font-mono bg-ecs-green/10 text-ecs-green px-2 py-0.5 rounded text-xs font-semibold shrink-0">Public</code>
+                    <code class="font-mono bg-ecs-green/10 text-ecs-green px-2 py-0.5 rounded-sm text-xs font-semibold shrink-0">Public</code>
                     <span class="text-xs text-gray-500 dark:text-gray-400">visible to all users &mdash; no role required</span>
                 </div>
                 <div class="flex flex-wrap gap-1.5">
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Global Admin</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Pub League Admin</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">ECS FC Coach</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Pub League Coach</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Discord Admin</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-classic</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-premier</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">pl-ecs-fc</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Classic Sub</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">Premier Sub</code>
-                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs text-gray-800 dark:text-gray-200">ECS FC Sub</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">Global Admin</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">Pub League Admin</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">ECS FC Coach</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">Pub League Coach</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">Discord Admin</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">pl-classic</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">pl-premier</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">pl-ecs-fc</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">Classic Sub</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">Premier Sub</code>
+                    <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs text-gray-800 dark:text-gray-200">ECS FC Sub</code>
                 </div>
                 <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
                     Separate multiple roles with commas. Unknown names are ignored at match time.
@@ -291,14 +291,14 @@ regardless of their role.</code></pre>
 
                 <!-- Info Alert -->
                 <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-800 text-blue-800 dark:text-blue-400 border-blue-300 dark:border-blue-800">
-                    <i class="ti ti-info-circle flex-shrink-0 w-5 h-5 mr-3 mt-0.5"></i>
+                    <i class="ti ti-info-circle shrink-0 w-5 h-5 mr-3 mt-0.5"></i>
                     <div>
                         <h4 class="font-medium mb-2">File Format Requirements:</h4>
                         <ul class="text-sm space-y-1 list-disc list-inside">
-                            <li>Files must have a <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">.md</code> extension</li>
-                            <li>Each file must start with a heading (e.g., <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded"># Topic Title</code>)</li>
-                            <li>Include <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">**Role Access**: Role Name</code> to specify which roles can access the topic</li>
-                            <li>Use <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">**Role Access**: Public</code> to make the topic visible to all users</li>
+                            <li>Files must have a <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded-sm">.md</code> extension</li>
+                            <li>Each file must start with a heading (e.g., <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded-sm"># Topic Title</code>)</li>
+                            <li>Include <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded-sm">**Role Access**: Role Name</code> to specify which roles can access the topic</li>
+                            <li>Use <code class="bg-blue-100 dark:bg-blue-900/50 px-1 rounded-sm">**Role Access**: Public</code> to make the topic visible to all users</li>
                             <li>Supported roles: Global Admin, Pub League Admin, ECS FC Coach, Pub League Coach, etc.</li>
                             <li>If no role is specified, the topic will default to Global Admin access</li>
                         </ul>
@@ -353,20 +353,20 @@ regardless of their role.</code></pre>
             {% call card(title="Available Roles") %}
             <ul class="space-y-2 text-sm">
                 <li class="flex items-center gap-2">
-                    <code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Public</code>
+                    <code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Public</code>
                     <span class="text-gray-500 dark:text-gray-400">(visible to all users)</span>
                 </li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Global Admin</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Pub League Admin</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">ECS FC Coach</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Pub League Coach</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Discord Admin</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">pl-classic</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">pl-premier</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">pl-ecs-fc</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Classic Sub</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">Premier Sub</code></li>
-                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-xs">ECS FC Sub</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Global Admin</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Pub League Admin</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">ECS FC Coach</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Pub League Coach</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Discord Admin</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">pl-classic</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">pl-premier</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">pl-ecs-fc</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Classic Sub</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">Premier Sub</code></li>
+                <li><code class="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm text-xs">ECS FC Sub</code></li>
             </ul>
             <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
                 You can specify multiple roles separated by commas, or use "Public" for all users.

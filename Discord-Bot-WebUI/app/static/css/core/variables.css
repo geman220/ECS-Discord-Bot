@@ -96,16 +96,16 @@
 
   /* Neutral scale (old numbering → new scale) */
   --ecs-neutral-0: var(--color-neutral-0);
-  --ecs-neutral-5: var(--color-neutral-50);
-  --ecs-neutral-10: var(--color-neutral-100);
-  --ecs-neutral-20: var(--color-neutral-200);
-  --ecs-neutral-30: var(--color-neutral-300);
-  --ecs-neutral-40: var(--color-neutral-400);
-  --ecs-neutral-50: var(--color-neutral-500);
-  --ecs-neutral-60: var(--color-neutral-600);
-  --ecs-neutral-70: var(--color-neutral-700);
-  --ecs-neutral-80: var(--color-neutral-800);
-  --ecs-neutral-90: var(--color-neutral-900);
+  --ecs-neutral-5: var(--ecs-color-neutral-50);
+  --ecs-neutral-10: var(--ecs-color-neutral-100);
+  --ecs-neutral-20: var(--ecs-color-neutral-200);
+  --ecs-neutral-30: var(--ecs-color-neutral-300);
+  --ecs-neutral-40: var(--ecs-color-neutral-400);
+  --ecs-neutral-50: var(--ecs-color-neutral-500);
+  --ecs-neutral-60: var(--ecs-color-neutral-600);
+  --ecs-neutral-70: var(--ecs-color-neutral-700);
+  --ecs-neutral-80: var(--ecs-color-neutral-800);
+  --ecs-neutral-90: var(--ecs-color-neutral-900);
 
   /* ========================================================================
      LEGACY TYPOGRAPHY MAPPINGS
@@ -113,23 +113,23 @@
 
   --ecs-font-display: var(--font-display);
   --ecs-font-body: var(--font-body);
-  --ecs-font-mono: var(--font-mono);
+  --ecs-font-mono: var(--ecs-font-mono);
   --ecs-font-classic: var(--font-classic);
 
-  --ecs-text-xs: var(--text-xs);
-  --ecs-text-sm: var(--text-sm);
-  --ecs-text-base: var(--text-base);
-  --ecs-text-lg: var(--text-lg);
-  --ecs-text-xl: var(--text-xl);
-  --ecs-text-2xl: var(--text-2xl);
-  --ecs-text-3xl: var(--text-3xl);
-  --ecs-text-4xl: var(--text-4xl);
-  --ecs-text-5xl: var(--text-5xl);
+  --ecs-text-xs: var(--ecs-text-xs);
+  --ecs-text-sm: var(--ecs-text-sm);
+  --ecs-text-base: var(--ecs-text-base);
+  --ecs-text-lg: var(--ecs-text-lg);
+  --ecs-text-xl: var(--ecs-text-xl);
+  --ecs-text-2xl: var(--ecs-text-2xl);
+  --ecs-text-3xl: var(--ecs-text-3xl);
+  --ecs-text-4xl: var(--ecs-text-4xl);
+  --ecs-text-5xl: var(--ecs-text-5xl);
 
-  --ecs-leading-tight: var(--leading-tight);
-  --ecs-leading-snug: var(--leading-snug);
-  --ecs-leading-normal: var(--leading-normal);
-  --ecs-leading-relaxed: var(--leading-relaxed);
+  --ecs-leading-tight: var(--ecs-leading-tight);
+  --ecs-leading-snug: var(--ecs-leading-snug);
+  --ecs-leading-normal: var(--ecs-leading-normal);
+  --ecs-leading-relaxed: var(--ecs-leading-relaxed);
 
   --ecs-weight-normal: var(--font-normal);
   --ecs-weight-medium: var(--font-medium);
@@ -157,11 +157,11 @@
      LEGACY BORDER MAPPINGS
      ======================================================================== */
 
-  --ecs-radius-sm: var(--radius-sm);
-  --ecs-radius-md: var(--radius-md);
-  --ecs-radius-lg: var(--radius-lg);
-  --ecs-radius-xl: var(--radius-xl);
-  --ecs-radius-2xl: var(--radius-2xl);
+  --ecs-radius-sm: var(--ecs-radius-sm);
+  --ecs-radius-md: var(--ecs-radius-md);
+  --ecs-radius-lg: var(--ecs-radius-lg);
+  --ecs-radius-xl: var(--ecs-radius-xl);
+  --ecs-radius-2xl: var(--ecs-radius-2xl);
   --ecs-radius-full: var(--radius-full);
 
   --ecs-border-width: var(--border-width);
@@ -171,10 +171,10 @@
      LEGACY SHADOW MAPPINGS
      ======================================================================== */
 
-  --ecs-shadow-sm: var(--shadow-sm);
-  --ecs-shadow-md: var(--shadow-md);
-  --ecs-shadow-lg: var(--shadow-lg);
-  --ecs-shadow-xl: var(--shadow-xl);
+  --ecs-shadow-sm: var(--ecs-shadow-sm);
+  --ecs-shadow-md: var(--ecs-shadow-md);
+  --ecs-shadow-lg: var(--ecs-shadow-lg);
+  --ecs-shadow-xl: var(--ecs-shadow-xl);
 
   /* ========================================================================
      LEGACY TRANSITION MAPPINGS
@@ -192,7 +192,7 @@
   --ecs-bg-body: var(--color-bg-secondary);
   --ecs-bg-card: var(--color-bg-card);
   --ecs-bg-input: var(--color-bg-primary);
-  --ecs-bg-sidebar: var(--color-neutral-900);
+  --ecs-bg-sidebar: var(--ecs-color-neutral-900);
   --ecs-bg-navbar: var(--color-bg-primary);
 
   /* Text */
@@ -239,7 +239,7 @@ html,
 html[data-style="light"] {
   /* Ensure neutral scale is correct for light mode */
   --ecs-neutral-0: var(--color-neutral-0);
-  --ecs-neutral-90: var(--color-neutral-900);
+  --ecs-neutral-90: var(--ecs-color-neutral-900);
 
   /* Re-declare semantic tokens */
   --ecs-text-heading: var(--color-text-primary);
@@ -263,11 +263,11 @@ html[data-style="light"] {
 
   /* Dark mode backgrounds - using explicit fallbacks to slate colors */
   --ecs-dark-bg-body: var(--color-neutral-0, var(--color-secondary-950));
-  --ecs-dark-bg-card: var(--color-neutral-50, var(--color-secondary-900));
-  --ecs-dark-bg-elevated: var(--color-neutral-100, var(--color-secondary-800));
-  --ecs-dark-border: var(--color-neutral-200, var(--color-secondary-700));
-  --ecs-dark-text-primary: var(--color-neutral-900, var(--color-white));
-  --ecs-dark-text-muted: var(--color-neutral-500, var(--color-secondary-300));
+  --ecs-dark-bg-card: var(--ecs-color-neutral-50, var(--color-secondary-900));
+  --ecs-dark-bg-elevated: var(--ecs-color-neutral-100, var(--color-secondary-800));
+  --ecs-dark-border: var(--ecs-color-neutral-200, var(--color-secondary-700));
+  --ecs-dark-text-primary: var(--ecs-color-neutral-900, var(--ecs-color-white));
+  --ecs-dark-text-muted: var(--ecs-color-neutral-500, var(--color-secondary-300));
 
   /* Bootstrap dark mode */
   --bs-body-bg: var(--color-bg-primary);
@@ -286,20 +286,20 @@ html[data-style="light"] {
    Colors:
    --ecs-primary         → --color-primary or --color-primary-600
    --ecs-success-light   → --color-success-400
-   --ecs-neutral-20      → --color-neutral-200
+   --ecs-neutral-20      → --ecs-color-neutral-200
 
    Typography:
-   --ecs-text-lg         → --text-lg (same name)
+   --ecs-text-lg         → --ecs-text-lg (same name)
    --ecs-weight-bold     → --font-bold
 
    Spacing:
    --ecs-space-4         → --space-4 (same name)
 
    Borders:
-   --ecs-radius-md       → --radius-md (same name)
+   --ecs-radius-md       → --ecs-radius-md (same name)
 
    Shadows:
-   --ecs-shadow-lg       → --shadow-lg (same name)
+   --ecs-shadow-lg       → --ecs-shadow-lg (same name)
 
    Transitions:
    --ecs-transition-normal → Use --transition-all or specific transition

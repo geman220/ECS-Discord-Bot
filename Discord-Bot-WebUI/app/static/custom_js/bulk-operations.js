@@ -122,7 +122,7 @@ function loadPendingUsersForApproval() {
         </div>
         <div class="mb-4">
             <div class="flex items-center">
-                <input type="checkbox" id="sendNotifications" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                <input type="checkbox" id="sendNotifications" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                 <label for="sendNotifications" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                     Send approval notifications
                 </label>
@@ -134,7 +134,7 @@ function loadPendingUsersForApproval() {
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
                     <div class="p-3 bg-gray-50 dark:bg-gray-700">
                         <div class="flex items-center">
-                            <input type="checkbox" value="select-all" id="selectAllUsers" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                            <input type="checkbox" value="select-all" id="selectAllUsers" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                             <label for="selectAllUsers" class="ml-2 text-sm font-semibold text-gray-900 dark:text-white">
                                 Select All Pending Users (${pendingCount})
                             </label>
@@ -159,7 +159,7 @@ function loadRoleAssignmentInterface() {
     roles.forEach(role => {
         roleOptions += `
             <div class="flex items-center mb-2">
-                <input type="checkbox" value="${role.id}" id="role_${role.id}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <input type="checkbox" value="${role.id}" id="role_${role.id}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 <label for="role_${role.id}" class="ml-2 text-sm text-gray-900 dark:text-gray-300">
                     ${role.name} (${role.users ? role.users.length : 0} users)
                 </label>
@@ -190,7 +190,7 @@ function loadRoleAssignmentInterface() {
                     <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Users</label>
                     <div class="p-3 border border-gray-200 dark:border-gray-700 rounded-lg max-h-64 overflow-y-auto">
                         <div class="flex items-center mb-3 pb-3 border-b border-gray-200 dark:border-gray-700">
-                            <input type="checkbox" value="select-all" id="selectAllRoleUsers" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                            <input type="checkbox" value="select-all" id="selectAllRoleUsers" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                             <label for="selectAllRoleUsers" class="ml-2 text-sm font-semibold text-gray-900 dark:text-white">
                                 Select All Users
                             </label>
@@ -233,7 +233,7 @@ function loadWaitlistUsersForProcessing() {
                 <div class="divide-y divide-gray-200 dark:divide-gray-700">
                     <div class="p-3 bg-gray-50 dark:bg-gray-700">
                         <div class="flex items-center">
-                            <input type="checkbox" value="select-all" id="selectAllWaitlistUsers" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                            <input type="checkbox" value="select-all" id="selectAllWaitlistUsers" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                             <label for="selectAllWaitlistUsers" class="ml-2 text-sm font-semibold text-gray-900 dark:text-white">
                                 Select All Waitlist Users (${waitlistCount})
                             </label>

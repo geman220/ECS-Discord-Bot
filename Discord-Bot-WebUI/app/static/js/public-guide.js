@@ -90,7 +90,7 @@ function snippet(text, q) {
   const pre = (start > 0 ? '…' : '') + esc(text.slice(start, at));
   const hit = esc(text.slice(at, at + q.length));
   const post = esc(text.slice(at + q.length, end)) + (end < text.length ? '…' : '');
-  return `${pre}<mark class="bg-ecs-green/20 dark:bg-ecs-green/30 text-inherit rounded-sm px-0.5">${hit}</mark>${post}`;
+  return `${pre}<mark class="bg-ecs-green/20 dark:bg-ecs-green/30 text-inherit rounded-xs px-0.5">${hit}</mark>${post}`;
 }
 
 function flashTarget(el) {
@@ -115,7 +115,7 @@ function init() {
   // ---- Toolbar ----------------------------------------------------------
   const bar = document.createElement('div');
   bar.className = 'sticky z-30 border-b border-gray-200 dark:border-gray-800 '
-    + 'bg-white/95 dark:bg-gray-950/95 backdrop-blur';
+    + 'bg-white/95 dark:bg-gray-950/95 backdrop-blur-sm';
   // The site header is sticky with a variable top (admin bar shifts it), so
   // compute our resting offset from it instead of hardcoding top-16.
   const hdr = document.querySelector('header');
@@ -162,7 +162,7 @@ function init() {
                      aria-label="Search the guide" autocomplete="off"
                      class="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900
                             py-2 pl-9 pr-3 text-sm text-gray-900 dark:text-white placeholder-gray-400
-                            focus:border-ecs-green focus:ring-ecs-green/40 focus:ring-2 focus:outline-none">
+                            focus:border-ecs-green focus:ring-ecs-green/40 focus:ring-2 focus:outline-hidden">
             </div>
           </div>
           <div class="max-h-[60vh] overflow-y-auto overscroll-contain p-2" data-guide-list></div>
@@ -286,7 +286,7 @@ function init() {
   topBtn.type = 'button';
   topBtn.setAttribute('aria-label', 'Back to top');
   topBtn.className = 'fixed bottom-5 right-5 z-30 hidden h-11 w-11 items-center justify-center '
-    + 'rounded-full bg-gray-900/80 dark:bg-gray-700/90 text-white shadow-lg backdrop-blur '
+    + 'rounded-full bg-gray-900/80 dark:bg-gray-700/90 text-white shadow-lg backdrop-blur-sm '
     + 'hover:bg-ecs-green transition';
   topBtn.innerHTML = '<i class="ti ti-arrow-up text-lg"></i>';
   topBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));

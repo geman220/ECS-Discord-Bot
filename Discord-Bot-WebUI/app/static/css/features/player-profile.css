@@ -55,7 +55,7 @@
     min-width: 80px;
     flex: 1;
     text-align: center;
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     transition: all 0.2s ease;
     background-color: var(--color-primary-subtle);
     border: 1px solid var(--color-border-primary);
@@ -64,7 +64,7 @@
 
 .player-profile-page .stat-box:hover {
     transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .player-profile-page .stat-icon {
@@ -214,14 +214,14 @@
 
 .contact-modal .recipient-info {
     background: var(--color-bg-secondary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     padding: var(--space-4);
 }
 
 .contact-modal .channel-checkbox {
     padding: var(--space-3);
     border: 1px solid var(--color-border-primary);
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     margin-bottom: var(--space-2);
     transition: all 0.2s ease;
 }
@@ -238,7 +238,7 @@
 .contact-modal .channel-icon {
     width: 32px;
     height: 32px;
-    border-radius: var(--radius-md);
+    border-radius: var(--ecs-radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -297,7 +297,7 @@
 
 .discord-message {
     padding: var(--space-2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
 }
 
 .discord-message:hover {
@@ -313,7 +313,7 @@
     color: var(--color-neutral-0);
     font-size: 0.6rem;
     padding: var(--space-px) var(--space-2);
-    border-radius: var(--radius-sm);
+    border-radius: var(--ecs-radius-sm);
     font-weight: bold;
 }
 
@@ -324,7 +324,7 @@
 
 .discord-input-wrapper {
     position: relative;
-    border-radius: var(--radius-lg);
+    border-radius: var(--ecs-radius-lg);
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border-primary);
     overflow: hidden;
@@ -517,7 +517,7 @@
 }
 
 [data-style="dark"] .player-profile-page .stat-box:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 [data-style="dark"] .player-profile-page .stat-label {
@@ -664,8 +664,8 @@
     height: 120px;
     border-radius: var(--radius-full, 50%);
     overflow: visible;
-    border: 3px solid var(--bs-body-bg, var(--color-white));
-    box-shadow: var(--shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
+    border: 3px solid var(--bs-body-bg, var(--ecs-color-white));
+    box-shadow: var(--ecs-shadow-md, 0 4px 6px -1px rgb(0 0 0 / 0.1));
 }
 
 .c-player-profile .c-player-header__avatar-image {
@@ -700,14 +700,14 @@
     top: -4px;
     right: -4px;
     background-color: var(--bs-warning, var(--color-warning, var(--color-warning)));
-    color: var(--color-black, var(--color-neutral-950));
+    color: var(--color-black, var(--ecs-color-neutral-950));
 }
 
 .c-player-profile .c-player-header__badge--ref {
     top: -4px;
     left: -4px;
     background-color: var(--bs-info, var(--color-info, #0dcaf0));
-    color: var(--color-black, var(--color-neutral-950));
+    color: var(--color-black, var(--ecs-color-neutral-950));
 }
 
 /* ===== Match Stats Table ===== */
@@ -722,7 +722,7 @@
     gap: var(--space-3, 0.75rem);
     padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
     background: var(--color-bg-secondary, rgba(0, 0, 0, 0.05));
-    border-radius: var(--radius-md, 0.375rem);
+    border-radius: var(--ecs-radius-md, 0.375rem);
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -774,7 +774,7 @@
 .c-btn--ghost {
     background: transparent;
     border: none;
-    color: var(--color-text-muted, var(--color-neutral-400));
+    color: var(--color-text-muted, var(--ecs-color-neutral-400));
     padding: var(--space-1, 0.25rem);
 }
 
@@ -794,7 +794,7 @@
     justify-content: center;
     width: 32px;
     height: 32px;
-    border-radius: var(--radius-md, 0.375rem);
+    border-radius: var(--ecs-radius-md, 0.375rem);
 }
 
 /* Mobile responsive for match stats table */
@@ -808,7 +808,7 @@
         gap: var(--space-2, 0.5rem);
         padding: var(--space-4, 1rem);
         border: 1px solid var(--color-border-light, rgba(0, 0, 0, 0.08));
-        border-radius: var(--radius-md, 0.375rem);
+        border-radius: var(--ecs-radius-md, 0.375rem);
         margin-bottom: var(--space-3, 0.75rem);
     }
 

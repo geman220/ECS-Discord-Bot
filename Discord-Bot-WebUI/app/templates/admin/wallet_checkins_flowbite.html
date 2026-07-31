@@ -42,25 +42,25 @@
 
     <!-- Session Stat Tiles -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-checkbox"></i> Total Check-ins
             </div>
             <div class="mt-2 text-2xl font-bold font-mono text-gray-900 dark:text-white">{{ '{:,}'.format(checkin_stats.total) }}</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-calendar-event"></i> Today
             </div>
             <div class="mt-2 text-2xl font-bold font-mono text-green-600 dark:text-green-400">{{ '{:,}'.format(checkin_stats.today) }}</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-qrcode"></i> QR Scans
             </div>
             <div class="mt-2 text-2xl font-bold font-mono text-gray-900 dark:text-white">{{ '{:,}'.format(checkin_stats.qr_scans) }}</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold">
                 <i class="ti ti-nfc"></i> NFC Taps
             </div>
@@ -69,7 +69,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <form method="get" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div>
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Pass Type</label>
@@ -103,12 +103,12 @@
     </div>
 
     <!-- Check-ins Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Recent Check-ins
                 {% if checkins.total %}
-                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ checkins.total }} total</span>
+                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">{{ checkins.total }} total</span>
                 {% endif %}
             </h5>
         </div>
@@ -146,7 +146,7 @@
                             </td>
                             <td class="px-6 py-4">
                                 {% if checkin.wallet_pass and checkin.wallet_pass.pass_type %}
-                                <span class="px-2 py-1 text-xs font-medium rounded {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if checkin.wallet_pass.pass_type.code == 'ecs_membership' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                                <span class="px-2 py-1 text-xs font-medium rounded-sm {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if checkin.wallet_pass.pass_type.code == 'ecs_membership' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
                                     {{ checkin.wallet_pass.pass_type.name }}
                                 </span>
                                 {% else %}
@@ -168,7 +168,7 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4">
-                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded">
+                                <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded-sm">
                                     <i class="ti ti-{{ 'qrcode' if checkin.check_in_type and checkin.check_in_type.value == 'qr_scan' else 'nfc' if checkin.check_in_type and checkin.check_in_type.value == 'nfc_tap' else 'hand-finger' }} mr-1"></i>
                                     {{ checkin.check_in_type.value.replace('_', ' ').title() if checkin.check_in_type else 'Unknown' }}
                                 </span>

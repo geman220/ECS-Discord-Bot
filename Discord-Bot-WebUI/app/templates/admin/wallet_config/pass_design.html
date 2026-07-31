@@ -138,7 +138,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left Column: Live Preview -->
         <div class="lg:col-span-5 space-y-6">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-eye text-ecs-green"></i>Live Preview
@@ -191,7 +191,7 @@
             </div>
 
             <!-- Quick Actions -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <i class="ti ti-bolt text-ecs-green"></i>Quick Actions
@@ -221,7 +221,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Appearance Settings -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-paint text-ecs-green"></i>Appearance
@@ -279,7 +279,7 @@
                 </div>
 
                 <!-- Active Locations -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-map-pin text-ecs-green"></i>Location Notifications
@@ -312,7 +312,7 @@
                 </div>
 
                 <!-- Available Variables Reference -->
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                     <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                             <i class="ti ti-variable text-ecs-green"></i>Dynamic Content
@@ -331,36 +331,36 @@
                                 </thead>
                                 <tbody>
                                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">member_name</code></td>
+                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">member_name</code></td>
                                         <td class="px-4 py-2">Member's full name</td>
                                         <td class="px-4 py-2">Jane Smith</td>
                                     </tr>
                                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">validity</code></td>
+                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">validity</code></td>
                                         <td class="px-4 py-2">Membership year or season</td>
                                         <td class="px-4 py-2">2025 Membership</td>
                                     </tr>
                                     {% if pass_type_code == 'pub' %}
                                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">team_name</code></td>
+                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">team_name</code></td>
                                         <td class="px-4 py-2">Player's team name</td>
                                         <td class="px-4 py-2">Seattle FC</td>
                                     </tr>
                                     {% endif %}
                                     {% if pass_type_code == 'ecs' %}
                                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">subgroup</code></td>
+                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">subgroup</code></td>
                                         <td class="px-4 py-2">Supporter subgroup (optional)</td>
                                         <td class="px-4 py-2">Gorilla FC</td>
                                     </tr>
                                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">member_since</code></td>
+                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">member_since</code></td>
                                         <td class="px-4 py-2">Year member joined</td>
                                         <td class="px-4 py-2">2019</td>
                                     </tr>
                                     {% endif %}
                                     <tr>
-                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-800 dark:text-gray-200">barcode_data</code></td>
+                                        <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-sm text-gray-800 dark:text-gray-200">barcode_data</code></td>
                                         <td class="px-4 py-2">Unique scannable code</td>
                                         <td class="px-4 py-2">ECSFC-ECS-ABC123</td>
                                     </tr>

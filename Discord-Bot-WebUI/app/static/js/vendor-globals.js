@@ -159,6 +159,26 @@ window.Sortable = Sortable;
 import DataTable from 'datatables.net-dt';
 import 'datatables.net-responsive-dt';
 
+// Register jQuery with DataTables EXPLICITLY. This line is load-bearing — without it
+// every `$(sel).DataTable(...)` in the app throws "is not a function".
+//
+// DataTables 2.x declared `"jquery": ">=1.7"` as a dependency and imported it directly,
+// so it always found the same instance we use here. DataTables 3.0 dropped that
+// dependency and instead resolves jQuery at module-init time from `window.jQuery`
+// (datatables.net/js/dataTables.mjs:1204), then calls jQuerySetup() to attach
+// `$.fn.dataTable`/`$.fn.DataTable`.
+//
+// That resolution happens too early for us: ES module imports are hoisted, so this
+// import is evaluated BEFORE the `Object.assign(window, { $: jQuery, jQuery })` on line
+// 22 above — and jQuery's own dist does not self-assign the global when bundled
+// (its UMD wrapper passes noGlobal=true on the CommonJS path). So window.jQuery is
+// undefined at that moment, registration silently no-ops, and nothing errors until a
+// page calls .DataTable().
+//
+// `DataTable.use()` performs the same registration on demand and does not care about
+// import order, so it is immune to any future reshuffling of this file.
+DataTable.use(jQuery);
+
 // ============================================================================
 // 9. SELECT2 - REMOVED (using native HTML5 selects for better mobile support)
 // ============================================================================

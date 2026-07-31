@@ -29,7 +29,7 @@
     <button type="button" data-modal-target="createLeagueModal" data-modal-toggle="createLeagueModal"
             class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                   focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-plus text-sm" aria-hidden="true"></i>Add League
     </button>
   {% endcall %}
@@ -70,7 +70,7 @@
       <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-list-details text-ecs-green" aria-hidden="true"></i> League Registry
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_count }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ total_count }}</span>
         </h2>
         <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400 font-mono">click a row to preview</span>
       </div>
@@ -125,7 +125,7 @@
                   <button type="button"
                           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg
                                  bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
-                                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 js-edit-league"
+                                 focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 js-edit-league"
                           data-setting-id="{{ setting.id }}"
                           data-league-key="{{ setting.league_key }}"
                           data-display-name="{{ setting.display_name }}"
@@ -141,7 +141,7 @@
                     <input type="hidden" name="setting_id" value="{{ setting.id }}">
                     <button type="submit"
                             class="inline-flex items-center justify-center h-9 w-9 rounded-lg border transition-colors
-                                   focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                                   focus:outline-hidden focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
                                    {% if setting.is_active %}border-amber-300 text-amber-600 hover:bg-amber-50 focus:ring-amber-500 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10{% else %}border-green-300 text-green-600 hover:bg-green-50 focus:ring-ecs-green dark:border-green-500/40 dark:text-green-400 dark:hover:bg-green-500/10{% endif %}"
                             aria-label="{{ 'Deactivate league' if setting.is_active else 'Activate league' }}">
                       <i class="ti ti-{{ 'eye-off' if setting.is_active else 'eye' }}" aria-hidden="true"></i>
@@ -185,7 +185,7 @@
               <button type="button"
                       class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg
                              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                             focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 js-edit-league"
+                             focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 js-edit-league"
                       data-setting-id="{{ setting.id }}"
                       data-league-key="{{ setting.league_key }}"
                       data-display-name="{{ setting.display_name }}"
@@ -201,7 +201,7 @@
                 <input type="hidden" name="setting_id" value="{{ setting.id }}">
                 <button type="submit"
                         class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg border transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
+                               focus:outline-hidden focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800
                                {% if setting.is_active %}border-amber-300 text-amber-600 hover:bg-amber-50 focus:ring-amber-500 dark:border-amber-500/40 dark:text-amber-400 dark:hover:bg-amber-500/10{% else %}border-green-300 text-green-600 hover:bg-green-50 focus:ring-ecs-green dark:border-green-500/40 dark:text-green-400 dark:hover:bg-green-500/10{% endif %}"
                         aria-label="{{ 'Deactivate league' if setting.is_active else 'Activate league' }}">
                   <i class="ti ti-{{ 'eye-off' if setting.is_active else 'eye' }}" aria-hidden="true"></i>
@@ -218,7 +218,7 @@
         <button type="button" data-modal-target="createLeagueModal" data-modal-toggle="createLeagueModal"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-plus" aria-hidden="true"></i>Add League
         </button>
       </div>
@@ -244,10 +244,10 @@
             <div class="flex-1 min-w-0">
               <div class="mb-1 flex items-baseline gap-2">
                 <span class="text-blue-400 font-bold text-sm">ECS Bot</span>
-                <span class="px-1 rounded bg-blue-600/30 text-blue-300 text-[10px] font-bold uppercase tracking-wide">Bot</span>
+                <span class="px-1 rounded-sm bg-blue-600/30 text-blue-300 text-[10px] font-bold uppercase tracking-wide">Bot</span>
                 <span class="text-gray-500 text-xs font-mono ml-auto">12:00 PM</span>
               </div>
-              <div class="text-gray-100 text-sm whitespace-pre-line break-words" id="messagePreview">
+              <div class="text-gray-100 text-sm whitespace-pre-line wrap-break-word" id="messagePreview">
                 Perfect! I've updated your profile to show you're interested in <strong>Pub League Classic</strong>.
 
                 You'll love our classic recreational league - it's all about having fun and improving your game!

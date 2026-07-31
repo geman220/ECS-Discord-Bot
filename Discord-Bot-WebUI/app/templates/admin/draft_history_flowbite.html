@@ -24,7 +24,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <form method="GET" id="draft-history-filterForm" class="flex flex-wrap gap-4 items-end">
             <div class="flex-1 min-w-48">
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season</label>
@@ -73,7 +73,7 @@
     <!-- Draft History Content -->
     {% if draft_history %}
         {% for season_name, leagues in draft_history.items() %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                     <i class="ti ti-calendar text-blue-600"></i>{{ season_name }}
@@ -110,10 +110,10 @@
                         <div class="sortable-item" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}">
                             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600 cursor-grab hover:shadow-md transition-shadow">
                                 <div class="flex items-start gap-3">
-                                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg font-bold">
+                                    <div class="shrink-0 w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-lg font-bold">
                                         {{ pick.draft_position }}
                                     </div>
-                                    <div class="flex-grow min-w-0">
+                                    <div class="grow min-w-0">
                                         <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ pick.player.name }}</h6>
                                         <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                             <i class="ti ti-arrow-right"></i>{{ pick.team.name }}
@@ -132,11 +132,11 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <div class="flex-shrink-0">
+                                    <div class="shrink-0">
                                         <button type="button" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-dropdown-toggle="pickMenu{{ pick.id }}">
                                             <i class="ti ti-dots-vertical"></i>
                                         </button>
-                                        <div id="pickMenu{{ pick.id }}" class="hidden z-10 w-44 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                        <div id="pickMenu{{ pick.id }}" class="hidden z-10 w-44 bg-white rounded-lg shadow-sm dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                                             <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
                                                 <li>
                                                     <a href="#" class="js-edit-pick block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"
@@ -170,7 +170,7 @@
         </div>
         {% endfor %}
     {% else %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-12 text-center">
                 <i class="ti ti-history text-6xl text-gray-300 dark:text-gray-600 mb-4"></i>
                 <h4 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Draft History Found</h4>

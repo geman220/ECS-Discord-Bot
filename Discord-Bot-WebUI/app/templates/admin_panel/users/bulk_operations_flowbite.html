@@ -29,15 +29,15 @@
 
 {% call page_header("Bulk Operations", subtitle="User Management") %}
   <button type="button"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
           data-action="refresh-operation-history">
     <i class="ti ti-refresh" aria-hidden="true"></i><span class="hidden sm:inline">Refresh</span>
   </button>
   <button type="button"
-          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
           data-action="show-bulk-approval-modal">
     <i class="ti ti-user-check" aria-hidden="true"></i>Bulk Approve
-    {% if bulk_stats.pending_users %}<span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20 text-xs">{{ bulk_stats.pending_users }}</span>{% endif %}
+    {% if bulk_stats.pending_users %}<span class="font-mono font-bold px-1.5 py-0.5 rounded-sm bg-white/20 text-xs">{{ bulk_stats.pending_users }}</span>{% endif %}
   </button>
 {% endcall %}
 
@@ -51,9 +51,9 @@
           <i class="ti ti-user-check text-ecs-green" aria-hidden="true"></i>Bulk Approvals
         </h2>
         {% if bulk_stats.pending_users %}
-        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ bulk_stats.pending_users }} pending</span>
+        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ bulk_stats.pending_users }} pending</span>
         {% else %}
-        <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">all clear</span>
+        <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">all clear</span>
         {% endif %}
       </div>
       <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 flex-1">
@@ -70,12 +70,12 @@
           <p class="text-sm text-gray-500 dark:text-gray-400">Approve multiple pending users at once and assign each to a league &mdash; Classic, Premier, ECS FC, or a sub role &mdash; in a single pass. Role changes sync to Discord automatically.</p>
           <div class="mt-4 flex flex-col sm:flex-row gap-2.5">
             <button type="button"
-                    class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                    class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                     data-action="show-bulk-approval-modal">
               <i class="ti ti-users" aria-hidden="true"></i>Bulk Approve Users
             </button>
             <button type="button"
-                    class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="load-pending-users">
               <i class="ti ti-list" aria-hidden="true"></i>View Pending
             </button>
@@ -103,18 +103,18 @@
         <h3 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-shield text-ecs-green" aria-hidden="true"></i>Role Management
         </h3>
-        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ bulk_stats.total_roles }} roles</span>
+        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ bulk_stats.total_roles }} roles</span>
       </div>
       <div class="p-4 sm:p-5 flex flex-col flex-1">
         <p class="text-sm text-gray-500 dark:text-gray-400 flex-1">Assign, remove, or replace roles for many users at once. Changes sync to Discord automatically.</p>
         <div class="mt-4 space-y-2.5">
           <button type="button"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                   data-action="show-bulk-role-modal">
             <i class="ti ti-shield-plus" aria-hidden="true"></i>Bulk Role Assignment
           </button>
           <button type="button"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   data-action="view-role-distribution">
             <i class="ti ti-chart-pie" aria-hidden="true"></i>Role Distribution
           </button>
@@ -129,21 +129,21 @@
           <i class="ti ti-list-check text-ecs-green" aria-hidden="true"></i>Waitlist Management
         </h3>
         {% if bulk_stats.waitlist_users %}
-        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ bulk_stats.waitlist_users }} waiting</span>
+        <span class="inline-flex items-center gap-1 text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ bulk_stats.waitlist_users }} waiting</span>
         {% else %}
-        <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">empty</span>
+        <span class="inline-flex items-center gap-1 text-xs font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">empty</span>
         {% endif %}
       </div>
       <div class="p-4 sm:p-5 flex flex-col flex-1">
         <p class="text-sm text-gray-500 dark:text-gray-400 flex-1">Move waitlisted users in bulk into the pending-approval queue so they can be processed for a league.</p>
         <div class="mt-4 space-y-2.5">
           <button type="button"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                   data-action="show-bulk-waitlist-modal">
             <i class="ti ti-arrow-right" aria-hidden="true"></i>Process Waitlist
           </button>
           <button type="button"
-                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   data-action="load-waitlist-users">
             <i class="ti ti-eye" aria-hidden="true"></i>View Waitlist
           </button>
@@ -192,7 +192,7 @@
             </td>
             <td class="px-3 py-3 text-xs font-mono text-gray-500 dark:text-gray-400 hidden md:table-cell whitespace-nowrap">{{ op.timestamp.strftime('%H:%M') }}</td>
             <td class="px-3 py-3 text-right">
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
                 <i class="ti ti-circle-check" aria-hidden="true"></i>Completed
               </span>
             </td>
@@ -238,7 +238,7 @@
           <span class="font-mono text-xs font-bold text-gray-400 dark:text-gray-500 w-5 shrink-0 text-right">{{ loop.index }}</span>
           <span class="flex-1 min-w-0 text-sm font-medium text-gray-900 dark:text-white truncate">{{ role }}</span>
           <span class="font-mono text-xs text-gray-500 dark:text-gray-400 tabular-nums">{{ ((count / role_total * 100) | round | int) if role_total else 0 }}%</span>
-          <span class="font-mono inline-flex items-center justify-center min-w-[2.25rem] px-2 py-0.5 rounded-full text-xs font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ count }}</span>
+          <span class="font-mono inline-flex items-center justify-center min-w-9 px-2 py-0.5 rounded-full text-xs font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ count }}</span>
         </li>
         {% endfor %}
       </ul>
@@ -267,14 +267,14 @@
       </div>
       <label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
         <input type="checkbox" id="bulkApprovalNotify" checked
-               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+               class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
         Send approval notifications
       </label>
       <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
         <div class="flex items-center justify-between px-3 h-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
           <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <input type="checkbox" data-bulk-select-all="approval"
-                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             Select all
           </label>
           <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ pending_users|length }} pending</span>
@@ -283,7 +283,7 @@
           {% for u in pending_users %}
           <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50">
             <input type="checkbox" data-bulk-user-id="{{ u.id }}"
-                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-medium text-gray-900 dark:text-white truncate">{{ u.username }}</span>
               <span class="block text-xs font-mono text-gray-400 dark:text-gray-500">joined {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'unknown' }}</span>
@@ -299,10 +299,10 @@
   </div>
   <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
     <button type="button"
-            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
             data-modal-hide="bulkApprovalModal">Cancel</button>
     <button type="button" id="bulkApprovalBtn" disabled
-            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             data-action="process-bulk-approval">
       <i class="ti ti-check" aria-hidden="true"></i>Approve Selected
     </button>
@@ -340,7 +340,7 @@
         <div class="flex items-center justify-between px-3 h-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
           <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <input type="checkbox" data-bulk-select-all="role"
-                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             Select all
           </label>
           <span class="text-xs font-mono text-gray-500 dark:text-gray-400">users in intake queue</span>
@@ -349,7 +349,7 @@
           {% for u in pending_users + waitlist_users %}
           <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50">
             <input type="checkbox" data-bulk-user-id="{{ u.id }}"
-                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-medium text-gray-900 dark:text-white truncate">{{ u.username }}</span>
               <span class="block text-xs font-mono text-gray-400 dark:text-gray-500">{{ u.approval_status }}</span>
@@ -365,10 +365,10 @@
   </div>
   <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
     <button type="button"
-            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
             data-modal-hide="bulkRoleModal">Cancel</button>
     <button type="button" id="bulkRoleBtn" disabled
-            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             data-action="process-bulk-role-assignment">
       <i class="ti ti-shield-plus" aria-hidden="true"></i>Assign Roles
     </button>
@@ -394,7 +394,7 @@
         <div class="flex items-center justify-between px-3 h-10 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
           <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             <input type="checkbox" data-bulk-select-all="waitlist"
-                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             Select all
           </label>
           <span class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ waitlist_users|length }} waiting</span>
@@ -403,7 +403,7 @@
           {% for u in waitlist_users %}
           <li class="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50">
             <input type="checkbox" data-bulk-user-id="{{ u.id }}"
-                   class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                   class="rounded-sm border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
             <span class="flex-1 min-w-0">
               <span class="block text-sm font-medium text-gray-900 dark:text-white truncate">{{ u.username }}</span>
               <span class="block text-xs font-mono text-gray-400 dark:text-gray-500">joined {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'unknown' }}</span>
@@ -419,10 +419,10 @@
   </div>
   <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
     <button type="button"
-            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
             data-modal-hide="bulkWaitlistModal">Cancel</button>
     <button type="button" id="bulkWaitlistBtn" disabled
-            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             data-action="process-bulk-waitlist">
       <i class="ti ti-arrow-right" aria-hidden="true"></i>Process Selected
     </button>
@@ -593,7 +593,7 @@
                         {{ op.timestamp.strftime('%Y-%m-%d %H:%M') }}
                     </td>
                     <td class="px-6 py-4">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             Completed
                         </span>
                     </td>

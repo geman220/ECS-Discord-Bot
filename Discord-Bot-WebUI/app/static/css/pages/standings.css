@@ -43,10 +43,10 @@
 /* Season Selector */
 .season-selector {
   min-width: 150px;
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   border: 1px solid var(--color-border-input);
   padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
   transition: border-color var(--duration-fast) var(--ease-smooth),
@@ -118,13 +118,13 @@
 .team-name:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
 }
 
 /* Team Avatar Initial */
 .team-initial {
   font-weight: var(--font-bold);
-  font-size: var(--text-sm);
+  font-size: var(--ecs-text-sm);
   text-transform: uppercase;
 }
 
@@ -134,8 +134,8 @@
 
 .team-stats-popover {
   padding: var(--space-2);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
+  font-size: var(--ecs-text-sm);
+  line-height: var(--ecs-leading-relaxed);
   max-width: 280px;
 }
 
@@ -168,7 +168,7 @@
 .standings-page .table td[data-label="Pts"] {
   font-weight: var(--font-bold);
   color: var(--color-text-primary);
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
 }
 
 /* Goal Difference Coloring */
@@ -190,7 +190,7 @@
 .standings-page .nav-pills .nav-link {
   font-weight: var(--font-medium);
   padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--ecs-radius-md);
   transition: all var(--duration-fast) var(--ease-smooth);
   color: var(--color-text-secondary);
 }
@@ -206,7 +206,7 @@
 }
 
 .standings-page .nav-pills .nav-link i {
-  font-size: var(--text-base);
+  font-size: var(--ecs-text-base);
 }
 
 .standings-page .nav-pills .nav-link:focus-visible {
@@ -219,15 +219,15 @@
    ============================================================================ */
 
 .standings-page .card {
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--ecs-radius-lg);
+  box-shadow: var(--ecs-shadow-sm);
   border: 1px solid var(--color-border-primary);
   background-color: var(--color-bg-card);
   transition: box-shadow var(--duration-normal) var(--ease-smooth);
 }
 
 .standings-page .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ecs-shadow-md);
 }
 
 .standings-page .card-header {
@@ -237,7 +237,7 @@
 }
 
 .standings-page .card-title {
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
   font-weight: var(--font-semibold);
   color: var(--color-text-primary);
   margin-bottom: 0;
@@ -247,8 +247,8 @@
 .standings-page .badge {
   font-weight: var(--font-medium);
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
+  border-radius: var(--ecs-radius-md);
+  font-size: var(--ecs-text-xs);
 }
 
 /* ============================================================================
@@ -256,9 +256,9 @@
    ============================================================================ */
 
 [data-style="dark"] .standings-page .season-selector {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
+  color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .standings-page .season-selector:focus {
@@ -271,7 +271,7 @@
 }
 
 [data-style="dark"] .team-name {
-  color: var(--color-neutral-900);
+  color: var(--ecs-color-neutral-900);
 }
 
 [data-style="dark"] .team-name:hover {
@@ -279,21 +279,21 @@
 }
 
 [data-style="dark"] .empty-state-icon {
-  color: var(--color-neutral-500);
+  color: var(--ecs-color-neutral-500);
 }
 
 [data-style="dark"] .standings-page .card {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .standings-page .card-header {
-  background-color: var(--color-neutral-100);
-  border-bottom-color: var(--color-neutral-200);
+  background-color: var(--ecs-color-neutral-100);
+  border-bottom-color: var(--ecs-color-neutral-200);
 }
 
 [data-style="dark"] .standings-page .nav-pills .nav-link {
-  color: var(--color-neutral-700);
+  color: var(--ecs-color-neutral-700);
 }
 
 [data-style="dark"] .standings-page .nav-pills .nav-link:hover {
@@ -333,7 +333,7 @@
   .standings-page .nav-pills .nav-link {
     padding: var(--space-2) var(--space-3);
     white-space: nowrap;
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
   }
 
   /* Adjust column widths for smaller screens */
@@ -349,7 +349,7 @@
 
   /* Stack table data on very small screens */
   .standings-page .table-responsive {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
   }
 
   .standings-page .table td,
@@ -360,7 +360,7 @@
   /* Adjust season selector */
   .season-selector {
     min-width: 120px;
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /* Make card headers more compact */
@@ -369,7 +369,7 @@
   }
 
   .standings-page .card-title {
-    font-size: var(--text-base);
+    font-size: var(--ecs-text-base);
   }
 
   /* Standings page empty state - scoped to prevent conflicts */
@@ -392,19 +392,19 @@
   .standings-page .table td,
   .standings-page .table th {
     padding: var(--space-1) var(--space-0);
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /* Make team names wrap gracefully */
   .team-name {
-    font-size: var(--text-sm);
+    font-size: var(--ecs-text-sm);
     display: block;
   }
 
   /* Adjust popover positioning for mobile */
   .team-stats-popover {
     max-width: 240px;
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /**
@@ -418,12 +418,12 @@
   }
 
   .standings-page .card-body .d-flex.align-items-center {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 
   /* Hide text labels on mobile, rely on data-label */
   .standings-page .table thead {
-    font-size: var(--text-xs);
+    font-size: var(--ecs-text-xs);
   }
 }
 
@@ -439,7 +439,7 @@
   }
 
   .standings-page .card-title {
-    font-size: var(--text-xl);
+    font-size: var(--ecs-text-xl);
   }
 }
 
@@ -453,7 +453,7 @@
 .standings-page select:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--ecs-radius-sm);
 }
 
 /* High Contrast Mode Support */
@@ -546,7 +546,7 @@
 
   .standings-page .card {
     box-shadow: none;
-    border: 1px solid var(--color-neutral-900);
+    border: 1px solid var(--ecs-color-neutral-900);
     page-break-inside: avoid;
   }
 
@@ -559,7 +559,7 @@
   }
 
   .team-name {
-    color: var(--color-neutral-900);
+    color: var(--ecs-color-neutral-900);
     text-decoration: none;
   }
 }
@@ -571,17 +571,17 @@
 /* Rank Position Badges (Top 3 special styling) */
 .standings-page tr:nth-child(1) td[data-label="#"] {
   color: var(--color-warning-600);
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
 }
 
 .standings-page tr:nth-child(2) td[data-label="#"] {
-  color: var(--color-neutral-500);
-  font-size: var(--text-lg);
+  color: var(--ecs-color-neutral-500);
+  font-size: var(--ecs-text-lg);
 }
 
 .standings-page tr:nth-child(3) td[data-label="#"] {
   color: var(--color-warning-700);
-  font-size: var(--text-lg);
+  font-size: var(--ecs-text-lg);
 }
 
 /* Positive Goal Difference */
@@ -603,7 +603,7 @@
   transform: translate(-50%, -50%);
   width: 40px;
   height: 40px;
-  border: 4px solid var(--color-neutral-200);
+  border: 4px solid var(--ecs-color-neutral-200);
   border-top-color: var(--color-primary);
   border-radius: var(--radius-full);
   animation: spin 0.8s linear infinite;
@@ -632,13 +632,13 @@ html:not([data-style="dark"]) a.team-name:hover {
 
 /* Ensure Bootstrap table compatibility */
 .standings-page .table-light {
-  background-color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-100);
   color: var(--color-text-primary);
 }
 
 [data-style="dark"] .standings-page .table-light {
-  background-color: var(--color-neutral-100);
-  color: var(--color-neutral-900);
+  background-color: var(--ecs-color-neutral-100);
+  color: var(--ecs-color-neutral-900);
 }
 
 /* End of Standings Page Styles */

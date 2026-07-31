@@ -49,7 +49,7 @@
       <a href="{{ item.url }}" class="flex items-center p-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 group">
         <i class="ti {{ item.icon }} w-5 h-5"></i>
         <span class="ml-3 font-medium">{{ item.label }}</span>
-        {% if item.badge %}<span class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-white/20 rounded">{{ item.badge }}</span>{% endif %}
+        {% if item.badge %}<span class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-white/20 rounded-sm">{{ item.badge }}</span>{% endif %}
       </a>
     </li>
   {% else %}
@@ -58,7 +58,7 @@
          class="flex items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 group {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if item.active else 'text-gray-900 dark:text-white' }}">
         <i class="ti {{ item.icon }} w-5 h-5 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}"></i>
         <span class="ml-3">{{ item.label }}</span>
-        {% if item.badge %}<span class="ml-auto px-1.5 py-0.5 text-xs font-medium bg-ecs-green/10 text-ecs-green rounded">{{ item.badge }}</span>{% endif %}
+        {% if item.badge %}<span class="ml-auto px-1.5 py-0.5 text-xs font-medium bg-ecs-green/10 text-ecs-green rounded-sm">{{ item.badge }}</span>{% endif %}
       </a>
     </li>
   {% endif %}
@@ -156,14 +156,14 @@
     <a href="{{ item.url }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700">
       <i class="ti {{ item.icon }} text-base shrink-0" aria-hidden="true"></i>
       <span class="flex-1">{{ item.label }}</span>
-      {% if item.badge %}<span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/20">{{ item.badge }}</span>{% endif %}
+      {% if item.badge %}<span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-white/20">{{ item.badge }}</span>{% endif %}
     </a>
   {% else %}
     <a href="{{ item.url or '#' }}"
        class="flex items-center gap-3 px-3 py-2.5 rounded-lg {{ 'bg-ecs-green/10 text-ecs-green font-semibold' if item.active else 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/60' }}" {% if item.active %}aria-current="page"{% endif %}>
       <i class="ti {{ item.icon }} text-base shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}" aria-hidden="true"></i>
       <span class="flex-1">{{ item.label }}</span>
-      {% if item.badge %}<span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/15 text-ecs-green">{{ item.badge }}</span>{% endif %}
+      {% if item.badge %}<span class="text-[11px] font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/15 text-ecs-green">{{ item.badge }}</span>{% endif %}
     </a>
   {% endif %}
 {% endmacro %}
@@ -192,7 +192,7 @@
          class="flex items-center h-10 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if item.active else 'text-gray-700 dark:text-gray-300' }}">
         <i class="ti {{ item.icon }} w-5 h-5 shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}"></i>
         <span class="ml-3 text-sm whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">{{ item.label }}</span>
-        {% if item.badge %}<span class="ml-auto px-1.5 py-0.5 text-[10px] font-medium bg-ecs-green/10 text-ecs-green rounded whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">{{ item.badge }}</span>{% endif %}
+        {% if item.badge %}<span class="ml-auto px-1.5 py-0.5 text-[10px] font-medium bg-ecs-green/10 text-ecs-green rounded-sm whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">{{ item.badge }}</span>{% endif %}
       </a>
     </li>
   {% endif %}

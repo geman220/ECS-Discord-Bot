@@ -45,11 +45,11 @@
 
   {% call page_header('Cache & Redis', subtitle='System / Live Redis instance') %}
     <button type="button" data-action="refresh-cache-stats"
-            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
     </button>
     <button type="button" data-action="clear-all-cache"
-            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-trash" aria-hidden="true"></i> Flush All
     </button>
   {% endcall %}
@@ -114,13 +114,13 @@
   <!-- Tab Navigation (hooks verbatim from Classic JS) -->
   <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="cache-redis-tabs">
     <button type="button"
-            class="cache-redis-tab inline-flex items-center gap-1.5 min-h-[44px] px-4 py-3 text-sm font-semibold border-b-2 border-ecs-green text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-t-lg"
+            class="cache-redis-tab inline-flex items-center gap-1.5 min-h-[44px] px-4 py-3 text-sm font-semibold border-b-2 border-ecs-green text-ecs-green focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-t-lg"
             data-action="switch-cache-tab"
             data-tab-target="cache-operations">
       <i class="ti ti-database" aria-hidden="true"></i> Cache Operations
     </button>
     <button type="button"
-            class="cache-redis-tab inline-flex items-center gap-1.5 min-h-[44px] px-4 py-3 text-sm font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-t-lg"
+            class="cache-redis-tab inline-flex items-center gap-1.5 min-h-[44px] px-4 py-3 text-sm font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-900 dark:hover:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-t-lg"
             data-action="switch-cache-tab"
             data-tab-target="connection-pool">
       <i class="ti ti-plug" aria-hidden="true"></i> Connection Pool
@@ -142,15 +142,15 @@
         </div>
         <div class="flex flex-wrap gap-2">
           <button type="button" data-action="clear-user-cache"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500">
             <i class="ti ti-user-off" aria-hidden="true"></i> Clear User Cache
           </button>
           <button type="button" data-action="clear-all-cache"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-trash" aria-hidden="true"></i> Clear All Cache
           </button>
           <button type="button" data-action="refresh-cache-stats"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
           </button>
         </div>
@@ -177,7 +177,7 @@
           {% set _pct = ((entry.count|int) / (_max_keys if _max_keys > 0 else 1) * 100) | round %}
           <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
             <td class="px-4 py-3">
-              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded">{{ entry.pattern }}</code>
+              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded-sm">{{ entry.pattern }}</code>
             </td>
             <td class="px-4 py-3 font-mono text-right font-semibold text-gray-900 dark:text-white">{{ '{:,}'.format(entry.count|int) }}</td>
             <td class="px-4 py-3 font-mono text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">{{ '%.0f'|format(entry.avg_size_bytes|float) }} B</td>
@@ -253,20 +253,20 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button id="test-btn" type="button"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-plug" aria-hidden="true"></i> Test Connection
           </button>
           <button id="cleanup-btn" type="button"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500">
             <i class="ti ti-trash" aria-hidden="true"></i> Cleanup Connections
           </button>
           <button id="redis-mgmt-refresh-btn" type="button"
-                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-refresh" aria-hidden="true"></i> Refresh
           </button>
           <label class="relative inline-flex items-center cursor-pointer ml-1">
             <input type="checkbox" id="auto-refresh" class="sr-only peer">
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
             <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Auto</span>
           </label>
           <span id="last-updated" class="text-xs font-mono text-gray-500 dark:text-gray-400"></span>
@@ -448,17 +448,17 @@
     <div class="flex flex-wrap gap-3 mb-6">
         <button type="button"
                 data-action="clear-all-cache"
-                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50 px-4 py-2 text-sm">
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50 px-4 py-2 text-sm">
             <i class="ti ti-trash mr-2"></i>Clear All Cache
         </button>
         <button type="button"
                 data-action="clear-user-cache"
-                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50 px-4 py-2 text-sm">
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50 px-4 py-2 text-sm">
             <i class="ti ti-user-off mr-2"></i>Clear User Cache
         </button>
         <button type="button"
                 data-action="refresh-cache-stats"
-                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500/50 px-4 py-2 text-sm">
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500/50 px-4 py-2 text-sm">
             <i class="ti ti-refresh mr-2"></i>Refresh Stats
         </button>
     </div>
@@ -545,7 +545,7 @@
                     {% for entry in cache_stats.cache_key_stats %}
                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ entry.pattern }}</code>
+                            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-sm">{{ entry.pattern }}</code>
                         </td>
                         <td class="px-4 py-3">{{ entry.count }}</td>
                         <td class="px-4 py-3">{{ entry.avg_size_bytes }} B</td>
@@ -650,20 +650,20 @@
     <!-- Connection Pool Actions -->
     <div class="mt-6 flex flex-wrap items-center gap-3">
         <button id="redis-mgmt-refresh-btn" type="button"
-                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500/50 px-4 py-2 text-sm">
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500/50 px-4 py-2 text-sm">
             <i class="ti ti-refresh mr-2"></i>Refresh
         </button>
         <button id="cleanup-btn" type="button"
-                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50 px-4 py-2 text-sm">
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50 px-4 py-2 text-sm">
             <i class="ti ti-trash mr-2"></i>Cleanup Connections
         </button>
         <button id="test-btn" type="button"
-                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-cyan-500 hover:bg-cyan-600 text-white focus:ring-cyan-500/50 px-4 py-2 text-sm">
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-hidden focus:ring-4 bg-cyan-500 hover:bg-cyan-600 text-white focus:ring-cyan-500/50 px-4 py-2 text-sm">
             <i class="ti ti-plug mr-2"></i>Test Connection
         </button>
         <label class="relative inline-flex items-center cursor-pointer ml-2">
             <input type="checkbox" id="auto-refresh" class="sr-only peer">
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
             <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh</span>
         </label>
         <span id="last-updated" class="text-sm text-gray-500 dark:text-gray-400"></span>

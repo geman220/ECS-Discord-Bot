@@ -54,7 +54,7 @@
      (e.g. pick a request or broadcast to the whole pool). Per-request Contact Subs is
      still available on each request card below. Not rendering a broken header button. #}
   <a href="{{ url_for('admin_panel.match_operations') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Operations</span>
   </a>
 {% endcall %}
@@ -113,7 +113,7 @@
           <span class="text-green-600 dark:text-green-400">{{ row.counts.yes }} yes</span>
           <span>{{ row.filled }}/{{ row.needed }} set</span>
         </span>
-        <button class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+        <button class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 data-action="show-sub-assignment" data-request-id="{{ request.id }}" data-match-id="{{ request.match.id }}" data-team-id="{{ request.team.id }}">
           <i class="ti ti-plus" aria-hidden="true"></i><span>Assign</span>
         </button>
@@ -159,11 +159,11 @@
       </div>
       <div class="flex items-end gap-2">
         <button type="submit"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-search" aria-hidden="true"></i>Apply
         </button>
         <a href="{{ url_for('admin_panel.substitute_management') }}"
-           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-x" aria-hidden="true"></i>Clear
         </a>
       </div>
@@ -181,7 +181,7 @@
         {% if request_scope == 'past' %}Past Unresolved Requests
         {% elif request_scope == 'all' %}All Open Requests
         {% else %}Active Substitute Requests{% endif %}
-        {% if sub_requests %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ sub_requests|length }}</span>{% endif %}
+        {% if sub_requests %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ sub_requests|length }}</span>{% endif %}
       </h2>
     </div>
     <div class="p-4 sm:p-5">
@@ -309,20 +309,20 @@
         {# Command footer: secondary icon actions + primary Assign CTA #}
         <div class="flex items-center justify-between gap-1 px-4 py-2.5 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
           <div class="flex items-center gap-0.5">
-            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="show-contact-subs" data-request-id="{{ request.id }}" data-league="{{ request.team.league.name if request.team.league else 'Premier' }}" aria-label="Contact Subs" title="Contact Subs">
               <i class="ti ti-send" aria-hidden="true"></i>
             </button>
-            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg dark:text-gray-400 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:bg-gray-200 rounded-lg dark:text-gray-400 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="show-availability" data-request-id="{{ request.id }}" aria-label="View Availability" title="View Availability">
               <i class="ti ti-list-check" aria-hidden="true"></i>
             </button>
-            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="delete-active-request" data-request-id="{{ request.id }}" data-team-name="{{ request.team.name }}" aria-label="Delete Request" title="Delete Request">
               <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
           </div>
-          <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                   data-action="show-sub-assignment" data-request-id="{{ request.id }}" data-match-id="{{ request.match.id }}" data-team-id="{{ request.team.id }}">
             <i class="ti ti-plus" aria-hidden="true"></i>Assign
           </button>
@@ -345,7 +345,7 @@
     <div class="flex items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <i class="ti ti-user-check text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
       <h2 class="font-semibold text-gray-900 dark:text-white">Available Sub Pool</h2>
-      {% if available_subs %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ available_subs|length }}</span>{% endif %}
+      {% if available_subs %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ available_subs|length }}</span>{% endif %}
     </div>
 
     {% if available_subs %}
@@ -387,7 +387,7 @@
             {% elif sub.league_type %}<span>{{ sub.league_type }}</span>{% endif %}
           </p>
         </div>
-        <button class="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+        <button class="shrink-0 h-9 w-9 inline-flex items-center justify-center rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                 data-action="show-sub-assignment" data-player-id="{{ sub.id }}"
                 aria-label="Assign {{ sub.name }}" title="Assign {{ sub.name }}">
           <i class="ti ti-plus" aria-hidden="true"></i>
@@ -402,7 +402,7 @@
 
     <div class="mt-auto px-4 py-3 border-t border-gray-200 dark:border-gray-700">
       <a href="{{ url_for('admin_panel.substitute_pools') }}"
-         class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-users" aria-hidden="true"></i>Manage sub pool
       </a>
     </div>
@@ -456,11 +456,11 @@
           </td>
           <td class="px-3 py-3 align-top">
             <span class="flex items-center gap-1.5">
-              <span class="inline-flex items-center justify-center w-5 h-5 shrink-0 rounded font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green">H</span>
+              <span class="inline-flex items-center justify-center w-5 h-5 shrink-0 rounded-sm font-mono text-[10px] font-bold bg-ecs-green/10 text-ecs-green">H</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name }}</span>
             </span>
             <span class="flex items-center gap-1.5 mt-1">
-              <span class="inline-flex items-center justify-center w-5 h-5 shrink-0 rounded font-mono text-[10px] font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">A</span>
+              <span class="inline-flex items-center justify-center w-5 h-5 shrink-0 rounded-sm font-mono text-[10px] font-bold bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">A</span>
               <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name }}</span>
             </span>
           </td>
@@ -477,7 +477,7 @@
             {% endif %}
           </td>
           <td class="px-3 py-3 align-top text-right">
-            <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            <button class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors whitespace-nowrap focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                     data-action="show-sub-assignment" data-match-id="{{ match.id }}">
               <i class="ti ti-plus" aria-hidden="true"></i>Quick Assign
             </button>
@@ -506,14 +506,14 @@
         {% if match_requests %}
         <div class="mt-2 flex flex-wrap gap-1">
           {% for team_id, request in match_requests.items() %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
             {{ request.team.name }}: <span class="font-mono">{{ request.assignments_count or 0 }}/{{ request.substitutes_needed }}</span>
           </span>
           {% endfor %}
         </div>
         {% endif %}
         <div class="mt-3">
-          <button class="inline-flex items-center justify-center gap-1 min-h-[44px] px-3 w-full text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          <button class="inline-flex items-center justify-center gap-1 min-h-[44px] px-3 w-full text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
                   data-action="show-sub-assignment" data-match-id="{{ match.id }}">
             <i class="ti ti-plus" aria-hidden="true"></i>Quick Assign
           </button>
@@ -669,9 +669,9 @@
                     <p class="mt-1 flex items-center gap-1 flex-wrap">
                         <strong>RSVPs:</strong>
                         {% if counts.yes or counts.maybe or counts.no %}
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ counts.yes }} Yes</span>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ counts.maybe }} Maybe</span>
-                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ counts.no }} No</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ counts.yes }} Yes</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ counts.maybe }} Maybe</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ counts.no }} No</span>
                         {% else %}
                         <span class="text-gray-400 text-xs">No responses yet</span>
                         {% endif %}
@@ -774,7 +774,7 @@
                             <div class="mt-2 lg:hidden flex flex-wrap gap-1">
                                 {% if match_requests %}
                                 {% for team_id, request in match_requests.items() %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[10px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
                                     {{ request.assignments_count or 0 }}/{{ request.substitutes_needed }}
                                 </span>
                                 {% endfor %}
@@ -826,15 +826,15 @@
     <div>
         <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign From</label>
         <div class="flex flex-wrap gap-2 mb-3">
-            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                 <input type="radio" name="assign_source" value="responded" checked class="sr-only" id="assignSourceResponded">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><i class="ti ti-check mr-1"></i>Responded Available</span>
             </label>
-            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                 <input type="radio" name="assign_source" value="pool" class="sr-only" id="assignSourcePool">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><i class="ti ti-users mr-1"></i>Sub Pool</span>
             </label>
-            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                 <input type="radio" name="assign_source" value="search" class="sr-only" id="assignSourceSearch">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><i class="ti ti-search mr-1"></i>Any Player</span>
             </label>
@@ -894,7 +894,7 @@
 
     <div class="flex items-center">
         <input id="sendConfirmation" name="send_confirmation" type="checkbox" value="true" checked
-               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
         <label for="sendConfirmation" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Send confirmation notification to sub</label>
     </div>
 {% endcall %}
@@ -922,19 +922,19 @@
         <div class="space-y-3">
             <!-- Recipient Type -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                     <input type="radio" name="recipient_type" value="all" checked class="sr-only">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">All Subs</span>
                 </label>
-                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                     <input type="radio" name="recipient_type" value="gender" class="sr-only">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">By Gender</span>
                 </label>
-                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                     <input type="radio" name="recipient_type" value="position" class="sr-only">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">By Position</span>
                 </label>
-                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-checked:border-ecs-green has-checked:bg-ecs-green/10">
                     <input type="radio" name="recipient_type" value="specific" class="sr-only">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Specific</span>
                 </label>
@@ -960,19 +960,19 @@
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select position(s):</p>
                 <div class="flex flex-wrap gap-3">
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="GK" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" name="positions" value="GK" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">GK</span>
                     </label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="DEF" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" name="positions" value="DEF" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">DEF</span>
                     </label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="MID" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" name="positions" value="MID" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">MID</span>
                     </label>
                     <label class="flex items-center">
-                        <input type="checkbox" name="positions" value="FWD" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" name="positions" value="FWD" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">FWD</span>
                     </label>
                 </div>
@@ -1006,17 +1006,17 @@
         <div class="flex flex-wrap gap-4">
             <label class="flex items-center">
                 <input type="checkbox" id="channelEmail" name="channels" value="EMAIL" checked
-                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-mail mr-1"></i>Email</span>
             </label>
             <label class="flex items-center">
                 <input type="checkbox" id="channelSMS" name="channels" value="SMS" checked
-                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-device-mobile mr-1"></i>SMS</span>
             </label>
             <label class="flex items-center">
                 <input type="checkbox" id="channelDiscord" name="channels" value="DISCORD" checked
-                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-brand-discord mr-1"></i>Discord</span>
             </label>
         </div>
@@ -1045,7 +1045,7 @@
             Cancel
         </button>
         <button type="button" data-action="send-sub-request"
-                class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green flex items-center gap-2">
+                class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-hidden focus:ring-ecs-green flex items-center gap-2">
             <i class="ti ti-send"></i> Send Request
         </button>
     </div>
@@ -1086,7 +1086,7 @@
             <i class="ti ti-refresh"></i> Refresh
         </button>
         <button type="button" data-modal-hide="availabilityModal"
-                class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green modal-close-btn">
+                class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-hidden focus:ring-ecs-green modal-close-btn">
             Close
         </button>
     </div>

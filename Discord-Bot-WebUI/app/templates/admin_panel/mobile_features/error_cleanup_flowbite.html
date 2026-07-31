@@ -57,10 +57,10 @@
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                        bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors
                        disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600
-                       focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                       focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-trash text-base" aria-hidden="true"></i>
             <span>Run cleanup</span>
-            {% if total_to_delete %}<span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20 text-xs">{{ '{:,}'.format(total_to_delete) }}</span>{% endif %}
+            {% if total_to_delete %}<span class="font-mono font-bold px-1.5 py-0.5 rounded-sm bg-white/20 text-xs">{{ '{:,}'.format(total_to_delete) }}</span>{% endif %}
         </button>
     {% endcall %}
 
@@ -90,7 +90,7 @@
             <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
                 <i class="ti ti-table text-ecs-green" aria-hidden="true"></i> Table breakdown
             </h2>
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ tables|length }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ tables|length }}</span>
         </div>
 
         {# md+ : real table with mono numerals #}
@@ -227,7 +227,7 @@
         <button type="button" data-modal-hide="cleanupConfirmModal"
                 class="modal-close-btn p-2 -mr-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center
                        rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Close modal">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green" aria-label="Close modal">
           <i class="ti ti-x text-lg" aria-hidden="true"></i>
         </button>
       </div>
@@ -255,10 +255,10 @@
             <button type="button" data-modal-hide="cleanupConfirmModal"
                     class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold
                            border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green">Cancel</button>
             <button type="submit"
                     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold
-                           bg-red-600 hover:bg-red-700 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                           bg-red-600 hover:bg-red-700 text-white focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
               <i class="ti ti-trash text-base" aria-hidden="true"></i> Delete records
             </button>
           </div>
@@ -277,7 +277,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-database text-theme-primary"></i>
             <span>Storage Statistics</span>
@@ -294,7 +294,7 @@
         </dl>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-eye text-theme-primary"></i>
             <span>Cleanup Preview</span>

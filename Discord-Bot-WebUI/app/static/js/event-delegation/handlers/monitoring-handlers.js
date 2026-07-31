@@ -188,7 +188,7 @@ window.EventDelegation.register('view-alert', (element, event) => {
     }
 
     const severityRow = severity
-        ? `<strong class="text-gray-900 dark:text-white">Severity:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}" data-badge>${escapeHtml(severity)}</span><br>`
+        ? `<strong class="text-gray-900 dark:text-white">Severity:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${badgeClass}" data-badge>${escapeHtml(severity)}</span><br>`
         : '';
     const messageBlock = message
         ? `<div class="mb-3">
@@ -427,7 +427,7 @@ window.EventDelegation.register('view-task-logs', (element, event) => {
         .then(response => response.json())
         .then(data => {
             if (data.success && modalContent) {
-                modalContent.innerHTML = `<pre class="bg-gray-900 text-gray-100 p-3 rounded text-sm overflow-x-auto">${data.logs}</pre>`;
+                modalContent.innerHTML = `<pre class="bg-gray-900 text-gray-100 p-3 rounded-sm text-sm overflow-x-auto">${data.logs}</pre>`;
             } else if (modalContent) {
                 modalContent.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading task logs</div>';
             }
@@ -566,7 +566,7 @@ window.EventDelegation.register('view-log-details', (element, event) => {
         rows.push(`<strong class="text-gray-900 dark:text-white">Timestamp:</strong> <span class="text-gray-700 dark:text-gray-300">${escapeHtml(timestamp)}</span><br>`);
     }
     if (level) {
-        rows.push(`<strong class="text-gray-900 dark:text-white">Level:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}" data-badge>${escapeHtml(level)}</span><br>`);
+        rows.push(`<strong class="text-gray-900 dark:text-white">Level:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${badgeClass}" data-badge>${escapeHtml(level)}</span><br>`);
     }
     if (source) {
         rows.push(`<strong class="text-gray-900 dark:text-white">Source:</strong> <span class="text-gray-700 dark:text-gray-300">${escapeHtml(source)}</span>`);
@@ -575,7 +575,7 @@ window.EventDelegation.register('view-log-details', (element, event) => {
     const messageBlock = message
         ? `<div class="mb-3">
                     <strong class="text-gray-900 dark:text-white">Message:</strong><br>
-                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded text-sm whitespace-pre-wrap break-words">${escapeHtml(message)}</pre>
+                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded-sm text-sm whitespace-pre-wrap wrap-break-word">${escapeHtml(message)}</pre>
                 </div>`
         : '';
 

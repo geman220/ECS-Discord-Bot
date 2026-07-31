@@ -27,13 +27,13 @@
    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
           border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
           text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-          focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
   <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Communication</span>
 </a>
 <button type="submit" form="pushNotificationForm"
         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+               focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
   <i class="ti ti-send" aria-hidden="true"></i>Send
 </button>
 {% endcall %}
@@ -64,42 +64,42 @@
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                        border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                        text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-flask" aria-hidden="true"></i>Send Test Notification
         </button>
         <a href="{{ url_for('admin_panel.push_notification_tokens') }}" target="_blank" rel="noopener"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                   text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-devices" aria-hidden="true"></i>Manage FCM Tokens
         </a>
         <button type="button" id="opCleanupTokens"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                        border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300
                        text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-amber-500">
+                       focus:outline-hidden focus:ring-2 focus:ring-amber-500">
             <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Invalid Tokens
         </button>
         <button type="button" id="opMatchReminder"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                        border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                        text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-ball-football" aria-hidden="true"></i>Send Match Reminder
         </button>
         <button type="button" id="opRsvpReminder"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                        border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                        text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-calendar-check" aria-hidden="true"></i>Send RSVP Reminder
         </button>
         <a href="#notificationHistory"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                   text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
             <i class="ti ti-list-details" aria-hidden="true"></i>View Notification Logs
         </a>
     </div>
@@ -287,7 +287,7 @@
                     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                            text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
-                           focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                           focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                 <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
             </button>
             <div class="flex flex-wrap gap-2">
@@ -295,20 +295,20 @@
                         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                                border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200
                                text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                               focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
                     <i class="ti ti-eraser" aria-hidden="true"></i>Clear
                 </button>
                 <button type="button" id="previewBtn"
                         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                                border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300
                                text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-blue-500">
+                               focus:outline-hidden focus:ring-2 focus:ring-blue-500">
                     <i class="ti ti-eye" aria-hidden="true"></i>Preview
                 </button>
                 <button type="submit"
                         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
                                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                               focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     <i class="ti ti-send" aria-hidden="true"></i>Send Notification
                 </button>
             </div>
@@ -321,10 +321,10 @@
     <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
             <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Notification History
-            {% if notification_history %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ notification_history|length }}</span>{% endif %}
+            {% if notification_history %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ notification_history|length }}</span>{% endif %}
         </h2>
         <div class="inline-flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-            <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm" data-filter="all">All</button>
+            <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-xs" data-filter="all">All</button>
             <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-600/50" data-filter="sent">Sent</button>
             <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-600/50" data-filter="scheduled">Scheduled</button>
             <button class="history-filter px-3 py-1.5 text-xs font-medium rounded-md text-gray-600 dark:text-gray-400 hover:bg-white/50 dark:hover:bg-gray-600/50" data-filter="failed">Failed</button>
@@ -370,17 +370,17 @@
                 </td>
                 <td class="px-3 py-3.5 text-right">
                     <div class="flex items-center justify-end gap-1">
-                        <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-sm dark:text-blue-400 dark:hover:bg-blue-500/15 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.content|e }}')" title="View" aria-label="View notification details">
                             <i class="ti ti-eye" aria-hidden="true"></i>
                         </button>
                         {% if notification.status == 'failed' %}
-                        <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-green-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded-sm dark:text-green-400 dark:hover:bg-green-500/15 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 onclick="resendNotification('{{ notification.id }}', '{{ notification.content|e }}')" title="Resend" aria-label="Resend notification">
                             <i class="ti ti-refresh" aria-hidden="true"></i>
                         </button>
                         {% endif %}
-                        <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-sm dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                                 onclick="duplicateNotification('{{ notification.id }}')" title="Duplicate" aria-label="Duplicate notification">
                             <i class="ti ti-copy" aria-hidden="true"></i>
                         </button>
@@ -413,17 +413,17 @@
                 <span><i class="ti ti-clock mr-0.5" aria-hidden="true"></i>{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else '—' }}</span>
             </div>
             <div class="mt-2 flex items-center gap-1">
-                <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-sm dark:text-blue-400 dark:hover:bg-blue-500/15 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.content|e }}')" title="View" aria-label="View notification details">
                     <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
                 {% if notification.status == 'failed' %}
-                <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-green-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded-sm dark:text-green-400 dark:hover:bg-green-500/15 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         onclick="resendNotification('{{ notification.id }}', '{{ notification.content|e }}')" title="Resend" aria-label="Resend notification">
                     <i class="ti ti-refresh" aria-hidden="true"></i>
                 </button>
                 {% endif %}
-                <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-sm dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         onclick="duplicateNotification('{{ notification.id }}')" title="Duplicate" aria-label="Duplicate notification">
                     <i class="ti ti-copy" aria-hidden="true"></i>
                 </button>
@@ -448,13 +448,13 @@
             <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 font-mono">Lock screen</span>
         </div>
         <div class="p-5 flex justify-center">
-            <div class="w-full max-w-[260px] rounded-[2rem] border-4 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 shadow-xl">
+            <div class="w-full max-w-[260px] rounded-4xl border-4 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 shadow-xl">
                 <div class="flex justify-center mb-3"><div class="h-1.5 w-16 rounded-full bg-gray-200 dark:bg-gray-700"></div></div>
                 <div class="text-center text-gray-700 dark:text-gray-200 mb-4">
                     <div class="font-mono text-3xl font-bold leading-none">9:41</div>
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lock screen</div>
                 </div>
-                <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/80 p-3 shadow">
+                <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/80 p-3 shadow-sm">
                     <div class="flex items-center gap-2 mb-1.5">
                         <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-ecs-green text-white text-xs font-bold">E</span>
                         <span class="text-xs font-semibold flex-1 truncate text-gray-900 dark:text-white">ECS FC</span>
@@ -509,7 +509,7 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400">Global delivery system</p>
                     </div>
                 </div>
-                <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded shrink-0" aria-label="Notification feature settings">
+                <a href="{{ url_for('admin_panel.feature_toggles') }}#notifications" class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm shrink-0" aria-label="Notification feature settings">
                     <i class="ti ti-settings" aria-hidden="true"></i>
                 </a>
             </div>
@@ -542,7 +542,7 @@
 {% call modal('previewModal', 'Notification Preview', icon='ti-eye', size='sm') %}
 <div class="p-5">
     <div class="flex items-start p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-        <div class="flex-shrink-0 w-10 h-10 bg-ecs-green rounded-full flex items-center justify-center mr-3">
+        <div class="shrink-0 w-10 h-10 bg-ecs-green rounded-full flex items-center justify-center mr-3">
             <i class="ti ti-bell text-white" aria-hidden="true"></i>
         </div>
         <div class="min-w-0">
@@ -711,11 +711,11 @@ async function updateRecipientCount() {
 document.querySelectorAll('.history-filter').forEach(btn => {
     btn.addEventListener('click', function() {
         document.querySelectorAll('.history-filter').forEach(b => {
-            b.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            b.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-xs');
             b.classList.add('text-gray-600', 'dark:text-gray-400');
         });
         this.classList.remove('text-gray-600', 'dark:text-gray-400');
-        this.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+        this.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-xs');
 
         const filter = this.dataset.filter;
         document.querySelectorAll('.notification-row').forEach(row => {
@@ -788,7 +788,7 @@ function viewNotificationDetails(id, title) {
                                 <div><span class="text-gray-500 dark:text-gray-400">Status:</span> ${n.read ? 'Read' : 'Unread'}</div>
                             </div>
                             <div><span class="text-gray-500 dark:text-gray-400">Created:</span> ${escapeHtml(created)}</div>
-                            <div class="mt-2 p-3 rounded bg-gray-50 dark:bg-gray-700/50">
+                            <div class="mt-2 p-3 rounded-sm bg-gray-50 dark:bg-gray-700/50">
                                 <p class="text-gray-500 dark:text-gray-400 mb-1">Content</p>
                                 <p class="whitespace-pre-wrap">${escapeHtml(n.content)}</p>
                             </div>

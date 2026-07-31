@@ -25,11 +25,11 @@
 
   {% call page_header('Audiences', subtitle='Saved recipient groups for push targeting') %}
     <button type="button" onclick="history.back()"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
     </button>
     <button type="button" onclick="showCreateGroupModal()"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-plus" aria-hidden="true"></i><span>New Group</span>
     </button>
   {% endcall %}
@@ -49,7 +49,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-users-group text-ecs-green" aria-hidden="true"></i> Audience Registry
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ groups|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ groups|length }}</span>
       </h2>
       {% if groups %}
       <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -80,7 +80,7 @@
               <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ group.name }}</span>
               <span class="font-mono text-[11px] text-gray-400 dark:text-gray-500">#{{ group.id }}</span>
               {% if not group.is_active %}
-              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">
                 <i class="ti ti-circle-x text-[10px]" aria-hidden="true"></i>Inactive
               </span>
               {% endif %}
@@ -110,21 +110,21 @@
 
           <!-- Action toolbar -->
           <div class="flex items-center gap-1">
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" onclick="viewGroup('{{ group.id }}')" title="View Details" aria-label="View details">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" onclick="viewGroup('{{ group.id }}')" title="View Details" aria-label="View details">
               <i class="ti ti-eye" aria-hidden="true"></i>
             </button>
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" onclick="editGroup('{{ group.id }}')" title="Edit Group" aria-label="Edit group">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" onclick="editGroup('{{ group.id }}')" title="Edit Group" aria-label="Edit group">
               <i class="ti ti-edit" aria-hidden="true"></i>
             </button>
             {% if group.group_type == 'static' %}
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" onclick="manageMembers('{{ group.id }}', '{{ group.name }}')" title="Manage Members" aria-label="Manage members">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" onclick="manageMembers('{{ group.id }}', '{{ group.name }}')" title="Manage Members" aria-label="Manage members">
               <i class="ti ti-users" aria-hidden="true"></i>
             </button>
             {% endif %}
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-ecs-green hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" onclick="sendToGroup('{{ group.id }}', '{{ group.name }}')" title="Send Notification" aria-label="Send notification">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-ecs-green hover:bg-green-50 dark:hover:bg-green-500/10 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" onclick="sendToGroup('{{ group.id }}', '{{ group.name }}')" title="Send Notification" aria-label="Send notification">
               <i class="ti ti-send" aria-hidden="true"></i>
             </button>
-            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" onclick="deleteGroup('{{ group.id }}', '{{ group.name }}')" title="Delete Group" aria-label="Delete group">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" onclick="deleteGroup('{{ group.id }}', '{{ group.name }}')" title="Delete Group" aria-label="Delete group">
               <i class="ti ti-trash" aria-hidden="true"></i>
             </button>
           </div>
@@ -137,7 +137,7 @@
         'Create your first group to target a reusable audience — by team, league, role, sub pool, platform, or a hand-picked member list.') }}
     <div class="px-6 pb-12 -mt-4 flex justify-center">
       <button type="button" onclick="showCreateGroupModal()"
-              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
         <i class="ti ti-plus" aria-hidden="true"></i>Create Group
       </button>
     </div>
@@ -573,7 +573,7 @@ async function loadMembers() {
                             <p class="font-medium text-gray-900 dark:text-white text-sm">${member.name || 'Unknown'}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">${member.email || ''}</p>
                         </div>
-                        <button onclick="removeMember('${member.id}')" class="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"><i class="ti ti-x"></i></button>
+                        <button onclick="removeMember('${member.id}')" class="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-sm"><i class="ti ti-x"></i></button>
                     </div>
                 `).join('');
             }

@@ -52,33 +52,33 @@
       </span>
       {% if campaign.status == 'draft' %}
       <a href="{{ url_for('admin_panel.email_broadcast_edit', campaign_id=campaign.id) }}"
-         class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-edit" aria-hidden="true"></i> Edit
       </a>
       <button type="button" data-action="email-send-campaign" data-campaign-id="{{ campaign.id }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-send" aria-hidden="true"></i> Send Now
       </button>
       {% endif %}
       {% if campaign.status in ('sending', 'scheduled') %}
       <button type="button" data-action="email-cancel-campaign" data-campaign-id="{{ campaign.id }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-player-stop" aria-hidden="true"></i> {{ 'Cancel Send' if campaign.status == 'sending' else 'Cancel Schedule' }}
       </button>
       {% endif %}
       {% if campaign.status in ('sending', 'failed', 'cancelled', 'partially_sent') %}
       <button type="button" data-action="email-reset-to-draft" data-campaign-id="{{ campaign.id }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reset to Draft
       </button>
       {% endif %}
       <button type="button" data-action="email-duplicate-campaign" data-campaign-id="{{ campaign.id }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg text-sm font-semibold border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg text-sm font-semibold border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-copy" aria-hidden="true"></i> Duplicate
       </button>
       {% if campaign.status in ('draft', 'cancelled', 'failed') %}
       <button type="button" data-action="email-delete-campaign" data-campaign-id="{{ campaign.id }}"
-              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10 transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500">
         <i class="ti ti-trash" aria-hidden="true"></i> Delete
       </button>
       {% endif %}
@@ -159,7 +159,7 @@
       <div class="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-5 h-auto py-3 border-b border-gray-200 dark:border-gray-700">
         <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-users-group text-ecs-green" aria-hidden="true"></i> Recipients
-          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recipients|length }}</span>
+          <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ recipients|length }}</span>
         </h2>
         {% if recipients %}
         <div class="flex flex-wrap items-center gap-1.5 text-xs">
@@ -176,11 +176,11 @@
           <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
           <label for="recipientSearch" class="sr-only">Search recipients</label>
           <input id="recipientSearch" type="search" placeholder="Search recipients..." autocomplete="off"
-                 class="w-full h-9 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-ecs-green/40">
+                 class="w-full h-9 pl-9 pr-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-ecs-green/40">
         </div>
         <label for="statusFilter" class="sr-only">Filter by status</label>
         <select id="statusFilter"
-                class="h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green/40">
+                class="h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-ecs-green/40">
           <option value="">All statuses</option>
           <option value="sent">Sent</option>
           <option value="failed">Failed</option>

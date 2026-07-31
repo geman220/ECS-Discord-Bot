@@ -45,7 +45,7 @@
  */
 .security-feature-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+    box-shadow: var(--ecs-shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
 }
 
 /**
@@ -129,7 +129,7 @@
 
 .security-stat-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+    box-shadow: var(--ecs-shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
 }
 
 /* ============================================================================
@@ -157,17 +157,17 @@
 }
 
 .banned-ips-table-container::-webkit-scrollbar-track {
-    background: var(--color-bg-secondary, var(--color-neutral-50));
-    border-radius: var(--radius-sm, 0.25rem);
+    background: var(--color-bg-secondary, var(--ecs-color-neutral-50));
+    border-radius: var(--ecs-radius-sm, 0.25rem);
 }
 
 .banned-ips-table-container::-webkit-scrollbar-thumb {
-    background: var(--color-neutral-400, #cbd5e0);
-    border-radius: var(--radius-sm, 0.25rem);
+    background: var(--ecs-color-neutral-400, #cbd5e0);
+    border-radius: var(--ecs-radius-sm, 0.25rem);
 }
 
 .banned-ips-table-container::-webkit-scrollbar-thumb:hover {
-    background: var(--color-neutral-500, #a0aec0);
+    background: var(--ecs-color-neutral-500, #a0aec0);
 }
 
 /* Dark Mode: Scrollbar colors */
@@ -176,11 +176,11 @@
 }
 
 [data-style="dark"] .banned-ips-table-container::-webkit-scrollbar-thumb {
-    background: var(--color-neutral-600, #718096);
+    background: var(--ecs-color-neutral-600, #718096);
 }
 
 [data-style="dark"] .banned-ips-table-container::-webkit-scrollbar-thumb:hover {
-    background: var(--color-neutral-500, #a0aec0);
+    background: var(--ecs-color-neutral-500, #a0aec0);
 }
 
 /* ============================================================================
@@ -236,13 +236,13 @@
 }
 
 .auto-ban-metric strong {
-    font-size: var(--text-lg, 1.125rem);
+    font-size: var(--ecs-text-lg, 1.125rem);
     font-weight: var(--font-semibold, 600);
     color: var(--color-text-primary, var(--color-secondary-900));
 }
 
 .auto-ban-metric small {
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     color: var(--color-text-muted, var(--color-secondary, var(--color-secondary, var(--color-secondary-600))));
 }
 
@@ -265,11 +265,11 @@
  * Monospace formatting for IP addresses
  */
 .security-ip-address {
-    font-family: var(--font-mono, 'Courier New', monospace);
-    font-size: var(--text-sm, 0.875rem);
-    background-color: var(--color-bg-tertiary, var(--color-neutral-50));
+    font-family: var(--ecs-font-mono, 'Courier New', monospace);
+    font-size: var(--ecs-text-sm, 0.875rem);
+    background-color: var(--color-bg-tertiary, var(--ecs-color-neutral-50));
     padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-    border-radius: var(--radius-sm, 0.25rem);
+    border-radius: var(--ecs-radius-sm, 0.25rem);
     display: inline-block;
 }
 

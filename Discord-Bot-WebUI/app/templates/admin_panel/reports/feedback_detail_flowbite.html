@@ -55,13 +55,13 @@
   {% if feedback.status != 'Closed' %}
   <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Close this feedback?">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
       <i class="ti ti-circle-check" aria-hidden="true"></i>Close Ticket
     </button>
   </form>
   {% endif %}
   <a href="{{ url_for('admin_panel.feedback_list') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-arrow-left" aria-hidden="true"></i>Back
   </a>
 {% endcall %}
@@ -185,7 +185,7 @@
                 {{ reply.user.username if reply.user else 'System' }}
               </span>
               {% if is_admin %}
-              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Staff</span>
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wide bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Staff</span>
               {% endif %}
               <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ reply.created_at.strftime('%b %d · %I:%M %p') if reply.created_at else '' }}</span>
             </div>
@@ -217,7 +217,7 @@
             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
           ></textarea>
         </div>
-        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-send" aria-hidden="true"></i>Send Reply
         </button>
       </form>
@@ -234,7 +234,7 @@
       <div class="px-4 sm:px-5 py-3 border-b border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 flex items-center gap-2">
         <i class="ti ti-lock-cog text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
         <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Internal Notes</h3>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ note_count }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ note_count }}</span>
         <span class="ml-auto inline-flex items-center gap-1 text-xs text-amber-700 dark:text-amber-400">
           <i class="ti ti-eye-off" aria-hidden="true"></i>Not visible to submitter
         </span>
@@ -270,7 +270,7 @@
               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
             ></textarea>
           </div>
-          <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500">
             <i class="ti ti-note" aria-hidden="true"></i>Add Note
           </button>
         </form>
@@ -334,7 +334,7 @@
             <option value="High" {{ 'selected' if feedback.priority == 'High' }}>High</option>
           </select>
         </div>
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-check" aria-hidden="true"></i>Update
         </button>
       </form>
@@ -391,7 +391,7 @@
     <div class="p-4 sm:p-5">
       <form action="{{ url_for('admin_panel.delete_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Delete this feedback? This cannot be undone.">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-transparent border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-transparent border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-trash" aria-hidden="true"></i>Delete Feedback
         </button>
       </form>

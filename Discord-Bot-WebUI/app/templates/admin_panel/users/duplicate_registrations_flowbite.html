@@ -32,14 +32,14 @@
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
             border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold
             text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-arrow-left" aria-hidden="true"></i> All Users
   </a>
   <a href="{{ url_for('duplicate_management.duplicate_registration_stats') }}"
      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
             border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-semibold
             text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-chart-bar" aria-hidden="true"></i> View Statistics
   </a>
 {% endcall %}
@@ -237,7 +237,7 @@
           </button>
           <button type="submit"
                   class="min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-ecs-green text-white text-sm font-semibold hover:bg-ecs-green-700
-                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                         focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
             <i class="ti ti-arrows-join" aria-hidden="true"></i> Merge Profiles
           </button>
         </div>
@@ -279,19 +279,19 @@
         <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ alert.new_name or 'N/A' }}</td>
         <td class="px-3 py-2.5 text-gray-600 dark:text-gray-300">{{ alert.existing_player.name }}</td>
         <td class="px-3 py-2.5">
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' }}">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' }}">
             {{ alert.match_type.replace('_', ' ').title() }}
           </span>
         </td>
         <td class="px-3 py-2.5">
           {% if alert.resolution_action == 'merged' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-arrows-join" aria-hidden="true"></i>Merged</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-arrows-join" aria-hidden="true"></i>Merged</span>
           {% elif alert.resolution_action == 'allowed' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-check" aria-hidden="true"></i>Allowed</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-check" aria-hidden="true"></i>Allowed</span>
           {% elif alert.resolution_action == 'blocked' %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-ban" aria-hidden="true"></i>Blocked</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-ban" aria-hidden="true"></i>Blocked</span>
           {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ alert.resolution_action or 'N/A' }}</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ alert.resolution_action or 'N/A' }}</span>
           {% endif %}
         </td>
         <td class="px-3 py-2.5 text-gray-600 dark:text-gray-300">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
@@ -305,10 +305,10 @@
     {% for alert in resolved_alerts %}
     <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" data-row-card
        class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+              focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
       <div class="flex items-center justify-between gap-2">
         <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ alert.new_name or 'N/A' }} <span class="font-mono text-gray-400">#{{ alert.id }}</span></span>
-        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' }}">{{ alert.match_type.replace('_', ' ').title() }}</span>
+        <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' if alert.match_type == 'phone' else 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' }}">{{ alert.match_type.replace('_', ' ').title() }}</span>
       </div>
       <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
         <p><span class="font-medium text-gray-600 dark:text-gray-300">Existing:</span> {{ alert.existing_player.name }}</p>
@@ -363,7 +363,7 @@
 
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 mb-3">
                 <i class="ti ti-alert-triangle text-2xl text-yellow-600 dark:text-yellow-400"></i>
@@ -372,7 +372,7 @@
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|length }}</h3>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 mb-3">
                 <i class="ti ti-phone text-2xl text-red-600 dark:text-red-400"></i>
@@ -381,7 +381,7 @@
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'phone')|list|length }}</h3>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 mb-3">
                 <i class="ti ti-user text-2xl text-orange-600 dark:text-orange-400"></i>
@@ -390,7 +390,7 @@
             <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ pending_alerts|selectattr('match_type', 'equalto', 'name')|list|length }}</h3>
         </div>
     </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5">
         <div class="flex flex-col items-center text-center">
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-3">
                 <i class="ti ti-mail text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -413,7 +413,7 @@
                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
             </div>
             <div class="text-right">
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if alert.match_type == 'name' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }} mb-1">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if alert.match_type == 'name' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }} mb-1">
                     {{ alert.match_type.replace('_', ' ').title() }}
                 </span>
                 <p class="text-sm font-semibold {{ 'text-red-600 dark:text-red-400' if alert.confidence_score >= 0.8 else 'text-yellow-600 dark:text-yellow-400' if alert.confidence_score >= 0.6 else 'text-gray-600 dark:text-gray-400' }}">
@@ -483,19 +483,19 @@
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ alert.new_name or 'N/A' }}</td>
                 <td class="px-4 py-3 hidden md:table-cell">{{ alert.existing_player.name }}</td>
                 <td class="px-4 py-3 hidden md:table-cell">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
                         {{ alert.match_type.replace('_', ' ').title() }}
                     </span>
                 </td>
                 <td class="px-4 py-3 hidden md:table-cell">
                     {% if alert.resolution_action == 'merged' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Merged</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Merged</span>
                     {% elif alert.resolution_action == 'allowed' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Allowed</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Allowed</span>
                     {% elif alert.resolution_action == 'blocked' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Blocked</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Blocked</span>
                     {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ alert.resolution_action or 'N/A' }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ alert.resolution_action or 'N/A' }}</span>
                     {% endif %}
                 </td>
                 <td class="px-4 py-3 hidden md:table-cell">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>

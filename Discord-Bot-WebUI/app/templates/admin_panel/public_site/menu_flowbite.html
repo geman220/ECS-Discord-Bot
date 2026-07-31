@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var kindBadge = { builtin: 'Built-in', page: 'Page', url: 'Link' }[it.kind] || it.kind;
       li.innerHTML =
         '<span class="text-gray-400 text-xs w-5 text-center">' + (i + 1) + '</span>' +
-        '<input class="mi-label flex-1 bg-transparent text-sm text-gray-900 dark:text-white focus:outline-none" value="' + (labelFor(it) || '').replace(/"/g,'&quot;') + '">' +
-        '<input class="mi-parent w-24 bg-transparent text-xs text-gray-500 dark:text-gray-400 focus:outline-none border-l border-gray-200 dark:border-gray-700 pl-2" placeholder="Under…" title="Type a top-level item\'s name to nest this under it" value="' + (it.parent || '').replace(/"/g,'&quot;') + '">' +
+        '<input class="mi-label flex-1 bg-transparent text-sm text-gray-900 dark:text-white focus:outline-hidden" value="' + (labelFor(it) || '').replace(/"/g,'&quot;') + '">' +
+        '<input class="mi-parent w-24 bg-transparent text-xs text-gray-500 dark:text-gray-400 focus:outline-hidden border-l border-gray-200 dark:border-gray-700 pl-2" placeholder="Under…" title="Type a top-level item\'s name to nest this under it" value="' + (it.parent || '').replace(/"/g,'&quot;') + '">' +
         '<span class="text-[10px] uppercase text-gray-400">' + kindBadge + '</span>' +
         '<button type="button" data-op="up" class="text-gray-400 hover:text-ecs-green" title="Up"><i class="ti ti-chevron-up"></i></button>' +
         '<button type="button" data-op="down" class="text-gray-400 hover:text-ecs-green" title="Down"><i class="ti ti-chevron-down"></i></button>' +

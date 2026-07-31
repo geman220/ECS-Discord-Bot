@@ -90,7 +90,7 @@
   -webkit-backdrop-filter: blur(20px);
 
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-xl) !important;
+  border-radius: var(--ecs-radius-xl) !important;
   box-shadow:
     0 4px 6px rgba(0, 0, 0, 0.07),
     0 20px 25px rgba(0, 0, 0, 0.1),
@@ -145,10 +145,10 @@
 }
 
 .swal2-title {
-  font-size: var(--text-xl) !important;
+  font-size: var(--ecs-text-xl) !important;
   font-weight: var(--font-semibold) !important;
   color: var(--color-text-primary) !important;
-  line-height: var(--leading-tight) !important;
+  line-height: var(--ecs-leading-tight) !important;
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -274,9 +274,9 @@
    ============================================================================ */
 
 .swal2-html-container {
-  font-size: var(--text-base) !important;
+  font-size: var(--ecs-text-base) !important;
   color: var(--color-text-primary) !important;
-  line-height: var(--leading-relaxed) !important;
+  line-height: var(--ecs-leading-relaxed) !important;
   margin: 0 !important;
   padding: 0 !important;
   text-align: center;
@@ -303,13 +303,13 @@
   padding: var(--space-3) var(--space-5) !important;
   margin: 0 !important;
 
-  font-size: var(--text-sm) !important;
+  font-size: var(--ecs-text-sm) !important;
   font-weight: var(--font-semibold) !important;
   font-family: inherit !important;
   line-height: 1 !important;
 
   border: 2px solid transparent !important;
-  border-radius: var(--radius-lg) !important;
+  border-radius: var(--ecs-radius-lg) !important;
   box-shadow: none !important;
 
   cursor: pointer !important;
@@ -350,25 +350,25 @@
 
 /* Cancel button - Secondary */
 .swal2-cancel {
-  background: var(--color-neutral-100) !important;
+  background: var(--ecs-color-neutral-100) !important;
   color: var(--color-text-primary) !important;
   border-color: var(--color-border-primary) !important;
 }
 
 .swal2-cancel:hover {
-  background: var(--color-neutral-200) !important;
+  background: var(--ecs-color-neutral-200) !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
 
 [data-style="dark"] .swal2-cancel {
-  background: var(--color-neutral-800) !important;
-  color: var(--color-neutral-200) !important;
-  border-color: var(--color-neutral-700) !important;
+  background: var(--ecs-color-neutral-800) !important;
+  color: var(--ecs-color-neutral-200) !important;
+  border-color: var(--ecs-color-neutral-700) !important;
 }
 
 [data-style="dark"] .swal2-cancel:hover {
-  background: var(--color-neutral-700) !important;
+  background: var(--ecs-color-neutral-700) !important;
 }
 
 /* Deny button - Danger */
@@ -399,14 +399,14 @@
   padding: var(--space-3) var(--space-4) !important;
   margin: var(--space-4) 0 !important;
 
-  font-size: var(--text-sm) !important;
+  font-size: var(--ecs-text-sm) !important;
   font-family: inherit !important;
   color: var(--color-text-primary) !important;
-  line-height: var(--leading-normal) !important;
+  line-height: var(--ecs-leading-normal) !important;
 
   background: var(--color-bg-elevated) !important;
   border: 2px solid var(--color-border-primary) !important;
-  border-radius: var(--radius-lg) !important;
+  border-radius: var(--ecs-radius-lg) !important;
   box-shadow: none !important;
 
   outline: none !important;
@@ -428,7 +428,7 @@
 [data-style="dark"] .swal2-select {
   background: rgba(255, 255, 255, 0.05) !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-  color: var(--color-neutral-200) !important;
+  color: var(--ecs-color-neutral-200) !important;
 }
 
 .swal2-textarea {
@@ -445,8 +445,8 @@
   padding: var(--space-2) var(--space-3) !important;
   background: rgba(239, 68, 68, 0.1) !important;
   color: var(--color-danger) !important;
-  font-size: var(--text-xs) !important;
-  border-radius: var(--radius-md) !important;
+  font-size: var(--ecs-text-xs) !important;
+  border-radius: var(--ecs-radius-md) !important;
   border-left: 3px solid var(--color-danger) !important;
 }
 
@@ -460,9 +460,9 @@
 }
 
 .swal2-progress-step {
-  background: var(--color-neutral-200) !important;
+  background: var(--ecs-color-neutral-200) !important;
   color: var(--color-text-primary) !important;
-  font-size: var(--text-sm) !important;
+  font-size: var(--ecs-text-sm) !important;
 }
 
 .swal2-progress-step.swal2-active-progress-step {
@@ -471,7 +471,7 @@
 }
 
 .swal2-progress-step-line {
-  background: var(--color-neutral-200) !important;
+  background: var(--ecs-color-neutral-200) !important;
 }
 
 /* ============================================================================
@@ -503,7 +503,7 @@
   font-size: 1.5rem !important;
   color: var(--color-text-muted) !important;
   background: transparent !important;
-  border-radius: var(--radius-md) !important;
+  border-radius: var(--ecs-radius-md) !important;
   transition: all 0.2s ease !important;
 }
 
@@ -532,7 +532,7 @@
     0 4px 6px rgba(0, 0, 0, 0.07),
     0 10px 15px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--radius-lg) !important;
+  border-radius: var(--ecs-radius-lg) !important;
   padding: var(--space-4) !important;
 }
 
@@ -562,7 +562,7 @@
 }
 
 .swal2-toast .swal2-title {
-  font-size: var(--text-sm) !important;
+  font-size: var(--ecs-text-sm) !important;
   margin: 0 !important;
 }
 
@@ -582,7 +582,7 @@
   height: auto !important;
   background: rgba(0, 0, 0, 0.1) !important;
   overflow: hidden !important;
-  border-radius: 0 var(--radius-lg) var(--radius-lg) 0 !important;
+  border-radius: 0 var(--ecs-radius-lg) var(--ecs-radius-lg) 0 !important;
 }
 
 [data-style="dark"] .swal2-toast .swal2-timer-progress-bar-container {
@@ -632,11 +632,11 @@
   }
 
   .swal2-title {
-    font-size: var(--text-lg) !important;
+    font-size: var(--ecs-text-lg) !important;
   }
 
   .swal2-html-container {
-    font-size: var(--text-sm) !important;
+    font-size: var(--ecs-text-sm) !important;
   }
 
   .swal2-actions {

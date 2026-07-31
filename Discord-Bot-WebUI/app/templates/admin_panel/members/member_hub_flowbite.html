@@ -47,7 +47,7 @@
       </div>
       <div class="flex flex-col sm:flex-row gap-2 shrink-0">
         <button type="button"
-                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                 data-action="relink-request-approve"
                 data-request-id="{{ relink_request.id }}"
                 data-player-id="{{ relink_request.candidate_player_id or (m.player.id if m.player else '') }}"
@@ -118,7 +118,7 @@
                   data-player-id="{{ m.player.id }}"
                   data-player-name="{{ m.player.name }}"
                   data-discord-id="{{ m.player.discord_id or '' }}"
-                  class="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded text-[11px] font-semibold text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  class="inline-flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded-sm text-[11px] font-semibold text-ecs-green hover:bg-ecs-green/10 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                   title="Change or unlink this member's Discord account">
             <i class="ti ti-pencil text-[12px]" aria-hidden="true"></i>{{ 'Relink' if m.player.discord_id else 'Link Discord' }}
           </button>
@@ -150,7 +150,7 @@
       <div class="p-4 sm:p-5">
         {% if m.current_memberships %}
         <div class="overflow-x-auto">
-          <table class="w-full text-sm min-w-[30rem]">
+          <table class="w-full text-sm min-w-120">
             <thead>
               <tr class="text-left text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 <th class="py-1.5 pe-3">League</th><th class="py-1.5 pe-3">Role</th>
@@ -163,7 +163,7 @@
                 <td class="py-2 pe-3 font-medium text-gray-900 dark:text-white">{{ c.lane_label }}</td>
                 <td class="py-2 pe-3">
                   {% set rc = {'player':'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300','coach':'bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300','sub':'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300','waitlist':'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'} %}
-                  <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded {{ rc.get(c.role, 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300') }}">{{ c.role }}</span>
+                  <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-sm {{ rc.get(c.role, 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300') }}">{{ c.role }}</span>
                 </td>
                 <td class="py-2 pe-3 text-gray-700 dark:text-gray-300">
                   {{ c.status }}{% if c.needs_reconfirm %} <span class="text-amber-600 dark:text-amber-400">· re-confirm</span>{% endif %}
@@ -209,17 +209,17 @@
             <div class="flex items-center justify-between gap-3 text-sm">
               <span class="text-gray-900 dark:text-white">{{ c.team_name }}
                 <span class="text-xs text-gray-400">· {{ c.lane_label }}</span>
-                {% if c.team_id == primary_team_id %}<span class="ms-1 text-[10px] font-semibold px-1 rounded bg-ecs-green/15 text-ecs-green">PRIMARY</span>{% endif %}
+                {% if c.team_id == primary_team_id %}<span class="ms-1 text-[10px] font-semibold px-1 rounded-sm bg-ecs-green/15 text-ecs-green">PRIMARY</span>{% endif %}
               </span>
               <div class="flex items-center gap-1.5">
                 {% if c.team_id != primary_team_id %}
                 <button data-action-place data-place-action="primary" data-team="{{ c.team_id }}"
                         data-url="{{ url_for('admin_panel.member_place', user_id=m.user.id) }}"
-                        class="text-[11px] px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make primary</button>
+                        class="text-[11px] px-2 py-0.5 rounded-sm border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Make primary</button>
                 {% endif %}
                 <button data-action-place data-place-action="remove" data-team="{{ c.team_id }}"
                         data-url="{{ url_for('admin_panel.member_place', user_id=m.user.id) }}"
-                        class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
+                        class="text-[11px] px-2 py-0.5 rounded-sm border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
               </div>
             </div>
             {% endfor %}
@@ -237,7 +237,7 @@
               </optgroup>
               {% endfor %}
             </select>
-            <label class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300"><input type="checkbox" data-place-coach class="rounded border-gray-300 dark:border-gray-600"> as coach</label>
+            <label class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300"><input type="checkbox" data-place-coach class="rounded-sm border-gray-300 dark:border-gray-600"> as coach</label>
             <button data-action-place data-place-action="add"
                     data-url="{{ url_for('admin_panel.member_place', user_id=m.user.id) }}"
                     class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-plus"></i>Place</button>
@@ -352,24 +352,24 @@
               {% if s.status == 'active' %}
               <button data-action-subctl data-lane="{{ s.lane_label }}" data-active="false"
                       data-url="{{ url_for('admin_panel.member_sub_set_active', user_id=m.user.id) }}"
-                      class="text-[11px] px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Rest</button>
+                      class="text-[11px] px-2 py-0.5 rounded-sm border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Rest</button>
               {% elif s.status == 'resting' %}
               <button data-action-subctl data-lane="{{ s.lane_label }}" data-active="true"
                       data-url="{{ url_for('admin_panel.member_sub_set_active', user_id=m.user.id) }}"
-                      class="text-[11px] px-2 py-0.5 rounded border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Wake</button>
+                      class="text-[11px] px-2 py-0.5 rounded-sm border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Wake</button>
               {% endif %}
               {% if s.status == 'pending' %}
               <button data-action-subctl data-lane="{{ s.lane_label }}" data-active="true"
                       data-url="{{ url_for('admin_panel.member_sub_assign', user_id=m.user.id) }}"
-                      class="text-[11px] px-2 py-0.5 rounded border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Approve</button>
+                      class="text-[11px] px-2 py-0.5 rounded-sm border border-ecs-green/40 text-ecs-green hover:bg-ecs-green/10">Approve</button>
               <button data-action-subreject data-lane="{{ s.lane_label }}"
                       data-url="{{ url_for('admin_panel.member_sub_reject', user_id=m.user.id) }}"
-                      class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Reject</button>
+                      class="text-[11px] px-2 py-0.5 rounded-sm border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Reject</button>
               {% endif %}
               {% if s.status in ('active', 'resting') %}
               <button data-action-subctl data-lane="{{ s.lane_label }}" data-confirm="Remove this player from the {{ s.lane_label }} sub pool?"
                       data-url="{{ url_for('admin_panel.member_sub_remove', user_id=m.user.id) }}"
-                      class="text-[11px] px-2 py-0.5 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
+                      class="text-[11px] px-2 py-0.5 rounded-sm border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove</button>
               {% endif %}
             </div>
           </div>
@@ -385,7 +385,7 @@
             <select data-subassign-lane aria-label="Sub pool league" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">
               <option value="Classic">Classic</option><option value="Premier">Premier</option><option value="ECS FC">ECS FC</option>
             </select>
-            <label class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300"><input type="checkbox" data-subassign-active checked class="rounded border-gray-300 dark:border-gray-600"> active now</label>
+            <label class="inline-flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300"><input type="checkbox" data-subassign-active checked class="rounded-sm border-gray-300 dark:border-gray-600"> active now</label>
             <button data-action-subassign data-url="{{ url_for('admin_panel.member_sub_assign', user_id=m.user.id) }}"
                     class="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-plus"></i>Add to subs</button>
           </div>
@@ -411,11 +411,11 @@
             {% if p.league_type == 'ecs_fc' %}
             <span class="text-xs text-gray-500 dark:text-gray-400">activated by approval</span>
             {% elif p.paid_at %}
-            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">paid</span>
+            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-sm bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">paid</span>
             {% else %}
             {# Pub League pass payment isn't tracked in the spine yet (paid_at unset), so show the
                membership status rather than a misleading "unpaid" — a rostered player has a pass. #}
-            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ p.status or 'registered' }}</span>
+            <span class="inline-block px-2 py-0.5 text-[11px] font-semibold rounded-sm bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ p.status or 'registered' }}</span>
             {% endif %}
           </div>
           {% endfor %}
@@ -446,9 +446,9 @@
             <option value="auto">Auto priority</option><option value="high">High</option><option value="medium">Medium</option><option value="normal">Normal</option>
           </select>
           <button data-action-waitlist data-waitlist-action="priority" data-url="{{ url_for('admin_panel.update_waitlist_priority', user_id=m.user.id) }}"
-                  class="text-[11px] px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Set priority</button>
+                  class="text-[11px] px-2 py-1 rounded-sm border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Set priority</button>
           <button data-action-waitlist data-waitlist-action="remove" data-url="{{ url_for('admin_panel.remove_from_waitlist', user_id=m.user.id) }}"
-                  class="text-[11px] px-2 py-1 rounded border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove from waitlist</button>
+                  class="text-[11px] px-2 py-1 rounded-sm border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10">Remove from waitlist</button>
         </div>
         {% endif %}
       </div>
@@ -496,7 +496,7 @@
           {% for o in extras.orders %}
           <tr class="border-t border-gray-100 dark:border-gray-700/60">
             <td class="py-1.5 pe-3 text-gray-700 dark:text-gray-300">{{ o.season_name }}</td>
-            <td class="py-1.5 pe-3"><span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold {% if o.status in ['completed','paid','linked'] %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300{% elif o.status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ o.status }}</span></td>
+            <td class="py-1.5 pe-3"><span class="inline-block px-1.5 py-0.5 rounded-sm text-[10px] font-semibold {% if o.status in ['completed','paid','linked'] %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300{% elif o.status == 'pending' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300{% else %}bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ o.status }}</span></td>
             <td class="py-1.5 pe-3 font-mono">{{ o.linked_passes }}/{{ o.total_passes }}</td>
             <td class="py-1.5 pe-3 font-mono text-gray-500 hidden sm:table-cell">{{ o.created_at }}</td>
             <td class="py-1.5 font-mono text-gray-500">#{{ o.woo_order_id }}</td>
@@ -521,7 +521,7 @@
         <div class="space-y-1.5">
           {% for h in extras.team_history %}
           <div class="flex items-center justify-between gap-3">
-            <span class="text-gray-900 dark:text-white">{{ h.team_name }}{% if h.is_coach %} <span class="text-[10px] font-semibold px-1 rounded bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300">COACH</span>{% endif %}</span>
+            <span class="text-gray-900 dark:text-white">{{ h.team_name }}{% if h.is_coach %} <span class="text-[10px] font-semibold px-1 rounded-sm bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300">COACH</span>{% endif %}</span>
             <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ h.season_name }}</span>
           </div>
           {% endfor %}
@@ -659,7 +659,7 @@
         <ul id="memberNotesList" class="space-y-2">
           {% for n in m.notes %}
           <li class="flex items-start justify-between gap-3 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60" data-note-id="{{ n.id }}">
-            <div class="min-w-0"><p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">{{ n.content }}</p>
+            <div class="min-w-0"><p class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap wrap-break-word">{{ n.content }}</p>
               <p class="text-[11px] text-gray-400 mt-0.5">{{ n.author }} · {{ n.created_at }}</p></div>
             <button data-action-note-delete data-url="{{ url_for('admin_panel.member_delete_note', user_id=m.user.id, note_id=n.id) }}" class="p-1 text-gray-300 hover:text-red-500 shrink-0" title="Delete note"><i class="ti ti-trash text-[14px]"></i></button>
           </li>
@@ -872,7 +872,7 @@ document.addEventListener('DOMContentLoaded', function () {
         li.className = 'flex items-start justify-between gap-3 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/60';
         li.setAttribute('data-note-id', d.note.id);
         var wrap = document.createElement('div'); wrap.className = 'min-w-0';
-        var p = document.createElement('p'); p.className = 'text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words'; p.textContent = d.note.content;
+        var p = document.createElement('p'); p.className = 'text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap wrap-break-word'; p.textContent = d.note.content;
         var meta2 = document.createElement('p'); meta2.className = 'text-[11px] text-gray-400 mt-0.5'; meta2.textContent = d.note.author + ' · ' + d.note.created_at;
         wrap.appendChild(p); wrap.appendChild(meta2);
         var del = document.createElement('button'); del.className = 'p-1 text-gray-300 hover:text-red-500 shrink-0'; del.title = 'Delete note';

@@ -298,9 +298,9 @@ function _renderCommandsDialog(commands) {
         categories[category].forEach(cmd => {
             commandsHtml += `
           <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-            <td class="py-2 px-3"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">/${escapeHtml(cmd.name)}</code></td>
+            <td class="py-2 px-3"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">/${escapeHtml(cmd.name)}</code></td>
             <td class="py-2 px-3">${escapeHtml(cmd.description)}</td>
-            <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded ${getPermissionBadge(cmd.permission_level || 'Public')}">${escapeHtml(cmd.permission_level || 'Public')}</span></td>
+            <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded-sm ${getPermissionBadge(cmd.permission_level || 'Public')}">${escapeHtml(cmd.permission_level || 'Public')}</span></td>
           </tr>
         `;
         });
@@ -380,19 +380,19 @@ function _renderPermissionsDialog(commands, permissionsMap) {
                 <div class="mb-3">
                     <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Allowed Roles</label>
                     <div class="flex items-center mb-2">
-                        <input type="checkbox" id="roleAdmin" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" id="roleAdmin" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <label for="roleAdmin" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Global Admin</label>
                     </div>
                     <div class="flex items-center mb-2">
-                        <input type="checkbox" id="roleMod" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" id="roleMod" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <label for="roleMod" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Moderator</label>
                     </div>
                     <div class="flex items-center mb-2">
-                        <input type="checkbox" id="roleCoach" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" id="roleCoach" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <label for="roleCoach" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Coach</label>
                     </div>
                     <div class="flex items-center mb-2">
-                        <input type="checkbox" id="roleUser" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <input type="checkbox" id="roleUser" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                         <label for="roleUser" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Regular User</label>
                     </div>
                 </div>
@@ -493,7 +493,7 @@ function _renderCommandUsageDialog(usage) {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <h6 class="font-semibold text-gray-900 dark:text-white">Most Used Command</h6>
-              <p class="text-gray-700 dark:text-gray-300"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">/${escapeHtml(usage.most_used_command || 'N/A')}</code></p>
+              <p class="text-gray-700 dark:text-gray-300"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">/${escapeHtml(usage.most_used_command || 'N/A')}</code></p>
             </div>
             <div>
               <h6 class="font-semibold text-gray-900 dark:text-white">Average Response Time</h6>
@@ -551,9 +551,9 @@ function _showCustomCommandsList(commands) {
     const commandRows = commands.length > 0
         ? commands.map(cmd => `
             <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <td class="py-2 px-3"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">/${escapeHtml(cmd.name)}</code></td>
+                <td class="py-2 px-3"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">/${escapeHtml(cmd.name)}</code></td>
                 <td class="py-2 px-3 text-gray-700 dark:text-gray-300">${escapeHtml(cmd.description) || '-'}</td>
-                <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded ${cmd.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${cmd.enabled ? 'Active' : 'Disabled'}</span></td>
+                <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded-sm ${cmd.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${cmd.enabled ? 'Active' : 'Disabled'}</span></td>
                 <td class="py-2 px-3">
                     <button class="text-blue-600 hover:text-blue-800 dark:text-blue-400 text-sm mr-2" data-action="edit-custom-command" data-cmd-name="${escapeHtml(cmd.name)}"><i class="ti ti-edit"></i></button>
                     <button class="text-red-600 hover:text-red-800 dark:text-red-400 text-sm" data-action="delete-custom-command" data-cmd-name="${escapeHtml(cmd.name)}"><i class="ti ti-trash"></i></button>
@@ -625,7 +625,7 @@ function _showCustomCommandForm(editCmd) {
                     <textarea id="cmdResponse" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" rows="3" placeholder="Enter the response message...">${isEdit ? (editCmd.response || '') : ''}</textarea>
                 </div>
                 <div class="flex items-center mb-3">
-                    <input type="checkbox" id="cmdEnabled" ${(!isEdit || editCmd.enabled) ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <input type="checkbox" id="cmdEnabled" ${(!isEdit || editCmd.enabled) ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                     <label for="cmdEnabled" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Enabled</label>
                 </div>
             </div>
@@ -789,11 +789,11 @@ function manageGuild(element, e) {
                                     </select>
                                 </div>
                                 <div class="flex items-center mb-2">
-                                    <input type="checkbox" id="guildWelcome" ${settings.welcome_messages ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                    <input type="checkbox" id="guildWelcome" ${settings.welcome_messages ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                                     <label for="guildWelcome" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Send welcome messages</label>
                                 </div>
                                 <div class="flex items-center mb-2">
-                                    <input type="checkbox" id="guildModLog" ${settings.mod_logging ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                    <input type="checkbox" id="guildModLog" ${settings.mod_logging ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                                     <label for="guildModLog" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Enable moderation logging</label>
                                 </div>
                             </div>

@@ -91,7 +91,7 @@
   </div>
 
   <!-- ===== registration trend ===== -->
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
       <div>
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
@@ -113,7 +113,7 @@
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
     <!-- approval funnel -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
       <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-4">
         Approval funnel
         {{ info_dot('The current split of every account across approved / pending / denied. The stats below describe throughput over the last 30 days.') }}
@@ -146,13 +146,13 @@
     </div>
 
     <!-- role distribution -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
       <div class="flex items-center justify-between mb-4">
         <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
           Roles
           {{ info_dot('How many accounts hold each role. One person can hold several roles, so these counts overlap and won’t sum to the member total.') }}
         </h3>
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roles|length }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roles|length }}</span>
       </div>
       {% if roles %}
       <div class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
@@ -175,7 +175,7 @@
   </div>
 
   <!-- ===== league distribution ===== -->
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
     <h3 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5 mb-4">
       League membership
       {{ info_dot('Accounts carrying each league role (Classic / Premier / ECS FC). Reflects the assigned league role, not this season’s roster.') }}

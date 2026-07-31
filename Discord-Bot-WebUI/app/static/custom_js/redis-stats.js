@@ -136,7 +136,7 @@ let _initialized = false;
             html += `
               <div class="p-4 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
                 <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">${testName.replace('_', ' ').toUpperCase()}</h6>
-                <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}">${result.status}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${badgeClass}">${result.status}</span>
                 <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">${result.message}</p>
               </div>
             `;

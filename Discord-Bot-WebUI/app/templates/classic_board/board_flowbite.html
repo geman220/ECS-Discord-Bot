@@ -120,23 +120,23 @@
                     </div>
                     <div class="mt-1 flex flex-wrap items-center gap-1">
                         {% if p.is_coach %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"><i class="ti ti-whistle text-xs"></i>Coach</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"><i class="ti ti-whistle text-xs"></i>Coach</span>
                         {% elif p.is_new %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">NEW</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">NEW</span>
                         {% else %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Returning</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">Returning</span>
                         {% endif %}
                         {% if p.team_name %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"><i class="ti ti-shield text-xs"></i>{{ p.team_name }}</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"><i class="ti ti-shield text-xs"></i>{{ p.team_name }}</span>
                         {% else %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="ti ti-user-question text-xs"></i>Unassigned</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="ti ti-user-question text-xs"></i>Unassigned</span>
                         {% endif %}
                         {% if p.wants_gk %}
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300" title="GK: {{ p.gk_willingness or 'Willing' }}"><i class="ti ti-hand-stop text-xs"></i>GK</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300" title="GK: {{ p.gk_willingness or 'Willing' }}"><i class="ti ti-hand-stop text-xs"></i>GK</span>
                         {% endif %}
                         {% if p.is_nad %}
                             <button type="button" data-action="classic-board-notes" data-player-id="{{ p.id }}" data-player-name="{{ p.name }}"
-                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40">
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40">
                                 <i class="ti ti-notes text-xs"></i>Notes{% if p.note_count %} ({{ p.note_count }}){% endif %}
                             </button>
                         {% endif %}
@@ -164,17 +164,17 @@
             <div class="space-y-1.5 text-xs">
                 {% if p.favorite_position %}
                 <div class="flex items-center gap-1.5 flex-wrap"><span class="text-gray-400 w-14 shrink-0">Favorite</span>
-                    <span class="px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green font-medium">{{ p.favorite_position }}</span>
+                    <span class="px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green font-medium">{{ p.favorite_position }}</span>
                 </div>
                 {% endif %}
                 {% if p.other_positions %}
                 <div class="flex items-center gap-1.5 flex-wrap"><span class="text-gray-400 w-14 shrink-0">Also</span>
-                    {% for pos in p.other_positions %}<span class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ pos }}</span>{% endfor %}
+                    {% for pos in p.other_positions %}<span class="px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ pos }}</span>{% endfor %}
                 </div>
                 {% endif %}
                 {% if p.positions_not_to_play %}
                 <div class="flex items-center gap-1.5 flex-wrap"><span class="text-gray-400 w-14 shrink-0">Avoid</span>
-                    {% for pos in p.positions_not_to_play %}<span class="px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 line-through">{{ pos }}</span>{% endfor %}
+                    {% for pos in p.positions_not_to_play %}<span class="px-1.5 py-0.5 rounded-sm bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 line-through">{{ pos }}</span>{% endfor %}
                 </div>
                 {% endif %}
             </div>
@@ -184,7 +184,7 @@
             <details class="group mt-auto">
                 <summary class="flex items-center justify-between gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none list-none pt-2 border-t border-gray-200 dark:border-gray-700">
                     <span class="flex items-center gap-1.5"><i class="ti ti-star text-sm text-ecs-green"></i>Ratings
-                        {% if not p.ratings.is_rated %}<span class="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-400">Unrated</span>{% endif %}
+                        {% if not p.ratings.is_rated %}<span class="px-1.5 py-0.5 rounded-sm text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-400">Unrated</span>{% endif %}
                     </span>
                     <span class="flex items-center gap-1.5">
                         {% if p.ratings.composite is not none %}<span class="font-mono font-bold text-ecs-green">{{ '%.2f'|format(p.ratings.composite) }}</span>{% endif %}
@@ -215,7 +215,7 @@
 <div id="cb-notes-modal" tabindex="-1" aria-hidden="true"
      class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-xl shadow dark:bg-gray-800">
+        <div class="relative bg-white rounded-xl shadow-sm dark:bg-gray-800">
             <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 rounded-t">
                 <h3 class="text-base font-semibold text-gray-900 dark:text-white">Scouting notes — <span id="cb-notes-player"></span></h3>
                 <button type="button" data-action="classic-board-notes-close" class="text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-lg p-1.5"><i class="ti ti-x"></i></button>

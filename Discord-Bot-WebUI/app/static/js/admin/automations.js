@@ -112,7 +112,7 @@ function renderNewTriggerFields(trigger) {
             return `<div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">` +
                    `<label class="flex items-start gap-2.5 cursor-pointer">` +
                    `<input type="checkbox" data-nf-bool="${escapeHtml(name)}" ${spec.default ? 'checked' : ''} ` +
-                   `class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">` +
+                   `class="mt-0.5 w-4 h-4 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">` +
                    `<span class="text-sm text-gray-900 dark:text-white">${escapeHtml(spec.label)}` +
                    (spec.help ? `<span class="block mt-0.5 text-xs text-gray-500 dark:text-gray-400">${escapeHtml(spec.help)}</span>` : '') +
                    `</span></label></div>`;
@@ -121,7 +121,7 @@ function renderNewTriggerFields(trigger) {
             const picked = new Set(spec.default || []);
             const boxes = (spec.choices || []).map(([v, l]) =>
                 `<label class="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white cursor-pointer">` +
-                `<input type="checkbox" value="${escapeHtml(v)}" ${picked.has(v) ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green">` +
+                `<input type="checkbox" value="${escapeHtml(v)}" ${picked.has(v) ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green">` +
                 `<span>${escapeHtml(l)}</span></label>`).join('');
             return `<div>${labelHtml}<div data-nf-multi="${escapeHtml(name)}" ` +
                    `class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">${boxes}</div>${help}</div>`;
@@ -480,7 +480,7 @@ function stepRowHtml(step, index) {
     const chans = step.channels || ['email'];
     const boxes = STEP_CHANNELS.map(([v, lbl]) =>
         `<label class="inline-flex items-center gap-1 text-xs mr-2">` +
-        `<input type="checkbox" class="step-channel w-3.5 h-3.5 rounded border-gray-300 text-ecs-green focus:ring-ecs-green" ` +
+        `<input type="checkbox" class="step-channel w-3.5 h-3.5 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green" ` +
         `value="${escapeHtml(v)}" ${chans.includes(v) ? 'checked' : ''}>` +
         `<span>${escapeHtml(lbl)}</span></label>`).join('');
 
@@ -488,16 +488,16 @@ function stepRowHtml(step, index) {
         '<div class="step-row rounded-lg border border-gray-200 dark:border-gray-700 p-2.5 space-y-2">' +
         '<div class="flex items-center justify-between gap-2">' +
         `<span class="text-xs font-bold uppercase tracking-wide text-ecs-green">Follow-up ${index + 2}</span>` +
-        '<button type="button" data-action="automation-remove-step" class="px-1.5 py-0.5 rounded text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15"><i class="ti ti-x"></i></button>' +
+        '<button type="button" data-action="automation-remove-step" class="px-1.5 py-0.5 rounded-sm text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15"><i class="ti ti-x"></i></button>' +
         '</div>' +
         '<div class="flex items-center gap-1.5">' +
         '<span class="text-xs text-gray-500 dark:text-gray-400">Send</span>' +
-        `<input type="number" min="0" max="1440" class="step-wait w-20 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1" value="${parseInt(step.wait_hours || 0, 10)}">` +
+        `<input type="number" min="0" max="1440" class="step-wait w-20 rounded-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1" value="${parseInt(step.wait_hours || 0, 10)}">` +
         '<span class="text-xs text-gray-500 dark:text-gray-400">hours after the previous message</span>' +
         '</div>' +
-        `<input type="text" class="step-subject w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Subject line" value="${escapeHtml(step.subject || '')}">` +
-        `<textarea rows="3" class="step-body w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Message (HTML allowed for email)">${escapeHtml(step.body_html || '')}</textarea>` +
-        `<textarea rows="2" class="step-short w-full rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Short plain-text version (needed for push / Discord / in-app)">${escapeHtml(step.short_message || '')}</textarea>` +
+        `<input type="text" class="step-subject w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Subject line" value="${escapeHtml(step.subject || '')}">` +
+        `<textarea rows="3" class="step-body w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Message (HTML allowed for email)">${escapeHtml(step.body_html || '')}</textarea>` +
+        `<textarea rows="2" class="step-short w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-xs p-1.5" placeholder="Short plain-text version (needed for push / Discord / in-app)">${escapeHtml(step.short_message || '')}</textarea>` +
         `<div>${boxes}</div>` +
         '</div>'
     );
@@ -593,10 +593,10 @@ function conditionRowHtml(cond) {
     const needsValue = VALUE_OPS.includes(activeOp);
     return (
         '<div class="condition-row flex flex-wrap items-center gap-1.5">' +
-        `<select class="cond-field flex-1 min-w-[9rem] rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs p-1.5">${fieldOpts}</select>` +
+        `<select class="cond-field flex-1 min-w-36 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs p-1.5">${fieldOpts}</select>` +
         `<select class="cond-op rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs p-1.5">${opOpts}</select>` +
-        `<input class="cond-value ${needsValue ? '' : 'hidden'} flex-1 min-w-[6rem] rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs p-1.5" value="${escapeHtml(cond.value || '')}" placeholder="value">` +
-        '<button type="button" data-action="automation-remove-condition" class="px-1.5 py-1 rounded text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15" title="Remove"><i class="ti ti-x"></i></button>' +
+        `<input class="cond-value ${needsValue ? '' : 'hidden'} flex-1 min-w-24 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-xs p-1.5" value="${escapeHtml(cond.value || '')}" placeholder="value">` +
+        '<button type="button" data-action="automation-remove-condition" class="px-1.5 py-1 rounded-sm text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-500/15" title="Remove"><i class="ti ti-x"></i></button>' +
         '</div>'
     );
 }

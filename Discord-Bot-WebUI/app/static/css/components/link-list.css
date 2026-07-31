@@ -51,7 +51,7 @@
   text-decoration: none;
   background: transparent;
   border: none;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   cursor: pointer;
   transition: all var(--duration-fast, 150ms) ease;
   width: calc(100% + var(--space-4, 16px) * 2);
@@ -93,7 +93,7 @@
   width: 32px;
   height: 32px;
   background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   font-size: 1rem;
   flex-shrink: 0;
@@ -102,11 +102,11 @@
 
 .c-link-list__item:hover .c-link-list__icon {
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-link-list__text {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
   white-space: nowrap;
@@ -185,6 +185,6 @@
   }
 
   .c-link-list__text {
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
   }
 }

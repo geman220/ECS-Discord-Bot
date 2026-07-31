@@ -46,7 +46,7 @@
                     </svg>
                     {{ pass_type.name }}
                 </h1>
-                <span class="unsaved-indicator hidden px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded dark:bg-yellow-900 dark:text-yellow-300" id="unsaved-indicator">
+                <span class="unsaved-indicator hidden px-2 py-1 text-xs font-medium text-yellow-800 bg-yellow-100 rounded-sm dark:bg-yellow-900 dark:text-yellow-300" id="unsaved-indicator">
                     Unsaved
                 </span>
             </div>
@@ -73,7 +73,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Left Column: Live Preview -->
         <div class="lg:col-span-4">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 sticky top-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700 sticky top-4">
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                         <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +93,7 @@
 
         <!-- Right Column: Editor Tabs -->
         <div class="lg:col-span-8">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xs border border-gray-200 dark:border-gray-700">
                 <!-- Tabs Header -->
                 <div class="border-b border-gray-200 dark:border-gray-700">
                     <nav class="flex flex-wrap -mb-px" role="tablist" id="studio-tabs">
@@ -196,19 +196,19 @@
     <div class="flex flex-wrap gap-3">
         <label class="inline-flex items-center">
             <input type="radio" name="add-field-location" value="primary" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Primary</span>
+            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Primary</span>
         </label>
         <label class="inline-flex items-center">
             <input type="radio" name="add-field-location" value="secondary" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">Secondary</span>
+            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded-sm bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">Secondary</span>
         </label>
         <label class="inline-flex items-center">
             <input type="radio" name="add-field-location" value="auxiliary" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Auxiliary</span>
+            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded-sm bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Auxiliary</span>
         </label>
         <label class="inline-flex items-center">
             <input type="radio" name="add-field-location" value="header" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Header</span>
+            <span class="ms-2 px-2 py-0.5 text-xs font-medium rounded-sm bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Header</span>
         </label>
     </div>
 </div>
@@ -261,10 +261,10 @@
     <div id="add-advanced-mode" class="hidden" role="tabpanel">
         <div class="flex">
             <input type="text" id="add-field-template" class="rounded-none rounded-l-lg bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" placeholder="e.g., Welcome, {% raw %}{{member_name}}{% endraw %}!">
-            <button data-dropdown-toggle="variable-dropdown-add" class="flex-shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-500 bg-gray-100 border border-gray-300 rounded-r-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-600" type="button">
+            <button data-dropdown-toggle="variable-dropdown-add" class="shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-500 bg-gray-100 border border-gray-300 rounded-r-lg hover:bg-gray-200 focus:ring-4 focus:outline-hidden focus:ring-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white dark:border-gray-600" type="button">
                 Insert <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/></svg>
             </button>
-            <div id="variable-dropdown-add" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+            <div id="variable-dropdown-add" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-sm w-44 dark:bg-gray-700">
                 <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
                     {% for variable in template_variables %}
                     <li>
@@ -282,13 +282,13 @@
 
 <!-- Modal footer -->
 <div class="flex items-center pt-4 border-t border-gray-200 dark:border-gray-600 -mx-4 md:-mx-5 px-4 md:px-5 -mb-4 md:-mb-5 pb-4 md:pb-5">
-    <button type="button" class="js-create-field inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+    <button type="button" class="js-create-field inline-flex items-center px-5 py-2.5 text-sm font-medium text-center text-white bg-blue-700 rounded-lg hover:bg-blue-800 focus:ring-4 focus:outline-hidden focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
         </svg>
         Add Field
     </button>
-    <button type="button" data-modal-hide="addFieldModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600 modal-close-btn">
+    <button type="button" data-modal-hide="addFieldModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-hidden focus:ring-blue-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600 modal-close-btn">
         Cancel
     </button>
 </div>

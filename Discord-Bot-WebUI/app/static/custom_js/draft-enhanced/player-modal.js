@@ -66,7 +66,7 @@ function buildPositionGrid(favoritePosition, otherPositions) {
             icon = '';
         }
 
-        return `<div class="p-2 rounded text-center text-xs font-medium ${classes}">${pos}${icon}</div>`;
+        return `<div class="p-2 rounded-sm text-center text-xs font-medium ${classes}">${pos}${icon}</div>`;
     }).join('');
 }
 
@@ -162,9 +162,9 @@ export function displayPlayerProfile(data, playerId) {
                     ${buildPositionGrid(data.favorite_position, data.other_positions)}
                 </div>
                 <div class="flex items-center justify-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-500"></span> Preferred</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-orange-500"></span> Willing</span>
-                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-red-500"></span> Unavailable</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-green-500"></span> Preferred</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-orange-500"></span> Willing</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-red-500"></span> Unavailable</span>
                 </div>
             </div>
 

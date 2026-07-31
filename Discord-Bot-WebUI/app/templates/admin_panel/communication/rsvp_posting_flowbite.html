@@ -83,7 +83,7 @@
       <div class="p-4 sm:p-5 space-y-3">
         <label class="flex items-start gap-2.5 cursor-pointer rounded-lg border border-gray-200 dark:border-gray-700 p-3">
           <input type="checkbox" id="useButtons" {% if use_buttons %}checked{% endif %}
-                 class="mt-0.5 w-4 h-4 rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                 class="mt-0.5 w-4 h-4 rounded-sm border-gray-300 text-ecs-green focus:ring-ecs-green">
           <span class="text-sm text-gray-900 dark:text-white">
             Use <strong>Yes / No / Maybe buttons</strong> instead of emoji reactions
             <span class="block mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -184,16 +184,16 @@
               <div class="min-w-0 flex-1">
                 <div class="flex items-baseline gap-2">
                   <span class="font-semibold text-white">ECS Bot</span>
-                  <span class="px-1 py-px rounded bg-[#5865f2] text-[10px] font-semibold text-white">APP</span>
+                  <span class="px-1 py-px rounded-sm bg-[#5865f2] text-[10px] font-semibold text-white">APP</span>
                   <span class="text-[11px] text-[#949ba4]">Today at {{ '%d:00'|format((post_hour % 12) or 12) }} {{ 'AM' if post_hour < 12 else 'PM' }}</span>
                 </div>
-                <div id="pvContent" class="mt-0.5 whitespace-pre-wrap break-words"></div>
+                <div id="pvContent" class="mt-0.5 whitespace-pre-wrap wrap-break-word"></div>
 
-                <div class="mt-2 rounded border-l-4 border-[#1a472a] bg-[#2b2d31] p-3">
-                  <div id="pvTitle" class="font-semibold text-white break-words"></div>
-                  <div id="pvDescription" class="mt-1 text-[13px] whitespace-pre-wrap break-words text-[#dbdee1]"></div>
+                <div class="mt-2 rounded-sm border-l-4 border-[#1a472a] bg-[#2b2d31] p-3">
+                  <div id="pvTitle" class="font-semibold text-white wrap-break-word"></div>
+                  <div id="pvDescription" class="mt-1 text-[13px] whitespace-pre-wrap wrap-break-word text-[#dbdee1]"></div>
                   <div id="pvFields" class="mt-2 space-y-1.5"></div>
-                  <div id="pvFooter" class="mt-2 text-[11px] text-[#949ba4] break-words"></div>
+                  <div id="pvFooter" class="mt-2 text-[11px] text-[#949ba4] wrap-break-word"></div>
                 </div>
 
                 <div id="pvResponse" class="mt-2"></div>

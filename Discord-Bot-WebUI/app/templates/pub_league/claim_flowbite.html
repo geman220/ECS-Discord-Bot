@@ -5,7 +5,7 @@
 {% block main_content %}
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- Header -->
-    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-xs border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center">
                 <i class="ti ti-ball-football text-ecs-green dark:text-ecs-gold text-xl"></i>
@@ -23,7 +23,7 @@
         <input type="hidden" id="claimToken" value="{{ claim.claim_token }}">
 
         <!-- Hero Card -->
-        <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
+        <div class="bg-linear-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
             <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
                 <i class="ti ti-gift text-3xl"></i>
             </div>
@@ -39,7 +39,7 @@
         </div>
 
         <!-- Pass Details -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
             <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full {% if line_item.division == 'Premier' %}bg-amber-100 dark:bg-amber-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %} flex items-center justify-center">
@@ -71,7 +71,7 @@
 
                 <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                     <div class="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300">
-                        <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                        <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
                         <p>Claiming this pass will activate your player status and sync your Discord roles.</p>
                     </div>
                 </div>
@@ -81,7 +81,7 @@
         <!-- Action Section -->
         {% if not is_authenticated %}
         <!-- Not logged in - show login prompt -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="px-4 py-4 border-b border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
@@ -109,7 +109,7 @@
         </div>
         {% else %}
         <!-- Logged in - show claim button -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div class="px-4 py-4 border-b border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
                 <div class="flex items-center gap-3">
                     <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
@@ -153,7 +153,7 @@
 
         <!-- Claimed Success Section (hidden by default) -->
         <div id="claimSuccess" class="hidden">
-            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white text-center mb-6">
+            <div class="bg-linear-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white text-center mb-6">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
                     <i class="ti ti-ticket text-4xl"></i>
                 </div>
@@ -164,7 +164,7 @@
             <!-- Pending-approval note (revealed by JS when membership isn't approved yet) -->
             <div id="claimPendingNote" class="hidden bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 mb-6">
                 <div class="flex items-start gap-3">
-                    <i class="ti ti-hourglass-high text-amber-500 text-xl flex-shrink-0 mt-0.5"></i>
+                    <i class="ti ti-hourglass-high text-amber-500 text-xl shrink-0 mt-0.5"></i>
                     <div class="text-sm text-amber-800 dark:text-amber-300">
                         <p class="font-medium mb-1">Almost there</p>
                         <p class="text-amber-700 dark:text-amber-400">
@@ -178,7 +178,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
@@ -197,7 +197,7 @@
 
                     <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                         <div class="flex items-start gap-3 text-sm text-blue-700 dark:text-blue-300">
-                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <i class="ti ti-info-circle shrink-0 mt-0.5"></i>
                             <div>
                                 <p class="font-medium mb-1">What's next?</p>
                                 <ul class="list-disc list-inside space-y-1 text-blue-600 dark:text-blue-400">
@@ -273,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (data.success) {
                 // Hide claim form, show success
-                document.querySelectorAll('.bg-white, .bg-gradient-to-br').forEach(el => {
+                document.querySelectorAll('.bg-white, .bg-linear-to-br').forEach(el => {
                     if (!el.closest('#claimSuccess')) {
                         el.classList.add('hidden');
                     }

@@ -37,11 +37,11 @@
     </div>
     <div class="flex flex-wrap items-center gap-2 shrink-0">
       <a href="{{ url_for('admin_panel.system_center', tab='logs', src='audit') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-history text-base" aria-hidden="true"></i><span class="hidden sm:inline">Audit log</span>
       </a>
       <a href="{{ url_for('admin_panel.season_rollover') }}"
-         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <i class="ti ti-rotate-clockwise text-base" aria-hidden="true"></i> Season Rollover
       </a>
     </div>
@@ -55,7 +55,7 @@
         ('Approvals', 'ti-user-check', 'admin_panel.user_approvals', 'text-amber-600 dark:text-amber-400'),
         ('Communication', 'ti-message-circle', 'admin_panel.communication_hub', 'text-ecs-gold-500 dark:text-ecs-gold-400') ] %}
     <a href="{{ url_for(endpoint) }}"
-       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:border-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
       <i class="ti {{ icon }} text-base {{ tone }}" aria-hidden="true"></i> {{ label }}
     </a>
     {% endfor %}
@@ -67,7 +67,7 @@
       <h2 id="adm-queue-head" class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-alert-triangle text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> Needs Your Attention
         {% if attention.attention %}
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">{{ attention.attention|length }} {% if attention.attention|length == 1 %}item{% else %}items{% endif %}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">{{ attention.attention|length }} {% if attention.attention|length == 1 %}item{% else %}items{% endif %}</span>
         {% endif %}
       </h2>
     </div>
@@ -89,7 +89,7 @@
 
       <!-- Pending approvals (operational, real) -->
       <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
-         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <div class="flex items-center justify-between">
           <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Pending Approvals</span>
           <i class="ti ti-user-check text-lg shrink-0 {{ 'text-amber-600 dark:text-amber-400' if pending_approvals else 'text-gray-400 dark:text-gray-500' }}" aria-hidden="true"></i>
@@ -100,7 +100,7 @@
 
       <!-- Matches this week -->
       <a href="{{ url_for('admin_panel.match_operations') }}"
-         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <div class="flex items-center justify-between">
           <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Matches This Week</span>
           <i class="ti ti-calendar-event text-lg shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
@@ -111,7 +111,7 @@
 
       <!-- Active players -->
       <a href="{{ url_for('admin_panel.members_worklist') }}"
-         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <div class="flex items-center justify-between">
           <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Active Players</span>
           <i class="ti ti-users text-lg shrink-0 text-ecs-green" aria-hidden="true"></i>
@@ -122,7 +122,7 @@
 
       <!-- Total users -->
       <a href="{{ url_for('admin_panel.members_worklist') }}"
-         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 hover:border-ecs-green transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <div class="flex items-center justify-between">
           <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Users</span>
           <i class="ti ti-id-badge-2 text-lg shrink-0 text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
@@ -165,7 +165,7 @@
             ('All Teams', 'ti-shirt-sport', 'admin_panel.league_management_teams'),
             ('Match Dashboard', 'ti-trophy', 'admin_panel.match_operations') ] %}
         <a href="{{ url_for(endpoint) }}"
-           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti {{ icon }} text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
           <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
@@ -187,7 +187,7 @@
             ('Announcements', 'ti-speakerphone', 'admin_panel.announcements'),
             ('Email Broadcasts', 'ti-mail-forward', 'admin_panel.email_broadcasts_list') ] %}
         <a href="{{ url_for(endpoint) }}"
-           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti {{ icon }} text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">{{ label }}</span>
           <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
@@ -204,13 +204,13 @@
       </div>
       <div class="p-2">
         <a href="{{ url_for('admin_panel.members_worklist') }}"
-           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-users text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">Members</span>
           <span class="ml-auto text-xs text-gray-400 dark:text-gray-500 font-mono">{{ total_users }} total</span>
         </a>
         <a href="{{ url_for('admin_panel.members_worklist', tab='pending') }}"
-           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-user-check text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">Approvals</span>
           {% if pending_approvals %}
@@ -220,13 +220,13 @@
           {% endif %}
         </a>
         <a href="{{ url_for('admin_panel.access_control', tab='roles') }}"
-           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-shield-check text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">Roles</span>
           <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
         </a>
         <a href="{{ url_for('admin_panel.members_worklist', tab='waitlist') }}"
-           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-clock text-gray-400 dark:text-gray-500 group-hover:text-ecs-green" aria-hidden="true"></i>
           <span class="text-sm text-gray-700 dark:text-gray-300">Waitlist</span>
           <i class="ti ti-chevron-right text-gray-300 dark:text-gray-600 ml-auto" aria-hidden="true"></i>
@@ -243,10 +243,10 @@
       <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
         <h2 id="adm-matches-head" class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i> Upcoming Matches
-          {% if upcoming_matches %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ upcoming_matches|length }}</span>{% endif %}
+          {% if upcoming_matches %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ upcoming_matches|length }}</span>{% endif %}
         </h2>
         {% if current_pub_league %}
-        <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Full schedule</a>
+        <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">Full schedule</a>
         {% endif %}
       </div>
 
@@ -265,10 +265,10 @@
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
               <td class="px-4 py-3 whitespace-nowrap font-mono text-gray-900 dark:text-white">{{ m.date.strftime('%a %b %d') if m.date else 'TBD' }}</td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green mr-1">H</span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green mr-1">H</span>
                 <span class="font-medium text-gray-900 dark:text-white">{{ m.home_team.name if m.home_team else 'TBD' }}</span>
                 <span class="text-gray-400 dark:text-gray-500 mx-1.5">vs</span>
-                <span class="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 mr-1">A</span>
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 mr-1">A</span>
                 <span class="font-medium text-gray-900 dark:text-white">{{ m.away_team.name if m.away_team else 'TBD' }}</span>
               </td>
               <td class="px-4 py-3 text-right whitespace-nowrap font-mono text-gray-500 dark:text-gray-400">{{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}</td>
@@ -304,7 +304,7 @@
         <h2 id="adm-audit-head" class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
           <i class="ti ti-history text-ecs-green" aria-hidden="true"></i> Recent Activity
         </h2>
-        <a href="{{ url_for('admin_panel.system_center', tab='logs', src='audit') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">Audit log</a>
+        <a href="{{ url_for('admin_panel.system_center', tab='logs', src='audit') }}" class="text-xs font-semibold text-ecs-green hover:underline focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">Audit log</a>
       </div>
       {% if recent_actions %}
       {% set _act = {
@@ -358,7 +358,7 @@
                         <p class="text-sm text-gray-400 dark:text-gray-500">Create one with Season Rollover</p>
                         {% endif %}
                     </div>
-                    <div class="p-3 bg-ecs-green/10 rounded-full flex-shrink-0">
+                    <div class="p-3 bg-ecs-green/10 rounded-full shrink-0">
                         <i class="ti ti-tournament text-2xl text-ecs-green"></i>
                     </div>
                 </div>

@@ -5,7 +5,7 @@
 {% block main_content %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Redis Cache Statistics</h5>
             <div class="flex flex-wrap gap-2 mt-4 lg:mt-0">
@@ -68,7 +68,7 @@
                                 {% for cache_type, count in stats.key_counts.items() %}
                                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                     <td class="px-4 py-3">
-                                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded">{{ cache_type }}</span>
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded-sm">{{ cache_type }}</span>
                                     </td>
                                     <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ count }}</td>
                                     <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">

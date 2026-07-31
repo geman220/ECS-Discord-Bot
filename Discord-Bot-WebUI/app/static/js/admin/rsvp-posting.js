@@ -110,13 +110,13 @@ function drawResponseAffordance(program, showsResponse) {
     if (usingButtons()) {
         host.innerHTML = '<div class="flex flex-wrap gap-2">'
             + RESPONSE_BUTTONS.map(([label, bg]) =>
-                `<span style="background:${bg}" class="inline-flex items-center px-3 py-1.5 rounded text-[13px] font-medium text-white">${label}</span>`).join('')
+                `<span style="background:${bg}" class="inline-flex items-center px-3 py-1.5 rounded-sm text-[13px] font-medium text-white">${label}</span>`).join('')
             + '</div>';
     } else {
         const emoji = RESPONSE_REACTIONS[program] || RESPONSE_REACTIONS.pub;
         host.innerHTML = '<div class="flex flex-wrap gap-1.5">'
             + emoji.map((e) =>
-                `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#2b2d31] border border-[#3f4147] text-[13px]">${e}<span class="text-[11px] text-[#949ba4]">0</span></span>`).join('')
+                `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm bg-[#2b2d31] border border-[#3f4147] text-[13px]">${e}<span class="text-[11px] text-[#949ba4]">0</span></span>`).join('')
             + '</div>';
     }
 }

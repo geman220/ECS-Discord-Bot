@@ -25,7 +25,7 @@
 
   {% call kit.page_header('My Orders', subtitle='Store · Fulfillment tracking') %}
     <a href="{{ url_for('store.index') }}"
-       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-shopping-cart" aria-hidden="true"></i> Browse Store
     </a>
   {% endcall %}
@@ -52,7 +52,7 @@
         <div class="flex items-center justify-between gap-2 mb-4">
           <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-list-details text-ecs-green" aria-hidden="true"></i> Your Orders
-            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ orders|length }}</span>
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ orders|length }}</span>
           </h2>
           <div class="relative w-44 sm:w-56">
             <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
@@ -216,7 +216,7 @@
 
     {% if orders %}
     <!-- Orders Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white">Order History</h5>
         </div>
@@ -244,23 +244,23 @@
                         </td>
                         <td class="px-4 py-3">
                             {% if order.selected_color %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded mr-1">{{ order.selected_color }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm mr-1">{{ order.selected_color }}</span>
                             {% endif %}
                             {% if order.selected_size %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ order.selected_size }}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">{{ order.selected_size }}</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
                             {% if order.status == 'PENDING' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Pending</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded-sm">Pending</span>
                             {% elif order.status == 'PROCESSING' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">Processing</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm">Processing</span>
                             {% elif order.status == 'ORDERED' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Ordered</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded-sm">Ordered</span>
                             {% elif order.status == 'DELIVERED' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Delivered</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Delivered</span>
                             {% elif order.status == 'CANCELLED' %}
-                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded">Cancelled</span>
+                            <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded-sm">Cancelled</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
@@ -284,7 +284,7 @@
     </div>
     {% else %}
     <!-- No Orders -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-12 text-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
         <i class="ti ti-shopping-cart-off text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
         <h4 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No Orders Yet</h4>
         <p class="text-gray-400 dark:text-gray-500 mb-4">You haven't placed any orders yet. Start shopping to see your order history here.</p>

@@ -40,7 +40,7 @@
 
     <!-- Certificate Requirements -->
     <div class="flex items-start p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300">
-        <i class="ti ti-info-circle text-2xl mr-3 flex-shrink-0"></i>
+        <i class="ti ti-info-circle text-2xl mr-3 shrink-0"></i>
         <div>
             <h6 class="font-semibold mb-1">Certificate Requirements</h6>
             <p class="text-sm">
@@ -51,7 +51,7 @@
     </div>
 
     <!-- Tabs -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="border-b border-gray-200 dark:border-gray-700 px-4">
             <nav class="flex flex-wrap -mb-px text-sm font-medium text-center" role="tablist">
                 <button type="button" role="tab" data-tab-target="apple-cert-tab" aria-controls="apple-cert-tab" aria-selected="true"
@@ -74,9 +74,9 @@
                     <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Certificate Status</h6>
                     <p class="mb-3">
                         {% if has_complete_apple %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i> Complete</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i> Complete</span>
                         {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1"></i> Incomplete</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1"></i> Incomplete</span>
                         {% endif %}
                     </p>
                     {% set cert_count = apple_certs|length %}
@@ -108,7 +108,7 @@
                         <div>
                             <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Certificate File</label>
                             <input type="file" name="certificate_file" required
-                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
+                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-hidden dark:bg-gray-600 dark:border-gray-500">
                         </div>
                         <input type="hidden" name="platform" value="apple">
                         <div>
@@ -143,19 +143,19 @@
                         <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td class="px-4 py-3">
                                 {% if cert.type == 'certificate' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Certificate</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Certificate</span>
                                 {% elif cert.type == 'key' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Private Key</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Private Key</span>
                                 {% elif cert.type == 'wwdr' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">WWDR</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">WWDR</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ cert.name }}</td>
                             <td class="px-4 py-3">
                                 {% if cert.is_active %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
                                 {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Inactive</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Inactive</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 hidden md:table-cell">{{ cert.created_at.strftime('%Y-%m-%d') }}</td>
@@ -199,9 +199,9 @@
                     <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Google Wallet Status</h6>
                     <p class="mb-3">
                         {% if has_complete_google %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i> Complete</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i> Complete</span>
                         {% else %}
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1"></i> Incomplete</span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1"></i> Incomplete</span>
                         {% endif %}
                     </p>
                     {% set google_cert_count = google_certs|length %}
@@ -225,7 +225,7 @@
                         <div>
                             <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Credential File (.json)</label>
                             <input type="file" name="certificate_file" required accept=".json"
-                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
+                                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white dark:text-gray-400 focus:outline-hidden dark:bg-gray-600 dark:border-gray-500">
                         </div>
                         <input type="hidden" name="platform" value="google">
                         <input type="hidden" name="cert_type" value="credentials">
@@ -257,9 +257,9 @@
                             <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ cert.name }}</td>
                             <td class="px-4 py-3">
                                 {% if cert.is_active %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
                                 {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Inactive</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Inactive</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3 hidden md:table-cell">{{ cert.issuer_id }}</td>

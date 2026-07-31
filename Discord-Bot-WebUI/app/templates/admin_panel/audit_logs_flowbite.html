@@ -30,12 +30,12 @@
 
 {% call page_header("Audit Trail", subtitle="Administration · Security & compliance") %}
   <a href="{{ url_for('admin_panel.audit_logs') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if not any_filter %}opacity-50 pointer-events-none{% endif %}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green {% if not any_filter %}opacity-50 pointer-events-none{% endif %}"
      aria-label="Reset all filters">
     <i class="ti ti-filter-off" aria-hidden="true"></i><span class="hidden sm:inline">Reset</span>
   </a>
   <button type="button"
-          class="js-export-logs inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+          class="js-export-logs inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
           data-action="export-logs" data-format="csv">
     <i class="ti ti-download" aria-hidden="true"></i>Export CSV
   </button>
@@ -94,7 +94,7 @@
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-timeline-event text-ecs-green" aria-hidden="true"></i>
         Activity Trail
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ logs.total }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ logs.total }}</span>
       </h2>
       {% if any_filter %}
       <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
@@ -141,11 +141,11 @@
       </div>
       <div class="col-span-2 lg:col-span-2 flex items-end gap-2">
         <button type="submit"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 h-10 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-search" aria-hidden="true"></i>Apply
         </button>
         <a href="{{ url_for('admin_panel.audit_logs') }}"
-           class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 h-10 w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+           class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 h-10 w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
            aria-label="Clear filters">
           <i class="ti ti-x" aria-hidden="true"></i>
         </a>
@@ -209,11 +209,11 @@
               </td>
               <td class="px-4 py-3 align-top">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                     {{ log.resource_type.replace('_', ' ').title() if log.resource_type else 'N/A' }}
                   </span>
                   {% if log.resource_id %}
-                  <code class="px-1.5 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300 rounded">#{{ log.resource_id }}</code>
+                  <code class="px-1.5 py-0.5 text-xs font-mono bg-gray-100 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300 rounded-sm">#{{ log.resource_id }}</code>
                   {% endif %}
                 </div>
               </td>
@@ -237,7 +237,7 @@
               </td>
               <td class="px-4 py-3 align-top text-right">
                 <button type="button"
-                        class="js-show-log-details inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        class="js-show-log-details inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                         data-action="show-log-details"
                         data-log-id="{{ log.id }}"
                         data-old-value="{{ log.old_value|e if log.old_value else '' }}"
@@ -281,7 +281,7 @@
               {% endif %}
             </div>
             <button type="button"
-                    class="js-show-log-details shrink-0 inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    class="js-show-log-details shrink-0 inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
                     data-action="show-log-details"
                     data-log-id="{{ log.id }}"
                     data-old-value="{{ log.old_value|e if log.old_value else '' }}"
@@ -292,7 +292,7 @@
             </button>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <span class="inline-flex items-center px-2 py-0.5 rounded font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-sm font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
               {{ log.resource_type.replace('_', ' ').title() if log.resource_type else 'N/A' }}{% if log.resource_id %} <code class="ml-1 font-mono">#{{ log.resource_id }}</code>{% endif %}
             </span>
           </div>
@@ -540,7 +540,7 @@
                             </span>
                         </td>
                         <td class="px-3 sm:px-6 py-4 hidden xl:table-cell">
-                            <code class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded">{{ log.resource_id or '-' }}</code>
+                            <code class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded-sm">{{ log.resource_id or '-' }}</code>
                         </td>
                         <td class="px-3 sm:px-6 py-4">
                             <button type="button"
@@ -646,10 +646,10 @@ function showLogDetails(logId, oldValue, newValue, ipAddress) {
     let detailsHtml = '<div class="text-left">';
 
     if (oldValue) {
-        detailsHtml += `<p class="mb-3"><strong class="text-gray-700 dark:text-gray-300">Previous Value:</strong><br><code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">${oldValue}</code></p>`;
+        detailsHtml += `<p class="mb-3"><strong class="text-gray-700 dark:text-gray-300">Previous Value:</strong><br><code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-sm text-sm">${oldValue}</code></p>`;
     }
     if (newValue) {
-        detailsHtml += `<p class="mb-3"><strong class="text-gray-700 dark:text-gray-300">New Value:</strong><br><code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm">${newValue}</code></p>`;
+        detailsHtml += `<p class="mb-3"><strong class="text-gray-700 dark:text-gray-300">New Value:</strong><br><code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-sm text-sm">${newValue}</code></p>`;
     }
     if (ipAddress) {
         detailsHtml += `<p><strong class="text-gray-700 dark:text-gray-300">IP Address:</strong> ${ipAddress}</p>`;

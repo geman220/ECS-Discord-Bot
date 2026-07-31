@@ -10,20 +10,31 @@
    (mouse/visual) appearance for Classic users.
    ============================================================================ */
 
-/* §1 — visible focus ring fallback (uses the brand gold accent token). */
-a:focus-visible,
-button:focus-visible,
-[role="button"]:focus-visible,
-[role="tab"]:focus-visible,
-[role="menuitem"]:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-summary:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid var(--color-accent, #c9a227);
-  outline-offset: 2px;
-  border-radius: 6px;
+/* §1 — visible focus ring FALLBACK (uses the brand gold accent token).
+   Deliberately in layer(components), which sits below layer(utilities) in the order
+   declared by tailwind-entry.css. This file is <link>ed directly by base_flowbite.html,
+   so unlayered it would beat every Tailwind utility no matter the specificity — and
+   Tailwind v4 puts its utilities in a layer, unlike v3 which emitted none.
+   That broke this file's own stated contract ("elements that lack an explicit focus:
+   utility"): the 1,753 controls carrying `focus:outline-hidden` got a gold outline and
+   a forced 6px border-radius anyway, squaring off pill and circular buttons on focus.
+   In layer(components) the explicit `focus:` utilities win again and this stays a
+   fallback for everything else, which is the intent. */
+@layer components {
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="menuitem"]:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  summary:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-accent, #c9a227);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 }
 
 /* §7 — respect prefers-reduced-motion globally (covers Tailwind animate-*,

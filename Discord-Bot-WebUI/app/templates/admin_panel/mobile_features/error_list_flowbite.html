@@ -52,13 +52,13 @@
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
               border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
               text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-refresh" aria-hidden="true"></i> <span class="hidden sm:inline">Reset</span>
     </a>
     <a href="{{ url_for('admin_panel.mobile_error_analytics') }}"
        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3.5 rounded-lg
               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+              focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
       <i class="ti ti-chart-histogram" aria-hidden="true"></i> Analytics
     </a>
   {% endcall %}
@@ -109,7 +109,7 @@
       <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i>
       <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Filters</h2>
       {% if current_filters.severity or current_filters.error_type %}
-      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">active</span>
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">active</span>
       {% endif %}
     </div>
     <form method="get" action="{{ url_for('admin_panel.mobile_error_list') }}"
@@ -144,14 +144,14 @@
         <button type="submit"
                 class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
                        bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
-                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                       focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-filter" aria-hidden="true"></i> Apply
         </button>
         <a href="{{ url_for('admin_panel.mobile_error_list') }}"
            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg
                   border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
                   text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
-                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                  focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           Reset
         </a>
       </div>
@@ -164,7 +164,7 @@
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-list-details text-ecs-green" aria-hidden="true"></i> Error Stream
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ errors.total }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ errors.total }}</span>
       </h2>
       <span class="hidden sm:inline text-xs text-gray-500 dark:text-gray-400 font-mono">newest first</span>
     </div>
@@ -181,7 +181,7 @@
       {% for error in errors.items %}
       {% set sm = sev_meta.get(error.severity|lower, sev_default) if error.severity else sev_default %}
       <details class="group">
-        <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <summary class="flex items-center gap-3 px-4 py-3 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <span class="w-28 shrink-0">
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ sm.pill }}">
               <i class="ti {{ sm.i }} text-[12px]" aria-hidden="true"></i>{{ error.severity or '—' }}
@@ -190,7 +190,7 @@
           <span class="flex-1 min-w-0">
             <span class="flex items-center gap-2">
               <span class="font-mono text-xs font-semibold text-gray-900 dark:text-white truncate">{{ error.error_type or '—' }}</span>
-              {% if error.error_code %}<span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 shrink-0">{{ error.error_code }}</span>{% endif %}
+              {% if error.error_code %}<span class="font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 shrink-0">{{ error.error_code }}</span>{% endif %}
               {% if error.was_recovered %}<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 dark:text-green-400 shrink-0"><i class="ti ti-heartbeat text-[12px]" aria-hidden="true"></i>recovered</span>{% endif %}
             </span>
             <span class="block text-sm text-gray-700 dark:text-gray-300 truncate mt-0.5">{{ error.error_message or error.message or 'No message' }}</span>
@@ -210,7 +210,7 @@
           {% if error.technical_message %}
           <div class="mt-3">
             <p class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Technical detail</p>
-            <pre class="font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 max-h-48 overflow-auto">{{ error.technical_message }}</pre>
+            <pre class="font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap wrap-break-word rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 max-h-48 overflow-auto">{{ error.technical_message }}</pre>
           </div>
           {% endif %}
           {% if error.was_recovered and error.recovery_result %}
@@ -229,16 +229,16 @@
       {% for error in errors.items %}
       {% set sm = sev_meta.get(error.severity|lower, sev_default) if error.severity else sev_default %}
       <details class="group">
-        <summary class="block px-4 py-3.5 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <summary class="block px-4 py-3.5 cursor-pointer list-none hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-ecs-green">
           <div class="flex items-start justify-between gap-2">
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ sm.pill }}">
               <i class="ti {{ sm.i }} text-[12px]" aria-hidden="true"></i>{{ error.severity or '—' }}
             </span>
             <span class="font-mono text-[11px] text-gray-500 dark:text-gray-400 text-right">{{ error.created_at }}</span>
           </div>
-          <p class="mt-1.5 text-sm font-medium text-gray-900 dark:text-white break-words">{{ error.error_message or error.message or 'No message' }}</p>
+          <p class="mt-1.5 text-sm font-medium text-gray-900 dark:text-white wrap-break-word">{{ error.error_message or error.message or 'No message' }}</p>
           <div class="mt-1.5 flex items-center gap-2 flex-wrap">
-            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ error.error_type or '—' }}</span>
+            <span class="font-mono text-[11px] px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ error.error_type or '—' }}</span>
             {% if error.was_recovered %}<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 dark:text-green-400"><i class="ti ti-heartbeat text-[12px]" aria-hidden="true"></i>recovered</span>{% endif %}
             <span class="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-400"><i class="ti ti-chevron-down transition-transform group-open:rotate-180" aria-hidden="true"></i>details</span>
           </div>
@@ -248,10 +248,10 @@
             <div class="min-w-0"><dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Operation</dt><dd class="font-mono text-xs text-gray-900 dark:text-white truncate">{{ error.operation or '—' }}</dd></div>
             <div class="min-w-0"><dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">App ver</dt><dd class="font-mono text-xs text-gray-900 dark:text-white truncate">{{ error.app_version or '—' }}</dd></div>
             <div class="min-w-0 col-span-2"><dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Trace ID</dt><dd class="font-mono text-xs text-gray-900 dark:text-white truncate">{{ error.trace_id or '—' }}</dd></div>
-            <div class="min-w-0 col-span-2"><dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Device</dt><dd class="font-mono text-xs text-gray-900 dark:text-white break-words">{{ error.device_info or '—' }}</dd></div>
+            <div class="min-w-0 col-span-2"><dt class="text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400">Device</dt><dd class="font-mono text-xs text-gray-900 dark:text-white wrap-break-word">{{ error.device_info or '—' }}</dd></div>
           </dl>
           {% if error.technical_message %}
-          <pre class="mt-3 font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 max-h-48 overflow-auto">{{ error.technical_message }}</pre>
+          <pre class="mt-3 font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap wrap-break-word rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 max-h-48 overflow-auto">{{ error.technical_message }}</pre>
           {% endif %}
         </div>
       </details>
@@ -269,13 +269,13 @@
       <div class="flex flex-1 sm:flex-none items-center justify-between sm:justify-end gap-2">
         {% if errors.has_prev %}
         <a href="{{ url_for('admin_panel.mobile_error_list', page=errors.prev_num, **current_filters) }}"
-           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           <i class="ti ti-chevron-left" aria-hidden="true"></i> Previous
         </a>
         {% endif %}
         {% if errors.has_next %}
         <a href="{{ url_for('admin_panel.mobile_error_list', page=errors.next_num, **current_filters) }}"
-           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
           Next <i class="ti ti-chevron-right" aria-hidden="true"></i>
         </a>
         {% endif %}
@@ -299,7 +299,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">

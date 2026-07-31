@@ -187,7 +187,7 @@ function renderWeekCard(weekConfig, index, division) {
                     data-on-change="sb-change-week-type" data-week-index="${index}" data-division="${division}">
                 ${typeOptions}
             </select>
-            <span class="px-2 py-0.5 text-xs font-medium rounded ${style.bg} ${style.text}">
+            <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${style.bg} ${style.text}">
                 <i class="ti ${style.icon} mr-1"></i>${weekConfig.type}
             </span>
             <button type="button" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
@@ -253,7 +253,7 @@ function renderWeekCardWithDate(weekConfig, index, division, weekDate) {
                     data-on-change="sb-change-week-type" data-week-index="${index}" data-division="${division}">
                 ${typeOptions}
             </select>
-            <span class="px-2 py-0.5 text-xs font-medium rounded ${style.bg} ${style.text} whitespace-nowrap">
+            <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${style.bg} ${style.text} whitespace-nowrap">
                 <i class="ti ${style.icon} mr-1"></i>${weekConfig.type}${sharedBadge}
             </span>
             <button type="button" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
@@ -563,7 +563,7 @@ function renderCalendarWeek(startDate, weekIndex, weekType, division) {
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${dateStr}</p>
             </div>
-            <span class="px-2 py-0.5 text-xs font-medium rounded ${style.bg} ${style.text}">
+            <span class="px-2 py-0.5 text-xs font-medium rounded-sm ${style.bg} ${style.text}">
                 ${weekType}
             </span>
         </div>
@@ -627,7 +627,7 @@ function updateSeasonSummary() {
                     <div class="flex flex-wrap gap-1">
                         ${Object.entries(premierTypes).map(([type, count]) => {
                             const style = weekTypeStyles[type];
-                            return `<span class="px-2 py-0.5 text-xs rounded ${style.bg} ${style.text}">${count} ${type}</span>`;
+                            return `<span class="px-2 py-0.5 text-xs rounded-sm ${style.bg} ${style.text}">${count} ${type}</span>`;
                         }).join('')}
                     </div>
                 </div>
@@ -636,7 +636,7 @@ function updateSeasonSummary() {
                     <div class="flex flex-wrap gap-1">
                         ${Object.entries(classicTypes).map(([type, count]) => {
                             const style = weekTypeStyles[type];
-                            return `<span class="px-2 py-0.5 text-xs rounded ${style.bg} ${style.text}">${count} ${type}</span>`;
+                            return `<span class="px-2 py-0.5 text-xs rounded-sm ${style.bg} ${style.text}">${count} ${type}</span>`;
                         }).join('')}
                     </div>
                 </div>
@@ -649,7 +649,7 @@ function updateSeasonSummary() {
             <div class="flex flex-wrap gap-1">
                 ${Object.entries(ecsFcTypes).map(([type, count]) => {
                     const style = weekTypeStyles[type];
-                    return `<span class="px-2 py-0.5 text-xs rounded ${style.bg} ${style.text}">${count} ${type}</span>`;
+                    return `<span class="px-2 py-0.5 text-xs rounded-sm ${style.bg} ${style.text}">${count} ${type}</span>`;
                 }).join('')}
             </div>
         `;

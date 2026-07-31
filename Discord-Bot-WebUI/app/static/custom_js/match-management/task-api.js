@@ -193,12 +193,12 @@ export function showTaskInfo(taskId, taskType, taskData) {
         <div class="task-info-details text-left">
             <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3"><i class="ti ti-info-circle mr-1"></i> ${taskType}</h6>
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">Task ID:</td><td class="py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${taskObj.task_id || 'N/A'}</code></td></tr>
-                <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">Status:</td><td class="py-2"><span class="px-2 py-0.5 text-xs font-medium rounded ${statusColorClass}" data-status="${taskObj.status}">${taskObj.status}</span></td></tr>
+                <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">Task ID:</td><td class="py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">${taskObj.task_id || 'N/A'}</code></td></tr>
+                <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">Status:</td><td class="py-2"><span class="px-2 py-0.5 text-xs font-medium rounded-sm ${statusColorClass}" data-status="${taskObj.status}">${taskObj.status}</span></td></tr>
                 <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">ETA:</td><td class="py-2">${taskObj.eta ? new Date(taskObj.eta).toLocaleString() : 'N/A'}</td></tr>
                 <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">TTL:</td><td class="py-2">${taskObj.ttl ? formatDuration(taskObj.ttl) : 'N/A'}</td></tr>
-                <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">Redis Key:</td><td class="py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${taskObj.redis_key || 'N/A'}</code></td></tr>
-                ${taskObj.result ? `<tr><td class="py-2 font-medium text-gray-900 dark:text-white">Result:</td><td class="py-2"><pre class="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded overflow-x-auto">${taskObj.result}</pre></td></tr>` : ''}
+                <tr class="border-b border-gray-200 dark:border-gray-700"><td class="py-2 font-medium text-gray-900 dark:text-white">Redis Key:</td><td class="py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded-sm">${taskObj.redis_key || 'N/A'}</code></td></tr>
+                ${taskObj.result ? `<tr><td class="py-2 font-medium text-gray-900 dark:text-white">Result:</td><td class="py-2"><pre class="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded-sm overflow-x-auto">${taskObj.result}</pre></td></tr>` : ''}
             </table>
         </div>
     `;

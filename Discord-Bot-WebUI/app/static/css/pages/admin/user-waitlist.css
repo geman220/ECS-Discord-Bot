@@ -37,11 +37,11 @@
 }
 
 .waitlist-page .waitlist-card.shadow-sm:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 [data-style="dark"] .waitlist-page .waitlist-card.shadow-sm:hover {
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 /* ============================================================================
@@ -51,7 +51,7 @@
 
 .waitlist-page .waitlist-badge {
     font-weight: normal;
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
 }
 
@@ -186,28 +186,28 @@
    ============================================================================ */
 
 .waitlist-page .waitlist-modal-header {
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
     border-bottom: 1px solid var(--color-border-primary);
 }
 
 .waitlist-page .waitlist-modal-footer {
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
     border-top: 1px solid var(--color-border-primary);
 }
 
 /* Dark mode modal styling */
 [data-style="dark"] .waitlist-page .waitlist-modal-header {
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
     border-bottom: 1px solid var(--color-border-primary);
 }
 
 [data-style="dark"] .waitlist-page .waitlist-modal-footer {
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
     border-top: 1px solid var(--color-border-primary);
 }
 
 [data-style="dark"] .waitlist-page .waitlist-modal-content {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
     color: var(--color-text-primary);
 }
 
@@ -264,15 +264,15 @@
 .waitlist-page .waitlist-stats-card {
     background: linear-gradient(135deg, var(--color-primary-600) 0%, var(--color-primary-800) 100%);
     color: var(--color-neutral-0);
-    border-radius: var(--radius-lg, 10px);
+    border-radius: var(--ecs-radius-lg, 10px);
     padding: var(--space-6, 1.5rem);
     margin-bottom: var(--space-4, 1rem);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--ecs-shadow-md);
 }
 
 .waitlist-page .waitlist-stats-card-title {
     margin-bottom: var(--space-2, 0.5rem);
-    font-size: var(--text-3xl, 2rem);
+    font-size: var(--ecs-text-3xl, 2rem);
     font-weight: var(--font-semibold, 600);
 }
 
@@ -298,7 +298,7 @@
 
 /* Dark mode adjustments for stats cards */
 [data-style="dark"] .waitlist-page .waitlist-stats-card {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--ecs-shadow-lg);
 }
 
 /* ============================================================================
@@ -332,7 +332,7 @@
 }
 
 .waitlist-page .waitlist-player-email {
-    font-size: var(--text-sm, 0.875rem);
+    font-size: var(--ecs-text-sm, 0.875rem);
     color: var(--color-text-muted);
     margin-bottom: 0;
 }
@@ -374,7 +374,7 @@
 }
 
 .waitlist-page .waitlist-empty-icon {
-    font-size: var(--text-5xl, 3rem);
+    font-size: var(--ecs-text-5xl, 3rem);
     color: var(--color-text-muted);
 }
 
@@ -404,16 +404,16 @@
     }
 
     .waitlist-page .waitlist-stats-card-title {
-        font-size: var(--text-2xl, 1.5rem);
+        font-size: var(--ecs-text-2xl, 1.5rem);
     }
 
     .waitlist-page .waitlist-table-responsive {
-        font-size: var(--text-sm, 0.875rem);
+        font-size: var(--ecs-text-sm, 0.875rem);
     }
 
     .waitlist-page .waitlist-btn-sm {
         padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
-        font-size: var(--text-xs, 0.8rem);
+        font-size: var(--ecs-text-xs, 0.8rem);
     }
 
     .waitlist-page .waitlist-player-avatar,
@@ -424,11 +424,11 @@
     }
 
     .waitlist-page .waitlist-player-name {
-        font-size: var(--text-sm, 0.875rem);
+        font-size: var(--ecs-text-sm, 0.875rem);
     }
 
     .waitlist-page .waitlist-player-email {
-        font-size: var(--text-xs, 0.75rem);
+        font-size: var(--ecs-text-xs, 0.75rem);
     }
 }
 
@@ -485,7 +485,7 @@
 
 .waitlist-page .waitlist-discord-badge {
     color: var(--color-primary);
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
 }
 
 [data-style="dark"] .waitlist-page .waitlist-discord-badge {
@@ -498,11 +498,11 @@
    ============================================================================ */
 
 .waitlist-page .waitlist-table thead.table-light {
-    background-color: var(--color-neutral-50);
+    background-color: var(--ecs-color-neutral-50);
 }
 
 [data-style="dark"] .waitlist-page .waitlist-table thead.table-light {
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
 }
 
 /* ============================================================================

@@ -30,7 +30,7 @@
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
 }
 
 /* Scrollbar styling - uses translucent variables that auto-switch */
@@ -60,7 +60,7 @@
 .c-c-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
 }
 
 /* ============================================================================
@@ -78,7 +78,7 @@
 .c-c-table th {
   padding: var(--space-3, 12px) var(--space-4, 16px);
   font-family: var(--font-body, 'Barlow', sans-serif);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-align: left;
@@ -216,7 +216,7 @@
     padding: var(--space-3, 12px);
     margin-bottom: var(--space-2, 8px);
     background: var(--color-translucent-strong);
-    border-radius: var(--radius-md, 8px);
+    border-radius: var(--ecs-radius-md, 8px);
     border: none;
   }
 
@@ -242,7 +242,7 @@
     content: attr(data-label);
     font-weight: 600;
     color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
-    font-size: var(--text-xs, 0.75rem);
+    font-size: var(--ecs-text-xs, 0.75rem);
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }

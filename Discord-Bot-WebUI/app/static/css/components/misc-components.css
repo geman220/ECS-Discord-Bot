@@ -48,7 +48,7 @@
 /* NOTE: .c-btn--block moved to c-btn.css */
 
 .c-button--primary {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   background: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
   border-color: var(--color-primary, var(--color-primary-600, var(--color-primary-600)));
 }
@@ -56,7 +56,7 @@
 .c-button--sm,
 .c-button-group--sm .c-button {
   padding: var(--space-1, 4px) var(--space-3, 12px);
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
 }
 
 .c-button--outline-primary {
@@ -88,14 +88,14 @@
 }
 
 .c-btn--outline-success:hover {
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
   background: var(--color-success, var(--color-success-500, var(--color-success-500)));
 }
 
 .c-btn--discord {
   background: var(--discord-primary, var(--color-discord));
   border-color: var(--discord-primary, var(--color-discord));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-btn--discord:hover {
@@ -105,7 +105,7 @@
 .c-btn--info {
   background: var(--color-info, var(--color-info-600));
   border-color: var(--color-info, var(--color-info-600));
-  color: var(--color-white, var(--color-white));
+  color: var(--ecs-color-white, var(--ecs-color-white));
 }
 
 .c-btn--icon {
@@ -124,7 +124,7 @@
 .c-stats-card {
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   overflow: hidden;
 }
 
@@ -136,7 +136,7 @@
 
 .c-stats-card__title {
   margin: 0;
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -154,7 +154,7 @@
 }
 
 .c-stats-card__section-title {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -193,7 +193,7 @@
 }
 
 .c-info-card__help-text {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
   margin-top: var(--space-2, 8px);
 }
@@ -216,13 +216,13 @@
 
 .c-standings-header__title {
   margin: 0 0 var(--space-1, 4px);
-  font-size: var(--text-xl, 1.25rem);
+  font-size: var(--ecs-text-xl, 1.25rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-standings-header__subtitle {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -234,12 +234,12 @@
 .c-standings-legend {
   padding: var(--space-3, 12px);
   background: rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   margin-bottom: var(--space-4, 16px);
 }
 
 .c-standings-legend__title {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   font-weight: 600;
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   text-transform: uppercase;
@@ -264,7 +264,7 @@
 }
 
 .c-standings-legend__label {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -279,7 +279,7 @@
   padding: var(--space-4, 16px);
   background: var(--color-bg-elevated, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900, var(--color-secondary-900)))));
   border: 1px solid var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--ecs-radius-lg, 12px);
   margin-bottom: var(--space-3, 12px);
 }
 
@@ -289,7 +289,7 @@
 }
 
 .c-duplicate-profile__name {
-  font-size: var(--text-base, 1rem);
+  font-size: var(--ecs-text-base, 1rem);
   font-weight: 600;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -302,7 +302,7 @@
 }
 
 .c-duplicate-profile__meta-item {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -317,7 +317,7 @@
 .c-container-card__image {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   object-fit: cover;
 }
 
@@ -327,7 +327,7 @@
 }
 
 .c-container-card__name {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   font-weight: 500;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
@@ -339,13 +339,13 @@
 }
 
 .c-container-card__stat-value {
-  font-size: var(--text-lg, 1.125rem);
+  font-size: var(--ecs-text-lg, 1.125rem);
   font-weight: 700;
   color: var(--color-text-primary, var(--color-secondary-50, var(--color-secondary-50, var(--color-secondary-50))));
 }
 
 .c-container-card__stat-label {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
@@ -369,7 +369,7 @@
 }
 
 .c-table-modern__cell-subtitle {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -378,12 +378,12 @@
 }
 
 .c-table-modern__cell-date {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-muted, var(--color-secondary-600, var(--color-secondary-600, var(--color-secondary-600))));
 }
 
 .c-table-modern__cell-meta {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--ecs-text-xs, 0.75rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -394,7 +394,7 @@
 .c-table-modern__thumbnail {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   object-fit: cover;
 }
 
@@ -431,7 +431,7 @@
   width: 40px;
   height: 40px;
   background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--ecs-radius-md, 8px);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
   flex-shrink: 0;
 }
@@ -445,11 +445,11 @@
    ============================================================================ */
 
 .c-code {
-  font-family: var(--font-mono, 'Fira Code', monospace);
+  font-family: var(--ecs-font-mono, 'Fira Code', monospace);
   font-size: 0.875em;
   padding: var(--space-1, 4px) var(--space-2, 8px);
   background: rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius-sm, 6px);
+  border-radius: var(--ecs-radius-sm, 6px);
   color: var(--color-primary-light, var(--color-primary-400, var(--color-primary-400)));
 }
 
@@ -486,7 +486,7 @@
 
 .c-loading-state__text,
 .c-loading-text {
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--ecs-text-sm, 0.875rem);
   color: var(--color-text-secondary, var(--color-secondary-400, var(--color-secondary-400, var(--color-secondary-400))));
 }
 
@@ -508,7 +508,7 @@
 }
 
 [data-style="light"] .c-stats-card {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 
@@ -521,7 +521,7 @@
 }
 
 [data-style="light"] .c-duplicate-profile {
-  background: var(--color-bg-primary, var(--color-white));
+  background: var(--color-bg-primary, var(--ecs-color-white));
   border-color: var(--color-border-light, rgba(0, 0, 0, 0.08));
 }
 

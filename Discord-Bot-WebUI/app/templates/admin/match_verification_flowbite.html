@@ -33,7 +33,7 @@
     {% endif %}
 
     <!-- Filters Card -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-filter text-gray-500"></i>Filter Matches
@@ -54,7 +54,7 @@
                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg {{ 'bg-blue-600 text-white' if active_season and season.id == active_season.id else 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700' }} transition-colors">
                     {{ season.name }}
                     {% if season.is_current %}
-                    <span class="ml-2 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded">Current</span>
+                    <span class="ml-2 px-1.5 py-0.5 text-xs bg-green-500 text-white rounded-sm">Current</span>
                     {% endif %}
                 </a>
                 {% endfor %}
@@ -114,7 +114,7 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                     <i class="ti ti-soccer-field"></i>
@@ -125,7 +125,7 @@
             <p class="text-xs text-gray-500 dark:text-gray-400">Current season</p>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
                     <i class="ti ti-check"></i>
@@ -136,7 +136,7 @@
             <p class="text-xs text-gray-500 dark:text-gray-400">Both teams verified</p>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
                     <i class="ti ti-clock"></i>
@@ -147,7 +147,7 @@
             <p class="text-xs text-gray-500 dark:text-gray-400">One team verified</p>
         </div>
 
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <div class="flex items-center gap-2 mb-2">
                 <div class="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
                     <i class="ti ti-alert-triangle"></i>
@@ -160,7 +160,7 @@
     </div>
 
     <!-- Matches Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-list text-gray-500"></i>Match List
@@ -168,7 +168,7 @@
             <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-dropdown-toggle="exportDropdown">
                 <i class="ti ti-download mr-2"></i>Export
             </button>
-            <div id="exportDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+            <div id="exportDropdown" class="hidden z-10 w-44 bg-white rounded-lg shadow-sm dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                 <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
                     <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-file-spreadsheet mr-2"></i>Export to Excel</a></li>
                     <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-file-csv mr-2"></i>Export to CSV</a></li>
@@ -244,7 +244,7 @@
                             <button type="button" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" data-dropdown-toggle="matchActions{{ match.id }}">
                                 <i class="ti ti-dots-vertical"></i>
                             </button>
-                            <div id="matchActions{{ match.id }}" class="hidden z-10 w-48 bg-white rounded-lg shadow dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                            <div id="matchActions{{ match.id }}" class="hidden z-10 w-48 bg-white rounded-lg shadow-sm dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                                 <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
                                     <li>
                                         <a href="{{ url_for('teams.team_details', team_id=match.home_team_id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">

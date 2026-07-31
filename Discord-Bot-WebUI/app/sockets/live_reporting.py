@@ -55,6 +55,34 @@ def _v2_enabled() -> bool:
     except Exception:
         return False
 
+
+def _rejects_ecs_fc(data) -> bool:
+    """Refuse ECS FC traffic that reached a V1 handler; True if we emitted an error.
+
+    Every live socket emit from the app carries 'league_type', but V1 never reads
+    it and looks the id up in `Match` — the PUB LEAGUE fixture table. So an ECS FC
+    match #42 resolved to an unrelated Pub League match #42: either "not found",
+    or, if the team check happened to pass, MatchEvent rows and scores written
+    against SOMEONE ELSE'S MATCH.
+
+    V2 (live_reporting_v2.resolve_league_type) is the code path that actually
+    handles ECS FC, so when it's off the honest answer is to refuse rather than
+    silently mis-route. Callers reach this only when _v2_enabled() is False.
+    """
+    league_type = (data or {}).get('league_type')
+    if str(league_type or 'pub_league').lower() != 'ecs_fc':
+        return False
+    emit('error', {
+        'reason': 'v2_required',
+        'message': 'ECS FC live reporting requires V2 (LIVE_MATCH_STATE_V2_ENABLED).',
+    })
+    logger.warning(
+        "Refused ECS FC live-reporting event on V1 handler (match_id=%s)",
+        (data or {}).get('match_id'),
+    )
+    return True
+
+
 def get_socket_current_user(session):
     """
     Get the current user from the Socket.IO session
@@ -230,7 +258,12 @@ def handle_live_connect():
                 user_id = None
                 try:
                     from flask_jwt_extended import decode_token
+                    from app.init.jwt import jwt_claims_revoked
                     decoded_token = decode_token(token)
+                    # decode_token checks signature/expiry only — a logged-out or
+                    # revoked session still decodes cleanly. Degrade to anonymous.
+                    if jwt_claims_revoked(decoded_token):
+                        raise ValueError("token revoked (logout or session revoke)")
                     raw_id = decoded_token.get('sub') or decoded_token.get('identity')
                     if raw_id is not None:
                         try:
@@ -521,6 +554,8 @@ def on_join_match(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_join_match(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -643,6 +678,8 @@ def on_leave_match(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_leave_match(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -704,6 +741,8 @@ def on_score_update(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_update_score(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -765,6 +804,8 @@ def on_timer_update(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_update_timer(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -855,6 +896,8 @@ def on_add_event(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_add_event(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1003,6 +1046,8 @@ def on_force_add_event(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_force_add_event(data)
+    if _rejects_ecs_fc(data):
+        return
     return _legacy_force_add_event(data)
 
 
@@ -1161,6 +1206,8 @@ def on_player_shift_update(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_update_player_shift(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1271,6 +1318,8 @@ def on_shift_timer_update(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_update_shift_timer(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1343,6 +1392,8 @@ def on_submit_report(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_submit_report(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1431,6 +1482,8 @@ def on_resync_match(data):
     if _v2_enabled():
         from app.sockets import live_reporting_v2 as v2
         return v2.on_resync_match(data)
+    if _rejects_ecs_fc(data):
+        return
     with socket_session(db.engine) as session:
         user = get_socket_current_user(session)
         if not user:

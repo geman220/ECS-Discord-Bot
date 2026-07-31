@@ -110,11 +110,11 @@
 }
 
 .bg-light-subtle {
-  background-color: var(--color-neutral-50);
+  background-color: var(--ecs-color-neutral-50);
 }
 
 .bg-dark-subtle {
-  background-color: var(--color-neutral-800);
+  background-color: var(--ecs-color-neutral-800);
 }
 
 /* ============================================================================
@@ -227,17 +227,17 @@
 
 /* Light */
 .text-light {
-  color: var(--color-neutral-100);
+  color: var(--ecs-color-neutral-100);
 }
 
 /* Dark */
 .text-dark {
-  color: var(--color-neutral-900);
+  color: var(--ecs-color-neutral-900);
 }
 
 /* White */
 .text-white {
-  color: var(--color-white);
+  color: var(--ecs-color-white);
 }
 
 /* Muted */
@@ -262,7 +262,7 @@
 
 /* Black/White with opacity support */
 .text-black {
-  color: var(--color-black, var(--color-neutral-950)000);
+  color: var(--color-black, var(--ecs-color-neutral-950)000);
 }
 
 .text-black-50 {
@@ -302,11 +302,11 @@
 }
 
 .text-light-emphasis {
-  color: var(--color-neutral-600);
+  color: var(--ecs-color-neutral-600);
 }
 
 .text-dark-emphasis {
-  color: var(--color-neutral-800);
+  color: var(--ecs-color-neutral-800);
 }
 
 /* ============================================================================
@@ -338,15 +338,15 @@
 }
 
 .border-light {
-  border-color: var(--color-neutral-200);
+  border-color: var(--ecs-color-neutral-200);
 }
 
 .border-dark {
-  border-color: var(--color-neutral-800);
+  border-color: var(--ecs-color-neutral-800);
 }
 
 .border-white {
-  border-color: var(--color-white);
+  border-color: var(--ecs-color-white);
 }
 
 /* ============================================================================
@@ -436,21 +436,21 @@
 }
 
 .link-light {
-  color: var(--color-neutral-200);
+  color: var(--ecs-color-neutral-200);
 }
 
 .link-light:hover,
 .link-light:focus {
-  color: var(--color-neutral-400);
+  color: var(--ecs-color-neutral-400);
 }
 
 .link-dark {
-  color: var(--color-neutral-800);
+  color: var(--ecs-color-neutral-800);
 }
 
 .link-dark:hover,
 .link-dark:focus {
-  color: var(--color-neutral-900);
+  color: var(--ecs-color-neutral-900);
 }
 
 /* ============================================================================
@@ -471,20 +471,20 @@
 
   /* Subtle backgrounds use alpha in dark mode */
   .bg-light-subtle {
-    background-color: var(--color-neutral-100);
+    background-color: var(--ecs-color-neutral-100);
   }
 
   .bg-dark-subtle {
-    background-color: var(--color-neutral-200);
+    background-color: var(--ecs-color-neutral-200);
   }
 
   /* Text utilities in dark mode */
   .text-light {
-    color: var(--color-neutral-200);
+    color: var(--ecs-color-neutral-200);
   }
 
   .text-dark {
-    color: var(--color-neutral-100);
+    color: var(--ecs-color-neutral-100);
   }
 
   .text-body {
@@ -505,11 +505,11 @@
 
   /* Border utilities in dark mode */
   .border-light {
-    border-color: var(--color-neutral-700);
+    border-color: var(--ecs-color-neutral-700);
   }
 
   .border-dark {
-    border-color: var(--color-neutral-200);
+    border-color: var(--ecs-color-neutral-200);
   }
 
   /* Text emphasis in dark mode - use lighter shades */
@@ -605,15 +605,15 @@
 }
 
 .alert-light {
-  background-color: var(--color-neutral-50);
-  border-color: var(--color-neutral-200);
-  color: var(--color-neutral-800);
+  background-color: var(--ecs-color-neutral-50);
+  border-color: var(--ecs-color-neutral-200);
+  color: var(--ecs-color-neutral-800);
 }
 
 .alert-dark {
-  background-color: var(--color-neutral-800);
-  border-color: var(--color-neutral-700);
-  color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-800);
+  border-color: var(--ecs-color-neutral-700);
+  color: var(--ecs-color-neutral-100);
 }
 
 /* Dark mode alert adjustments */
@@ -655,15 +655,15 @@
   }
 
   .alert-light {
-    background-color: var(--color-neutral-800);
-    border-color: var(--color-neutral-700);
-    color: var(--color-neutral-200);
+    background-color: var(--ecs-color-neutral-800);
+    border-color: var(--ecs-color-neutral-700);
+    color: var(--ecs-color-neutral-200);
   }
 
   .alert-dark {
-    background-color: var(--color-neutral-100);
-    border-color: var(--color-neutral-200);
-    color: var(--color-neutral-800);
+    background-color: var(--ecs-color-neutral-100);
+    border-color: var(--ecs-color-neutral-200);
+    color: var(--ecs-color-neutral-800);
   }
 }
 
@@ -709,15 +709,15 @@
 }
 
 .table-light {
-  --bs-table-bg: var(--color-neutral-50);
-  --bs-table-color: var(--color-neutral-800);
-  --bs-table-border-color: var(--color-neutral-200);
+  --bs-table-bg: var(--ecs-color-neutral-50);
+  --bs-table-color: var(--ecs-color-neutral-800);
+  --bs-table-border-color: var(--ecs-color-neutral-200);
 }
 
 .table-dark {
-  --bs-table-bg: var(--color-neutral-800);
-  --bs-table-color: var(--color-neutral-100);
-  --bs-table-border-color: var(--color-neutral-700);
+  --bs-table-bg: var(--ecs-color-neutral-800);
+  --bs-table-color: var(--ecs-color-neutral-100);
+  --bs-table-border-color: var(--ecs-color-neutral-700);
 }
 
 /* ============================================================================
@@ -763,14 +763,14 @@
 
 .badge.bg-light,
 .badge.text-bg-light {
-  background-color: var(--color-neutral-100);
-  color: var(--color-neutral-800);
+  background-color: var(--ecs-color-neutral-100);
+  color: var(--ecs-color-neutral-800);
 }
 
 .badge.bg-dark,
 .badge.text-bg-dark {
-  background-color: var(--color-neutral-800);
-  color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-800);
+  color: var(--ecs-color-neutral-100);
 }
 
 /* ============================================================================
@@ -809,13 +809,13 @@
 }
 
 .list-group-item-light {
-  background-color: var(--color-neutral-50);
-  color: var(--color-neutral-800);
+  background-color: var(--ecs-color-neutral-50);
+  color: var(--ecs-color-neutral-800);
 }
 
 .list-group-item-dark {
-  background-color: var(--color-neutral-800);
-  color: var(--color-neutral-100);
+  background-color: var(--ecs-color-neutral-800);
+  color: var(--ecs-color-neutral-100);
 }
 
 /* Dark mode list group adjustments */
@@ -845,13 +845,13 @@
   }
 
   .list-group-item-light {
-    background-color: var(--color-neutral-700);
-    color: var(--color-neutral-200);
+    background-color: var(--ecs-color-neutral-700);
+    color: var(--ecs-color-neutral-200);
   }
 
   .list-group-item-dark {
-    background-color: var(--color-neutral-200);
-    color: var(--color-neutral-800);
+    background-color: var(--ecs-color-neutral-200);
+    color: var(--ecs-color-neutral-800);
   }
 }
 

@@ -65,13 +65,13 @@
 
 {% call page_header("Store Orders", subtitle="Store Management") %}
   <a href="{{ url_for('admin_panel.store_management') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-arrow-left" aria-hidden="true"></i>Store
   </a>
   {# Export dropdown — JS hooks (data-dropdown-toggle, id) preserved verbatim for extra_js wiring #}
   <div class="relative">
     <button type="button"
-            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
             id="exportDropdownBtn" data-dropdown-toggle="exportDropdown">
       <i class="ti ti-download" aria-hidden="true"></i>Export
       <i class="ti ti-chevron-down" aria-hidden="true"></i>
@@ -136,7 +136,7 @@
       {% for label, cnt, bar in seg_meta %}
       {% if cnt %}
       <span class="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-        <span class="w-2.5 h-2.5 rounded-sm {{ bar }}" aria-hidden="true"></span>
+        <span class="w-2.5 h-2.5 rounded-xs {{ bar }}" aria-hidden="true"></span>
         <i class="ti {{ status_icon.get(label, 'ti-circle') }} text-[11px] text-gray-400" aria-hidden="true"></i>
         {{ label|capitalize }}
         <span class="font-mono font-bold text-gray-900 dark:text-white">{{ cnt }}</span>
@@ -202,11 +202,11 @@
       </div>
       <div class="flex items-end gap-2">
         <button type="submit"
-                class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
           <i class="ti ti-search" aria-hidden="true"></i>Filter
         </button>
         <a href="{{ url_for('admin_panel.store_orders') }}"
-           class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+           class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green"
            aria-label="Clear filters" title="Clear filters">
           <i class="ti ti-x" aria-hidden="true"></i>
         </a>
@@ -220,7 +220,7 @@
     <div class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-shopping-cart text-ecs-green" aria-hidden="true"></i>Order Ledger
-        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ orders.total }}</span>
+        <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ orders.total }}</span>
       </h2>
       <span class="hidden sm:inline text-xs font-mono text-gray-500 dark:text-gray-400">
         showing {{ orders.items|length }} · pg {{ orders.page }}/{{ orders.pages }}
@@ -267,9 +267,9 @@
             <td class="px-4 py-3 align-middle">
               <div class="flex items-center gap-3">
                 {% if order.item and order.item.image_url %}
-                <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded object-cover shrink-0">
+                <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded-sm object-cover shrink-0">
                 {% else %}
-                <div class="flex items-center justify-center w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 shrink-0">
+                <div class="flex items-center justify-center w-10 h-10 rounded-sm bg-gray-100 dark:bg-gray-700 shrink-0">
                   <i class="ti ti-package text-gray-400" aria-hidden="true"></i>
                 </div>
                 {% endif %}
@@ -293,10 +293,10 @@
             </td>
             <td class="px-4 py-3 align-middle hidden xl:table-cell">
               {% if order.selected_color %}
-              <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
               {% endif %}
               {% if order.selected_size %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
               {% endif %}
               {% if not order.selected_color and not order.selected_size %}
               <span class="text-xs text-gray-400 dark:text-gray-500">—</span>
@@ -333,11 +333,11 @@
             </td>
             <td class="px-4 py-3 align-middle text-right">
               <div class="flex items-center justify-end gap-1">
-                <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-cyan-600 hover:bg-cyan-100 dark:text-cyan-400 dark:hover:bg-cyan-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details" aria-label="View order details">
+                <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-cyan-600 hover:bg-cyan-100 dark:text-cyan-400 dark:hover:bg-cyan-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}" title="View Details" aria-label="View order details">
                   <i class="ti ti-eye" aria-hidden="true"></i>
                 </button>
                 <div class="relative">
-                  <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="statusBtn{{ order.id }}" data-dropdown-toggle="statusDropdown{{ order.id }}" title="Update Status" aria-label="Update order status">
+                  <button type="button" class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-ecs-green" id="statusBtn{{ order.id }}" data-dropdown-toggle="statusDropdown{{ order.id }}" title="Update Status" aria-label="Update order status">
                     <i class="ti ti-edit" aria-hidden="true"></i>
                   </button>
                   <div id="statusDropdown{{ order.id }}" class="hidden absolute right-0 z-30 w-44 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
@@ -381,9 +381,9 @@
         <div class="flex items-start justify-between gap-2">
           <div class="flex items-center gap-3 min-w-0">
             {% if order.item and order.item.image_url %}
-            <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded object-cover shrink-0">
+            <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded-sm object-cover shrink-0">
             {% else %}
-            <div class="flex items-center justify-center w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 shrink-0">
+            <div class="flex items-center justify-center w-10 h-10 rounded-sm bg-gray-100 dark:bg-gray-700 shrink-0">
               <i class="ti ti-package text-gray-400" aria-hidden="true"></i>
             </div>
             {% endif %}
@@ -411,11 +411,11 @@
           {% endif %}
         </div>
         <div class="mt-3 flex items-center gap-2">
-          <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-cyan-600 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}">
+          <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-cyan-600 bg-cyan-50 hover:bg-cyan-100 dark:text-cyan-400 dark:bg-cyan-900/20 dark:hover:bg-cyan-900/40 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green" data-action="view-order-details" data-order-id="{{ order.id }}">
             <i class="ti ti-eye" aria-hidden="true"></i>View
           </button>
           <div class="relative">
-            <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" id="statusBtnM{{ order.id }}" data-dropdown-toggle="statusDropdownM{{ order.id }}" aria-label="Update order status">
+            <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-ecs-green" id="statusBtnM{{ order.id }}" data-dropdown-toggle="statusDropdownM{{ order.id }}" aria-label="Update order status">
               <i class="ti ti-edit" aria-hidden="true"></i>Status
             </button>
             <div id="statusDropdownM{{ order.id }}" class="hidden absolute left-0 z-30 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
@@ -503,7 +503,7 @@
 </div>
 
 <!-- Filters -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-5">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6 p-5">
     <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
         <div>
             <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Status</label>
@@ -572,9 +572,9 @@
                 <td class="px-4 py-3 hidden md:table-cell">
                     <div class="flex items-center">
                         {% if order.item and order.item.image_url %}
-                        <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded object-cover mr-3">
+                        <img src="{{ order.item.image_url }}" alt="{{ order.item.name }}" class="w-10 h-10 rounded-sm object-cover mr-3">
                         {% else %}
-                        <div class="flex items-center justify-center w-10 h-10 rounded bg-gray-100 dark:bg-gray-700 mr-3">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-sm bg-gray-100 dark:bg-gray-700 mr-3">
                             <i class="ti ti-package text-gray-400"></i>
                         </div>
                         {% endif %}
@@ -587,10 +587,10 @@
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ order.orderer.username if order.orderer else 'Unknown User' }}</td>
                 <td class="px-4 py-3 hidden md:table-cell">
                     {% if order.selected_color %}
-                    <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 mr-1 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_color }}</span>
                     {% endif %}
                     {% if order.selected_size %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ order.selected_size }}</span>
                     {% endif %}
                     {% if not order.selected_color and not order.selected_size %}
                     <span class="text-gray-400">No options</span>

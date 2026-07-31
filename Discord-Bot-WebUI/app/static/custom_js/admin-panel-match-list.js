@@ -103,7 +103,7 @@ function viewMatchDetails(matchId) {
                                 <p><span class="font-medium text-gray-700 dark:text-gray-300">Date:</span> <span class="text-gray-900 dark:text-white">${match.date || 'TBD'}</span></p>
                                 <p><span class="font-medium text-gray-700 dark:text-gray-300">Time:</span> <span class="text-gray-900 dark:text-white">${match.time || 'TBD'}</span></p>
                                 <p><span class="font-medium text-gray-700 dark:text-gray-300">Location:</span> <span class="text-gray-900 dark:text-white">${match.location}</span></p>
-                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> <span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded ml-1">${match.status}</span></p>
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> <span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded-sm ml-1">${match.status}</span></p>
                             </div>
                         </div>
                         <div>
@@ -123,7 +123,7 @@ function viewMatchDetails(matchId) {
                             <p class="text-sm mb-2"><span class="font-medium text-gray-700 dark:text-gray-300">Total RSVPs:</span> <span class="text-gray-900 dark:text-white">${match.rsvp_data.total}</span></p>
                             <div class="flex flex-wrap gap-1">
                                 ${match.rsvp_data.status_breakdown ? Object.entries(match.rsvp_data.status_breakdown).map(([status, count]) =>
-                                    `<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">${status}: ${count}</span>`
+                                    `<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">${status}: ${count}</span>`
                                 ).join('') : ''}
                             </div>
                         </div>

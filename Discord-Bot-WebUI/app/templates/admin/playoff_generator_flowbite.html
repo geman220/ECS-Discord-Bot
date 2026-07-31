@@ -25,7 +25,7 @@
     </div>
 
     <!-- How It Works -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="ti ti-info-circle"></i>How It Works
@@ -57,7 +57,7 @@
     </div>
 
     <!-- Current Standings -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
             <h5 class="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
                 <i class="ti ti-trophy"></i>Current Standings (Top 8 Qualify)
@@ -86,9 +86,9 @@
                             <td class="px-4 py-3">{{ team.goal_difference|default(0) }}</td>
                             <td class="px-4 py-3">
                                 {% if loop.index <= 8 %}
-                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">PLAYOFFS</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">PLAYOFFS</span>
                                 {% else %}
-                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Eliminated</span>
+                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-sm">Eliminated</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -127,7 +127,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-blue-500 dark:border-blue-600">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-blue-500 dark:border-blue-600">
                 <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-800">
                     <h5 class="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
                         <i class="ti ti-users"></i>Group A
@@ -138,7 +138,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-cyan-500 dark:border-cyan-600">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-cyan-500 dark:border-cyan-600">
                 <div class="p-4 bg-cyan-50 dark:bg-cyan-900/30 border-b border-cyan-200 dark:border-cyan-800">
                     <h5 class="font-semibold text-cyan-800 dark:text-cyan-300 flex items-center gap-2">
                         <i class="ti ti-users"></i>Group B
@@ -151,7 +151,7 @@
         </div>
 
         <!-- Matches Display -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20">
                 <h5 class="font-semibold text-green-800 dark:text-green-300 flex items-center gap-2">
                     <i class="ti ti-calendar-event"></i>Generated Playoff Matches
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderPreview(data) {
         // Render Group A
         groupAList.innerHTML = data.groupA.map((team, i) => `
-            <li class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded flex items-center gap-2">
+            <li class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-sm flex items-center gap-2">
                 <span class="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">${i + 1}</span>
                 ${team}
             </li>
@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Render Group B
         groupBList.innerHTML = data.groupB.map((team, i) => `
-            <li class="p-2 bg-cyan-50 dark:bg-cyan-900/20 rounded flex items-center gap-2">
+            <li class="p-2 bg-cyan-50 dark:bg-cyan-900/20 rounded-sm flex items-center gap-2">
                 <span class="w-6 h-6 rounded-full bg-cyan-600 text-white text-xs flex items-center justify-center">${i + 1}</span>
                 ${team}
             </li>
@@ -305,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">${match.away_team}</td>
                 <td class="px-4 py-3">${match.location}</td>
                 <td class="px-4 py-3">
-                    <span class="px-2 py-1 text-xs font-medium rounded ${match.group === 'A' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300'}">
+                    <span class="px-2 py-1 text-xs font-medium rounded-sm ${match.group === 'A' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300'}">
                         Group ${match.group}
                     </span>
                 </td>

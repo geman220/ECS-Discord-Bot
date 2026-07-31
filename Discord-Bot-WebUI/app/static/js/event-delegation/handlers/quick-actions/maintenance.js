@@ -51,7 +51,7 @@ window.EventDelegation.register('toggle-maintenance-mode', function(element, e) 
                             const isEnabled = data.maintenance_mode;
                             window.Swal.fire({
                                 title: isEnabled ? 'Maintenance Mode Enabled' : 'Maintenance Mode Disabled',
-                                html: `<p>${data.message}</p><p class="mt-2"><span class="px-2 py-0.5 text-xs font-medium rounded ${isEnabled ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'}" data-badge>${isEnabled ? 'MAINTENANCE' : 'NORMAL'}</span></p>`,
+                                html: `<p>${data.message}</p><p class="mt-2"><span class="px-2 py-0.5 text-xs font-medium rounded-sm ${isEnabled ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'}" data-badge>${isEnabled ? 'MAINTENANCE' : 'NORMAL'}</span></p>`,
                                 icon: isEnabled ? 'warning' : 'success'
                             });
                         } else {

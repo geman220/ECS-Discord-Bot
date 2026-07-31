@@ -25,6 +25,10 @@
 
 {# Real enum scales mirrored verbatim from the route validators in
    app/admin_panel/routes/appearance.py (save_components): no fabricated levels. #}
+{# Setting VALUES posted to the server, not CSS classes — must match
+   valid_border_radius in app/admin_panel/routes/appearance.py:545
+   ('sharp', 'default', 'rounded'). The Tailwind v4 codemod rewrote 'rounded' to
+   'rounded-sm' here, which made Save return 400 "Invalid border_radius value". #}
 {% set radius_scale = ['sharp', 'default', 'rounded'] %}
 {% set shadow_scale = ['none', 'subtle', 'default', 'strong'] %}
 
@@ -108,11 +112,11 @@
           <i class="ti ti-border-radius text-ecs-green" aria-hidden="true"></i> Border Radius
         </h2>
         {% if radius_modified %}
-        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
           <i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Modified
         </span>
         {% else %}
-        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
           <i class="ti ti-check text-[11px]" aria-hidden="true"></i> Default
         </span>
         {% endif %}
@@ -130,7 +134,7 @@
             {% for level in radius_scale %}
             <label class="flex flex-col items-center gap-1.5 rounded-lg border px-2 py-2.5 text-center cursor-pointer
                           hover:bg-gray-50 dark:hover:bg-gray-700/50
-                          has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5 dark:has-[:checked]:bg-ecs-green/10
+                          has-checked:border-ecs-green has-checked:bg-ecs-green/5 dark:has-checked:bg-ecs-green/10
                           border-gray-200 dark:border-gray-700">
               <input type="radio" name="border_radius" value="{{ level }}" class="sr-only peer"
                      {% if level == components.border_radius %}checked{% endif %}>
@@ -153,11 +157,11 @@
           <i class="ti ti-shadow text-ecs-green" aria-hidden="true"></i> Shadow Intensity
         </h2>
         {% if shadow_modified %}
-        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">
           <i class="ti ti-pencil text-[11px]" aria-hidden="true"></i> Modified
         </span>
         {% else %}
-        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+        <span class="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
           <i class="ti ti-check text-[11px]" aria-hidden="true"></i> Default
         </span>
         {% endif %}
@@ -174,13 +178,13 @@
             {% for level in shadow_scale %}
             <label class="flex flex-col items-center gap-1.5 rounded-lg border px-1.5 py-2.5 text-center cursor-pointer
                           hover:bg-gray-50 dark:hover:bg-gray-700/50
-                          has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/5 dark:has-[:checked]:bg-ecs-green/10
+                          has-checked:border-ecs-green has-checked:bg-ecs-green/5 dark:has-checked:bg-ecs-green/10
                           border-gray-200 dark:border-gray-700">
               <input type="radio" name="shadow_intensity" value="{{ level }}" class="sr-only peer"
                      {% if level == components.shadow_intensity %}checked{% endif %}>
               <span class="block w-7 h-7 rounded-md bg-white dark:bg-gray-600
                            {% if level == 'none' %}border border-gray-200 dark:border-gray-500
-                           {% elif level == 'subtle' %}shadow-sm{% elif level == 'default' %}shadow-md{% else %}shadow-xl{% endif %}"
+                           {% elif level == 'subtle' %}shadow-xs{% elif level == 'default' %}shadow-md{% else %}shadow-xl{% endif %}"
                     aria-hidden="true"></span>
               <span class="text-[11px] font-mono text-gray-500 dark:text-gray-400 peer-checked:font-bold peer-checked:text-ecs-green">{{ level }}</span>
             </label>
@@ -320,7 +324,7 @@
           window.Swal.fire({
             icon: 'warning',
             title: 'Reset to default?',
-            text: 'This restores border radius and shadow intensity to the system baseline.',
+            text: 'This restores border radius and shadow-sm intensity to the system baseline.',
             showCancelButton: true,
             confirmButtonText: 'Reset'
           }).then(function (r) { if (r.isConfirmed) apply(); });
@@ -342,7 +346,7 @@
         </div>
     </div>
 
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-components text-theme-primary"></i>
             <span>Current Components</span>

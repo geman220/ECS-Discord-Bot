@@ -36,11 +36,11 @@
     <i class="ti ti-circle-filled text-[8px]" aria-hidden="true"></i>{{ analytics_data.active_season }}
   </span>
   <a href="{{ url_for('admin_panel.ispy_shots') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
     <i class="ti ti-camera" aria-hidden="true"></i> Shots
   </a>
   <a href="{{ url_for('admin_panel.ispy_players') }}"
-     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
     <i class="ti ti-users" aria-hidden="true"></i> Players
   </a>
 {% endcall %}
@@ -142,11 +142,11 @@
     <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
       <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
         <i class="ti ti-category text-ecs-green" aria-hidden="true"></i> Category Performance
-        {% if cats %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ cats|length }}</span>{% endif %}
+        {% if cats %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ cats|length }}</span>{% endif %}
       </h2>
       {% if cats %}
       <button type="button" data-action="export-category-data" aria-label="Export category data"
-              class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <i class="ti ti-download" aria-hidden="true"></i><span class="hidden sm:inline">Export</span>
       </button>
       {% endif %}
@@ -243,7 +243,7 @@
     </ul>
     <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
       <a href="{{ url_for('admin_panel.ispy_players') }}"
-         class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green hover:text-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+         class="inline-flex items-center gap-1.5 text-sm font-semibold text-ecs-green hover:text-ecs-green-700 focus:outline-hidden focus:ring-2 focus:ring-ecs-green rounded-sm">
         Manage players <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
       </a>
     </div>
@@ -275,7 +275,7 @@
   <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
     <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
       <i class="ti ti-chart-bar text-ecs-green" aria-hidden="true"></i> Daily Shot Trends
-      {% if trend_peak > 0 %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-ecs-green/10 text-ecs-green">peak {{ trend_peak }}</span>{% endif %}
+      {% if trend_peak > 0 %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded-sm bg-ecs-green/10 text-ecs-green">peak {{ trend_peak }}</span>{% endif %}
     </h2>
     <span class="text-xs font-mono text-gray-500 dark:text-gray-400">last 14 days</span>
   </div>
@@ -286,7 +286,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
       {% for day in trends %}
       <div class="flex items-center gap-3">
-        <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 flex-shrink-0">{{ day.date }}</span>
+        <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 shrink-0">{{ day.date }}</span>
         <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 overflow-hidden">
           <div class="bg-ecs-green h-5 rounded-full flex items-center justify-end pr-2 transition-all" style="width: {{ (day.shots / max_shots * 100)|round(1) }}%; min-width: {% if day.shots > 0 %}1.5rem{% else %}0{% endif %};">
             {% if day.shots > 0 %}
@@ -295,7 +295,7 @@
           </div>
         </div>
         {% if day.shots == 0 %}
-        <span class="text-xs font-mono text-gray-400 dark:text-gray-500 w-6 flex-shrink-0">0</span>
+        <span class="text-xs font-mono text-gray-400 dark:text-gray-500 w-6 shrink-0">0</span>
         {% endif %}
       </div>
       {% endfor %}
@@ -374,17 +374,17 @@
   <div class="p-4 sm:p-5">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <a href="{{ url_for('admin_panel.ispy_players') }}"
-         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors text-left focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
         <span class="w-9 h-9 shrink-0 rounded-lg bg-white/20 flex items-center justify-center"><i class="ti ti-users text-lg" aria-hidden="true"></i></span>
         <span class="min-w-0"><span class="block text-sm font-semibold">View Players</span><span class="block text-xs text-white/80 font-mono">{{ ov.total_players }} tracked</span></span>
       </a>
       <a href="{{ url_for('admin_panel.ispy_shots') }}"
-         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors text-left focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <span class="w-9 h-9 shrink-0 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-camera text-lg" aria-hidden="true"></i></span>
         <span class="min-w-0"><span class="block text-sm font-semibold">View Shots</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">{{ ov.total_shots }} total</span></span>
       </a>
       <a href="{{ url_for('admin_panel.ispy_management') }}"
-         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:border-ecs-green hover:bg-ecs-green/10 transition-colors text-left focus:outline-none focus:ring-2 focus:ring-ecs-green">
+         class="group flex items-center gap-3 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:border-ecs-green hover:bg-ecs-green/10 transition-colors text-left focus:outline-hidden focus:ring-2 focus:ring-ecs-green">
         <span class="w-9 h-9 shrink-0 rounded-lg bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-arrow-left text-lg" aria-hidden="true"></i></span>
         <span class="min-w-0"><span class="block text-sm font-semibold">Back to I-Spy Hub</span><span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">Game management</span></span>
       </a>
@@ -394,7 +394,7 @@
 
 {% else %}
 <!-- Analytics Header -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 mb-6 border border-gray-200 dark:border-gray-700">
     <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -411,7 +411,7 @@
 <!-- Key Metrics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <!-- Total Shots -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ analytics_data.overview.total_shots }}</p>
@@ -424,7 +424,7 @@
     </div>
 
     <!-- Total Players -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ analytics_data.overview.total_players }}</p>
@@ -437,7 +437,7 @@
     </div>
 
     <!-- Approved Shots -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ analytics_data.overview.approved_shots }}</p>
@@ -450,7 +450,7 @@
     </div>
 
     <!-- Approval Rate -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ analytics_data.overview.approval_rate }}%</p>
@@ -466,7 +466,7 @@
 <!-- Trends & Category Performance -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Daily Shot Trends -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-chart-bar mr-2 text-ecs-green"></i>Daily Shot Trends
@@ -479,7 +479,7 @@
             <div class="space-y-2">
                 {% for day in analytics_data.trends %}
                 <div class="flex items-center gap-3">
-                    <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 flex-shrink-0">{{ day.date }}</span>
+                    <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 shrink-0">{{ day.date }}</span>
                     <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 overflow-hidden">
                         <div class="bg-ecs-green h-5 rounded-full flex items-center justify-end pr-2 transition-all" style="width: {{ (day.shots / max_shots * 100)|round(1) }}%; min-width: {% if day.shots > 0 %}1.5rem{% else %}0{% endif %};">
                             {% if day.shots > 0 %}
@@ -488,7 +488,7 @@
                         </div>
                     </div>
                     {% if day.shots == 0 %}
-                    <span class="text-xs text-gray-400 dark:text-gray-500 w-6 flex-shrink-0">0</span>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 w-6 shrink-0">0</span>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -505,7 +505,7 @@
     </div>
 
     <!-- Category Performance -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="ti ti-category mr-2 text-ecs-green"></i>Category Performance
@@ -545,7 +545,7 @@
 <!-- Engagement Metrics -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <!-- Daily Active -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-5 text-center">
             <div class="inline-flex items-center justify-center w-12 h-12 mb-3 bg-ecs-green/10 rounded-full">
                 <i class="ti ti-activity text-2xl text-ecs-green"></i>
@@ -556,7 +556,7 @@
     </div>
 
     <!-- Weekly Active -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-5 text-center">
             <div class="inline-flex items-center justify-center w-12 h-12 mb-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
                 <i class="ti ti-calendar-stats text-2xl text-blue-600 dark:text-blue-400"></i>
@@ -567,7 +567,7 @@
     </div>
 
     <!-- Players in Jail -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-5 text-center">
             <div class="inline-flex items-center justify-center w-12 h-12 mb-3 bg-red-100 dark:bg-red-900/30 rounded-full">
                 <i class="ti ti-lock text-2xl text-red-600 dark:text-red-400"></i>
@@ -579,7 +579,7 @@
 </div>
 
 <!-- Quick Links -->
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <i class="ti ti-link mr-2 text-ecs-green"></i>Quick Links

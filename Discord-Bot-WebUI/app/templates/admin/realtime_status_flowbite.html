@@ -31,7 +31,7 @@
     <!-- Service Health Overview -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Service Status -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if health.health == 'healthy' %}border-green-500{% elif health.health == 'degraded' %}border-yellow-500{% else %}border-red-500{% endif %} p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 {% if health.health == 'healthy' %}border-green-500{% elif health.health == 'degraded' %}border-yellow-500{% else %}border-red-500{% endif %} p-5">
             <div class="flex items-center gap-2 mb-3">
                 <i class="ti ti-server text-gray-500 dark:text-gray-400"></i>
                 <span class="font-semibold text-gray-900 dark:text-white">Service Status</span>
@@ -52,7 +52,7 @@
         </div>
 
         <!-- Heartbeat -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center gap-2 mb-3">
                 <i class="ti ti-heart-rate-monitor text-gray-500 dark:text-gray-400"></i>
                 <span class="font-semibold text-gray-900 dark:text-white">Last Heartbeat</span>
@@ -73,7 +73,7 @@
         </div>
 
         <!-- Coordination Status -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 {% if coordination.coordination_status == 'healthy' %}border-green-500{% else %}border-yellow-500{% endif %} p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 {% if coordination.coordination_status == 'healthy' %}border-green-500{% else %}border-yellow-500{% endif %} p-5">
             <div class="flex items-center gap-2 mb-3">
                 <i class="ti ti-link text-gray-500 dark:text-gray-400"></i>
                 <span class="font-semibold text-gray-900 dark:text-white">Coordination</span>
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Active Sessions -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-center gap-2 mb-3">
                 <i class="ti ti-broadcast text-gray-500 dark:text-gray-400"></i>
                 <span class="font-semibold text-gray-900 dark:text-white">Active Sessions</span>
@@ -99,7 +99,7 @@
     <!-- Detailed Status Sections -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Health Details -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center gap-2">
                     <i class="ti ti-activity text-gray-500 dark:text-gray-400"></i>
@@ -138,7 +138,7 @@
         </div>
 
         <!-- Coordination Details -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center gap-2">
                     <i class="ti ti-topology-ring-3 text-gray-500 dark:text-gray-400"></i>
@@ -180,7 +180,7 @@
 
     <!-- Active Sessions List -->
     {% if coordination.sessions %}
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-2">
                 <i class="ti ti-list text-gray-500 dark:text-gray-400"></i>
@@ -220,7 +220,7 @@
     {% endif %}
 
     <!-- Quick Actions -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-2">
                 <i class="ti ti-tools text-gray-500 dark:text-gray-400"></i>

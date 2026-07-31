@@ -71,7 +71,7 @@ export function displayRequestDetailsModal(request) {
                   <p><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> ${statusHtml}</p>
                   <p><span class="font-medium text-gray-700 dark:text-gray-300">Created:</span> <span class="text-gray-900 dark:text-white">${formatDateTime(request.created_at)}</span></p>
                   ${request.positions_needed ? `<p><span class="font-medium text-gray-700 dark:text-gray-300">Positions:</span> <span class="text-gray-900 dark:text-white">${request.positions_needed}</span></p>` : ''}
-                  ${request.gender_preference ? `<p><span class="font-medium text-gray-700 dark:text-gray-300">Gender Preference:</span> <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded ml-1">${request.gender_preference}</span></p>` : ''}
+                  ${request.gender_preference ? `<p><span class="font-medium text-gray-700 dark:text-gray-300">Gender Preference:</span> <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm ml-1">${request.gender_preference}</span></p>` : ''}
                   ${request.notes ? `<p><span class="font-medium text-gray-700 dark:text-gray-300">Notes:</span> <span class="text-gray-900 dark:text-white">${request.notes}</span></p>` : ''}
                 </div>
               </div>
@@ -92,7 +92,7 @@ export function displayRequestDetailsModal(request) {
           <!-- Footer -->
           <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
             <button type="button" data-modal-hide="requestDetailsModal"
-                    class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
+                    class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-hidden focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
               Close
             </button>
             ${request.status === 'OPEN' ? `
@@ -101,7 +101,7 @@ export function displayRequestDetailsModal(request) {
                       data-league="${request.league_type}"
                       data-team="${request.team_name}"
                       data-created="${request.created_at}"
-                      class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green">
+                      class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-hidden focus:ring-ecs-green">
                 <i class="ti ti-send mr-2"></i>Resend Notifications
               </button>
             ` : ''}
@@ -134,7 +134,7 @@ function buildStatusHtml(request) {
                         statusBadge.includes('warning') ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
                         statusBadge.includes('danger') ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
                         'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-  return `<span class="px-2 py-0.5 text-xs font-medium ${tailwindBadge} rounded ml-1">${statusText}</span>`;
+  return `<span class="px-2 py-0.5 text-xs font-medium ${tailwindBadge} rounded-sm ml-1">${statusText}</span>`;
 }
 
 /**
@@ -244,13 +244,13 @@ function buildAssignmentsHtml(request) {
         <div class="flex items-center justify-between">
           <div>
             <span class="font-medium text-gray-900 dark:text-white">${assignment.player_name}</span>
-            ${assignment.position_assigned ? `<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded ml-2">${assignment.position_assigned}</span>` : ''}
+            ${assignment.position_assigned ? `<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded-sm ml-2">${assignment.position_assigned}</span>` : ''}
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               <i class="ti ti-clock mr-1"></i>Assigned ${formatDateTime(assignment.assigned_at)}
             </p>
             ${assignment.notes ? `<p class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-note mr-1"></i>${assignment.notes}</p>` : ''}
           </div>
-          <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Assigned</span>
+          <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded-sm">Assigned</span>
         </div>
       </div>
     `;
