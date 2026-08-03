@@ -36,6 +36,9 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - check_in: Match check-in (member lookup, self check-in, coach scan, roster)
 - points_events: Admin-awarded participation points for non-match events
 - admin_feedback: Global Admin management of user feedback tickets (list, reply, status, bulk)
+- admin_members: member lifecycle admin (approve/deny/undeny, activate, team
+  placement, sub pools, waitlist, quick-profile pre-approval, worklist) — the
+  same mutations the web Members hub runs, via app/services/member_lifecycle_service.py
 - pub_league: Season-pass linking/claiming (deep-link target for the WooCommerce
   purchase + gift-claim flows; mirrors the web wizard in app/pub_league/)
 
@@ -101,6 +104,7 @@ def register_mobile_api_routes():
         nad_internal,
         classic_ratings,
         members,
+        admin_members,
     )
 
 

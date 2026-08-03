@@ -28,7 +28,7 @@ from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
+from app.utils.deferred_discord import defer_discord_sync
 from app.utils.deferred_cache import defer_clear_league_cache
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task, process_discord_role_updates
 
@@ -1232,48 +1232,14 @@ def approve_user_comprehensive(user_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional(max_retries=3)
 def deactivate_user_comprehensive(user_id):
-    """
-    Quick deactivate user via AJAX from comprehensive management.
-
-    Uses pessimistic locking to prevent concurrent modifications.
-    """
-    try:
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-            old_status = user.is_active
-
-            user.is_active = False
-
-            # Also set player as not current
-            if user.player:
-                user.player.is_current_player = False
-
-            # Queue Discord role removal for AFTER transaction commits
-            if user.player and user.player.discord_id:
-                defer_discord_removal(user.player.id)
-                logger.info(f"Queued Discord role removal for deactivated user {user.id}")
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='deactivate_user_quick',
-                resource_type='user_management',
-                resource_id=str(user_id),
-                old_value=str(old_status),
-                new_value='False',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            username = user.username
-
-        return jsonify({'success': True, 'message': f'User {username} deactivated successfully'})
-
-    except LockAcquisitionError:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'User is currently being modified by another request. Please try again.'
-        }), 409
+    """Quick deactivate via AJAX. Shared mutation with
+    `POST /api/v1/admin/members/<id>/deactivate` — see
+    `app/services/member_lifecycle_service.py`."""
+    from app.services.member_lifecycle_service import set_member_activation
+    reason = (request.get_json(silent=True) or {}).get('reason') or request.form.get('reason')
+    payload, status = set_member_activation(
+        user_id=user_id, active=False, actor_id=current_user.id, reason=reason)
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/users/<int:user_id>/activate', methods=['POST'])
@@ -1281,60 +1247,15 @@ def deactivate_user_comprehensive(user_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional(max_retries=3)
 def activate_user_comprehensive(user_id):
-    """
-    Quick activate user via AJAX from comprehensive management.
-
-    Uses pessimistic locking to prevent concurrent modifications.
-    Also invalidates draft cache so player appears immediately in draft pool.
-    """
-    try:
-        league_name_for_cache = None
-
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-            old_status = user.is_active
-
-            user.is_active = True
-
-            # Also set player as current
-            if user.player:
-                user.player.is_current_player = True
-
-                # Get league name for cache invalidation
-                if user.player.primary_league:
-                    league_name_for_cache = user.player.primary_league.name
-
-            # Queue Discord role sync for AFTER transaction commits
-            if user.player and user.player.discord_id:
-                defer_discord_sync(user.player.id, only_add=False)
-                logger.info(f"Queued Discord role sync for activated user {user.id}")
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='activate_user_quick',
-                resource_type='user_management',
-                resource_id=str(user_id),
-                old_value=str(old_status),
-                new_value='True',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            username = user.username
-
-            # Invalidate draft cache so player appears immediately. Deferred
-            # until after commit so Redis I/O doesn't extend the user lock.
-            if league_name_for_cache:
-                defer_clear_league_cache(league_name_for_cache.lower())
-
-        return jsonify({'success': True, 'message': f'User {username} activated successfully'})
-
-    except LockAcquisitionError:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'User is currently being modified by another request. Please try again.'
-        }), 409
+    """Quick activate via AJAX. Also clears the draft cache so the player shows
+    up in the pool immediately. Shared mutation with
+    `POST /api/v1/admin/members/<id>/activate` — see
+    `app/services/member_lifecycle_service.py`."""
+    from app.services.member_lifecycle_service import set_member_activation
+    reason = (request.get_json(silent=True) or {}).get('reason') or request.form.get('reason')
+    payload, status = set_member_activation(
+        user_id=user_id, active=True, actor_id=current_user.id, reason=reason)
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/users/<int:user_id>/delete', methods=['POST'])

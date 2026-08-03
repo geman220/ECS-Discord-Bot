@@ -255,6 +255,12 @@ def db(_database, app):
             'mls_matches', 'match_dates',
             'points_event_award', 'points_event_type',
             'player_season_ratings', 'player_rating_overrides', 'classic_rating_metric',
+            # Sub pools + the membership spine + quick profiles. Left out of this
+            # list, rows survived into the NEXT test on a reused player_id and
+            # tripped uq_substitute_pool_player_league_type -- which reads as a
+            # bug in whatever endpoint the next test called.
+            'substitute_pool_history', 'substitute_pools', 'ecs_fc_sub_pool',
+            'league_membership', 'quick_profile',
             'player_teams', 'player_league', 'player_team_season',
             'matches', 'schedule', 'week_configurations',
             'device_tokens', 'progress', 'sms_logs', 'discord_bot_status',

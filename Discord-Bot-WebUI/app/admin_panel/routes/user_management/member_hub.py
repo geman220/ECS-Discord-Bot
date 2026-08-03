@@ -228,15 +228,11 @@ def members_worklist():
     page = request.args.get('page', 1, type=int)
     now = datetime.utcnow()
 
-    def _lane_clause(col, lane):
-        """ilike pattern so a lane matches stored variants ('Classic'/'pub_league_classic')."""
-        if lane == 'classic':
-            return col.ilike('%classic%')
-        if lane == 'premier':
-            return col.ilike('%premier%')
-        if lane == 'ecs_fc':
-            return col.ilike('%ecs%')
-        return None
+    # Shared with the mobile worklist so both narrow by lane identically. The
+    # local copy was hardcoded to the original three lanes and returned None for
+    # anything else, which silently turned a newer program's lane filter into
+    # "no filter at all".
+    from app.services.member_lifecycle_service import lane_clause as _lane_clause
 
     # --- shared queue criteria (identical to the legacy pages, so counts can't drift) ---
     # DENIED people are excluded from the waitlist everywhere (count + list): a denied person
@@ -1372,35 +1368,20 @@ def member_qp_preapprove(profile_id):
     """Pre-approve (or clear) a quick profile so the person is auto-approved into the chosen
     league the moment they claim their code (see QuickProfile._apply_pre_approval). Accepts a
     league/sub type, or a waitlist-* type which is applied phase-aware on claim (waitlist if
-    open, else the plain league). Body: {league_type} ('' clears)."""
-    from flask_login import current_user
-    from datetime import datetime
-    from app.core import db
-    from app.models import QuickProfile
+    open, else the plain league). Body: {league_type} ('' clears).
 
-    profile = db.session.get(QuickProfile, profile_id)
-    if not profile:
-        return jsonify({'success': False, 'message': 'Quick profile not found'}), 404
+    Shared mutation with `POST /api/v1/admin/quick-profiles/<id>/preapprove` —
+    see `app/services/member_lifecycle_service.py`."""
+    from flask_login import current_user
+    from app.services.member_lifecycle_service import preapprove_quick_profile
+
     data = request.get_json(silent=True) or {}
-    league = (data.get('league_type') or '').strip()
-    valid = _preapproval_values()
-    if league and league not in valid:
-        # Name the value AND what was allowed: "Invalid league" alone is unactionable,
-        # and this rejecting a program the dropdown offered is the bug worth seeing.
-        logger.warning("QP pre-approval rejected league_type=%r (valid: %s)", league, sorted(valid))
-        return jsonify({'success': False,
-                        'message': f'Invalid league "{league}" — not a known program.'}), 400
-    if league:
-        profile.pre_approved_league = league
-        profile.pre_approved_by_user_id = getattr(current_user, 'id', None)
-        profile.pre_approved_at = datetime.utcnow()
-        msg = f'Pre-approved into {league} — auto-approves when they claim'
-    else:
-        profile.pre_approved_league = None
-        profile.pre_approved_by_user_id = None
-        profile.pre_approved_at = None
-        msg = 'Pre-approval cleared'
-    return jsonify({'success': True, 'message': msg, 'pre_approved_league': profile.pre_approved_league})
+    payload, status = preapprove_quick_profile(
+        profile_id=profile_id,
+        league_type=data.get('league_type'),
+        actor_id=getattr(current_user, 'id', None),
+    )
+    return jsonify(payload), status
 
 
 # lane_label -> canonical normalized lane -> sub Flask role name.
@@ -1533,84 +1514,25 @@ def _reconcile_sub_roles(session, user, player):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def member_sub_assign(user_id):
-    """Assign this person to a substitute pool (Classic/Premier/ECS FC) and optionally make
-    them active — self-contained. Writes the right pool table(s), reconciles the sub roles to
-    actual membership, re-syncs the spine, defers a Discord sync. Subs never pay.
-    Body: {league_type: 'Classic'|'Premier'|'ECS FC', active: bool}.
+    """Assign this person to a substitute pool and optionally make them active.
+
+    Body: {league_type: 'Classic'|'Premier'|'ECS FC', active: bool}. The lane also
+    accepts its membership-lane spelling ('ecs_fc'), which is what the mobile
+    client sends. Shared mutation with
+    `POST /api/v1/admin/members/<id>/sub-assign` — see
+    `app/services/member_lifecycle_service.py`.
     """
     from flask_login import current_user
-    from datetime import datetime
-    from app.core import db
-    from app.models import User, League, Season
-    from app.models.substitutes import SubstitutePool, EcsFcSubPool
-    from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships, _norm_league_type
+    from app.services.member_lifecycle_service import sub_assign
 
     data = request.get_json(silent=True) or {}
-    league_type = (data.get('league_type') or '').strip()
-    make_active = bool(data.get('active', True))
-    target = label_to_canon().get(league_type)
-    if target is None:
-        return jsonify({'success': False, 'message': 'Invalid league'}), 400
-
-    user = db.session.get(User, user_id)
-    if not user or not user.player:
-        return jsonify({'success': False, 'message': 'This person has no player record'}), 400
-    player = user.player
-    now = datetime.utcnow()
-    aid = getattr(current_user, 'id', None)
-
-    if target == 'ecs_fc':
-        ep = db.session.query(EcsFcSubPool).filter_by(player_id=player.id).first()
-        if ep:
-            ep.is_active = make_active
-        else:
-            db.session.add(EcsFcSubPool(player_id=player.id, is_active=make_active))
-        # Keep the approval-created SubstitutePool('ECS FC') twin in sync — the spine reads
-        # it FIRST, so approving/activating must update it too (never create/clobber a Pub row).
-        sp = _pool_row_for_lane(db.session, player.id, 'ecs_fc')
-        if sp:
-            sp.is_active = make_active
-            sp.approved_at = sp.approved_at or now
-            sp.approved_by = sp.approved_by or aid
-    else:
-        canonical = _canonical_league_type(target)
-        # Look up THIS lane's row. The old code took .first() and rewrote its
-        # league_type, which repointed whichever pool row happened to come back
-        # -- silently removing the player from that program's broadcast list --
-        # and could collide with uq_substitute_pool_player_league_type for a
-        # player who already held two rows, 500ing the request.
-        sp = _pool_row_for_lane(db.session, player.id, target)
-        if sp:
-            sp.is_active = make_active
-            sp.approved_at = sp.approved_at or now
-            sp.approved_by = sp.approved_by or aid
-        else:
-            db.session.add(SubstitutePool(
-                player_id=player.id, league_type=canonical, is_active=make_active,
-                approved_at=now, approved_by=aid))
-
-    db.session.flush()
-    _reconcile_sub_roles(db.session, user, player)
-
-    # Ensure the player has a league so dispatch + Discord roles resolve (best-effort).
-    if not player.league_id and not player.primary_league_id:
-        s_type = 'ECS FC' if target == 'ecs_fc' else 'Pub League'
-        lg = (db.session.query(League).join(Season)
-              .filter(Season.league_type == s_type, Season.is_current == True).first())
-        if lg:
-            player.league_id = lg.id
-            player.primary_league_id = lg.id
-
-    db.session.flush()
-    resync_player_memberships(db.session, player.id)
-    if player.discord_id:
-        # Full allowlist-protected reconcile (the batching layer runs enforce_allowlist=True):
-        # get_expected_roles now includes the -SUB role we reconciled, so it's granted, while
-        # team/division/coach roles are protected from removal.
-        defer_discord_sync(player.id, only_add=True)
-    return jsonify({'success': True,
-                    'message': f'Added to {league_type} subs ({"active" if make_active else "resting"})'})
+    payload, status = sub_assign(
+        user_id=user_id,
+        league_type=data.get('league_type'),
+        actor_id=getattr(current_user, 'id', None),
+        active=data.get('active', True),
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/members/<int:user_id>/sub-active', methods=['POST'])
@@ -1618,45 +1540,22 @@ def member_sub_assign(user_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def member_sub_set_active(user_id):
-    """Rest/Wake a sub for one lane — self-contained AND both-pool-aware. For ECS FC it updates
-    BOTH the EcsFcSubPool row and the SubstitutePool('ECS FC') twin the spine reads first; the
-    Pub match is by NORMALIZED lane (robust to non-canonical stored values). Body: {league_type, active}."""
-    from app.core import db
-    from app.models import User
-    from app.models.substitutes import SubstitutePool, EcsFcSubPool
-    from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships, _norm_league_type
+    """Rest/Wake a sub for one lane — both-pool-aware. For ECS FC it updates BOTH the
+    EcsFcSubPool row and the SubstitutePool('ECS FC') twin the spine reads first; the
+    Pub match is by NORMALIZED lane (robust to non-canonical stored values).
+    Body: {league_type, active}. Shared mutation with
+    `POST /api/v1/admin/members/<id>/sub-active`."""
+    from flask_login import current_user
+    from app.services.member_lifecycle_service import sub_set_active
 
     data = request.get_json(silent=True) or {}
-    league_type = (data.get('league_type') or '').strip()
-    make_active = bool(data.get('active', True))
-    target = label_to_canon().get(league_type)
-    if target is None:
-        return jsonify({'success': False, 'message': 'Invalid league'}), 400
-    user = db.session.get(User, user_id)
-    if not user or not user.player:
-        return jsonify({'success': False, 'message': 'No player record'}), 400
-    pid = user.player.id
-
-    touched = False
-    sp = _pool_row_for_lane(db.session, pid, target)
-    if sp:
-        sp.is_active = make_active
-        touched = True
-    if target == 'ecs_fc':
-        ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
-        if ep:
-            ep.is_active = make_active
-            touched = True
-    if not touched:
-        return jsonify({'success': False, 'message': f'Not in the {league_type} sub pool'}), 404
-
-    db.session.flush()
-    resync_player_memberships(db.session, pid)
-    if user.player.discord_id:
-        defer_discord_sync(pid, only_add=True)
-    return jsonify({'success': True,
-                    'message': ('Woken' if make_active else 'Resting') + f' · {league_type}'})
+    payload, status = sub_set_active(
+        user_id=user_id,
+        league_type=data.get('league_type'),
+        actor_id=getattr(current_user, 'id', None),
+        active=data.get('active', True),
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/members/<int:user_id>/sub-remove', methods=['POST'])
@@ -1664,42 +1563,20 @@ def member_sub_set_active(user_id):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def member_sub_remove(user_id):
-    """Remove a sub from one lane — self-contained AND both-pool-aware. Deletes the matching
-    row(s) in BOTH tables for ECS FC (incl. the SubstitutePool twin), then reconciles the sub
-    roles to actual membership (strips only the removed lane's role). Body: {league_type}."""
-    from app.core import db
-    from app.models import User
-    from app.models.substitutes import SubstitutePool, EcsFcSubPool
-    from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships, _norm_league_type
+    """Remove a sub from one lane — both-pool-aware. Deletes the matching row(s) in BOTH
+    tables for ECS FC (incl. the SubstitutePool twin), then reconciles the sub roles to
+    actual membership (strips only the removed lane's role). Body: {league_type}.
+    Shared mutation with `POST /api/v1/admin/members/<id>/sub-remove`."""
+    from flask_login import current_user
+    from app.services.member_lifecycle_service import sub_remove
 
     data = request.get_json(silent=True) or {}
-    league_type = (data.get('league_type') or '').strip()
-    target = label_to_canon().get(league_type)
-    if target is None:
-        return jsonify({'success': False, 'message': 'Invalid league'}), 400
-    user = db.session.get(User, user_id)
-    if not user or not user.player:
-        return jsonify({'success': False, 'message': 'No player record'}), 400
-    pid = user.player.id
-
-    sp = _pool_row_for_lane(db.session, pid, target)
-    if sp:
-        _delete_pool_row(db.session, sp)
-    if target == 'ecs_fc':
-        ep = db.session.query(EcsFcSubPool).filter_by(player_id=pid).first()
-        if ep:
-            db.session.delete(ep)
-    db.session.flush()
-    _reconcile_sub_roles(db.session, user, player=user.player)
-    db.session.flush()
-    resync_player_memberships(db.session, pid)
-    if user.player.discord_id:
-        # Full allowlist-protected reconcile: the now-removed lane's -SUB role is no longer in
-        # get_expected_roles and the allowlist permits stripping -SUB, so it's removed; team,
-        # division and coach roles are protected and preserved.
-        defer_discord_sync(pid, only_add=False)
-    return jsonify({'success': True, 'message': f'Removed from {league_type} subs'})
+    payload, status = sub_remove(
+        user_id=user_id,
+        league_type=data.get('league_type'),
+        actor_id=getattr(current_user, 'id', None),
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/members/<int:user_id>/sub-reject', methods=['POST'])
@@ -1713,43 +1590,21 @@ def member_sub_reject(user_id):
     a player NOT yet in the pool), so it 400s on an existing pending row. This focused
     action deletes the pending SubstitutePool row, strips the matching sub Flask role,
     re-syncs the spine, and queues a Discord sync (the allowlist permits stripping the
-    -SUB role). Body: {league_type: 'Classic'|'Premier'|'ECS FC'}.
+    -SUB role). Body: {league_type: 'Classic'|'Premier'|'ECS FC'}; omit it to reject
+    every pending signup.
+
+    Shared mutation with `POST /api/v1/admin/members/<id>/sub-reject`.
     """
-    from app.core import db
-    from app.models import User, Role
-    from app.models.substitutes import SubstitutePool
-    from app.utils.deferred_discord import defer_discord_sync
-    from app.services.league_membership_sync import resync_player_memberships
+    from flask_login import current_user
+    from app.services.member_lifecycle_service import sub_reject
 
     data = request.get_json(silent=True) or {}
-    league_type = (data.get('league_type') or '').strip()
-    role_map = {'Classic': 'Classic Sub', 'Premier': 'Premier Sub', 'ECS FC': 'ECS FC Sub'}
-
-    user = db.session.get(User, user_id)
-    if not user or not user.player:
-        return jsonify({'success': False, 'message': 'User has no player record'}), 400
-    pid = user.player.id
-
-    q = db.session.query(SubstitutePool).filter(
-        SubstitutePool.player_id == pid, SubstitutePool.approved_at.is_(None))
-    if league_type:
-        q = q.filter(SubstitutePool.league_type == league_type)
-    rows = q.all()
-    if not rows:
-        return jsonify({'success': False, 'message': 'No pending sub signup to reject'}), 404
-
-    for r in rows:
-        _delete_pool_row(db.session, r)
-    rname = role_map.get(league_type)
-    if rname:
-        role = db.session.query(Role).filter_by(name=rname).first()
-        if role and role in user.roles:
-            user.roles.remove(role)
-    db.session.flush()
-    resync_player_memberships(db.session, pid)
-    if user.player.discord_id:
-        defer_discord_sync(user.player.id, only_add=False)  # allowlist permits the -SUB role strip
-    return jsonify({'success': True, 'message': f'Rejected the pending {league_type or "sub"} signup'})
+    payload, status = sub_reject(
+        user_id=user_id,
+        league_type=data.get('league_type'),
+        actor_id=getattr(current_user, 'id', None),
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/members/<int:user_id>/place', methods=['POST'])
@@ -1762,190 +1617,20 @@ def member_place(user_id):
     Deliberately touches ONLY the roster (player_teams + PlayerTeamSeason +
     primary_team_id), then dual-writes the spine and syncs Discord — it never
     overwrites any other user/player field (unlike the comprehensive edit form).
-    Body: {action: 'add'|'remove', team_id: int, is_coach?: bool}.
+    Body: {action: 'add'|'remove'|'primary', team_id: int, is_coach?: bool}.
+
+    Shared mutation with `POST /api/v1/admin/members/<id>/place` — see
+    `app/services/member_lifecycle_service.py`.
     """
     from flask_login import current_user
-    from app.core import db
-    from app.models import Team, PlayerTeamSeason, player_teams
-    from sqlalchemy import update as _sa_update
-    from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError, UserNotFoundError
-    from app.utils.deferred_discord import defer_discord_sync, defer_discord_revoke
-    from app.services.league_membership_sync import resync_player_memberships
-    from app.services.player_division_service import align_player_to_drafted_division
+    from app.services.member_lifecycle_service import place_member
 
     data = request.get_json(silent=True) or {}
-    action = (data.get('action') or 'add').strip()
-    is_coach = bool(data.get('is_coach'))
-
-    if action not in ('add', 'remove', 'primary'):
-        return jsonify({'success': False, 'message': 'Invalid action'}), 400
-    try:
-        team_id = int(data.get('team_id'))
-    except (TypeError, ValueError):
-        return jsonify({'success': False, 'message': 'A valid team_id is required'}), 400
-
-    try:
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-            if not user.player:
-                return jsonify({'success': False, 'message': 'User has no player record'}), 400
-            player = user.player
-            team = db.session.get(Team, team_id)
-            if not team:
-                return jsonify({'success': False, 'message': 'Team not found'}), 404
-            season_id = team.league.season_id if team.league else None
-
-            if action == 'remove':
-                if player in team.players:
-                    team.players.remove(player)
-                if player.primary_team_id == team.id:
-                    player.primary_team_id = None
-                    player.primary_league_id = None  # cleared along with the primary team
-                if season_id:
-                    db.session.query(PlayerTeamSeason).filter_by(
-                        player_id=player.id, team_id=team.id, season_id=season_id
-                    ).delete(synchronize_session=False)
-                db.session.flush()
-                resync_player_memberships(db.session, player.id)
-                if player.discord_id:
-                    # Revoke exactly what they are no longer entitled to. The roster
-                    # rows are already gone at this point, so the shared calculator
-                    # sees the post-removal truth: this team's -Player/-Coach roles
-                    # come off, and a division coach role comes off only if they no
-                    # longer coach any team in that division. Every other team's roles
-                    # (e.g. an ECS FC team they are still on) are re-checked and kept.
-                    # Candidate coach roles come from the REGISTRY, not a literal
-                    # list. This was hardcoded to the three original programs, so
-                    # a Summer Sprint coach removed from their last Summer team
-                    # kept ECS-FC-PL-SUMMER-COACH forever — the reconcile can't
-                    # strip a coach role either (protected-role allowlist), so
-                    # nothing could. Every candidate is still re-checked against
-                    # the shared calculator before it comes off.
-                    _coach_candidates = []
-                    try:
-                        from app.services import program_registry
-                        _coach_candidates = [
-                            p.coach_role_name
-                            for p in program_registry.all_programs(db.session)
-                            if p.coach_role_name
-                        ]
-                    except Exception as _reg_err:
-                        logger.warning(
-                            f"program registry unavailable for coach revoke "
-                            f"candidates ({_reg_err}); using the legacy three")
-                    if not _coach_candidates:
-                        _coach_candidates = ['ECS-FC-PL-PREMIER-COACH',
-                                             'ECS-FC-PL-CLASSIC-COACH',
-                                             'ECS-FC-PL-ECS-FC-COACH']
-                    defer_discord_revoke(
-                        player.id,
-                        team_ids=[team.id],
-                        candidate_roles=_coach_candidates,
-                    )
-                message = f'{player.name} removed from {team.name}'
-            elif action == 'primary':
-                # Make an already-rostered team the player's PRIMARY (sets primary_league too).
-                if player not in team.players:
-                    return jsonify({'success': False,
-                                    'message': f'{player.name} is not on {team.name} — place them there first.'}), 400
-                player.primary_team_id = team.id
-                if team.league:
-                    player.primary_league_id = team.league_id
-                # Keep the league association + pl-<division> Flask role in step with
-                # the new primary, so the division Discord role follows the move.
-                try:
-                    align_player_to_drafted_division(db.session, player.id, team)
-                except Exception as _div_err:
-                    logger.warning(f"Division alignment skipped for player {player.id}: {_div_err}")
-                db.session.flush()
-                resync_player_memberships(db.session, player.id)
-                if player.discord_id:
-                    defer_discord_sync(player.id, only_add=True)
-                message = f'{team.name} set as {player.name}\'s primary team'
-            else:  # add
-                # Block double-rostering in the same non-ECS-FC league (mirrors the draft guard;
-                # ECS FC intentionally allows multiple teams).
-                is_ecs = 'ecs' in ((team.league.name if team.league else '') or '').lower()
-                if not is_ecs:
-                    dupe = next((t for t in player.teams
-                                 if t.league_id == team.league_id and t.id != team.id), None)
-                    if dupe:
-                        return jsonify({'success': False,
-                                        'message': f'{player.name} is already on {dupe.name} in this league — remove them there first.'}), 400
-                if player not in team.players:
-                    team.players.append(player)
-                # Set primary only if they have none yet — don't hijack an existing primary.
-                if not player.primary_team_id:
-                    player.primary_team_id = team.id
-                    if team.league:
-                        player.primary_league_id = team.league_id
-                db.session.flush()
-                db.session.execute(_sa_update(player_teams).where(
-                    player_teams.c.player_id == player.id,
-                    player_teams.c.team_id == team.id,
-                ).values(is_coach=is_coach))
-                if season_id:
-                    pts = db.session.query(PlayerTeamSeason).filter_by(
-                        player_id=player.id, team_id=team.id, season_id=season_id).first()
-                    if pts:
-                        pts.is_coach = is_coach
-                    else:
-                        db.session.add(PlayerTeamSeason(
-                            player_id=player.id, team_id=team.id, season_id=season_id, is_coach=is_coach))
-                # Give them the drafted division's league association + pl-<division>
-                # Flask role (mirrors the draft path's align step). Without this, placing
-                # an existing player on a Premier team wrote the roster row and granted
-                # the TEAM role but never ECS-FC-PL-PREMIER: the calculators derive the
-                # division role from league associations / Flask roles, and this route
-                # only set primary_league_id for a player who had no primary team yet.
-                # Purely additive — it never displaces an existing primary or strips the
-                # other division. No-op for ECS FC.
-                try:
-                    align_player_to_drafted_division(db.session, player.id, team)
-                except Exception as _div_err:
-                    logger.warning(f"Division alignment skipped for player {player.id}: {_div_err}")
-                # A rostered player must not keep a conflicting Pub League sub role/pool
-                # (mirrors the draft path) — otherwise the stale sub role fights their team role.
-                sub_cleanup = None
-                try:
-                    from app.services.sub_status_service import remove_conflicting_sub_status
-                    sub_cleanup = remove_conflicting_sub_status(
-                        db.session, player.id,
-                        performed_by_user_id=getattr(current_user, 'id', None),
-                        # Same division family only (see the draft paths).
-                        league_name=(team.league.name if team and team.league else None))
-                except Exception as _sub_err:
-                    logger.warning(f"sub-status cleanup skipped for player {player.id}: {_sub_err}")
-                # A rostered player is IN — auto-clear any stale waitlist so we never leave
-                # someone on the waitlist after placing them (they go to the normal pool).
-                try:
-                    from app.models import Role
-                    wl_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
-                    if wl_role and wl_role in user.roles:
-                        user.roles.remove(wl_role)
-                        user.waitlist_league = None
-                        if hasattr(user, 'waitlist_joined_at'):
-                            user.waitlist_joined_at = None
-                except Exception as _wl_err:
-                    logger.warning(f"waitlist auto-clear skipped for player {player.id}: {_wl_err}")
-                db.session.flush()
-                resync_player_memberships(db.session, player.id)
-                if player.discord_id:
-                    # Additive grant — placement never strips a role (now genuinely
-                    # true: the deferred queue honours only_add per batch). The one
-                    # exception is a sub role we just revoked above: leaving it in
-                    # Discord would orphan the ECS-FC-PL-*-SUB role, and -SUB is the
-                    # one thing the reconcile allowlist permits stripping, so flip to
-                    # a full reconcile for that case (mirrors the draft path).
-                    from app.services.sub_status_service import sub_status_removed
-                    defer_discord_sync(player.id,
-                                       only_add=not sub_status_removed(sub_cleanup))
-                message = f'{player.name} placed on {team.name}{" as coach" if is_coach else ""}'
-
-        return jsonify({'success': True, 'message': message})
-    except LockAcquisitionError:
-        return jsonify({'success': False, 'message': 'User is being modified by another request. Try again.'}), 409
-    except UserNotFoundError:
-        return jsonify({'success': False, 'message': 'User not found'}), 404
-    except Exception as e:
-        logger.error(f"member_place error for user {user_id}: {e}")
-        return jsonify({'success': False, 'message': 'Failed to update team placement'}), 500
+    payload, status = place_member(
+        user_id=user_id,
+        action=data.get('action'),
+        team_id=data.get('team_id'),
+        actor_id=getattr(current_user, 'id', None),
+        is_coach=bool(data.get('is_coach')),
+    )
+    return jsonify(payload), status

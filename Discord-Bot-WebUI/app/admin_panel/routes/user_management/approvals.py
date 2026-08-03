@@ -25,8 +25,7 @@ from app.models.ecs_fc import is_ecs_fc_team
 from app.models.quick_profile import QuickProfile, QuickProfileStatus
 from app.decorators import role_required
 from app.utils.db_utils import transactional
-from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError, UserNotFoundError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
+from app.utils.deferred_discord import defer_discord_sync
 from app.utils.deferred_cache import defer_clear_league_cache
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
@@ -660,127 +659,45 @@ def apply_approval(user, league_type: str, approver_id: int, notes=None):
         logger.info(f"Queued Discord role sync for approved user {user.id}")
 
 
+def _approval_body():
+    """The approve/deny/undeny body, form OR JSON.
+
+    These three shipped as `request.form` readers because they were only ever
+    hit by the Hub's HTML forms. The mobile client posts JSON to the SAME
+    mutations, so read both — `get_json(silent=True)` because Flask 3 raises
+    400/415 on a non-JSON body before any `or {}` fallback can run.
+    """
+    data = request.get_json(silent=True)
+    if isinstance(data, dict):
+        return data
+    return request.form
+
+
 @admin_panel_bp.route('/users/approvals/approve/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional(max_retries=3)
 def approve_user(user_id: int):
+    """Approve a user for a league / sub pool, or park them on a waitlist lane.
+
+    Body: `league_type` (required) + `notes`. The mutation itself lives in
+    `app/services/member_lifecycle_service.py` and is shared with
+    `POST /api/v1/admin/members/<id>/approve` — one copy, so the phone and the
+    website can never disagree about what approval does.
     """
-    Approve a user for a specific league.
-    Assigns appropriate roles and updates Discord.
-
-    Uses pessimistic locking to prevent concurrent modifications and
-    defers Discord operations until after the transaction commits.
-    """
-    try:
-        current_user_safe = safe_current_user
-
-        # Acquire lock on user to prevent concurrent role modifications
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-
-            # Check if user has pl-waitlist role (can approve directly from waitlist)
-            has_waitlist_role = any(role.name == 'pl-waitlist' for role in user.roles)
-
-            # Allow approving users who are pending, on the waitlist, or DENIED.
-            # Denied used to be rejected here, which made a denial permanent: the
-            # only way to let a mis-denied person in was to edit the DB by hand.
-            # Approving a denied user is an explicit admin override — it reverses
-            # the denial and grants the league in one step (see undeny_user for
-            # the "back to the queue, no decision yet" path).
-            if user.approval_status not in ('pending', 'denied') and not has_waitlist_role:
-                return jsonify({'success': False, 'message': 'User is not pending approval or on waitlist'}), 400
-
-            # Get form data
-            league_type = request.form.get('league_type')
-            notes = request.form.get('notes', '')
-
-            from app.services.integrity_service import approve_league_types
-            valid_league_types = (list(approve_league_types())
-                                  + list(waitlist_league_map().keys()))
-            if not league_type or league_type not in valid_league_types:
-                return jsonify({'success': False, 'message': 'Invalid league type'}), 400
-
-            is_waitlist = league_type in waitlist_league_map()
-
-            # Capture the real prior state for the audit trail (a waitlist→waitlist
-            # move starts from 'waitlist:<lane>', not a bare 'pending').
-            prior_status = (f'waitlist:{user.waitlist_league}'
-                            if has_waitlist_role else (user.approval_status or 'pending'))
-
-            try:
-                apply_approval(user, league_type, approver_id=current_user_safe.id, notes=notes)
-            except ValueError as ve:
-                return jsonify({'success': False, 'message': str(ve)}), 404
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user_safe.id,
-                action=('waitlist_user' if is_waitlist else 'approve_user'),
-                resource_type='user_approval',
-                resource_id=str(user_id),
-                old_value=prior_status,
-                new_value=(f'waitlist:{waitlist_league_map()[league_type]}'
-                           if is_waitlist else f'approved:{league_type}'),
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            if is_waitlist:
-                league_label = waitlist_league_map()[league_type].replace('-', ' ').title()
-                message = f'User {user.username} placed on the {league_label} waitlist'
-                logger.info(f"User {user.id} waitlisted for {league_type} by {current_user_safe.id}")
-            else:
-                message = f'User {user.username} approved for {league_type.title()} league'
-                logger.info(f"User {user.id} approved for {league_type} league by {current_user_safe.id}")
-
-            # Prepare response data before exiting context
-            response_data = {
-                'success': True,
-                'message': message,
-                'user_id': user.id,
-                'league_type': league_type,
-                'waitlisted': is_waitlist,
-                'approved_by': current_user_safe.username,
-                # approved_at is unset for waitlist routing (not an approval).
-                'approved_at': user.approved_at.isoformat() if user.approved_at else None,
-            }
-
-        # Discord sync and cache clears dispatch automatically after the
-        # @transactional decorator commits, via after_this_request hooks.
-        return jsonify(response_data)
-
-    except UserNotFoundError:
-        logger.warning(f"User {user_id} not found during processing")
-        return jsonify({
-            'success': False,
-            'message': 'User not found.'
-        }), 404
-
-    except LockAcquisitionError:
-        # Likely a concurrent submission (e.g. double-click). If the other
-        # request already approved the user, return success idempotently so
-        # the client doesn't see a spurious error for a completed action.
-        db.session.rollback()
-        existing = db.session.query(User).filter_by(id=user_id).first()
-        if existing and existing.approval_status == 'approved':
-            logger.info(f"User {user_id} already approved by concurrent request; returning success")
-            return jsonify({
-                'success': True,
-                'message': f'User {existing.username} approved for {existing.approval_league or "league"}',
-                'user_id': existing.id,
-                'league_type': existing.approval_league,
-                'approved_at': existing.approved_at.isoformat() if existing.approved_at else None,
-                'idempotent': True
-            })
-        logger.warning(f"Lock acquisition failed for user {user_id} during approval")
-        return jsonify({
-            'success': False,
-            'message': 'User is currently being modified by another request. Please try again.'
-        }), 409
-
-    except Exception as e:
-        logger.error(f"Error approving user {user_id}: {str(e)}")
-        return jsonify({'success': False, 'message': 'Error processing approval'}), 500
+    from app.services.member_lifecycle_service import approve_member
+    body = _approval_body()
+    current_user_safe = safe_current_user
+    payload, status = approve_member(
+        user_id=user_id,
+        league_type=body.get('league_type'),
+        actor_id=current_user_safe.id,
+        actor_username=current_user_safe.username,
+        notes=body.get('notes'),
+    )
+    # Discord sync and cache clears dispatch automatically after the
+    # @transactional decorator commits, via after_this_request hooks.
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/users/approvals/deny/<int:user_id>', methods=['POST'])
@@ -788,110 +705,17 @@ def approve_user(user_id: int):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional(max_retries=3)
 def deny_user(user_id: int):
-    """
-    Deny a user's application.
-    Removes Discord roles and updates status.
-
-    Uses pessimistic locking to prevent concurrent modifications and
-    defers Discord operations until after the transaction commits.
-    """
-    try:
-        current_user_safe = safe_current_user
-
-        # Acquire lock on user to prevent concurrent role modifications
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-
-            if user.approval_status != 'pending':
-                return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
-
-            # Get form data
-            notes = request.form.get('notes', '')
-
-            # Remove all roles except basic ones
-            unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
-            if unverified_role and unverified_role in user.roles:
-                user.roles.remove(unverified_role)
-
-            # Update user approval status. Also revoke is_approved so denial
-            # actually blocks access — previously deny left is_approved untouched,
-            # so a denied Discord user (created with is_approved=True) could still
-            # log in and use the app. approval_status and is_approved now move
-            # together: denied => not approved.
-            user.approval_status = 'denied'
-            user.is_approved = False
-            user.approval_league = None
-            user.approved_by = current_user_safe.id
-            user.approved_at = datetime.utcnow()
-            user.approval_notes = notes
-
-            db.session.add(user)
-            db.session.flush()
-
-            # Phase-0 dual-write: reflect the denial in the league_membership spine
-            # (retires the person's current-season rows) so the Member Hub is accurate.
-            if user.player:
-                resync_player_memberships(db.session, user.player.id)
-
-            # Queue Discord role removal for AFTER transaction commits
-            if user.player and user.player.discord_id:
-                defer_discord_removal(user.player.id)
-                logger.info(f"Queued Discord role removal for denied user {user.id}")
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user_safe.id,
-                action='deny_user',
-                resource_type='user_approval',
-                resource_id=str(user_id),
-                old_value='pending',
-                new_value='denied',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            logger.info(f"User {user.id} denied by {current_user_safe.id}")
-
-            # Prepare response data before exiting context
-            response_data = {
-                'success': True,
-                'message': f'User {user.username} application denied',
-                'user_id': user.id,
-                'denied_by': current_user_safe.username,
-                'denied_at': user.approved_at.isoformat()
-            }
-
-        # Discord removal dispatches automatically after the @transactional
-        # decorator commits, via after_this_request.
-        return jsonify(response_data)
-
-    except UserNotFoundError:
-        logger.warning(f"User {user_id} not found during processing")
-        return jsonify({
-            'success': False,
-            'message': 'User not found.'
-        }), 404
-
-    except LockAcquisitionError:
-        db.session.rollback()
-        existing = db.session.query(User).filter_by(id=user_id).first()
-        if existing and existing.approval_status == 'denied':
-            logger.info(f"User {user_id} already denied by concurrent request; returning success")
-            return jsonify({
-                'success': True,
-                'message': f'User {existing.username} application denied',
-                'user_id': existing.id,
-                'denied_at': existing.approved_at.isoformat() if existing.approved_at else None,
-                'idempotent': True
-            })
-        logger.warning(f"Lock acquisition failed for user {user_id} during denial")
-        return jsonify({
-            'success': False,
-            'message': 'User is currently being modified by another request. Please try again.'
-        }), 409
-
-    except Exception as e:
-        logger.error(f"Error denying user {user_id}: {str(e)}")
-        return jsonify({'success': False, 'message': 'Error processing denial'}), 500
+    """Deny a pending application. Shared mutation — see approve_user."""
+    from app.services.member_lifecycle_service import deny_member
+    body = _approval_body()
+    current_user_safe = safe_current_user
+    payload, status = deny_member(
+        user_id=user_id,
+        actor_id=current_user_safe.id,
+        actor_username=current_user_safe.username,
+        notes=body.get('notes'),
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/users/approvals/undeny/<int:user_id>', methods=['POST'])
@@ -899,127 +723,24 @@ def deny_user(user_id: int):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional(max_retries=3)
 def undeny_user(user_id: int):
-    """
-    Reverse a denial: put a denied person back into the pending queue.
+    """Reverse a denial: put a denied person back into the pending queue.
 
     Deny was a one-way door — it set approval_status='denied' + is_approved=False
     and stripped pl-unverified, and every other path then refused to touch the
-    person: approve_user required 'pending', the Hub only rendered the
-    approve/deny controls for 'pending', and login blocks 'denied' outright. A
-    mis-click or a changed mind left no way back short of raw SQL.
-
-    This restores the pre-decision state (pending + pl-unverified) rather than
-    approving anyone — the admin still has to make the real call afterwards. The
-    denial reason is preserved in approval_notes so the history isn't lost.
+    person, so a mis-click left no way back short of raw SQL. This restores the
+    pre-decision state rather than approving anyone. Shared mutation — see
+    approve_user.
     """
-    try:
-        current_user_safe = safe_current_user
-
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-
-            if user.approval_status != 'denied':
-                return jsonify({
-                    'success': False,
-                    'message': f'User is not denied (status: {user.approval_status or "unknown"})'
-                }), 400
-
-            notes = (request.form.get('notes') or '').strip()
-
-            # Restore pl-unverified — deny removed it, and it's what marks someone
-            # as awaiting a decision. Only if they hold no league/sub/waitlist role
-            # (a denied person shouldn't, but never stack unverified on top of one).
-            from app.services import program_registry as _pr_reg
-            _decided = set(_pr_reg.league_role_names()) | set(_pr_reg.sub_role_names()) | {'pl-waitlist'}
-            if not any(r.name in _decided for r in (user.roles or [])):
-                unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
-                if unverified_role and unverified_role not in user.roles:
-                    user.roles.append(unverified_role)
-
-            # Back to the pre-decision state. is_approved stays False: undoing a
-            # denial is NOT an approval, it only returns them to the queue.
-            # The BULK deny path (bulk_user_action 'deny' in comprehensive.py) does
-            # NOT clear approval_league, so someone denied while approved still
-            # carries the league they held. Nulling it is what makes the pending
-            # state coherent, so record it in the notes before dropping it.
-            _prior_league = user.approval_league
-            user.approval_status = 'pending'
-            user.is_approved = False
-            user.approval_league = None
-            user.approved_by = None
-            user.approved_at = None
-
-            # Keep the denial reason as history instead of silently discarding it.
-            _stamp = (f"[Denial reversed by {current_user_safe.username} on "
-                      f"{datetime.utcnow().strftime('%Y-%m-%d')}"
-                      + (f"; was on record for {_prior_league}" if _prior_league else "")
-                      + "]")
-            if notes:
-                _stamp = f"{_stamp} {notes}"
-            user.approval_notes = (f"{user.approval_notes}\n{_stamp}"
-                                   if user.approval_notes else _stamp)
-
-            db.session.add(user)
-            db.session.flush()
-
-            # Phase-0 dual-write: the denial retired their spine rows; resync so the
-            # Hub reflects "pending" rather than the retired-by-denial state.
-            if user.player:
-                resync_player_memberships(db.session, user.player.id)
-
-            # Re-add the unverified Discord role. only_add=True so this never strips
-            # anything the admin may have granted by hand while they were denied.
-            if user.player and user.player.discord_id:
-                defer_discord_sync(user.player.id, only_add=True)
-                logger.info(f"Queued Discord role sync for reinstated user {user.id}")
-
-            AdminAuditLog.log_action(
-                user_id=current_user_safe.id,
-                action='undeny_user',
-                resource_type='user_approval',
-                resource_id=str(user_id),
-                old_value='denied',
-                new_value='pending',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            logger.info(f"User {user.id} denial reversed by {current_user_safe.id}")
-
-            response_data = {
-                'success': True,
-                'message': f'{user.username} is back in the pending queue',
-                'user_id': user.id,
-                'approval_status': 'pending',
-                'reinstated_by': current_user_safe.username
-            }
-
-        return jsonify(response_data)
-
-    except UserNotFoundError:
-        logger.warning(f"User {user_id} not found during processing")
-        return jsonify({'success': False, 'message': 'User not found.'}), 404
-
-    except LockAcquisitionError:
-        db.session.rollback()
-        existing = db.session.query(User).filter_by(id=user_id).first()
-        if existing and existing.approval_status == 'pending':
-            logger.info(f"User {user_id} already reinstated by concurrent request; returning success")
-            return jsonify({
-                'success': True,
-                'message': f'{existing.username} is back in the pending queue',
-                'user_id': existing.id,
-                'approval_status': 'pending',
-                'idempotent': True
-            })
-        logger.warning(f"Lock acquisition failed for user {user_id} during undeny")
-        return jsonify({
-            'success': False,
-            'message': 'User is currently being modified by another request. Please try again.'
-        }), 409
-
-    except Exception as e:
-        logger.error(f"Error reversing denial for user {user_id}: {str(e)}")
-        return jsonify({'success': False, 'message': 'Error reversing denial'}), 500
+    from app.services.member_lifecycle_service import undeny_member
+    body = _approval_body()
+    current_user_safe = safe_current_user
+    payload, status = undeny_member(
+        user_id=user_id,
+        actor_id=current_user_safe.id,
+        actor_username=current_user_safe.username,
+        notes=body.get('notes'),
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/users/approvals/process', methods=['POST'])

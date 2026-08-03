@@ -25,9 +25,7 @@ from app.models.core import User, Role
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import (
-    defer_discord_sync, DeferredDiscordQueue
-)
+from app.utils.deferred_discord import DeferredDiscordQueue
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
 from app.admin_panel.routes.user_management.helpers import (
@@ -123,107 +121,21 @@ def user_waitlist():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional(max_retries=3)
 def remove_from_waitlist(user_id: int):
+    """Remove a user from the waitlist.
+
+    Shared mutation with `DELETE /api/v1/admin/members/<id>/waitlist` — see
+    `app/services/member_lifecycle_service.py`.
     """
-    Remove a user from the waitlist.
-
-    Uses pessimistic locking to prevent concurrent modifications.
-    """
-    try:
-        current_user_safe = safe_current_user
-
-        # Acquire lock on user to prevent concurrent role modifications
-        with lock_user_for_role_update(user_id, session=db.session) as user:
-            # Get the pl-waitlist role
-            waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
-            if not waitlist_role:
-                return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
-
-            # Check if user is on waitlist
-            if waitlist_role not in user.roles:
-                return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
-
-            # Get removal reason from request
-            reason = (request.get_json(silent=True) or {}).get('reason', 'No reason provided')
-
-            # Remove the waitlist role
-            user.roles.remove(waitlist_role)
-
-            # Restore pl-unverified for anyone not already approved, so a removed
-            # waitlister lands back as an ordinary pending user (with the unverified
-            # role the Discord calculator + approvals flow expect) rather than
-            # role-less. Mirrors the bulk process_waitlist_user path. Approved
-            # returning players keep their real roles — don't touch them.
-            if not user.is_approved and user.approval_status != 'approved':
-                unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
-                if unverified_role and unverified_role not in user.roles:
-                    user.roles.append(unverified_role)
-
-            # Clear waitlist joined timestamp + lane since they're no longer on waitlist
-            if hasattr(user, 'waitlist_joined_at'):
-                user.waitlist_joined_at = None
-            if hasattr(user, 'waitlist_league'):
-                user.waitlist_league = None
-
-            # Update user record
-            user.updated_at = datetime.utcnow()
-
-            # Phase-0 dual-write: retire the waitlist row in the league_membership spine.
-            if user.player:
-                try:
-                    from app.services.league_membership_sync import resync_player_memberships
-                    resync_player_memberships(db.session, user.player.id)
-                except Exception as _lm_err:
-                    logger.warning(f"league_membership sync skipped for user {user.id}: {_lm_err}")
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user_safe.id,
-                action='remove_from_waitlist',
-                resource_type='user_waitlist',
-                resource_id=str(user_id),
-                old_value='on_waitlist',
-                new_value=f'removed: {reason}',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            logger.info(f"User {user.id} ({user.username}) removed from waitlist by {current_user_safe.id} ({current_user_safe.username}). Reason: {reason}")
-
-            # Commit the changes
-            db.session.flush()
-
-            # RECONCILE, never blanket-remove. There is no Discord role for the
-            # waitlist (pl-waitlist is Flask-only), so coming off the waitlist should
-            # cost a player nothing on Discord. defer_discord_removal() here was a FULL
-            # offboarding (team_id=None -> pattern_sweep=True): it stripped every team
-            # -Player/-Coach role plus CLASSIC/PREMIER/ECS-FC, the sub roles and
-            # Referee. An approved, rostered player taken off the waitlist lost their
-            # whole Discord footprint. A full reconcile re-derives the expected set from
-            # the shared calculator instead: approved players keep everything, and a
-            # still-unapproved user (who just got pl-unverified back above) converges to
-            # the UNVERIFIED role.
-            if user.player and user.player.discord_id:
-                defer_discord_sync(user.player.id, only_add=False)
-                logger.info(f"Queued Discord role reconcile for user {user.id}")
-
-            username = user.username
-
-        return jsonify({
-            'success': True,
-            'message': f'User {username} removed from waitlist successfully',
-            'user_id': user_id
-        })
-
-    except LockAcquisitionError:
-        logger.warning(f"Lock acquisition failed for user {user_id} during waitlist removal")
-        return jsonify({
-            'success': False,
-            'message': 'User is currently being modified by another request. Please try again.'
-        }), 409
-
-    except Exception as e:
-        logger.error(f"Error removing user {user_id} from waitlist: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Failed to remove user from waitlist'}), 500
+    from app.services.member_lifecycle_service import remove_member_from_waitlist
+    current_user_safe = safe_current_user
+    reason = (request.get_json(silent=True) or {}).get('reason', 'No reason provided')
+    payload, status = remove_member_from_waitlist(
+        user_id=user_id,
+        actor_id=current_user_safe.id,
+        actor_username=current_user_safe.username,
+        reason=reason,
+    )
+    return jsonify(payload), status
 
 
 @admin_panel_bp.route('/users/waitlist/contact/<int:user_id>', methods=['POST'])
@@ -289,63 +201,21 @@ def contact_waitlist_user(user_id: int):
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def update_waitlist_priority(user_id: int):
+    """Update a waitlisted user's manual priority.
+
+    Body: {"priority": "high" | "medium" | "normal" | "auto"} — a vocabulary,
+    not a rank number; 'auto' stores NULL and lets join time order the queue.
+    Shared mutation with `POST /api/v1/admin/members/<id>/waitlist/priority`.
     """
-    Update the priority of a user on the waitlist.
-
-    Expected JSON body:
-    {
-        "priority": "high" | "medium" | "normal" | "auto"
-    }
-    """
-    try:
-        current_user_safe = safe_current_user
-
-        # Get the user
-        user = db.session.query(User).filter_by(id=user_id).first()
-
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
-
-        # Get priority from request
-        priority = (request.get_json(silent=True) or {}).get('priority', 'auto')
-
-        # Validate priority value
-        valid_priorities = ['high', 'medium', 'normal', 'auto']
-        if priority not in valid_priorities:
-            return jsonify({
-                'success': False,
-                'message': f'Invalid priority. Must be one of: {", ".join(valid_priorities)}'
-            }), 400
-
-        # Set priority (None means auto-calculated)
-        old_priority = user.waitlist_priority
-        user.waitlist_priority = None if priority == 'auto' else priority
-        user.updated_at = datetime.utcnow()
-
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user_safe.id,
-            action='update_waitlist_priority',
-            resource_type='user_waitlist',
-            resource_id=str(user_id),
-            old_value=old_priority or 'auto',
-            new_value=priority,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        logger.info(f"Waitlist priority updated for user {user.id} ({user.username}) from {old_priority or 'auto'} to {priority} by {current_user_safe.id} ({current_user_safe.username})")
-
-        return jsonify({
-            'success': True,
-            'message': f'Priority updated to {priority}',
-            'user_id': user.id,
-            'priority': priority
-        })
-
-    except Exception as e:
-        logger.error(f"Error updating waitlist priority for user {user_id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Failed to update priority'}), 500
+    from app.services.member_lifecycle_service import set_waitlist_priority
+    current_user_safe = safe_current_user
+    priority = (request.get_json(silent=True) or {}).get('priority', 'auto')
+    payload, status = set_waitlist_priority(
+        user_id=user_id, priority=priority,
+        actor_id=current_user_safe.id,
+        actor_username=current_user_safe.username,
+    )
+    return jsonify(payload), status
 
 
 def _send_waitlist_contact(user, contact_method: str, message: str, subject: str) -> dict:
