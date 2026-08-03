@@ -186,7 +186,7 @@
                 Tell us about yourself
             </h3>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <!-- Jersey Size -->
                 <div>
                     <label for="waitlist-jersey" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
@@ -220,7 +220,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <!-- Favorite Position -->
                 <div>
                     <label for="waitlist-position" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
@@ -488,9 +488,15 @@
             validateBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
 
             try {
-                const response = await fetch('/api/v1/quick-profiles/validate-code', {
+                // auth.validate_claim_code_web, NOT the mobile API: /api/v1/* requires an
+                // X-API-Key the browser cannot have, so the old call 403'd and every
+                // valid code was reported "Invalid code".
+                const response = await fetch('{{ url_for('auth.validate_claim_code_web') }}', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    },
                     body: JSON.stringify({ claim_code: code })
                 });
 

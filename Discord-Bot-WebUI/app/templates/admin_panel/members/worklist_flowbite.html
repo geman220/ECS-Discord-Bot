@@ -599,7 +599,7 @@
         <div><label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Phone</label><input id="qpcPhone" type="tel" class="w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></div>
         <div><label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Jersey #</label><input id="qpcJerseyNum" type="number" min="1" max="99" class="w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></div>
         <div><label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Jersey size</label>
-          <select id="qpcJerseySize" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:ring-ecs-green focus:border-ecs-green"><option value="">—</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></div>
+          <select id="qpcJerseySize" class="bg-white text-gray-900 w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:ring-ecs-green focus:border-ecs-green"><option value="">—</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></div>
         <div class="col-span-2"><label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Pronouns</label><input id="qpcPronouns" type="text" class="w-full h-10 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></div>
       </div>
       <div><label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Notes</label><textarea id="qpcNotes" rows="2" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 focus:ring-ecs-green focus:border-ecs-green"></textarea></div>
@@ -782,7 +782,7 @@
             });
             if (wl) preOpts += '<optgroup label="Waitlist">' + wl + '</optgroup>';
           }
-          html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">' + preOpts + '</select>';
+          html += '<div class="flex items-center gap-2 flex-wrap"><select id="qpPreLeague" class="bg-white text-gray-900 text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1.5 pe-8">' + preOpts + '</select>';
           html += '<button data-action="qp-preapprove-set" data-url="' + esc(preUrl) + '" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90"><i class="ti ti-user-check"></i>Pre-approve</button></div>';
         }
         html += '</div>';
@@ -813,7 +813,7 @@
         + '<div><label class="' + QP_LABEL + '">Email</label><input id="qpeEmail" type="email" class="' + QP_INPUT + '"></div>'
         + '<div><label class="' + QP_LABEL + '">Phone</label><input id="qpePhone" type="tel" class="' + QP_INPUT + '"></div>'
         + '<div><label class="' + QP_LABEL + '">Jersey #</label><input id="qpeJerseyNum" type="number" min="1" max="99" class="' + QP_INPUT + '"></div>'
-        + '<div><label class="' + QP_LABEL + '">Jersey size</label><select id="qpeJerseySize" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green"><option value="">—</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></div>'
+        + '<div><label class="' + QP_LABEL + '">Jersey size</label><select id="qpeJerseySize" class="bg-white text-gray-900 w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green"><option value="">—</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></div>'
         + '<div class="sm:col-span-2"><label class="' + QP_LABEL + '">Pronouns</label><input id="qpePronouns" type="text" maxlength="50" class="' + QP_INPUT + '"></div>'
         + '</div>'
         + '<div><label class="' + QP_LABEL + '">Intake note</label><textarea id="qpeNotes" rows="3" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 text-sm focus:ring-ecs-green focus:border-ecs-green"></textarea></div>'

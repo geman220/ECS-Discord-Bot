@@ -509,7 +509,7 @@
                 </a>
             </div>
             <div>
-                <select data-on-change="change-per-page" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select data-on-change="change-per-page" class="bg-white text-gray-900 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
                     <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
                     <option value="50" {{ 'selected' if per_page == 50 }}>50 per page</option>
@@ -529,13 +529,13 @@
                        placeholder="Search by name, Discord ID, or username..."
                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
             </div>
-            <select data-on-change="player-team-filter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <select data-on-change="player-team-filter" class="bg-white text-gray-900 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="">All Teams</option>
                 {% for team in current_teams %}
                 <option value="{{ team.id }}" {{ 'selected' if team_filter == team.id }}>{{ team.name }}</option>
                 {% endfor %}
             </select>
-            <select data-on-change="player-sort-change" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <select data-on-change="player-sort-change" class="bg-white text-gray-900 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="last_checked:asc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'asc' }}>Last Checked (oldest first)</option>
                 <option value="last_checked:desc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'desc' }}>Last Checked (newest first)</option>
                 <option value="name:asc" {{ 'selected' if sort_by == 'name' and sort_dir == 'asc' }}>Name (A-Z)</option>

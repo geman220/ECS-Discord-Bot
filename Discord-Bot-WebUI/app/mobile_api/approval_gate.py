@@ -83,6 +83,17 @@ _PENDING_ALLOWED_PATHS = (
     '/api/v1/notifications',
     # --- let a stuck user shout for help ---
     '/api/v1/feedback',
+    # --- the hold screen's own data: "where am I in the queue?" ---
+    #     my-status / my-waitlist are read-only projections of the caller's own
+    #     record, so they leak nothing a pending user can't already see on
+    #     /user_profile — and gating them would blank the very screen a pending
+    #     user is looking at.
+    '/api/v1/members',
+    # --- telemetry: the app posts these from EVERY screen, including the hold
+    #     screen. Gating them produced a steady stream of 403s that the client
+    #     logs as errors (see user 1843/1844 in errors.log) and buys nothing:
+    #     the payload is the caller's own usage data. ---
+    '/api/v1/telemetry',
     # --- unauthenticated infra endpoints (force-update checks, health) ---
     '/api/v1/app_config',
     '/api/v1/version',

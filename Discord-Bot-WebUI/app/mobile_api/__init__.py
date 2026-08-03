@@ -100,6 +100,7 @@ def register_mobile_api_routes():
         pub_league,
         nad_internal,
         classic_ratings,
+        members,
     )
 
 

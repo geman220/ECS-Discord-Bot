@@ -451,7 +451,7 @@
 <div>
     <label for="matchTeamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
     <select id="matchTeamA" name="team_a" required
-            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <option value="">Select Team A</option>
     </select>
 </div>
@@ -459,7 +459,7 @@
 <div>
     <label for="matchTeamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
     <select id="matchTeamB" name="team_b" required
-            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <option value="">Select Team B</option>
     </select>
 </div>
@@ -467,7 +467,7 @@
 <div>
     <label for="matchLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
     <select id="matchLocation" name="location" required
-            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <option value="North">North</option>
         <option value="South">South</option>
     </select>
@@ -866,17 +866,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     <input type="time" name="time_slots[${timeSlotCount}][time]" required
                            class="text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                     <select name="time_slots[${timeSlotCount}][location]" required
-                            class="text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            class="bg-white text-gray-900 text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <option value="North">North</option>
                         <option value="South">South</option>
                     </select>
                     <select name="time_slots[${timeSlotCount}][team_a]" required
-                            class="text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            class="bg-white text-gray-900 text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <option value="">Team A</option>
                         ${teamOptions}
                     </select>
                     <select name="time_slots[${timeSlotCount}][team_b]" required
-                            class="text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                            class="bg-white text-gray-900 text-sm rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
                         <option value="">Team B</option>
                         ${teamOptions}
                     </select>

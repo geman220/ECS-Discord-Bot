@@ -572,7 +572,7 @@
         <form method="GET" class="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select name="status" class="bg-white text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">All Statuses</option>
                     <option value="completed" {{ 'selected' if request.args.get('status') == 'completed' }}>Completed</option>
                     <option value="failed" {{ 'selected' if request.args.get('status') == 'failed' }}>Failed</option>
@@ -581,7 +581,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Task Type</label>
-                <select name="task_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select name="task_type" class="bg-white text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">All Types</option>
                     <option value="notification" {{ 'selected' if request.args.get('task_type') == 'notification' }}>Notification</option>
                     <option value="match_update" {{ 'selected' if request.args.get('task_type') == 'match_update' }}>Match Update</option>

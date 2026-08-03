@@ -292,7 +292,12 @@
         </span>
         {% elif player.discord_id and player.discord_in_server == False %}
         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 self-start sm:self-auto">
-          <i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i> Left server
+          {# NOT "Left server". in_server=False is a 404 on GET guild member —
+             "not a member right now". It carries no join history, so it cannot
+             tell "joined then left" from "never joined". Discord OAuth login
+             works without guild membership, so never-joined is the common case
+             for a new signup. State only what we know. #}
+          <i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i> Not in server
         </span>
         {% elif player.discord_id %}
         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-600/40 dark:text-gray-300 self-start sm:self-auto"
@@ -635,7 +640,7 @@
                             </span>
                             {% elif player.discord_in_server == False %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
-                                <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span>Left Server
+                                <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span>Not in Server
                             </span>
                             {% else %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
@@ -846,7 +851,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-4">
                             <div class="sm:col-span-1">
                                 <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Match</label>
-                                <select name="match_id" required class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                                <select name="match_id" required class="bg-white text-gray-900 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
                                     <option value="">Select match...</option>
                                     {% for match in participated_matches %}
                                     <option value="{{ match.id }}">
@@ -1649,7 +1654,7 @@
                                     </span>
                                     {% elif player.discord_in_server == False %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
-                                        <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span>Left Server
+                                        <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span>Not in Server
                                     </span>
                                     {% else %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
@@ -1865,7 +1870,7 @@
                                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                                     <div class="md:col-span-1">
                                         <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Match</label>
-                                        <select name="match_id" required class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                                        <select name="match_id" required class="bg-white text-gray-900 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
                                             <option value="">Select match...</option>
                                             {% for match in participated_matches %}
                                             <option value="{{ match.id }}">

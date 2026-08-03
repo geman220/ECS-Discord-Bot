@@ -84,7 +84,7 @@
           </span>
           <select data-season-phase-select
                   data-phase-url="{{ url_for('admin_panel.set_season_phase_route', season_id=live.id) }}"
-                  class="text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1 pe-8"
+                  class="bg-white text-gray-900 text-xs rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 py-1 pe-8"
                   aria-label="Set phase for {{ live.name }}">
             {% for p in ['preseason', 'in_season', 'break', 'offseason'] %}
             <option value="{{ p }}" {% if _phase == p %}selected{% endif %}>{{ p.replace('_', ' ') }}</option>

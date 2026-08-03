@@ -470,7 +470,7 @@
 </div>
 <div>
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roles</label>
-    <select multiple id="editRoles" name="roles" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green h-24">
+    <select multiple id="editRoles" name="roles" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green h-24">
         {% for role in roles %}
         <option value="{{ role.id }}">{{ role.name }}</option>
         {% endfor %}
@@ -480,7 +480,7 @@
 <h4 class="font-medium text-gray-900 dark:text-white">Player Profile</h4>
 <div>
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
-    <select id="editLeague" name="league_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    <select id="editLeague" name="league_id" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <option value="0">Select League</option>
         {% for league in leagues %}{% if league.season.is_current %}
         <option value="{{ league.id }}">{{ league.name }}</option>
@@ -489,7 +489,7 @@
 </div>
 <div>
     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
-    <select id="editTeam" name="team_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    <select id="editTeam" name="team_id" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         <option value="0">Select Team</option>
         {% for league in leagues %}{% if league.season.is_current %}{% for team in league.teams %}
         <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>

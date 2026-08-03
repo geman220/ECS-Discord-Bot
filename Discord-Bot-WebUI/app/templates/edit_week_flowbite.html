@@ -264,7 +264,7 @@
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Team A</label>
                                 <select name="teamA_week{{ week_number }}_match{{ match }}"
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                        class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                                     {% for team in league.teams %}
                                     <option value="{{ team.id }}"
                                             {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['team_a'] == team.id %}selected{% endif %}>
@@ -276,7 +276,7 @@
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Team B</label>
                                 <select name="teamB_week{{ week_number }}_match{{ match }}"
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                        class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                                     {% for team in league.teams %}
                                     <option value="{{ team.id }}"
                                             {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['team_b'] == team.id %}selected{% endif %}>
@@ -296,7 +296,7 @@
                             <div>
                                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Location</label>
                                 <select name="location_week{{ week_number }}_match{{ match }}"
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                        class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                                     <option value="North" {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['location'] == 'North' %}selected{% endif %}>North</option>
                                     <option value="South" {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['location'] == 'South' %}selected{% endif %}>South</option>
                                 </select>

@@ -377,7 +377,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Type</label>
-                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="weekType">
+                <select class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="weekType">
                     <option value="REGULAR">Regular Week</option>
                     <option value="PLAYOFFS">Playoffs</option>
                     <option value="CHAMPIONSHIP">Championship</option>
@@ -429,7 +429,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
-                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editMatchField">
+                <select class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editMatchField">
                     <option value="North">North</option>
                     <option value="South">South</option>
                 </select>
@@ -438,7 +438,7 @@
         <div class="grid grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
-                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editHomeTeam">
+                <select class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editHomeTeam">
                     {% for team in teams_full %}
                     <option value="{{ team.id }}">{{ team.name }}</option>
                     {% endfor %}
@@ -446,7 +446,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
-                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editAwayTeam">
+                <select class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editAwayTeam">
                     {% for team in teams_full %}
                     <option value="{{ team.id }}">{{ team.name }}</option>
                     {% endfor %}
@@ -569,28 +569,28 @@ function addMatchSlot() {
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Time</label>
-                <select class="match-time w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select class="bg-white text-gray-900 match-time w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="08:00">8:00 AM</option>
                     <option value="09:10">9:10 AM</option>
                 </select>
             </div>
             <div>
                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Field</label>
-                <select class="match-field w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select class="bg-white text-gray-900 match-field w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="North">North</option>
                     <option value="South">South</option>
                 </select>
             </div>
             <div>
                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Home Team</label>
-                <select class="home-team w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select class="bg-white text-gray-900 home-team w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="">Select Team...</option>
                     ${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('')}
                 </select>
             </div>
             <div>
                 <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Away Team</label>
-                <select class="away-team w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select class="bg-white text-gray-900 away-team w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="">Select Team...</option>
                     ${teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('')}
                 </select>

@@ -485,7 +485,7 @@
                     <div>
                         <label for="profilePronouns" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pronouns</label>
                         <select id="profilePronouns"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                                class="bg-white text-gray-900 block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Prefer not to say</option>
                             {% for value, label in pronoun_choices %}
                             <option value="{{ value }}" {% if profile_prefill.pronouns == value %}selected{% endif %}>{{ label }}</option>
@@ -496,7 +496,7 @@
                         <div>
                             <label for="profileJerseySize" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
                             <select id="profileJerseySize"
-                                    class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                                    class="bg-white text-gray-900 block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select</option>
                                 {% for size in jersey_size_choices %}
                                 <option value="{{ size }}" {% if profile_prefill.jersey_size == size %}selected{% endif %}>{{ size }}</option>
@@ -532,7 +532,7 @@
                     <div>
                         <label for="profileFavoritePosition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
                         <select id="profileFavoritePosition"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                                class="bg-white text-gray-900 block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">No preference</option>
                             {% for value, label in soccer_positions %}
                             <option value="{{ value }}" {% if profile_prefill.favorite_position == value %}selected{% endif %}>{{ label }}</option>
@@ -566,7 +566,7 @@
                     <div>
                         <label for="profileFrequencyGoal" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Playing in Goal</label>
                         <select id="profileFrequencyGoal"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                                class="bg-white text-gray-900 block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Select an option</option>
                             {% for value, label in goal_frequency_choices %}
                             <option value="{{ value }}" {% if profile_prefill.frequency_play_goal == value %}selected{% endif %}>{{ label }}</option>
@@ -594,7 +594,7 @@
                     <div>
                         <label for="profileAvailability" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weeks You Expect to Be Available</label>
                         <select id="profileAvailability"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                                class="bg-white text-gray-900 block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Select</option>
                             {% for value, label in availability_choices %}
                             <option value="{{ value }}" {% if profile_prefill.expected_weeks_available == value %}selected{% endif %}>{{ label }}</option>
@@ -604,7 +604,7 @@
                     <div>
                         <label for="profileWillingToReferee" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Up for Refereeing?</label>
                         <select id="profileWillingToReferee"
-                                class="block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                                class="bg-white text-gray-900 block w-full text-base min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">Select</option>
                             {% for value, label in willing_to_referee_choices %}
                             <option value="{{ value }}" {% if profile_prefill.willing_to_referee == value %}selected{% endif %}>{{ label }}</option>

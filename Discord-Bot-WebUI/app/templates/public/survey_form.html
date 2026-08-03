@@ -73,7 +73,7 @@
       {# ---- dropdown ---- #}
       {% elif question.question_type == 'dropdown' %}
       <select name="{{ qid }}" {{ 'required' if question.is_required }}
-              class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+              class="bg-white text-gray-900 mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
         <option value="">— Select —</option>
         {% for opt in question.options %}
         <option value="{{ opt.id }}">{{ opt.label }}</option>
@@ -164,7 +164,7 @@
         {% for opt in question.options %}
         <div class="flex items-center gap-3 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700">
           <select name="{{ qid }}_rank_{{ opt.id }}"
-                  class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                  class="bg-white text-gray-900 w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
             <option value="">—</option>
             {% for r in range(1, n_opts + 1) %}<option value="{{ r }}">{{ r }}</option>{% endfor %}
           </select>

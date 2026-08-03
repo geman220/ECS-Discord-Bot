@@ -267,7 +267,7 @@
     </div>
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position Mode</label>
-        <select id="edit-mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+        <select id="edit-mode" class="text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
             <option value="cascading">Cascading (shift others down)</option>
             <option value="smart">Smart (automatic)</option>
             <option value="absolute">Absolute (no shift)</option>
@@ -321,7 +321,7 @@
         <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season</label>
-                <select name="season" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
+                <select name="season" class="text-gray-900 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
                     <option value="">All Seasons</option>
                     {% for season in seasons %}
                     <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
@@ -332,7 +332,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
-                <select name="league" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
+                <select name="league" class="text-gray-900 w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500" onchange="this.form.submit()">
                     <option value="">All Leagues</option>
                     {% for league in leagues %}
                     <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
@@ -433,7 +433,7 @@
     </div>
     <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position Mode</label>
-        <select id="edit-mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+        <select id="edit-mode" class="text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
             <option value="cascading">Cascading (shift others down)</option>
             <option value="smart">Smart (automatic)</option>
             <option value="absolute">Absolute (no shift)</option>

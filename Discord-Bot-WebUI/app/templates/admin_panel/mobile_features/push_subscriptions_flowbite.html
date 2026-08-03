@@ -383,7 +383,7 @@
         <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select name="status" class="bg-white text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">All Statuses</option>
                     <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
                     <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
@@ -391,7 +391,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platform</label>
-                <select name="platform" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select name="platform" class="bg-white text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">All Platforms</option>
                     <option value="iOS" {{ 'selected' if request.args.get('platform') == 'iOS' }}>iOS</option>
                     <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
@@ -399,7 +399,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</label>
-                <select name="date_range" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select name="date_range" class="bg-white text-gray-900 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">All Time</option>
                     <option value="today" {{ 'selected' if request.args.get('date_range') == 'today' }}>Today</option>
                     <option value="week" {{ 'selected' if request.args.get('date_range') == 'week' }}>This Week</option>

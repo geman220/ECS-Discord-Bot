@@ -454,7 +454,13 @@
                                         <i class="ti ti-alert-triangle text-2xl shrink-0"></i>
                                         <div>
                                             <h5 class="font-semibold text-lg">Join Our Discord Server</h5>
-                                            <p class="text-sm">Your Discord is connected, but you haven't joined the ECS server yet.</p>
+                                            {# "you haven't joined ... yet" claimed history we don't have: in_server
+                                               is a live membership check with no join record behind it. This branch
+                                               ALSO catches in_server = NULL ("the bot was unreachable, we never
+                                               checked"), so during a bot outage it was telling members who are in
+                                               the server that they hadn't joined. "We don't see you" is true in
+                                               both cases; the Join CTA below is harmless either way. #}
+                                            <p class="text-sm">Your Discord is connected, but we don't see you in the ECS server.</p>
                                         </div>
                                     </div>
                                     <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Join to get match notifications, chat with teammates, and access team channels.</p>

@@ -308,7 +308,7 @@
                             Reset
                         </button>
                     </div>
-                    <select id="periodSelector" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                    <select id="periodSelector" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                         <option value="first_half">First Half</option>
                         <option value="second_half">Second Half</option>
                         <option value="halftime">Halftime</option>
@@ -388,7 +388,7 @@
                     <form id="addEventForm" class="space-y-4">
                         <div>
                             <label for="eventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
-                            <select id="eventType" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <select id="eventType" required class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select Event Type</option>
                                 <option value="GOAL">Goal</option>
                                 <option value="YELLOW_CARD">Yellow Card</option>
@@ -401,7 +401,7 @@
 
                         <div>
                             <label for="eventTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
-                            <select id="eventTeam" required class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <select id="eventTeam" required class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select Team</option>
                                 {% if match %}
                                 <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
@@ -412,14 +412,14 @@
 
                         <div id="playerSelectGroup" class="hidden">
                             <label for="eventPlayer" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player</label>
-                            <select id="eventPlayer" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <select id="eventPlayer" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select Player</option>
                             </select>
                         </div>
 
                         <div id="substitutionFields" class="hidden">
                             <label for="playerOut" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Player Out</label>
-                            <select id="playerOut" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                            <select id="playerOut" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select Player Out</option>
                             </select>
                         </div>

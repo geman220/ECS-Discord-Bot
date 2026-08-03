@@ -12,7 +12,7 @@ from urllib.parse import urlparse, urljoin
 
 from flask import (
     render_template, redirect, url_for, request,
-    current_app, session, g
+    current_app, session, g, jsonify
 )
 from flask_login import login_user
 from flask_wtf.csrf import generate_csrf
@@ -558,6 +558,62 @@ def claim_quick_profile():
 
     # Redirect to Discord OAuth registration with claim_code preserved in session
     return redirect(url_for('auth.discord_register'))
+
+
+@auth.route('/validate_claim_code', methods=['POST'])
+@limiter.limit("20 per hour")
+def validate_claim_code_web():
+    """Claim-code preview for the WEB registration/waitlist pages.
+
+    ⚠️ Exists because the browser CANNOT call the mobile API. The registration
+    templates used to fetch('/api/v1/quick-profiles/validate-code') directly, but
+    app/mobile_api/middleware.py:validate_api_access requires an X-API-Key header
+    in production ('portal.ecsfc.com' was deliberately removed from the dev-host
+    allowlist, since request.host comes from client-supplied X-Forwarded-Host).
+    A browser has no key, so every call 403'd with {'error': 'Access Denied'} —
+    and the page's `data.message || 'Invalid code'` fallback then told people
+    holding a PERFECTLY VALID code that it was invalid. Silent, and it blocked
+    the whole quick-profile claim path on web.
+
+    Mirrors the mobile endpoint's contract exactly (always HTTP 200, `valid`
+    plus `reason`/`message`) so the two front-ends stay interchangeable.
+    Rate-limited because this is unauthenticated and guesses a 6-char code.
+    """
+    from app.models import QuickProfile, QuickProfileStatus
+    from app.core.session_manager import managed_session
+
+    data = request.get_json(silent=True) or {}
+    claim_code = (data.get('claim_code') or '').strip().upper()
+
+    if not claim_code or len(claim_code) != 6 or not claim_code.isalnum():
+        return jsonify({'valid': False, 'reason': 'invalid_format',
+                        'message': 'Claim code must be 6 alphanumeric characters'}), 200
+
+    with managed_session() as db_session:
+        # Managed session so is_valid()'s EXPIRED-status write persists here.
+        profile = QuickProfile.find_by_code(claim_code, session=db_session)
+
+        if not profile:
+            return jsonify({'valid': False, 'reason': 'not_found',
+                            'message': 'Invalid claim code'}), 200
+        if profile.status == QuickProfileStatus.CLAIMED.value:
+            return jsonify({'valid': False, 'reason': 'already_claimed',
+                            'message': 'This code has already been used'}), 200
+        if profile.status == QuickProfileStatus.LINKED.value:
+            return jsonify({'valid': False, 'reason': 'already_claimed',
+                            'message': 'This code has already been linked to a player'}), 200
+        if (profile.status == QuickProfileStatus.EXPIRED.value
+                or datetime.utcnow() > profile.expires_at):
+            return jsonify({'valid': False, 'reason': 'expired',
+                            'message': f'This code expired on {profile.expires_at.strftime("%b %d, %Y")}'}), 200
+
+        return jsonify({
+            'valid': True,
+            'player_name': profile.player_name,
+            'has_photo': bool(profile.profile_picture_url),
+            'has_notes': bool(profile.notes),
+            'expires_at': profile.expires_at.isoformat(),
+        }), 200
 
 
 @auth.route('/verify_purchase', methods=['GET'])

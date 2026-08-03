@@ -158,7 +158,7 @@
           <div class="flex flex-col sm:flex-row lg:flex-col gap-2 lg:w-52 shrink-0">
             {% if req.candidate_player_ids and not req.candidate_player_id %}
             {# Ambiguous: no safe default, so the admin picks which player #}
-            <select class="w-full min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green"
+            <select class="bg-white text-gray-900 w-full min-h-[44px] rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green"
                     id="relink-player-{{ req.id }}" aria-label="Choose which account to relink">
               <option value="">Choose account…</option>
               {% for pid in req.candidate_player_id_list %}

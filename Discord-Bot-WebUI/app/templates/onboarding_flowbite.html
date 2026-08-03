@@ -425,12 +425,23 @@
                             <i class="ti ti-arrow-left" aria-hidden="true"></i><span class="hidden sm:inline">Back</span>
                         </button>
                         <span class="flex-1 text-center text-xs text-gray-500 dark:text-gray-400" data-wizard-counter-inline>Step 1 of 6</span>
+                        {# `flex`, NOT `inline-flex`, on both buttons — render()
+                           shows/hides them with classList.toggle('hidden', ...).
+                           Tailwind emits .hidden BEFORE .inline-flex but AFTER
+                           .flex, and both are single-class utilities of equal
+                           specificity, so `hidden inline-flex` loses: the button
+                           stays visible no matter what the JS does. That left
+                           Finish showing from step 1 (submitting a half-filled
+                           form, which the server then rejects and the user reads
+                           as "it didn't save") and Next still showing on the last
+                           step — four controls crammed into this bar on a phone.
+                           `hidden flex` resolves the other way and actually hides. #}
                         <button type="button" data-wizard-next
-                                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <span>Next</span><i class="ti ti-arrow-right" aria-hidden="true"></i>
                         </button>
                         <button type="submit" data-wizard-submit
-                                class="hidden inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                class="hidden flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                             <i class="ti ti-check" aria-hidden="true"></i>Finish
                         </button>
                     </div>

@@ -340,7 +340,7 @@
         <div>
             <label for="filterStatus" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
             <select id="filterStatus"
-                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                    class="bg-white text-gray-900 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <option value="">All Statuses</option>
                 <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
                 <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
@@ -350,7 +350,7 @@
         <div>
             <label for="filterPriority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
             <select id="filterPriority"
-                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
+                    class="bg-white text-gray-900 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-xs focus:border-ecs-green focus:ring-ecs-green">
                 <option value="">All Priorities</option>
                 <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
                 <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>

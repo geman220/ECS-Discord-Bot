@@ -381,7 +381,7 @@
                             <select id="jersey_size"
                                     name="jersey_size"
                                     required
-                                    class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    class="bg-white text-gray-900 w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select a size...</option>
                                 {% for value, label in form.jersey_size.choices %}
                                 <option value="{{ value }}" {% if form.jersey_size.data == value or player.jersey_size == value %}selected{% endif %}>{{ label }}</option>
@@ -405,7 +405,7 @@
                             <select id="league_id"
                                     name="league_id"
                                     required
-                                    class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    class="bg-white text-gray-900 w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="">Select a league...</option>
                                 {% for value, label in form.league_id.choices %}
                                 <option value="{{ value }}" {% if form.league_id.data == value or (player.league_id and player.league_id|string == value|string) %}selected{% endif %}>{{ label }}</option>

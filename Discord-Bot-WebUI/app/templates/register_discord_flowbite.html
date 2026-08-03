@@ -214,9 +214,15 @@ document.addEventListener('DOMContentLoaded', function() {
             validateBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
 
             try {
-                const response = await fetch('/api/v1/quick-profiles/validate-code', {
+                // auth.validate_claim_code_web, NOT the mobile API: /api/v1/* requires an
+                // X-API-Key the browser cannot have, so the old call 403'd and every
+                // valid code was reported "Invalid code".
+                const response = await fetch('{{ url_for('auth.validate_claim_code_web') }}', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                    },
                     body: JSON.stringify({ claim_code: code })
                 });
 

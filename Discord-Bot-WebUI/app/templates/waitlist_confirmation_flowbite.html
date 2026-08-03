@@ -168,11 +168,19 @@
             <i class="ti ti-home" aria-hidden="true"></i>
             Go to Dashboard
         </a>
+        {# safe_current_user.player is None for anyone who joined the waitlist
+           WITHOUT a player row — which is the normal case here, since the
+           waitlist is the pre-player state. Unguarded, `player.id` raised
+           UndefinedError inside url_for and 500'd this page: the user completed
+           registration and then saw a crash instead of their confirmation, with
+           no way to tell that their signup had in fact been saved. #}
+        {% if safe_current_user.is_authenticated and safe_current_user.player %}
         <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
            class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-hidden focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
             <i class="ti ti-user" aria-hidden="true"></i>
             View Profile
         </a>
+        {% endif %}
     </div>
 </div>
 {% else %}
@@ -294,7 +302,7 @@
             <!-- Help Section -->
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 mb-6">
                 <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Need Help?</h3>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full bg-[#5865F2]/20 flex items-center justify-center">
                             <i class="ti ti-brand-discord text-[#5865F2]"></i>
@@ -317,11 +325,16 @@
                     <i class="ti ti-home"></i>
                     Go to Dashboard
                 </a>
+                {# Same null-player guard as the toolbar above — this is the
+                   branch an anonymous/no-player visitor actually lands on, so
+                   it was the more likely of the two to 500. #}
+                {% if safe_current_user.is_authenticated and safe_current_user.player %}
                 <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
                    class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <i class="ti ti-user"></i>
                     View Profile
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
