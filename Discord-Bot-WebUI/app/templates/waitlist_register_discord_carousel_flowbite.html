@@ -495,7 +495,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                        'X-CSRFToken': (document.querySelector('input[name="csrf_token"]')?.value || '')
                     },
                     body: JSON.stringify({ claim_code: code })
                 });
