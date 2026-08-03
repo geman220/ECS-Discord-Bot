@@ -27,6 +27,34 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+/**
+ * Declare compatibility with WooCommerce's opt-in features.
+ *
+ * Without it, WooCommerce lists this plugin under "incompatible plugins" and
+ * REFUSES TO LET YOU TURN ON High-Performance Order Storage. The plugin is not
+ * actually incompatible -- it goes through the CRUD API (wc_get_order(),
+ * $order->get_meta(), $order->update_meta_data(), $order->save()) and never
+ * touches get_post_meta() or the wp_posts / wp_postmeta tables directly.
+ *
+ * ⚠️ This is a PROMISE, not a check. Adding a get_post_meta() or a raw $wpdb
+ * order query below would turn a loud "incompatible" notice into wallet passes
+ * that silently stop being generated once HPOS is on.
+ *
+ * Must run on before_woocommerce_init -- declaring later is ignored.
+ */
+add_action('before_woocommerce_init', function () {
+    if (class_exists(\Automattic\WooCommerce\Utilities\FeaturesUtil::class)) {
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'custom_order_tables', __FILE__, true
+        );
+        // Hooks woocommerce_thankyou, which the Order Confirmation block still
+        // fires for backwards compatibility, so blocks checkout is safe.
+        \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+            'cart_checkout_blocks', __FILE__, true
+        );
+    }
+});
+
 // Check if WooCommerce is active
 if (!in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
     add_action('admin_notices', function() {

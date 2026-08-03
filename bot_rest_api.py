@@ -1,6 +1,7 @@
 # discord bot_rest_api.py - Refactored main application file
 
 import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from shared_states import get_bot_instance, set_bot_instance, bot_ready, bot_state
 import logging
@@ -14,8 +15,23 @@ logger = logging.getLogger(__name__)
 
 TEAM_ID = os.environ.get('ECS_TEAM_ID', '9726')
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Open/close the shared aiohttp session around the server's lifetime.
+
+    The bot starts uvicorn with lifespan="off", so this may never run; the
+    session is created lazily by get_session() in that case.
+    """
+    await startup_event()
+    try:
+        yield
+    finally:
+        await shutdown_event()
+
+
 # Initialize FastAPI app
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Include existing routers
 from ecs_fc_bot_api import router as ecs_fc_router
@@ -45,10 +61,6 @@ app.include_router(live_reporting_router)  # Live reporting endpoints
 app.include_router(testing_router)  # Testing and mock match endpoints
 app.include_router(ispy_router)  # I-Spy mobile integration endpoints
 app.include_router(poll_router)  # Native Discord poll posting (mobile sub center)
-
-# Startup and shutdown events
-app.add_event_handler("startup", startup_event)
-app.add_event_handler("shutdown", shutdown_event)
 
 # Health check endpoint
 @app.get("/health")
