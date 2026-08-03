@@ -46,7 +46,7 @@
     "@rollup/plugin-inject": "^5.0.5",
     "@tailwindcss/cli": "4.3.3",
     "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^7.0.0",
     "@vitest/coverage-v8": "^4.0.17",
     "css": "^3.0.0",
     "esbuild": "0.28.1",
