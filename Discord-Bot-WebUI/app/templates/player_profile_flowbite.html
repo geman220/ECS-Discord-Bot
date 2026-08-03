@@ -270,12 +270,34 @@
           <span class="shrink-0 w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><i class="ti ti-brand-discord" aria-hidden="true"></i></span>
           <div class="min-w-0">
             <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.discord_username or (player.discord_id and 'Linked' or 'Not linked') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">{% if player.discord_id %}Linked &middot; in the ECS server{% else %}Not connected yet{% endif %}</p>
+            {# Membership is a SEPARATE fact from linkage. This line used to read
+               "Linked · in the ECS server" for anyone with a discord_id at all,
+               so someone who left the server was still reported as being in it.
+               discord_in_server is nullable and NULL means "never successfully
+               checked" (check_discord_status leaves the column alone when the
+               bot API call fails), so it must stay a THREE-state render — never
+               collapse NULL into "not in server". #}
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              {%- if not player.discord_id %}Not connected yet
+              {%- elif player.discord_in_server %}Linked &middot; in the ECS server
+              {%- elif player.discord_in_server == False %}Linked &middot; not in the ECS server
+              {%- else %}Linked &middot; server membership unknown
+              {%- endif %}
+            </p>
           </div>
         </div>
-        {% if player.discord_id %}
+        {% if player.discord_id and player.discord_in_server %}
         <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 self-start sm:self-auto">
           <i class="ti ti-circle-filled text-[7px]" aria-hidden="true"></i> Connected
+        </span>
+        {% elif player.discord_id and player.discord_in_server == False %}
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 self-start sm:self-auto">
+          <i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i> Left server
+        </span>
+        {% elif player.discord_id %}
+        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-600/40 dark:text-gray-300 self-start sm:self-auto"
+              title="The Discord bot could not be reached to confirm membership.">
+          <i class="ti ti-help-circle text-[11px]" aria-hidden="true"></i> Unknown
         </span>
         {% elif is_own_profile and safe_current_user.is_authenticated and player.user and safe_current_user.id == player.user.id %}
         <a href="{{ url_for('auth.discord_login') }}"

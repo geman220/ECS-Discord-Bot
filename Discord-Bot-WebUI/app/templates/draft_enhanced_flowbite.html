@@ -140,7 +140,7 @@
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <label for="sortBy" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hidden sm:inline">Sort</label>
-                <select id="sortBy" data-on-change="draft-filter-players" class="h-11 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select id="sortBy" data-on-change="draft-filter-players" class="bg-white text-gray-900 h-11 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="name">Name</option>
                     <option value="experience">Experience</option>
                     <option value="attendance">Attendance</option>
@@ -161,7 +161,7 @@
                 <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div>
                         <label for="positionFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Position</label>
-                        <select id="positionFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <select id="positionFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">All Positions</option>
                             <option value="goalkeeper">Goalkeeper</option>
                             <option value="defender">Defender</option>
@@ -171,7 +171,7 @@
                     </div>
                     <div>
                         <label for="attendanceFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Attendance</label>
-                        <select id="attendanceFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <select id="attendanceFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">All</option>
                             <option value="80-100">80%+ (High)</option>
                             <option value="60-79">60-79% (Medium)</option>
@@ -181,7 +181,7 @@
                     </div>
                     <div>
                         <label for="goalsFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Career Goals</label>
-                        <select id="goalsFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <select id="goalsFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">All</option>
                             <option value="10+">10+ Goals</option>
                             <option value="5-9">5-9 Goals</option>
@@ -191,7 +191,7 @@
                     </div>
                     <div>
                         <label for="prevDraftFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Previous Draft</label>
-                        <select id="prevDraftFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        <select id="prevDraftFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                             <option value="">All</option>
                             <option value="1-20">Top 20 Pick</option>
                             <option value="21-50">Pick 21-50</option>
@@ -370,7 +370,7 @@
                     <div id="paginationControls" class="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
                         <div class="flex items-center gap-2">
                             <label for="pageSizeSelect" class="text-sm text-gray-500 dark:text-gray-400">Show:</label>
-                            <select id="pageSizeSelect" data-on-change="draft-change-page-size" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-1 focus:border-ecs-green focus:ring-ecs-green">
+                            <select id="pageSizeSelect" data-on-change="draft-change-page-size" class="bg-white text-gray-900 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-1 focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="12">12</option>
                                 <option value="24" selected>24</option>
                                 <option value="48">48</option>
@@ -636,7 +636,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position</label>
-                <select id="positionFilter" data-on-change="draft-filter-players" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select id="positionFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="">All Positions</option>
                     <option value="goalkeeper">Goalkeeper</option>
                     <option value="defender">Defender</option>
@@ -646,7 +646,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Attendance</label>
-                <select id="attendanceFilter" data-on-change="draft-filter-players" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select id="attendanceFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="">All</option>
                     <option value="80-100">80%+ (High)</option>
                     <option value="60-79">60-79% (Medium)</option>
@@ -656,7 +656,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Career Goals</label>
-                <select id="goalsFilter" data-on-change="draft-filter-players" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select id="goalsFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="">All</option>
                     <option value="10+">10+ Goals</option>
                     <option value="5-9">5-9 Goals</option>
@@ -666,7 +666,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Previous Draft</label>
-                <select id="prevDraftFilter" data-on-change="draft-filter-players" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select id="prevDraftFilter" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="">All</option>
                     <option value="1-20">Top 20 Pick</option>
                     <option value="21-50">Pick 21-50</option>
@@ -676,7 +676,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sort By</label>
-                <select id="sortBy" data-on-change="draft-filter-players" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                <select id="sortBy" data-on-change="draft-filter-players" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                     <option value="name">Name</option>
                     <option value="experience">Experience</option>
                     <option value="attendance">Attendance</option>
@@ -842,7 +842,7 @@
                     <div id="paginationControls" class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
                         <div class="flex items-center gap-2">
                             <span class="text-sm text-gray-500 dark:text-gray-400">Show:</span>
-                            <select id="pageSizeSelect" data-on-change="draft-change-page-size" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-1 focus:border-ecs-green focus:ring-ecs-green">
+                            <select id="pageSizeSelect" data-on-change="draft-change-page-size" class="bg-white text-gray-900 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-1 focus:border-ecs-green focus:ring-ecs-green">
                                 <option value="12">12</option>
                                 <option value="24" selected>24</option>
                                 <option value="48">48</option>
@@ -935,7 +935,7 @@
 {% call modal_form('draftConfirmModal', 'Draft Player', form_id='draftConfirmForm', submit_text='Draft Player', loading_text='Drafting...') %}
 <p id="draftPlayerMessage" class="text-gray-600 dark:text-gray-300 mb-4"></p>
 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Team:</label>
-<select id="teamSelect" name="team_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+<select id="teamSelect" name="team_id" class="bg-white text-gray-900 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
     <option value="">Choose a team...</option>
 </select>
 {% endcall %}

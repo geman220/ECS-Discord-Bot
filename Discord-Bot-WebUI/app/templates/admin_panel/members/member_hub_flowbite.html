@@ -107,8 +107,28 @@
           {% if m.player.discord_id %}
           <span class="font-medium text-gray-700 dark:text-gray-300">{{ m.player.discord_username or m.player.discord_id }}</span>
           {% if m.player.discord_username %}<span class="font-mono text-gray-400">· {{ m.player.discord_id }}</span>{% endif %}
-          {% if m.player.discord_in_server %}<span class="text-green-600 dark:text-green-400">· in server</span>
-          {% elif m.player.discord_in_server is not none %}<span class="text-amber-600 dark:text-amber-400">· not in server</span>{% endif %}
+          {# Badges, not a trailing "· not in server" fragment: an admin looking
+             up why someone gets no roles/DMs needs "they left the guild" to be
+             the loudest thing on the line. The NULL case used to render NOTHING
+             at all, which reads identically to "in server" — it now says so. #}
+          {% if m.player.discord_in_server %}
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+            <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>In server
+          </span>
+          {% elif m.player.discord_in_server == False %}
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
+                title="They left or were removed from the ECS Discord. They will not receive roles, RSVPs or DMs.">
+            <i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>Not in server
+          </span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold bg-gray-100 text-gray-700 dark:bg-gray-600/40 dark:text-gray-300"
+                title="Never confirmed — the Discord bot could not be reached. This is not the same as being out of the server.">
+            <i class="ti ti-help-circle text-[11px]" aria-hidden="true"></i>Membership unknown
+          </span>
+          {% endif %}
+          {% if m.player.discord_last_checked %}
+          <span class="text-gray-400" title="Last successful membership check">· checked {{ m.player.discord_last_checked.strftime('%b %-d') }}</span>
+          {% endif %}
           {% else %}
           <span class="font-medium text-amber-600 dark:text-amber-400">No Discord linked</span>
           <span class="text-gray-400">· they can't log in until one is</span>
