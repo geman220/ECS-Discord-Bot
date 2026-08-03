@@ -221,12 +221,35 @@ def sub_lane_options():
     both rather than making a client guess which one is canonical.
     """
     from app.admin_panel.routes.user_management.member_hub import label_to_canon
+
+    # resolve_sub_lane ALSO matches a program's form_value, so leaving it out
+    # published a narrower set than the endpoints accept. Invisible today only
+    # because every seeded program's form_value coincides with its lane or the
+    # hyphen spelling — the first program where they diverge would have an
+    # accepted spelling that this never advertised, while `approve.programs` in
+    # the same response published it. Two vocabularies in one payload
+    # disagreeing is exactly what this endpoint exists to prevent.
+    form_values = {}
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs():
+            if p.membership_lane and p.form_value:
+                form_values[p.membership_lane] = p.form_value
+    except Exception:
+        pass
+
     out = []
     for label, lane in sorted(label_to_canon().items(), key=lambda kv: kv[1]):
+        accepts = {lane, label, lane.replace('_', '-')}
+        if form_values.get(lane):
+            accepts.add(form_values[lane])
         out.append({
             'lane': lane,
             'label': label,
-            'accepts': sorted({lane, label, lane.replace('_', '-')}),
+            'accepts': sorted(accepts),
+            # Matching is case- and whitespace-insensitive on top of these, so
+            # this is the canonical set, not an exhaustive one.
+            'case_insensitive': True,
         })
     return out
 
@@ -282,6 +305,28 @@ def resolve_sub_lane(value):
     return lane, _canonical_league_type(lane)
 
 
+def _quick_profile_statuses():
+    """Values the worklist's qp_status filter accepts, from the enum itself."""
+    try:
+        from app.models.quick_profile import QuickProfileStatus
+        return [s.value for s in QuickProfileStatus] + ['all']
+    except Exception:
+        return ['pending', 'claimed', 'linked', 'expired', 'all']
+
+
+def _worklist_lane_values():
+    """Values the worklist's `lane` filter accepts — underscore lanes only."""
+    lanes = {'classic', 'premier', 'ecs_fc'}
+    try:
+        from app.services import program_registry
+        lanes |= {p.membership_lane for p in program_registry.all_programs()
+                  if p.membership_lane}
+    except Exception:
+        pass
+    # 'undecided' is waitlist-tab only (no lane chosen yet).
+    return sorted(lanes) + ['undecided']
+
+
 def describe_member_options(session=None):
     """Everything a member-admin screen needs so it hardcodes nothing (§3)."""
     options = {
@@ -293,6 +338,26 @@ def describe_member_options(session=None):
             'tabs': ['all', 'pending', 'waitlist', 'subs', 'quick_profiles'],
             'per_page_default': WORKLIST_PER_PAGE_DEFAULT,
             'per_page_cap': WORKLIST_PER_PAGE_CAP,
+            # The worklist FILTER vocabularies. These were missing, which made
+            # "no client hardcodes a vocabulary" false for the busiest endpoint:
+            # the filters are closed sets in the code but nothing validates
+            # them, so a wrong value is never a 400 — active=no silently returns
+            # EVERYONE, and sub_status/qp_status garbage silently returns an
+            # empty list. A client had no way to learn the right spellings.
+            'filters': {
+                'approval': ['approved', 'pending', 'denied', 'all'],
+                'active': ['true', 'false'],
+                'season': ['active', 'inactive'],
+                'sub_status': ['active', 'resting'],
+                'qp_status': _quick_profile_statuses(),
+                # ⚠️ lane= on the worklist takes the UNDERSCORE membership lane
+                # ('ecs_fc'), plus 'undecided' on the waitlist tab. It does NOT
+                # take the display-name/hyphen aliases that sub_lanes[].accepts
+                # lists for the sub-pool MUTATIONS — those silently match
+                # nothing here.
+                'lane': _worklist_lane_values(),
+            },
+            'free_text': ['search', 'role', 'league', 'team'],
         },
     }
     try:
@@ -1037,13 +1102,13 @@ def sub_reject(user_id, league_type, actor_id):
     league_type: the sibling endpoints all normalize, and a row stored as
     'pub_league_classic' would never match a literal 'Classic'.
     """
-    from app.models import User, Role
+    from app.models import User
     from app.models.substitutes import SubstitutePool
     from app.utils.deferred_discord import defer_discord_sync
     from app.services.league_membership_sync import (
         resync_player_memberships, _norm_league_type)
     from app.admin_panel.routes.user_management.member_hub import (
-        _delete_pool_row, lane_to_subrole)
+        _delete_pool_row, _reconcile_sub_roles)
 
     lane, canonical = (None, None)
     if league_type:
@@ -1076,11 +1141,17 @@ def sub_reject(user_id, league_type, actor_id):
     for r in rows:
         _delete_pool_row(db.session, r)
 
-    rname = lane_to_subrole().get(lane) if lane else None
-    if rname:
-        role = db.session.query(Role).filter_by(name=rname).first()
-        if role and role in user.roles:
-            user.roles.remove(role)
+    db.session.flush()
+    # RECONCILE, don't strip. The old line removed this lane's sub role
+    # unconditionally, without re-checking what pool membership survived — so a
+    # player holding BOTH an approved row and a pending one for the same lane
+    # (reachable without hand-editing: /substitutes/pool/join stores league_type
+    # verbatim and matches by exact string, so 'classic' and 'Classic' coexist)
+    # lost the role for their APPROVED membership to a "pending-only" reject,
+    # and the queued reconcile then stripped the Discord -SUB role too. The two
+    # sibling endpoints already reconcile; this one now matches them, which also
+    # keeps player.is_sub honest.
+    _reconcile_sub_roles(db.session, user, user.player)
 
     db.session.flush()
     resync_player_memberships(db.session, pid)
@@ -1531,3 +1602,181 @@ def build_member_worklist(session, args, page=1, per_page=WORKLIST_PER_PAGE_DEFA
             'qp_status': qp_status,
         },
     }, 200
+
+
+def list_sub_pools(session):
+    """Every substitute pool, grouped by lane, with its members.
+
+    The per-person sub screens answer "which pools is THIS person in?"; this
+    answers the other direction — "who is in the Classic pool?" — which is the
+    question an admin actually has at 7pm on a Thursday.
+
+    ⚠️ NO mutations live here. The app's row actions reuse the existing
+    per-person ``/admin/members/{id}/sub-assign|sub-active|sub-remove|sub-reject``
+    endpoints, so the pool view and the member hub cannot drift into two
+    different ideas of what "remove from pool" means.
+
+    Includes PENDING members (``approved_at IS NULL``), because approving or
+    rejecting a self-signup is half the reason to open this screen — unlike
+    ``_sub_player_ids``, which deliberately counts only approved rows for the
+    worklist badge. Denied users are excluded, matching every other live queue.
+
+    ⚠️ A pool row whose player has no ``user_id`` cannot be actioned at all (the
+    sub endpoints key on user id), and the client drops those rows. They are
+    still returned, with ``user_id: null`` and counted in ``unlinked``, because
+    a member silently missing from a pool list is how someone ends up wondering
+    why the pool "lost" them.
+    """
+    from app.models import User, Player
+    from app.models.substitutes import SubstitutePool, EcsFcSubPool
+    from app.services.league_membership_sync import _norm_league_type
+
+    def _picture(player):
+        pic = player.profile_picture_url if player else None
+        if pic and pic.startswith('/'):
+            try:
+                from flask import request, has_request_context
+                if has_request_context():
+                    pic = f"{request.host_url.rstrip('/')}{pic}"
+            except Exception:
+                pass
+        return pic
+
+    def _member(player, *, is_approved, is_active, approved_at,
+                requested_at, last_engaged_at):
+        user = player.user if player else None
+        return {
+            'user_id': user.id if user else None,
+            'player_id': player.id if player else None,
+            'name': (player.name if player else None) or (user.username if user else None),
+            'profile_picture_url': _picture(player),
+            'is_approved': bool(is_approved),
+            'is_active': bool(is_active),
+            'approved_at': approved_at.isoformat() if approved_at else None,
+            'requested_at': requested_at.isoformat() if requested_at else None,
+            # Pool-level engagement (last_active_at), NOT the spine's
+            # LeagueMembership.last_engaged_at — this screen is about the pool.
+            'last_engaged_at': last_engaged_at.isoformat() if last_engaged_at else None,
+        }
+
+    denied_pids = {pid for (pid,) in session.query(Player.id)
+                   .join(User, User.id == Player.user_id)
+                   .filter(User.approval_status == 'denied').all()}
+
+    # Eager-load player+user: a 200-row pool would otherwise fire ~400 lazy
+    # SELECTs inside the open transaction, and hold time is the scarce resource.
+    from sqlalchemy.orm import joinedload
+
+    pools = {}
+
+    # Display label per lane, from the registry — NOT the raw `league_type`
+    # string, which is whatever the writing call site happened to store
+    # ('classic', 'Classic', 'Pub League Classic' all normalize to one lane and
+    # would otherwise each label the same pool differently.)
+    labels = {}
+    try:
+        from app.services import program_registry
+        for p in program_registry.all_programs(session):
+            if p.membership_lane:
+                labels[p.membership_lane] = (p.display_name or p.league_name
+                                             or p.membership_lane)
+    except Exception:
+        logger.warning("sub pool labels fell back to lane names", exc_info=True)
+
+    def _bucket(lane_raw):
+        lane = _norm_league_type(lane_raw) or (lane_raw or 'unknown')
+        if lane not in pools:
+            pools[lane] = {
+                'lane': lane,
+                'label': labels.get(lane) or (lane_raw or lane),
+                'members': [], 'unlinked': 0,
+            }
+        return pools[lane]
+
+    for row in (session.query(SubstitutePool)
+                .options(joinedload(SubstitutePool.player).joinedload(Player.user))
+                .all()):
+        if row.player_id in denied_pids:
+            continue
+        bucket = _bucket(row.league_type)
+        member = _member(row.player,
+                         is_approved=row.approved_at is not None,
+                         is_active=row.is_active,
+                         approved_at=row.approved_at,
+                         requested_at=row.joined_pool_at or row.created_at,
+                         last_engaged_at=row.last_active_at)
+        bucket['members'].append(member)
+        if member['user_id'] is None:
+            bucket['unlinked'] += 1
+
+    for row in (session.query(EcsFcSubPool)
+                .options(joinedload(EcsFcSubPool.player).joinedload(Player.user))
+                .all()):
+        if row.player_id in denied_pids:
+            continue
+        bucket = _bucket('ECS FC')
+        # EcsFcSubPool has no approval column — a row IS the approval, which is
+        # why _sub_player_ids counts every one of them. Reporting is_approved
+        # False here would render the whole ECS FC pool as "pending".
+        member = _member(row.player,
+                         is_approved=True, is_active=row.is_active,
+                         approved_at=row.joined_pool_at,
+                         requested_at=row.joined_pool_at,
+                         last_engaged_at=row.last_active_at)
+        # An ECS FC sub commonly holds BOTH an EcsFcSubPool row and a
+        # SubstitutePool('ECS FC') twin; deduping on player keeps them from
+        # appearing twice in one pool. Active wins, matching _sub_summary.
+        existing = next((m for m in bucket['members']
+                         if m['player_id'] == member['player_id']), None)
+        if existing is None:
+            bucket['members'].append(member)
+            if member['user_id'] is None:
+                bucket['unlinked'] += 1
+        elif member['is_active'] and not existing['is_active']:
+            existing.update(member)
+
+    for bucket in pools.values():
+        bucket['members'].sort(key=lambda m: (m['name'] or '').lower())
+
+    ordered = sorted(pools.values(), key=lambda p: p['lane'])
+    return {
+        'success': True,
+        'pools': ordered,
+        'total_members': sum(len(p['members']) for p in ordered),
+    }, 200
+
+
+def get_member(session, user_id):
+    """ONE worklist row, by user id — the same object ``items[]`` carries.
+
+    Built from ``_serialize_member`` rather than a hand-rolled projection, so a
+    field added to the list can never go missing from the detail view. Without
+    this endpoint the app had to search the worklist by username and match on
+    ``user_id``: an extra round-trip, and a matching risk whenever two accounts
+    share a display name.
+
+    Deliberately NOT filtered by approval status. This answers "show me this
+    person", and the caller already has their id — hiding a denied member here
+    would break the very lifecycle sheet that exists to un-deny them (the
+    worklist's denied-by-default hiding is a LIST default, not an access rule).
+    """
+    from app.models import User
+
+    user = session.query(User).get(user_id)
+    if user is None:
+        # A live handler's 404 must carry a message, or the mobile client's
+        # feature-availability probe reads a bodyless 404 as "endpoint not
+        # deployed" and hides the whole screen instead of showing the error.
+        return _err('Member not found', 404)
+
+    # The sub lanes come from two pool tables merged in the web helper; ask it
+    # about this one player rather than re-deriving the merge here.
+    sub_summary = {}
+    if user.player:
+        try:
+            from app.admin_panel.routes.user_management.member_hub import _sub_summary
+            sub_summary = _sub_summary(session, {user.player.id})
+        except Exception:
+            logger.warning(f"sub summary skipped for user {user_id}", exc_info=True)
+
+    return {'success': True, 'member': _serialize_member(user, sub_summary)}, 200

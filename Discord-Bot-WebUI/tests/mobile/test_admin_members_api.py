@@ -201,6 +201,45 @@ class TestOptions:
         assert body['waitlist_priorities'] == ['high', 'medium', 'normal', 'auto']
         assert body['worklist']['per_page_cap'] == 100
 
+    def test_advertised_sub_spellings_all_round_trip(
+            self, client, db, app, admin, roles, leagues):
+        """Every spelling in accepts must actually be accepted by the endpoints.
+
+        An options endpoint that advertises a value the validator rejects is
+        worse than no options endpoint.
+        """
+        u = _pending(db, roles)
+        uid = u.id
+        db.session.commit()
+        h = _auth(app, admin)
+        opts = client.get('/api/v1/admin/members/options', headers=h).get_json()
+
+        for entry in opts['sub_lanes']:
+            for spelling in entry['accepts']:
+                r = client.post(f'/api/v1/admin/members/{uid}/sub-assign',
+                                json={'league_type': spelling}, headers=h)
+                assert r.status_code == 200, f'{spelling!r} -> {r.status_code}'
+                assert r.get_json()['lane'] == entry['lane']
+                client.post(f'/api/v1/admin/members/{uid}/sub-remove',
+                            json={'league_type': spelling}, headers=h)
+
+    def test_worklist_filter_vocabularies_are_published(
+            self, client, db, app, admin, roles, leagues):
+        """The worklist filters are closed sets that nothing validates — a wrong
+        value is silently "no filter" or silently "no rows", never a 400. So the
+        spellings have to be discoverable or a client is guessing."""
+        db.session.commit()
+        f = client.get('/api/v1/admin/members/options',
+                       headers=_auth(app, admin)).get_json()['worklist']['filters']
+        assert f['approval'] == ['approved', 'pending', 'denied', 'all']
+        assert f['active'] == ['true', 'false']
+        assert f['season'] == ['active', 'inactive']
+        assert f['sub_status'] == ['active', 'resting']
+        assert 'all' in f['qp_status'] and 'pending' in f['qp_status']
+        # lane= takes UNDERSCORE lanes here, not the sub-mutation aliases
+        assert 'ecs_fc' in f['lane'] and 'undecided' in f['lane']
+        assert 'ECS FC' not in f['lane'] and 'ecs-fc' not in f['lane']
+
 
 # ---------------------------------------------------------------------------
 # §1.1 approval lifecycle
@@ -532,6 +571,39 @@ class TestSubPools:
         left = {row.league_type for row in
                 db.session.query(SubstitutePool).filter_by(player_id=pid).all()}
         assert left == {'Premier Reserve'}
+
+    def test_reject_does_not_strip_a_role_an_approved_row_still_earns(
+            self, client, db, app, admin, roles, leagues):
+        """"Pending-only" must describe the SIDE EFFECTS, not just the SELECT.
+
+        A player can hold an approved 'Classic' row AND a pending 'classic' one
+        — /substitutes/pool/join stores league_type verbatim and matches by
+        exact string, so the two coexist under uq(player_id, league_type).
+        Rejecting the pending one used to strip the Classic Sub role outright,
+        costing them the role their APPROVED membership still earns (and the
+        Discord -SUB role with it, via the queued reconcile).
+        """
+        from datetime import datetime
+        u = _pending(db, roles)
+        uid, pid = u.id, u.player.id
+        db.session.add(SubstitutePool(player_id=pid, league_type='Classic',
+                                      is_active=True, approved_at=datetime.utcnow(),
+                                      approved_by=admin.id))
+        db.session.add(SubstitutePool(player_id=pid, league_type='classic',
+                                      is_active=True, approved_at=None))
+        u.roles.append(roles['Classic Sub'])
+        db.session.commit()
+
+        r = client.post(f'/api/v1/admin/members/{uid}/sub-reject',
+                        json={'league_type': 'classic'}, headers=_auth(app, admin))
+        assert r.status_code == 200, r.get_json()
+
+        db.session.expire_all()
+        after = _reload(db, uid)
+        left = db.session.query(SubstitutePool).filter_by(player_id=pid).all()
+        assert [(x.league_type, x.approved_at is not None) for x in left] == [('Classic', True)]
+        assert 'Classic Sub' in {x.name for x in after.roles}
+        assert after.player.is_sub is True
 
     def test_reject_still_reaches_a_drifted_stored_value(
             self, client, db, app, admin, roles, leagues):

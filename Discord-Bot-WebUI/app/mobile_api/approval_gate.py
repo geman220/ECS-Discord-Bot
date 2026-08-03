@@ -83,11 +83,22 @@ _PENDING_ALLOWED_PATHS = (
     '/api/v1/notifications',
     # --- let a stuck user shout for help ---
     '/api/v1/feedback',
-    # --- the hold screen's own data: "where am I in the queue?" ---
+    # --- "is signing up even open right now?" — unauthenticated by design, but
+    #     a pending user on the hold screen reads it too, and it carries a JWT
+    #     when they do. Nothing in it depends on who is asking. ---
+    '/api/v1/registration',
+    # --- the hold screen's own data: "where am I in the queue?", and the way
+    #     OUT of that screen (POST /members/waitlist).
     #     my-status / my-waitlist are read-only projections of the caller's own
     #     record, so they leak nothing a pending user can't already see on
     #     /user_profile — and gating them would blank the very screen a pending
-    #     user is looking at.
+    #     user is looking at. The waitlist join is the one WRITE under this
+    #     prefix, and pending users are its entire population: a full-season
+    #     signup that can't reach the waitlist sits in an approvals queue that
+    #     deliberately excludes waitlisted people, waiting on a decision nobody
+    #     makes. It only ever touches the caller's own row.
+    #     ⚠️ Because this is a prefix, any future /api/v1/members/* route is
+    #     reachable by unapproved users — keep that subtree self-scoped.
     '/api/v1/members',
     # --- telemetry: the app posts these from EVERY screen, including the hold
     #     screen. Gating them produced a steady stream of 403s that the client

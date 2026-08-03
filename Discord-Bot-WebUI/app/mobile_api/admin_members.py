@@ -351,6 +351,55 @@ def admin_members_worklist():
         return jsonify({'success': False, 'message': 'Could not load members'}), 500
 
 
+@mobile_api_v2.route('/admin/sub-pools', methods=['GET'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_sub_pools():
+    """Every substitute pool with its members — the pool-level view.
+
+    The four sub-* endpoints above answer "which pools is this person in?";
+    this answers "who is in the Classic pool?".
+
+    ⚠️ Deliberately READ-ONLY. Row actions on this screen reuse the per-person
+    ``/admin/members/{id}/sub-assign|sub-active|sub-remove|sub-reject`` above, so
+    the two surfaces cannot end up with different ideas of what removal means.
+
+    Includes PENDING members; ``is_approved`` distinguishes them. Rows whose
+    player has no linked user account carry ``user_id: null`` and are counted in
+    the pool's ``unlinked`` — the client drops them because every action keys on
+    user id, and a silently-missing member is worse than a visible unactionable one.
+    """
+    try:
+        with managed_session() as session:
+            payload, status = lifecycle.list_sub_pools(session)
+        return jsonify(payload), status
+    except Exception as exc:
+        logger.error(f"[MOBILE_API] sub pools failed: {exc}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Could not load sub pools'}), 500
+
+
+@mobile_api_v2.route('/admin/members/<int:user_id>', methods=['GET'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_member_detail(user_id: int):
+    """One member, in the same shape as one ``items[]`` row of GET /admin/members.
+
+    The int converter keeps this from shadowing ``/admin/members/options``.
+
+    Returned nested under ``member``; the client accepts bare or nested. Denied
+    members are visible here on purpose — the list hides them by default, but
+    this is "show me the person whose id I already hold", and the lifecycle
+    sheet it feeds is where an admin undoes a denial.
+    """
+    try:
+        with managed_session() as session:
+            payload, status = lifecycle.get_member(session, user_id)
+        return jsonify(payload), status
+    except Exception as exc:
+        logger.error(f"[MOBILE_API] member detail {user_id} failed: {exc}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Could not load member'}), 500
+
+
 @mobile_api_v2.route('/admin/members/options', methods=['GET'])
 @jwt_required()
 @jwt_role_required(ADMIN_ROLES)

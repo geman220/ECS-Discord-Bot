@@ -41,6 +41,14 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
   same mutations the web Members hub runs, via app/services/member_lifecycle_service.py
 - pub_league: Season-pass linking/claiming (deep-link target for the WooCommerce
   purchase + gift-claim flows; mirrors the web wizard in app/pub_league/)
+- admin_orders: the Pub League order desk (list/detail, manual-link, unassign,
+  resend/cancel claim, refresh, limbo) via app/services/pub_league_order_admin.py
+- admin_matches: reschedule / postpone / cancel a fixture, via
+  app/services/match_schedule_service.py (needs sql_match_postponement.sql)
+- admin_ops: send an announcement (on the web composer's ComposedMessage spine)
+  and the gate-side wallet pass lookup / reissue
+- members: the member's OWN lifecycle — waitlist join + status projections —
+  plus the unauthenticated GET /registration/status
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 
@@ -105,6 +113,9 @@ def register_mobile_api_routes():
         classic_ratings,
         members,
         admin_members,
+        admin_orders,
+        admin_matches,
+        admin_ops,
     )
 
 

@@ -3,23 +3,34 @@
 """
 Mobile Member Lifecycle API
 
-Implements the two endpoints promised by docs/flutter/member_lifecycle_api.md
+Implements the endpoints promised by docs/flutter/member_lifecycle_api.md
 (§2.2 and §2.3) that were documented but never built — a Flutter client coded
-against that doc got 404s.
+against that doc got 404s — plus the signup/waitlist pair that closes the real
+inconsistency behind them:
 
-Both are read-only projections over the LeagueMembership spine plus the
-User.waitlist_* columns. Nothing here writes; joining a waitlist is still
-web-only (see the handoff doc).
+Mobile Discord OAuth already CREATES accounts, so during a full season an app
+signup landed in the approvals queue that ``User.pending_approval_criteria()``
+deliberately excludes waitlisted people from, and waited on a decision nobody
+was going to make. The web had a waitlist for exactly that; mobile had no way
+in. ``GET /registration/status`` says which door is open and
+``POST /members/waitlist`` walks through it.
+
+my-status / my-waitlist are read-only projections over the LeagueMembership
+spine plus the ``User.waitlist_*`` columns. The waitlist WRITE lives in
+``app/services/registration_service.py`` so the web route can be moved onto the
+same copy.
 """
 
 import logging
 
-from flask import jsonify
+from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.mobile_api import mobile_api_v2
+from app.core.limiter import limiter, get_client_ip
 from app.core.session_manager import managed_session
 from app.models import User, Player, LeagueMembership
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +78,69 @@ def _waitlist_payload(db_session, user):
         'total': total,
         'joined_at': user.waitlist_joined_at.isoformat() if user.waitlist_joined_at else None,
     }
+
+
+@mobile_api_v2.route('/registration/status', methods=['GET'])
+@limiter.limit("60 per minute", key_func=lambda: f"reg_status:{get_client_ip()}")
+def registration_status():
+    """Which sign-up door is open. UNAUTHENTICATED — the caller has no account.
+
+    No ``@jwt_required``: a prospective member holds no token, which is the
+    entire population this answers for. It is also on the pending-user
+    allowlist in ``approval_gate.py`` so a signed-in-but-unapproved user on the
+    hold screen can read it.
+
+    ⚠️ This must NEVER block signup. The client degrades any failure — 404, 500,
+    timeout — to "unknown" and then behaves exactly as it did before this
+    endpoint existed. So a 500 here is strictly better than inventing a
+    "registration closed" the app would show to someone who could have signed
+    up; that is why the except returns 500 rather than a closed-looking payload.
+
+    Nothing here reads the caller's identity, so there is nothing to leak: the
+    response is the same for everyone.
+    """
+    try:
+        from app.services.registration_service import registration_status as _status
+        return jsonify(_status()), 200
+    except Exception as exc:
+        logger.error(f"[MOBILE_API] registration_status failed: {exc}", exc_info=True)
+        return jsonify({'success': False,
+                        'msg': 'Could not load registration status'}), 500
+
+
+@mobile_api_v2.route('/members/waitlist', methods=['POST'])
+@jwt_required()
+@limiter.limit("10 per minute", key_func=lambda: f"waitlist_join:{get_client_ip()}")
+@transactional(max_retries=3)
+def join_waitlist():
+    """Put the calling member on the waitlist. Idempotent.
+
+    Body: ``{"league_type": "classic"}`` — OPTIONAL; omitted means no lane
+    chosen (the service falls back to their onboarding ``preferred_league`` when
+    they have one, and echoes whatever it settled on back in ``league_type``).
+
+    Reachable by a PENDING user — that is the entire population using it, so
+    ``/api/v1/members`` is on the approval-gate allowlist. Also works for an
+    already-approved returning member queueing for a different lane: sending a
+    new ``league_type`` moves the lane and leaves ``waitlist_joined_at`` alone,
+    because that timestamp is the queue position.
+
+    ⚠️ ``@transactional``, not ``managed_session()``: this WRITES, and the web
+    waitlist route it mirrors commits on the request session.
+    """
+    from flask import g
+    from app.services.registration_service import join_waitlist as _join
+
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        # A bodyless POST is legitimate here — "put me on the general waitlist".
+        # get_json() without silent=True would 400/415 it in Flask 3.
+        data = request.form.to_dict() if request.form else {}
+
+    user = g.db_session.query(User).get(user_id)
+    payload, status = _join(g.db_session, user, league_type=data.get('league_type'))
+    return jsonify(payload), status
 
 
 @mobile_api_v2.route('/members/my-waitlist', methods=['GET'])

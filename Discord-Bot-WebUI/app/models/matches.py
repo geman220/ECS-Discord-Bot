@@ -91,6 +91,28 @@ class Match(db.Model):
     reported_by_team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='SET NULL'), nullable=True)
     # Set when admin reschedules date/time so mobile can warn coaches of orphaned reports.
     rescheduled_at = db.Column(db.DateTime, nullable=True)
+
+    # --- Called off ---------------------------------------------------------
+    # Two genuinely different states that the old "postpone" button (a JS stub
+    # that only ever showed an alert) collapsed into one:
+    #
+    #   'postponed' -> called off, A NEW DATE IS COMING. The fixture still owes
+    #                  both teams a game; standings and attendance should keep
+    #                  waiting for it.
+    #   'cancelled' -> called off for good. It is never being played.
+    #
+    # Members read these very differently ("check back for a new date" vs "this
+    # is gone"), which is why it is a state and not a note. NULL = normal.
+    #
+    # ⚠️ sql_match_postponement.sql MUST run BEFORE this code deploys — every
+    # Match SELECT names these columns, so an un-migrated database 500s the
+    # whole schedule, not just the postpone button.
+    SCHEDULE_STATUSES = ('postponed', 'cancelled')
+    schedule_status = db.Column(db.String(20), nullable=True)
+    schedule_status_reason = db.Column(db.Text, nullable=True)
+    schedule_status_at = db.Column(db.DateTime, nullable=True)
+    schedule_status_by_user_id = db.Column(
+        db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     
     # Optimistic locking for concurrent edit protection
     version = db.Column(db.Integer, default=1, nullable=False)
@@ -169,6 +191,14 @@ class Match(db.Model):
             # Flutter app doesn't render "{home} vs {away}" as e.g. "FUN WEEK vs FUN WEEK".
             # None for regular team-vs-team matches.
             'special_week_display': get_special_week_display_name(self),
+            # None for a normal fixture; 'postponed' (a new date is coming) or
+            # 'cancelled' (never being played) otherwise. Clients must show the
+            # two differently — "check back" and "it's gone" are not the same
+            # message to someone deciding whether to drive across town.
+            'schedule_status': self.schedule_status,
+            'schedule_status_reason': self.schedule_status_reason,
+            'schedule_status_at': (self.schedule_status_at.isoformat()
+                                   if self.schedule_status_at else None),
             'version': self.version,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

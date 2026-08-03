@@ -903,76 +903,19 @@ def order_detail(order_id):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_search_players():
-    """Search for players to manually assign passes to."""
-    query = request.args.get('q', '').strip()
-    suggest_for = request.args.get('suggest_for', '').strip()
+    """Search for players to manually assign passes to.
 
-    def _format_player(player):
-        """Format a player for JSON response."""
-        user = player.user
-        return {
-            'player_id': player.id,
-            'user_id': user.id if user else None,
-            'name': player.name,
-            'discord_username': player.discord_username,
-            'email_hint': _mask_email(user.email) if user and hasattr(user, 'email') and user.email else None,
-            'is_current_player': player.is_current_player,
-        }
-
-    # Suggestion mode: search by customer name parts
-    if suggest_for and len(query) < 2:
-        try:
-            name_parts = suggest_for.split()
-            conditions = []
-            for part in name_parts:
-                if len(part) >= 2:
-                    conditions.append(Player.name.ilike(f'%{part}%'))
-
-            if conditions:
-                players = db.session.query(Player).options(
-                    joinedload(Player.user)
-                ).filter(or_(*conditions)).limit(10).all()
-
-                # Score by name part matches
-                results = []
-                for player in players:
-                    player_lower = player.name.lower()
-                    match_count = sum(1 for part in name_parts if part.lower() in player_lower)
-                    results.append((player, match_count))
-                results.sort(key=lambda x: x[1], reverse=True)
-
-                return jsonify({
-                    'success': True,
-                    'players': [_format_player(p) for p, _ in results[:5]],
-                    'is_suggestion': True,
-                    'suggested_for': suggest_for
-                })
-
-            return jsonify({'success': True, 'players': [], 'is_suggestion': True})
-
-        except Exception as e:
-            logger.error(f"Error in suggestion search: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
-
-    # Normal search mode
-    if len(query) < 2:
-        return jsonify({'success': True, 'players': []})
-
+    Body lives in ``app/services/pub_league_order_admin.py`` so the mobile order
+    desk searches the same people this page does.
+    """
+    from app.services import pub_league_order_admin as order_admin
     try:
-        search_term = f'%{query}%'
-        players = db.session.query(Player).options(
-            joinedload(Player.user)
-        ).filter(
-            or_(
-                Player.name.ilike(search_term),
-                Player.discord_username.ilike(search_term)
-            )
-        ).limit(10).all()
-
-        results = [_format_player(player) for player in players]
-
-        return jsonify({'success': True, 'players': results})
-
+        payload, status = order_admin.search_players(
+            db.session,
+            query=request.args.get('q', ''),
+            suggest_for=request.args.get('suggest_for', ''),
+        )
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error searching players: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
@@ -982,117 +925,22 @@ def api_search_players():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_manual_link():
-    """Manually link a pass to a player."""
+    """Manually link a pass to a player.
+
+    Body lives in ``app/services/pub_league_order_admin.py`` — the reassignment
+    accounting (don't double-count ``linked_passes``, deactivate the previous
+    holder only when they hold no other pass) is too easy to get subtly wrong on
+    a second copy, and the mobile order desk runs the same one.
+    """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    line_item_id = data.get('line_item_id')
-    player_id = data.get('player_id')
-
-    if not line_item_id or not player_id:
-        return jsonify({'success': False, 'error': 'Missing line_item_id or player_id'}), 400
-
     try:
-        # Load on the REQUEST session (g.db_session), not db.session. The
-        # services below (link_pass_to_player / activate_player_for_league)
-        # commit g.db_session; objects loaded on db.session are a different
-        # session's objects, so their changes were never committed — the admin
-        # saw "linked", and a refresh showed the pass still unassigned.
-        session = getattr(g, 'db_session', db.session)
-
-        line_item = session.query(PubLeagueOrderLineItem).options(
-            joinedload(PubLeagueOrderLineItem.order)
-        ).filter_by(id=line_item_id).first()
-
-        if not line_item:
-            return jsonify({'success': False, 'error': 'Line item not found'}), 404
-
-        player = session.query(Player).options(
-            joinedload(Player.user)
-        ).filter_by(id=player_id).first()
-
-        if not player:
-            return jsonify({'success': False, 'error': 'Player not found'}), 404
-
-        # Reassignment: if this pass is already assigned to someone else, clear
-        # the previous holder first. assign_to_player() below increments the
-        # order's linked_passes and flips status to assigned, so we mustn't let
-        # it double-count — an already-assigned pass keeps the same slot.
-        was_assigned = line_item.status != PubLeagueLineItemStatus.UNASSIGNED.value
-        previous_name = line_item.assigned_player.name if line_item.assigned_player else None
-        previous_player_id = line_item.assigned_player_id
-        if was_assigned and line_item.assigned_player_id == player.id:
-            return jsonify({'success': False, 'error': 'Pass is already assigned to this player'}), 400
-        if was_assigned:
-            # Return it to unassigned WITHOUT touching linked_passes (assign
-            # re-increments), and drop the old wallet pass so the new holder gets
-            # a fresh one rather than the previous holder's.
-            line_item.assigned_player_id = None
-            line_item.assigned_user_id = None
-            line_item.assigned_at = None
-            line_item.wallet_pass_id = None
-            line_item.pass_created_at = None
-            line_item.link_method = None
-            line_item.link_confirmed_at = None
-            line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
-            if line_item.order:
-                line_item.order.linked_passes = max(0, line_item.order.linked_passes - 1)
-            session.flush()
-
-            # The previous holder loses this pass — deactivate them unless they
-            # still hold another pass for this season. (The new holder is
-            # activated below via activate_player_for_league.)
-            from app.pub_league.services import PlayerActivationService as _PAS
-            _PAS.deactivate_player_if_no_current_pass(
-                previous_player_id, line_item.order, exclude_line_item_id=line_item.id
-            )
-
-        # Import services
-        from app.pub_league.services import PubLeagueOrderService, PlayerActivationService
-
-        # Link the pass. Stamped 'admin' so the orders page shows it was linked
-        # by staff (via the name-match suggestion, which can pick the wrong
-        # same-named player) rather than confirmed by the buyer themselves.
-        user = player.user if player.user_id else None
-        player_name = player.name
-        PubLeagueOrderService.link_pass_to_player(line_item, player, user, method='admin')
-
-        # Snapshot the response while the link is fresh — activation below is
-        # best-effort, and the assignment is already committed either way.
-        verb = 'reassigned' if was_assigned else 'linked'
-        msg = (f'Pass reassigned from {previous_name} to {player_name}'
-               if was_assigned and previous_name else f'Pass linked to {player_name}')
-        payload = {
-            'success': True,
-            'message': msg,
-            'line_item': line_item.to_dict()
-        }
-
-        # Activate player for the division
-        if user:
-            try:
-                PlayerActivationService.activate_player_for_league(
-                    player=player,
-                    user=user,
-                    division=line_item.division,
-                    jersey_size=line_item.jersey_size
-                )
-            except Exception as e:
-                logger.error(
-                    f"Activation failed for player {player_id} after admin link of "
-                    f"line item {line_item_id} (the pass IS linked): {e}", exc_info=True
-                )
-                session.rollback()
-                payload['message'] = (
-                    f'{msg}, but activating them for the season failed — '
-                    'their pass is linked; re-run the link to activate.'
-                )
-
-        logger.info(
-            f"Admin {current_user.id} {verb} line item {line_item_id} to player {player_id}"
-            + (f" (was {previous_name})" if previous_name else "")
+        payload, status = order_admin.manual_link(
+            line_item_id=data.get('line_item_id'),
+            player_id=data.get('player_id'),
+            actor_id=current_user.id,
         )
-
-        return jsonify(payload)
-
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error manually linking pass: {e}", exc_info=True)
         try:
@@ -1109,6 +957,9 @@ def _division_form_value(division):
     when the division resolves to no program — in which case we must NOT guess,
     because approving into the wrong league is silent data corruption that
     nothing downstream flags.
+
+    Not dead: imported by app/services/pub_league_order_admin.py, which serves
+    the limbo check for BOTH this page and the mobile order desk.
     """
     if not division:
         return None, None
@@ -1138,117 +989,17 @@ def api_player_limbo():
 
     Read-only by design: the companion `api_resolve_limbo` does the writing, and
     only for the boxes the admin actually ticked.
+
+    Body lives in `app/services/pub_league_order_admin.py`, shared with mobile.
     """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    player_id = data.get('player_id')
-    line_item_id = data.get('line_item_id')
-
-    if not player_id:
-        return jsonify({'success': False, 'error': 'Missing player_id'}), 400
-
     try:
-        from app.models import Role
-        from app.models.substitutes import SubstitutePool
-
-        session = getattr(g, 'db_session', db.session)
-
-        player = session.query(Player).options(
-            joinedload(Player.user)
-        ).filter_by(id=player_id).first()
-        if not player:
-            return jsonify({'success': False, 'error': 'Player not found'}), 404
-
-        line_item = None
-        if line_item_id:
-            line_item = session.query(PubLeagueOrderLineItem).options(
-                joinedload(PubLeagueOrderLineItem.order)
-            ).filter_by(id=line_item_id).first()
-
-        division = line_item.division if line_item else None
-        form_value, division_label = _division_form_value(division)
-
-        user = player.user if player.user_id else None
-        actions, notes = [], []
-
-        if user is None:
-            # Nothing here is actionable without an account: approval, roles and
-            # the waitlist all hang off User, not Player.
-            notes.append("This player has no linked user account, so they cannot "
-                         "be approved or taken off a waitlist here.")
-        else:
-            role_names = {r.name for r in user.roles}
-            approved = bool(getattr(user, 'is_approved', False))
-            status = (getattr(user, 'approval_status', None) or '').lower()
-
-            if not approved or status == 'pending':
-                if not form_value:
-                    notes.append(
-                        f"They are still awaiting approval, but this pass's division "
-                        f"({division or 'unknown'}) doesn't match a known program, so "
-                        f"approval can't be offered here. Approve them from their "
-                        f"member page instead.")
-                else:
-                    label = f"Approve them for {division_label}"
-                    if status == 'denied':
-                        # Surfaced, never hidden: silently re-approving someone an
-                        # admin deliberately denied is exactly the decision this
-                        # feature must not make on its own.
-                        label += " — heads up, they were previously DENIED"
-                    actions.append({
-                        'key': 'approve',
-                        'label': label,
-                        'detail': f"Grants the {division_label} role, creates their "
-                                  f"membership row, and syncs Discord.",
-                        'value': form_value,
-                    })
-
-            if 'pl-waitlist' in role_names or getattr(user, 'waitlist_league', None):
-                lane = (getattr(user, 'waitlist_league', None) or '').replace('-', ' ').title()
-                actions.append({
-                    'key': 'remove_waitlist',
-                    'label': f"Take them off the {lane or 'league'} waitlist",
-                    'detail': "They hold a paid pass, so a waitlist spot is contradictory. "
-                              "(Approving above already does this.)",
-                })
-
-        pools = session.query(SubstitutePool).filter_by(player_id=player.id).all()
-        if pools:
-            pool_names = ', '.join(sorted({p.league_type for p in pools if p.league_type}))
-            actions.append({
-                'key': 'remove_sub_pools',
-                'label': f"Remove them from the {pool_names} substitute pool"
-                         f"{'s' if len(pools) > 1 else ''}",
-                'detail': "Only if they should no longer be offered as a sub. Plenty of "
-                          "rostered players stay in a pool on purpose — leave this "
-                          "unticked to keep them.",
-            })
-
-        # Informational only. A pending quick profile can't be claimed BY an
-        # admin — the person claims it themselves — so this is a note, not an action.
-        try:
-            from app.models.quick_profile import QuickProfile, QuickProfileStatus
-            email = (line_item.order.customer_email if (line_item and line_item.order) else None)
-            if email:
-                qp = session.query(QuickProfile).filter(
-                    QuickProfile.status == QuickProfileStatus.PENDING.value,
-                    func.lower(QuickProfile.email) == email.strip().lower(),
-                ).first()
-                if qp:
-                    notes.append(
-                        f"There's an unclaimed quick profile for {email} "
-                        f"(code {qp.claim_code}). They have to claim it themselves — "
-                        f"resend the code if they never got it.")
-        except Exception:
-            logger.debug("quick-profile limbo check skipped", exc_info=True)
-
-        return jsonify({
-            'success': True,
-            'player_name': player.name,
-            'division': division,
-            'actions': actions,
-            'notes': notes,
-        })
-
+        payload, status = order_admin.player_limbo(
+            player_id=data.get('player_id'),
+            line_item_id=data.get('line_item_id'),
+        )
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error checking player limbo: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
@@ -1265,124 +1016,21 @@ def api_resolve_limbo():
 
     ⚠️ SESSION: `apply_approval` mutates and expects `db.session` throughout.
     The rest of this blueprint works on `g.db_session`, which is a DIFFERENT
-    session in this app. Everything here therefore stays on `db.session` and
-    commits it — mixing the two is the silently-discarded-write bug.
+    session in this app. Everything therefore stays on `db.session` and commits
+    it — mixing the two is the silently-discarded-write bug.
+
+    Body lives in `app/services/pub_league_order_admin.py`, shared with mobile.
     """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    player_id = data.get('player_id')
-    actions = data.get('actions') or []
-    approve_value = data.get('approve_value')
-
-    if not player_id:
-        return jsonify({'success': False, 'error': 'Missing player_id'}), 400
-    if not isinstance(actions, list):
-        return jsonify({'success': False, 'error': 'actions must be a list'}), 400
-    if not actions:
-        return jsonify({'success': True, 'applied': [], 'message': 'Nothing changed.'})
-
-    _ALLOWED = {'approve', 'remove_waitlist', 'remove_sub_pools'}
-    unknown = [a for a in actions if a not in _ALLOWED]
-    if unknown:
-        return jsonify({'success': False,
-                        'error': f"Unknown action(s): {', '.join(map(str, unknown))}"}), 400
-
     try:
-        from app.models import Role
-        from app.models.admin_config import AdminAuditLog
-        from app.models.substitutes import SubstitutePool
-
-        player = db.session.query(Player).options(
-            joinedload(Player.user)
-        ).filter_by(id=player_id).first()
-        if not player:
-            return jsonify({'success': False, 'error': 'Player not found'}), 404
-        user = player.user if player.user_id else None
-
-        applied, failed = [], []
-        approved_here = False
-
-        if 'approve' in actions:
-            from app.admin_panel.routes.user_management.approvals import apply_approval
-            # ⚠️ approve_league_types lives in integrity_service, NOT in approvals —
-            # approvals only imports it inside a function body, so importing it
-            # from there raises ImportError at request time.
-            from app.services.integrity_service import approve_league_types
-            if user is None:
-                failed.append('Approve — no user account linked to this player.')
-            elif not approve_value:
-                failed.append('Approve — no league was resolved for this pass.')
-            elif approve_value not in approve_league_types():
-                # Validate against the same vocabulary the approvals page uses;
-                # never trust a value round-tripped through the browser.
-                failed.append(f"Approve — '{approve_value}' is not an approvable league.")
-            else:
-                prior = (user.approval_status or 'pending')
-                try:
-                    apply_approval(user, approve_value, approver_id=current_user.id,
-                                   notes='Approved from the order page after a pass was assigned.')
-                    AdminAuditLog.log_action(
-                        user_id=current_user.id, action='approve_user',
-                        resource_type='user_approval', resource_id=str(user.id),
-                        old_value=prior, new_value=f'approved:{approve_value}',
-                        ip_address=request.remote_addr,
-                        user_agent=request.headers.get('User-Agent'))
-                    applied.append(f'Approved for {approve_value}')
-                    approved_here = True
-                except ValueError as ve:
-                    failed.append(f'Approve — {ve}')
-
-        # Skipped when approve ran: apply_approval already clears the waitlist,
-        # and re-running it would report a change that did not happen.
-        if 'remove_waitlist' in actions and not approved_here:
-            if user is None:
-                failed.append('Waitlist — no user account linked to this player.')
-            else:
-                wl_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
-                if wl_role and wl_role in user.roles:
-                    user.roles.remove(wl_role)
-                user.waitlist_joined_at = None
-                user.waitlist_league = None
-                applied.append('Removed from the waitlist')
-
-        if 'remove_sub_pools' in actions:
-            pools = db.session.query(SubstitutePool).filter_by(player_id=player.id).all()
-            removed = []
-            for pool in pools:
-                removed.append(pool.league_type)
-                # ⚠️ substitute_pool_history.pool_id is NOT NULL with no ON DELETE,
-                # so history rows must go first or the delete raises.
-                try:
-                    from app.models.substitutes import SubstitutePoolHistory
-                    db.session.query(SubstitutePoolHistory).filter_by(
-                        pool_id=pool.id).delete(synchronize_session=False)
-                except Exception:
-                    logger.exception("could not clear sub pool history for pool %s", pool.id)
-                db.session.delete(pool)
-            if removed:
-                applied.append(f"Removed from sub pool(s): {', '.join(sorted(set(removed)))}")
-
-        db.session.commit()
-
-        # The spine is recomputed from the source facts we just changed, so it has
-        # to run AFTER the commit above or it recomputes from stale state.
-        try:
-            from app.services.league_membership_sync import resync_player_memberships
-            resync_player_memberships(db.session, player.id)
-            db.session.commit()
-        except Exception:
-            logger.exception("membership resync after limbo resolve failed for player %s",
-                             player.id)
-
-        logger.info("Admin %s resolved limbo for player %s: applied=%s failed=%s",
-                    current_user.id, player_id, applied, failed)
-
-        return jsonify({
-            'success': True,
-            'applied': applied,
-            'failed': failed,
-            'message': ('; '.join(applied) if applied else 'Nothing changed.'),
-        })
-
+        payload, status = order_admin.resolve_limbo(
+            player_id=data.get('player_id'),
+            actions=data.get('actions'),
+            approve_value=data.get('approve_value'),
+            actor_id=current_user.id,
+        )
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error resolving player limbo: {e}", exc_info=True)
         db.session.rollback()
@@ -1393,50 +1041,13 @@ def api_resolve_limbo():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_resend_claim():
-    """Resend claim email to recipient."""
+    """Resend claim email to recipient. Body in pub_league_order_admin."""
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    claim_id = data.get('claim_id')
-
-    if not claim_id:
-        return jsonify({'success': False, 'error': 'Missing claim_id'}), 400
-
     try:
-        claim = db.session.query(PubLeagueOrderClaim).options(
-            joinedload(PubLeagueOrderClaim.line_item),
-            joinedload(PubLeagueOrderClaim.order)
-        ).filter_by(id=claim_id).first()
-
-        if not claim:
-            return jsonify({'success': False, 'error': 'Claim not found'}), 404
-
-        if not claim.recipient_email:
-            return jsonify({'success': False, 'error': 'No recipient email on claim'}), 400
-
-        if claim.status != PubLeagueClaimStatus.PENDING.value:
-            return jsonify({'success': False, 'error': 'Claim is not pending'}), 400
-
-        # Send claim email
-        from app.pub_league.email_helpers import send_claim_link_email
-        line_item = claim.line_item
-        order = claim.order
-
-        email_sent = send_claim_link_email(
-            recipient_email=claim.recipient_email,
-            recipient_name=claim.recipient_name,
-            claim_token=claim.claim_token,
-            division=line_item.division if line_item else 'Pub League',
-            sender_name=order.customer_name if order else 'ECS Pub League',
-            expires_at=claim.expires_at
-        )
-
-        if email_sent:
-            claim.email_sent_at = datetime.utcnow()
-            db.session.commit()
-            logger.info(f"Admin {current_user.id} resent claim email for claim {claim_id}")
-            return jsonify({'success': True, 'message': 'Claim email sent'})
-        else:
-            return jsonify({'success': False, 'error': 'Failed to send email'}), 500
-
+        payload, status = order_admin.resend_claim(
+            claim_id=data.get('claim_id'), actor_id=current_user.id)
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error resending claim email: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
@@ -1446,36 +1057,13 @@ def api_resend_claim():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_cancel_claim():
-    """Cancel a pending claim."""
+    """Cancel a pending claim. Body in pub_league_order_admin."""
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    claim_id = data.get('claim_id')
-
-    if not claim_id:
-        return jsonify({'success': False, 'error': 'Missing claim_id'}), 400
-
     try:
-        claim = db.session.query(PubLeagueOrderClaim).options(
-            joinedload(PubLeagueOrderClaim.line_item)
-        ).filter_by(id=claim_id).first()
-
-        if not claim:
-            return jsonify({'success': False, 'error': 'Claim not found'}), 404
-
-        if claim.status != PubLeagueClaimStatus.PENDING.value:
-            return jsonify({'success': False, 'error': 'Claim is not pending'}), 400
-
-        # Cancel the claim
-        claim.status = PubLeagueClaimStatus.CANCELLED.value
-
-        # Unlink from line item if needed
-        if claim.line_item:
-            claim.line_item.claim_id = None
-
-        db.session.commit()
-        logger.info(f"Admin {current_user.id} cancelled claim {claim_id}")
-
-        return jsonify({'success': True, 'message': 'Claim cancelled'})
-
+        payload, status = order_admin.cancel_claim(
+            claim_id=data.get('claim_id'), actor_id=current_user.id)
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error cancelling claim: {e}", exc_info=True)
         db.session.rollback()
@@ -1486,61 +1074,17 @@ def api_cancel_claim():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_refresh_order():
-    """Refresh order data from WooCommerce."""
+    """Refresh order data from WooCommerce. Body in pub_league_order_admin.
+
+    The only path that picks up a refund issued after purchase — the webhook
+    copy is frozen at the moment of sale.
+    """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    order_id = data.get('order_id')
-
-    if not order_id:
-        return jsonify({'success': False, 'error': 'Missing order_id'}), 400
-
     try:
-        order = db.session.query(PubLeagueOrder).filter_by(id=order_id).first()
-
-        if not order:
-            return jsonify({'success': False, 'error': 'Order not found'}), 404
-
-        # Fetch fresh data from WooCommerce
-        from app.pub_league.services import PubLeagueOrderService
-        order_data = PubLeagueOrderService.fetch_order_from_woocommerce(order.woo_order_id)
-
-        if not order_data:
-            return jsonify({'success': False, 'error': 'Could not fetch order from WooCommerce'}), 500
-
-        # Update cached data
-        order.woo_order_data = order_data
-
-        # Update customer info if changed
-        billing = order_data.get('billing', {})
-        new_name = f"{billing.get('first_name', '')} {billing.get('last_name', '')}".strip()
-        new_email = billing.get('email', '')
-
-        if new_name:
-            order.customer_name = new_name
-        if new_email:
-            order.customer_email = new_email
-
-        # Re-derive the money columns off the FRESH payload. This is the only
-        # path that picks up a refund issued after purchase, since the webhook
-        # copy is frozen at the moment of sale.
-        try:
-            from app.pub_league.revenue import apply_order_revenue
-            apply_order_revenue(order)
-        except Exception as rev_err:
-            logger.warning(
-                f"Could not refresh revenue for order {order_id}: {rev_err}",
-                exc_info=True)
-
-        order.updated_at = datetime.utcnow()
-        db.session.commit()
-
-        logger.info(f"Admin {current_user.id} refreshed order {order_id} from WooCommerce")
-
-        return jsonify({
-            'success': True,
-            'message': 'Order data refreshed from WooCommerce',
-            'order': order.to_dict()
-        })
-
+        payload, status = order_admin.refresh_order(
+            order_id=data.get('order_id'), actor_id=current_user.id)
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error refreshing order: {e}", exc_info=True)
         db.session.rollback()
@@ -1817,69 +1361,17 @@ def api_delete_order():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_unassign_pass():
-    """Unassign a pass from a player (make it available again)."""
+    """Unassign a pass from a player (make it available again).
+
+    Body in pub_league_order_admin — including the wallet-pass clear, without
+    which a re-linked line item hands the new holder the PREVIOUS holder's pass.
+    """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    line_item_id = data.get('line_item_id')
-
-    if not line_item_id:
-        return jsonify({'success': False, 'error': 'Missing line_item_id'}), 400
-
     try:
-        line_item = db.session.query(PubLeagueOrderLineItem).options(
-            joinedload(PubLeagueOrderLineItem.order),
-            joinedload(PubLeagueOrderLineItem.assigned_player)
-        ).filter_by(id=line_item_id).first()
-
-        if not line_item:
-            return jsonify({'success': False, 'error': 'Line item not found'}), 404
-
-        if line_item.status == PubLeagueLineItemStatus.UNASSIGNED.value:
-            return jsonify({'success': False, 'error': 'Pass is already unassigned'}), 400
-
-        old_player_name = line_item.assigned_player.name if line_item.assigned_player else 'Unknown'
-        old_player_id = line_item.assigned_player_id
-        order = line_item.order
-
-        # Clear assignment AND the generated wallet pass. Clearing the pass link
-        # matters: generate-pass short-circuits on a non-null wallet_pass_id and
-        # returns the OLD pass, so without this a re-linked line item would never
-        # mint a fresh pass — it'd hand back the previous holder's. This returns
-        # the line item to a truly clean unassigned state (the right behaviour for
-        # both a real reassignment and re-testing the flow).
-        line_item.assigned_player_id = None
-        line_item.assigned_user_id = None
-        line_item.assigned_at = None
-        line_item.wallet_pass_id = None
-        line_item.pass_created_at = None
-        line_item.link_method = None
-        line_item.link_confirmed_at = None
-        line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
-
-        # Update order linked count
-        if order:
-            order.linked_passes = max(0, order.linked_passes - 1)
-            order.update_status()
-
-        db.session.commit()
-
-        # A pass is what makes a player current for the season, so removing it
-        # deactivates them — UNLESS they still hold another pass for this season
-        # (e.g. they own two). Only touches is_current_player, mirroring rollover.
-        from app.pub_league.services import PlayerActivationService
-        deactivated = PlayerActivationService.deactivate_player_if_no_current_pass(
-            old_player_id, order, exclude_line_item_id=line_item.id
-        )
-
-        logger.info(
-            f"Admin {current_user.id} unassigned line item {line_item_id} "
-            f"(was {old_player_name}); player deactivated={deactivated}"
-        )
-
-        msg = f'Pass unassigned from {old_player_name}'
-        if deactivated:
-            msg += ' (no longer active for the season)'
-        return jsonify({'success': True, 'message': msg})
-
+        payload, status = order_admin.unassign_pass(
+            line_item_id=data.get('line_item_id'), actor_id=current_user.id)
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error unassigning pass: {e}", exc_info=True)
         db.session.rollback()
@@ -1938,7 +1430,11 @@ def api_update_line_item():
 
 
 def _mask_email(email: str) -> str:
-    """Mask an email for display (e.g., j***@example.com)."""
+    """Mask an email for display (e.g., j***@example.com).
+
+    Not dead: imported by app/services/pub_league_order_admin.py, which serves
+    the player search for BOTH this page and the mobile order desk.
+    """
     if not email or '@' not in email:
         return None
 
