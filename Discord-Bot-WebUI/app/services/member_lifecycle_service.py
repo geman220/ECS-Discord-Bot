@@ -763,6 +763,12 @@ def place_member(user_id, action, team_id, actor_id, is_coach=False):
     except (TypeError, ValueError):
         return _err('A valid team_id is required')
 
+    # What the 'add' path changes BESIDES the roster row. Reported in the
+    # response because `message` is the only thing the app shows, so an admin
+    # placing someone on a team was also quietly pulling them out of a sub pool
+    # and off a waitlist with no indication either had happened.
+    side_effects = {}
+
     try:
         with lock_user_for_role_update(user_id, session=db.session) as user:
             if not user.player:
@@ -878,6 +884,10 @@ def place_member(user_id, action, team_id, actor_id, is_coach=False):
                         db.session, player.id,
                         performed_by_user_id=actor_id,
                         league_name=(team.league.name if team and team.league else None))
+                    # Reported, not silent — see `side_effects` above.
+                    _pools = (sub_cleanup or {}).get('pools_removed') or []
+                    if _pools:
+                        side_effects['sub_status_removed'] = ', '.join(sorted(set(_pools)))
                 except Exception as _sub_err:
                     logger.warning(f"sub-status cleanup skipped for player {player.id}: {_sub_err}")
                 # A rostered player is IN — clear any stale waitlist so nobody is
@@ -886,10 +896,15 @@ def place_member(user_id, action, team_id, actor_id, is_coach=False):
                     from app.models import Role
                     wl_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
                     if wl_role and wl_role in user.roles:
+                        # Read the lane BEFORE clearing it — it is the only thing
+                        # that names WHICH waitlist they just came off.
+                        _lane = getattr(user, 'waitlist_league', None)
                         user.roles.remove(wl_role)
                         user.waitlist_league = None
                         if hasattr(user, 'waitlist_joined_at'):
                             user.waitlist_joined_at = None
+                        side_effects['waitlist_cleared'] = (
+                            (_lane or '').replace('-', ' ').title() or 'league')
                 except Exception as _wl_err:
                     logger.warning(f"waitlist auto-clear skipped for player {player.id}: {_wl_err}")
                 db.session.flush()
@@ -908,8 +923,11 @@ def place_member(user_id, action, team_id, actor_id, is_coach=False):
                    resource_id=user_id, actor_id=actor_id,
                    new_value=f'{action}:team={team_id}:coach={is_coach}')
 
+        # Omitted entirely when nothing else was touched, so its presence always
+        # means "something else changed", never "we checked and it hadn't".
+        extra = {'side_effects': side_effects} if side_effects else {}
         return _ok(message, user_id=user_id, team_id=team_id, action=action,
-                   is_coach=is_coach, discord_sync_queued=discord_queued)
+                   is_coach=is_coach, discord_sync_queued=discord_queued, **extra)
 
     except LockAcquisitionError:
         return _err('User is being modified by another request. Try again.', 409)

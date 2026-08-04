@@ -363,6 +363,88 @@ def get_player_all_stats(player_id: int):
         }), 200
 
 
+EVENTS_LIMIT_DEFAULT = 50
+EVENTS_LIMIT_CAP = 200
+
+
+@mobile_api_v2.route('/players/<int:player_id>/events', methods=['GET'])
+@jwt_required()
+def get_player_events(player_id: int):
+    """Individual match events for a player — goals, assists and cards, each
+    with the match it happened in.
+
+    ``GET /players/<id>/stats`` returns AGGREGATES only, so a client can show
+    "7 goals" but not which matches they came from. That is the difference
+    between a number and a dispute someone can actually settle.
+
+    Same visibility as /stats: ``@jwt_required()`` only, no role gate.
+
+    Query:
+        limit: default 50, capped at 200 — and the cap is STATED in the
+               response (``limit_cap``), never applied silently.
+
+    ⚠️ ``minute`` is a STRING and may be null or "0". "0" means UNTIMED, not
+    "first minute" — an event recorded without a clock. It is passed through
+    verbatim; coercing it to an int would invent a fact.
+
+    Newest match first.
+    """
+    from app.models import Match
+    from app.models.stats import PlayerEvent
+
+    limit = request.args.get('limit', EVENTS_LIMIT_DEFAULT, type=int) or EVENTS_LIMIT_DEFAULT
+    limit = max(1, min(limit, EVENTS_LIMIT_CAP))
+
+    with managed_session() as session:
+        player = session.query(Player).get(player_id)
+        if not player:
+            # Carries a body: a BODYLESS 404 is read by the client as "this
+            # endpoint isn't deployed" and hides the whole section.
+            return jsonify({"msg": "Player not found"}), 404
+
+        total = session.query(PlayerEvent).filter_by(player_id=player_id).count()
+
+        # ⚠️ The eager chain has to reach the TEAMS, not stop at the match.
+        # Stopping at PlayerEvent.match left both teams to lazy-load once per
+        # event — ~30 extra queries on a normal event history, each taking a
+        # pooled connection. Same lesson as players.player_profile.
+        events = (session.query(PlayerEvent)
+                  .options(joinedload(PlayerEvent.match).joinedload(Match.home_team),
+                           joinedload(PlayerEvent.match).joinedload(Match.away_team))
+                  .filter(PlayerEvent.player_id == player_id)
+                  .join(Match, PlayerEvent.match_id == Match.id)
+                  .order_by(Match.date.desc(), Match.id.desc(), PlayerEvent.id.desc())
+                  .limit(limit).all())
+
+        out = []
+        for ev in events:
+            match = ev.match
+            home, away = (match.home_team, match.away_team) if match else (None, None)
+            out.append({
+                'id': ev.id,
+                # .name ('GOAL'), matching PlayerEvent.to_dict — NOT .value.
+                'event_type': ev.event_type.name if ev.event_type else None,
+                'minute': ev.minute,
+                'match_id': ev.match_id,
+                'match_date': match.date.isoformat() if match and match.date else None,
+                'home_team_id': home.id if home else None,
+                'home_team_name': home.name if home else None,
+                'away_team_id': away.id if away else None,
+                'away_team_name': away.name if away else None,
+            })
+
+        return jsonify({
+            'player_id': player_id,
+            'player_name': player.name,
+            'limit': limit,
+            'limit_cap': EVENTS_LIMIT_CAP,
+            # Total across ALL events, so the client can say "showing 50 of 112"
+            # rather than implying the capped page is everything.
+            'total': total,
+            'events': out,
+        }), 200
+
+
 @mobile_api_v2.route('/players/<int:player_id>/team-history', methods=['GET'])
 @jwt_required()
 def get_player_team_history(player_id: int):

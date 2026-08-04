@@ -249,8 +249,21 @@ def db(_database, app):
             'media_usage', 'site_settings', 'form_definition', 'form_submission',
             'redirect_rule', 'media_asset', 'site_page', 'news_post', 'faq',
             'league_events', 'admin_config',
-            'admin_audit_log', 'audit_logs', 'stat_change_logs', 'player_stat_audits',
+            # ⚠️ Every DELETE here is wrapped in `except: pass`, so a MISSPELLED
+            # table name is a silent no-op that looks exactly like a clean
+            # teardown. 'player_stat_audits' was one -- the real table is
+            # singular -- so audit rows survived every test that wrote one.
+            'admin_audit_log', 'audit_logs', 'stat_change_logs', 'player_stat_audit',
             'player_season_stats', 'player_career_stats',
+            # Individual match events. Left out, a player's goals survived into
+            # the next test on a REUSED player_id, so /players/<id>/events
+            # returned another test's history and its own assertions passed or
+            # failed depending on execution order.
+            'player_event',
+            # Pub League orders + their line items and claims. Same leak: an
+            # order assigned to player_id 1 in one test came back as "this
+            # person's order history" in the next one.
+            'pub_league_order_claim', 'pub_league_order_line_item', 'pub_league_order',
             'match_events', 'sub_requests', 'availability', 'match_predictions',
             'mls_matches', 'match_dates',
             'points_event_award', 'points_event_type',

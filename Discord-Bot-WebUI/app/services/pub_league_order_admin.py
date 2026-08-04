@@ -285,6 +285,100 @@ def get_order(session, order_id):
     return {'success': True, 'order': payload}, 200
 
 
+def player_orders(session, player_id):
+    """Every order this person is on — as BUYER, as pass HOLDER, or both.
+
+    The only route into a person's purchase history used to be the desk's
+    free-text search over ``customer_name`` / ``customer_email`` /
+    ``woo_order_id``, which happily returns a DIFFERENT human with the same
+    name. Presenting that as "their orders" is exactly how a pass gets linked to
+    the wrong person, so this resolves by id instead.
+
+    ⚠️ The buyer is often not the holder. ``customer_*`` is who paid;
+    ``assigned_player_id`` is who holds the pass. An order where she paid for her
+    partner and an order where she holds the pass lead to OPPOSITE actions at the
+    desk, so each order carries ``relationship``:
+
+        'buyer' | 'holder' | 'buyer_and_holder'
+
+    ⚠️ NO season scope. ``list_orders`` scopes to the current season because an
+    unbounded desk list is unusable; on ONE person, last season's order is
+    precisely what an admin is asking about. Filtering here would answer "they
+    bought nothing", which is a different and wrong fact.
+
+    Empty is ``200`` with ``orders: []`` — never a 404. A bodyless 404 is read by
+    the client as "endpoint not deployed" and hides the section; a 404 WITH a
+    body is shown as a real error, which "this person never bought anything"
+    is not.
+    """
+    player = (session.query(Player).options(joinedload(Player.user))
+              .filter_by(id=player_id).first())
+    if not player:
+        return _err('Player not found', 404)
+
+    user = player.user
+    email = (getattr(user, 'email', None) or '').strip().lower() if user else ''
+
+    # Holder: they are assigned a pass on the order.
+    holder_ids = {
+        oid for (oid,) in session.query(PubLeagueOrderLineItem.order_id)
+        .filter(PubLeagueOrderLineItem.assigned_player_id == player.id).distinct()
+    }
+
+    # Buyer: the order's primary user IS them, or it was billed to their email.
+    # Both, because primary_user_id is only set once an account is resolved —
+    # a guest checkout that was never linked still carries only the email.
+    buyer_ids = set()
+    buyer_clauses = []
+    if user is not None:
+        buyer_clauses.append(PubLeagueOrder.primary_user_id == user.id)
+    if email:
+        buyer_clauses.append(func.lower(PubLeagueOrder.customer_email) == email)
+    if buyer_clauses:
+        buyer_ids = {
+            oid for (oid,) in session.query(PubLeagueOrder.id)
+            .filter(or_(*buyer_clauses)).distinct()
+        }
+
+    order_ids = holder_ids | buyer_ids
+    if not order_ids:
+        return {'success': True, 'player_id': player.id,
+                'player_name': player.name, 'orders': []}, 200
+
+    orders = (session.query(PubLeagueOrder)
+              .options(joinedload(PubLeagueOrder.primary_user))
+              .filter(PubLeagueOrder.id.in_(order_ids))
+              # Newest first, matching the desk. id breaks ties on the same
+              # created_at, which bulk-imported orders genuinely share.
+              .order_by(PubLeagueOrder.created_at.desc(), PubLeagueOrder.id.desc())
+              .all())
+
+    # One query for every line item rather than N lazy loads — `line_items` is
+    # lazy='dynamic', and transaction HOLD TIME is the scarce resource here.
+    items_by_order, claims_by_id = {}, {}
+    li_rows = (session.query(PubLeagueOrderLineItem)
+               .options(joinedload(PubLeagueOrderLineItem.assigned_player))
+               .filter(PubLeagueOrderLineItem.order_id.in_(order_ids))
+               .order_by(PubLeagueOrderLineItem.id).all())
+    for li in li_rows:
+        items_by_order.setdefault(li.order_id, []).append(li)
+    claim_ids = [li.claim_id for li in li_rows if li.claim_id]
+    if claim_ids:
+        claims_by_id = {c.id: c for c in session.query(PubLeagueOrderClaim)
+                        .filter(PubLeagueOrderClaim.id.in_(claim_ids)).all()}
+
+    out = []
+    for o in orders:
+        payload = _serialize_order(o, items_by_order.get(o.id, []), claims_by_id)
+        is_buyer, is_holder = o.id in buyer_ids, o.id in holder_ids
+        payload['relationship'] = ('buyer_and_holder' if is_buyer and is_holder
+                                   else 'buyer' if is_buyer else 'holder')
+        out.append(payload)
+
+    return {'success': True, 'player_id': player.id,
+            'player_name': player.name, 'orders': out}, 200
+
+
 def _current_season_types():
     """Season types that count as "this season" across every pub-league program.
 
@@ -673,6 +767,351 @@ def refresh_order(order_id, actor_id):
     return {'success': True,
             'message': 'Order data refreshed from WooCommerce',
             'order': order.to_dict()}, 200
+
+
+def update_line_item(line_item_id, division=None, jersey_size=None,
+                     actor_id=None, order_id=None):
+    """Change a line item's division and/or jersey size.
+
+    Both fields are optional — ``None`` means "leave it alone", ``''`` means
+    "clear it". That distinction is the whole contract, so neither is coerced.
+
+    ⚠️ DIVISION VOCABULARY: validated against ``_division_names()``, the
+    REGISTRY-driven list this same module already uses for the division filter —
+    not the literal ``['Classic', 'Premier', '']`` the web route used to carry.
+    That literal predates ECS FC and Summer Sprint, so re-divisioning a line item
+    to any newer program 400'd with "Invalid division". Hardcoding a division
+    list is the identical mistake that made Summer Sprint's orders invisible
+    (project_summer_sprint_orders_invisible); the registry is the one source.
+
+    The submitted value is matched case-insensitively and stored in the
+    registry's OWN casing, because ``extract_pub_league_items`` writes
+    ``program.league_name`` and a 'premier' row would not match a 'Premier'
+    filter.
+
+    A no-op is a SUCCESS with 'No changes made' — the caller must not report it
+    as a change.
+    """
+    from app.admin.pub_league_orders_routes import _division_names
+
+    if not line_item_id:
+        return _err('Missing line_item_id')
+
+    line_item, err = _load_line_item(db.session, line_item_id, order_id)
+    if err:
+        return err
+
+    changes = []
+
+    if division is not None:
+        division = str(division).strip()
+        if division:
+            names = _division_names()
+            match = next((n for n in names if n.lower() == division.lower()), None)
+            if match is None:
+                return _err(
+                    f"Division must be one of: {', '.join(names)} — or blank to "
+                    f"clear it.",
+                    valid_divisions=names)
+            division = match  # registry casing, not whatever the client sent
+        if division != (line_item.division or ''):
+            old_division = line_item.division
+            line_item.division = division or None
+            changes.append(f"division: {old_division or 'None'} → {division or 'None'}")
+
+    if jersey_size is not None:
+        jersey_size = str(jersey_size).strip()
+        if jersey_size != (line_item.jersey_size or ''):
+            old_size = line_item.jersey_size
+            line_item.jersey_size = jersey_size or None
+            changes.append(f"size: {old_size or 'None'} → {jersey_size or 'None'}")
+
+    if not changes:
+        return {'success': True, 'message': 'No changes made', 'changed': False}, 200
+
+    db.session.commit()
+    logger.info(f"Admin {actor_id} updated line item {line_item_id}: {', '.join(changes)}")
+
+    return {'success': True, 'changed': True,
+            'message': f'Updated: {", ".join(changes)}',
+            'line_item': _serialize_line_item(line_item)}, 200
+
+
+def delete_order(order_id, actor_id, confirm_order_number=None, require_confirm=False):
+    """Delete an order and ALL of its line items and claims.
+
+    The most destructive action on the desk, and the only one with no undo — the
+    order can be re-imported from WooCommerce, but every manual link, claim and
+    wallet pass on it is gone.
+
+    ⚠️ Refuses with 409 while any line item still holds a ``wallet_pass_id``.
+    Deleting the row behind a live pass leaves a pass sitting in someone's Apple
+    Wallet with nothing backing it, and nothing later reconciles that. Unassign
+    the pass first — that path clears ``wallet_pass_id`` deliberately.
+
+    ``require_confirm`` is for clients where a mis-tap is cheap (a phone): the
+    caller must echo the order number back in ``confirm_order_number`` or this
+    400s. The web page runs a two-step Swal confirm instead and passes False, so
+    its existing behaviour is unchanged.
+    """
+    if not order_id:
+        return _err('Missing order_id')
+
+    order = db.session.query(PubLeagueOrder).filter_by(id=order_id).first()
+    if not order:
+        return _err('Order not found', 404)
+
+    woo_order_id = order.woo_order_id
+
+    if require_confirm:
+        supplied = str(confirm_order_number or '').strip().lstrip('#')
+        if not supplied:
+            return _err(f'Type order number {woo_order_id} to confirm this deletion.',
+                        expected_order_number=str(woo_order_id))
+        if supplied != str(woo_order_id):
+            return _err(
+                f"That's not this order's number. Type {woo_order_id} to confirm.",
+                expected_order_number=str(woo_order_id))
+
+    line_items = (db.session.query(PubLeagueOrderLineItem)
+                  .filter_by(order_id=order_id).all())
+
+    live_passes = [li for li in line_items if li.wallet_pass_id]
+    if live_passes:
+        holders = sorted({(li.assigned_player.name if li.assigned_player else None)
+                          or f'line item {li.id}' for li in live_passes})
+        return _err(
+            f"{len(live_passes)} pass{'es are' if len(live_passes) != 1 else ' is'} "
+            f"still live on this order ({', '.join(holders)}). Unassign "
+            f"{'them' if len(live_passes) != 1 else 'it'} first — deleting now "
+            f"would leave a wallet pass with nothing behind it.",
+            409, wallet_pass_line_item_ids=[li.id for li in live_passes])
+
+    claim_count = (db.session.query(PubLeagueOrderClaim)
+                   .filter_by(order_id=order_id).delete(synchronize_session=False))
+    line_item_count = (db.session.query(PubLeagueOrderLineItem)
+                       .filter_by(order_id=order_id).delete(synchronize_session=False))
+    db.session.delete(order)
+    db.session.commit()
+
+    logger.info(f"Admin {actor_id} deleted pub league order {order_id} "
+                f"(WooCommerce #{woo_order_id}): {line_item_count} line items, "
+                f"{claim_count} claims")
+
+    return {
+        'success': True,
+        'message': f'Order #{woo_order_id} deleted',
+        # Stated, not implied: an admin who expected one pass and destroyed
+        # three needs to find that out now, not next Thursday.
+        'deleted': {'line_items': int(line_item_count or 0),
+                    'claims': int(claim_count or 0)},
+    }, 200
+
+
+def import_order(woo_order_id, actor_id):
+    """Pull ONE WooCommerce order in by its Woo number.
+
+    The recovery path for a sale that was never ingested at all. The Woo webhook
+    creates a ``PubLeagueOrder`` only ``if pub_league_items`` — so a purchase made
+    before its program was in the registry (or while it was still
+    ``is_active = FALSE``) produced no row, no ERROR log, and a 200 back to
+    WooCommerce. The sale simply did not exist here, and no other admin action
+    could bring it in: every one of them starts from an order row.
+
+    Idempotent — ``create_or_get_order`` returns an existing row untouched — so
+    this is safe to retry and safe to run over a list of numbers. The response
+    says WHICH happened rather than reporting a no-op as an import.
+
+    ⚠️ SESSION: ``create_or_get_order`` writes on ``g.db_session``, not
+    ``db.session``. Reading on one and committing the other is the
+    silently-discarded-write bug (reference_two_sessions_lost_writes), so the
+    whole function stays on the session the service itself uses.
+    """
+    from app.pub_league.services import PubLeagueOrderService
+
+    raw = str(woo_order_id or '').strip().lstrip('#')
+    if not raw.isdigit():
+        return _err('Enter a WooCommerce order number.')
+    woo_id = int(raw)
+
+    session = _request_session()
+
+    existing = session.query(PubLeagueOrder).filter_by(woo_order_id=woo_id).first()
+    if existing:
+        payload, status = get_order(session, existing.id)
+        return {
+            'success': True,
+            'imported': False,
+            'already_existed': True,
+            'message': f'Order #{woo_id} is already here.',
+            'order_id': existing.id,
+            'order': payload.get('order') if status == 200 else None,
+        }, 200
+
+    order_data = PubLeagueOrderService.fetch_order_from_woocommerce(woo_id)
+    if not order_data:
+        # fetch_order_from_woocommerce ALSO returns None for an order that
+        # exists but is not paid, so say both things rather than asserting the
+        # order does not exist.
+        return _err(
+            f'WooCommerce returned nothing for #{woo_id}. Check the number, and '
+            f'that the order is paid (processing or completed).', 404)
+
+    order = PubLeagueOrderService.create_or_get_order(woo_id, order_data)
+    session.commit()
+
+    payload, status = get_order(session, order.id)
+    serialized = payload.get('order') if status == 200 else None
+
+    # total_passes == 0 means the products on this order matched no program —
+    # the ONLY outcome that still needs a human, so it is a distinct result
+    # rather than a cheerful "imported".
+    if not order.total_passes:
+        return {
+            'success': True,
+            'imported': True,
+            'no_passes': True,
+            'message': f'Order #{woo_id} was imported, but none of its products '
+                       f'matched a program — nobody was granted a pass. Check the '
+                       f"program's woo_name_pattern against the product title.",
+            'order_id': order.id,
+            'order': serialized,
+        }, 200
+
+    logger.info(f"Admin {actor_id} imported Woo order {woo_id} "
+                f"({order.total_passes} passes)")
+    return {
+        'success': True,
+        'imported': True,
+        'message': f'Imported order #{woo_id} — {order.total_passes} pass'
+                   f'{"es" if order.total_passes != 1 else ""}.',
+        'order_id': order.id,
+        'order': serialized,
+    }, 200
+
+
+def scan_missing_orders(days=180, actor_id=None):
+    """Paid Woo orders that contain league passes but are NOT here.
+
+    The companion to ``import_order``: it answers "which order numbers do I type
+    in?", which otherwise means reconciling WooCommerce against this system by
+    hand. It exists because a missed order is invisible from BOTH ends (see
+    ``import_order``).
+
+    READ-ONLY on purpose. It writes nothing and imports nothing — an admin sees
+    the list, recognises the names, and imports deliberately. A scan that
+    silently bulk-created orders would be very hard to undo if the parser were
+    ever wrong about what counts as a league product.
+
+    Re-runs the CURRENT parser over the LIVE order data, so it reports what would
+    happen if these were ingested today, not what happened then.
+    """
+    from flask import current_app
+    from woocommerce import API
+    from app.pub_league.services import PubLeagueOrderService
+    from datetime import timedelta
+
+    try:
+        days = int(days or 180)
+    except (TypeError, ValueError):
+        days = 180
+    days = max(1, min(days, 730))
+
+    # Hard ceilings, not tuning knobs. Each page is one HTTP call and this runs
+    # inside a web request; unbounded paging is a hung worker.
+    per_page, max_pages = 100, 5
+
+    # Release the transaction BEFORE the network calls — same rule as
+    # fetch_order_from_woocommerce. PgBouncer runs transaction pooling with a 30s
+    # idle-transaction timeout, so holding one open across several WooCommerce
+    # round trips gets the connection killed under us.
+    from flask import g
+    for _sess in (getattr(g, 'db_session', None), db.session):
+        if _sess is None:
+            continue
+        try:
+            if _sess.new or _sess.dirty or _sess.deleted:
+                continue
+            _sess.commit()
+        except Exception:
+            logger.debug("Could not release transaction before Woo scan", exc_info=True)
+
+    wcapi = API(
+        url=current_app.config['WOO_API_URL'],
+        consumer_key=current_app.config['WOO_CONSUMER_KEY'],
+        consumer_secret=current_app.config['WOO_CONSUMER_SECRET'],
+        version="wc/v3",
+        timeout=15,
+    )
+
+    after = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%dT%H:%M:%S')
+    fetched, truncated, scanned_pages = [], False, 0
+    for page in range(1, max_pages + 1):
+        resp = wcapi.get("orders", params={
+            # 'any' then filtered below: wc/v3 wants repeated status[] params for
+            # a multi-status filter, which does not survive a plain dict.
+            'status': 'any', 'after': after,
+            'page': page, 'per_page': per_page, 'orderby': 'date', 'order': 'desc',
+        })
+        resp.raise_for_status()
+        batch = resp.json()
+        scanned_pages = page
+        if not isinstance(batch, list) or not batch:
+            break
+        fetched.extend(batch)
+        if len(batch) < per_page:
+            break
+        if page == max_pages:
+            truncated = True
+
+    # Only paid orders can be ingested — fetch_order_from_woocommerce rejects
+    # anything else, so listing them would produce import failures.
+    paid = [o for o in fetched if o.get('status') in ('processing', 'completed')]
+
+    candidates = {}
+    for o in paid:
+        woo_id = o.get('id')
+        if woo_id is None:
+            continue
+        items = PubLeagueOrderService.extract_pub_league_items(o)
+        if not items:
+            continue
+        billing = o.get('billing') or {}
+        candidates[int(woo_id)] = {
+            'woo_order_id': int(woo_id),
+            'customer_name': f"{billing.get('first_name', '')} "
+                             f"{billing.get('last_name', '')}".strip(),
+            'customer_email': billing.get('email', ''),
+            'date': (o.get('date_paid') or o.get('date_created') or '')[:10],
+            'passes': len(items),
+            'divisions': ', '.join(sorted({i['division'] for i in items
+                                           if i.get('division')})),
+        }
+
+    known = set()
+    if candidates:
+        session = _request_session()
+        known = {
+            wid for (wid,) in session.query(PubLeagueOrder.woo_order_id)
+            .filter(PubLeagueOrder.woo_order_id.in_(list(candidates))).all()
+        }
+
+    missing = [candidates[w] for w in sorted(candidates) if w not in known]
+    missing.sort(key=lambda m: m['date'], reverse=True)
+
+    logger.info(f"Admin {actor_id} scanned {len(paid)} paid Woo orders "
+                f"({days}d): {len(candidates)} with passes, {len(missing)} missing")
+
+    return {
+        'success': True,
+        'missing': missing,
+        'scanned': len(paid),
+        'with_passes': len(candidates),
+        # Surfaced so "0 missing" can never quietly mean "we stopped looking".
+        'truncated': truncated,
+        'scanned_pages': scanned_pages,
+        'days': days,
+    }, 200
 
 
 # ---------------------------------------------------------------------------

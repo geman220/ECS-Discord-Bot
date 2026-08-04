@@ -12,12 +12,11 @@ Admin routes for managing Pub League WooCommerce orders, including:
 import io
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 
 from flask import (
     Blueprint, render_template, request, jsonify, url_for, send_file, abort, redirect, g,
-    current_app,
 )
 from flask_login import login_required, current_user
 from sqlalchemy import desc, asc, or_, and_, func, distinct, exists, nullslast, select
@@ -879,6 +878,16 @@ def order_detail(order_id):
             r[0] for r in db.session.query(Player.jersey_size).distinct().all() if r[0]
         } | {li.jersey_size for li in line_items if li.jersey_size})
 
+        # Every division a line item can legitimately hold, from the REGISTRY —
+        # the same list api_update_line_item now validates against. The dropdown
+        # was a hardcoded Classic/Premier pair, so even once the server accepts a
+        # newer program there was no way to PICK one. Fold in whatever this
+        # order's items already carry, so an existing value is never silently
+        # unselectable (which reads as "None" and clears it on save).
+        division_choices = sorted(
+            set(_division_names()) | {li.division for li in line_items if li.division}
+        )
+
         return render_template(
             'admin/pub_league_order_detail_flowbite.html',
             title=f'Order #{order.woo_order_id}',
@@ -887,6 +896,7 @@ def order_detail(order_id):
             claims=claims,
             user_roles=user_roles,
             jersey_size_choices=jersey_size_choices,
+            division_choices=division_choices,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
             PubLeagueLineItemStatus=PubLeagueLineItemStatus,
             PubLeagueClaimStatus=PubLeagueClaimStatus
@@ -1097,128 +1107,16 @@ def api_refresh_order():
 def api_scan_missing_orders():
     """List paid WooCommerce orders that contain league passes but are NOT here.
 
-    The companion to `api_import_order`: it answers "which order numbers do I
-    type in?", which otherwise means reconciling WooCommerce against this page
-    by hand.
-
-    It exists because a missed order is invisible from BOTH ends. The Woo
-    webhook creates a `PubLeagueOrder` only when a line item resolves to a
-    program, so anything bought before its program was registered produced no
-    row, no ERROR log, and a 200 back to WooCommerce. Nothing in this app knew
-    the sale had happened, so nothing could report it as missing.
-
-    READ-ONLY on purpose. It writes nothing and imports nothing — an admin sees
-    the list, recognises the names, and imports deliberately. A scan that
-    silently bulk-created orders would be very hard to undo if the parser were
-    ever wrong about what counts as a league product.
-
-    Re-runs the CURRENT parser over the LIVE order data, so it reports what
-    would happen if these were ingested today, not what happened then.
+    Body in `pub_league_order_admin.scan_missing_orders` — including the page
+    ceiling and the `truncated` flag, without which "0 missing" can quietly mean
+    "we stopped looking".
     """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-
     try:
-        days = int(data.get('days') or 180)
-    except (TypeError, ValueError):
-        days = 180
-    days = max(1, min(days, 730))
-
-    # Hard ceilings, not tuning knobs. Each page is one 5s-timeout HTTP call and
-    # this runs inside a web request; unbounded paging is a hung worker.
-    per_page, max_pages = 100, 5
-
-    try:
-        from woocommerce import API
-        from app.pub_league.services import PubLeagueOrderService
-
-        # Release the transaction BEFORE the network calls — same rule as
-        # fetch_order_from_woocommerce. PgBouncer runs transaction pooling with
-        # a 30s idle-transaction timeout, so holding one open across several
-        # WooCommerce round trips gets the connection killed under us.
-        for _sess in (getattr(g, 'db_session', None), db.session):
-            if _sess is None:
-                continue
-            try:
-                if _sess.new or _sess.dirty or _sess.deleted:
-                    continue
-                _sess.commit()
-            except Exception:
-                logger.debug("Could not release transaction before Woo scan", exc_info=True)
-
-        wcapi = API(
-            url=current_app.config['WOO_API_URL'],
-            consumer_key=current_app.config['WOO_CONSUMER_KEY'],
-            consumer_secret=current_app.config['WOO_CONSUMER_SECRET'],
-            version="wc/v3",
-            timeout=15,
-        )
-
-        after = (datetime.utcnow() - timedelta(days=days)).strftime('%Y-%m-%dT%H:%M:%S')
-        fetched, truncated = [], False
-        for page in range(1, max_pages + 1):
-            resp = wcapi.get("orders", params={
-                # 'any' then filtered below: wc/v3 wants repeated status[] params
-                # for a multi-status filter, which does not survive a plain dict.
-                'status': 'any', 'after': after,
-                'page': page, 'per_page': per_page, 'orderby': 'date', 'order': 'desc',
-            })
-            resp.raise_for_status()
-            batch = resp.json()
-            if not isinstance(batch, list) or not batch:
-                break
-            fetched.extend(batch)
-            if len(batch) < per_page:
-                break
-            if page == max_pages:
-                truncated = True
-
-        # Only paid orders can be ingested — fetch_order_from_woocommerce
-        # rejects anything else, so listing them would produce import failures.
-        paid = [o for o in fetched if o.get('status') in ('processing', 'completed')]
-
-        candidates = {}
-        for o in paid:
-            woo_id = o.get('id')
-            if woo_id is None:
-                continue
-            items = PubLeagueOrderService.extract_pub_league_items(o)
-            if not items:
-                continue
-            billing = o.get('billing') or {}
-            candidates[int(woo_id)] = {
-                'woo_order_id': int(woo_id),
-                'customer_name': f"{billing.get('first_name', '')} {billing.get('last_name', '')}".strip(),
-                'customer_email': billing.get('email', ''),
-                'date': (o.get('date_paid') or o.get('date_created') or '')[:10],
-                'passes': len(items),
-                'divisions': ', '.join(sorted({i['division'] for i in items if i.get('division')})),
-            }
-
-        known = set()
-        if candidates:
-            session = getattr(g, 'db_session', db.session)
-            known = {
-                wid for (wid,) in session.query(PubLeagueOrder.woo_order_id)
-                .filter(PubLeagueOrder.woo_order_id.in_(list(candidates)))
-                .all()
-            }
-
-        missing = [candidates[w] for w in sorted(candidates) if w not in known]
-        missing.sort(key=lambda m: m['date'], reverse=True)
-
-        logger.info(f"Admin {current_user.id} scanned {len(paid)} paid Woo orders "
-                    f"({days}d): {len(candidates)} with passes, {len(missing)} missing")
-
-        return jsonify({
-            'success': True,
-            'missing': missing,
-            'scanned': len(paid),
-            'with_passes': len(candidates),
-            # Surfaced so "0 missing" can never quietly mean "we stopped looking".
-            'truncated': truncated,
-            'days': days,
-        })
-
+        payload, status = order_admin.scan_missing_orders(
+            days=data.get('days'), actor_id=current_user.id)
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error scanning WooCommerce for missing orders: {e}", exc_info=True)
         return jsonify({'success': False,
@@ -1246,72 +1144,28 @@ def api_import_order():
     against the live Woo order fills the gap. Idempotent: `create_or_get_order`
     returns the existing row untouched if the order is already here, so this is
     safe to retry and safe to run over a list of order numbers.
+
+    Body in `pub_league_order_admin.import_order` — including the session rule
+    (`create_or_get_order` writes on `g.db_session`, not `db.session`). This
+    route only adds `order_url`, which is a web concern the phone has no use for.
     """
+    from app.services import pub_league_order_admin as order_admin
     data = request.get_json(silent=True) or {}
-    raw = str(data.get('woo_order_id') or '').strip().lstrip('#')
-
-    if not raw.isdigit():
-        return jsonify({'success': False, 'error': 'Enter a WooCommerce order number.'}), 400
-    woo_order_id = int(raw)
-
-    # ⚠️ `create_or_get_order` writes on `g.db_session`, not `db.session` — this
-    # app has two independent sessionmakers. Reading on one and committing the
-    # other is the silently-discarded-write bug, so do the whole thing on the
-    # session the service itself will use.
-    session = getattr(g, 'db_session', db.session)
 
     try:
-        from app.pub_league.services import PubLeagueOrderService
+        payload, status = order_admin.import_order(
+            woo_order_id=data.get('woo_order_id'), actor_id=current_user.id)
 
-        existing = session.query(PubLeagueOrder).filter_by(woo_order_id=woo_order_id).first()
-        if existing:
-            return jsonify({
-                'success': True,
-                'already_existed': True,
-                'message': f'Order #{woo_order_id} is already here.',
-                'order_url': url_for('pub_league_orders_admin.order_detail', order_id=existing.id),
-            })
-
-        order_data = PubLeagueOrderService.fetch_order_from_woocommerce(woo_order_id)
-        if not order_data:
-            # fetch_order_from_woocommerce also returns None for an order that
-            # exists but is not paid (it requires processing/completed), so say
-            # both things rather than asserting the order does not exist.
-            return jsonify({
-                'success': False,
-                'error': f'WooCommerce returned nothing for #{woo_order_id}. '
-                         'Check the number, and that the order is paid '
-                         '(processing or completed).'
-            }), 404
-
-        order = PubLeagueOrderService.create_or_get_order(woo_order_id, order_data)
-        session.commit()
-
-        # total_passes == 0 means the products on this order matched no program.
-        # That is the ONLY outcome that still needs a human, so it is reported as
-        # a distinct, non-silent result instead of a cheerful "imported".
-        if not order.total_passes:
-            return jsonify({
-                'success': True,
-                'no_passes': True,
-                'message': f'Order #{woo_order_id} was imported, but none of its '
-                           'products matched a program — nobody was granted a pass. '
-                           "Check the program's woo_name_pattern against the product title.",
-                'order_url': url_for('pub_league_orders_admin.order_detail', order_id=order.id),
-            })
-
-        logger.info(f"Admin {current_user.id} imported Woo order {woo_order_id} "
-                    f"({order.total_passes} passes)")
-        return jsonify({
-            'success': True,
-            'message': f'Imported order #{woo_order_id} — {order.total_passes} pass'
-                       f'{"es" if order.total_passes != 1 else ""}.',
-            'order_url': url_for('pub_league_orders_admin.order_detail', order_id=order.id),
-        })
+        # The list page redirects to the imported order on success.
+        if payload.get('order_id'):
+            payload['order_url'] = url_for('pub_league_orders_admin.order_detail',
+                                           order_id=payload['order_id'])
+        return jsonify(payload), status
 
     except Exception as e:
-        logger.error(f"Error importing Woo order {woo_order_id}: {e}", exc_info=True)
-        session.rollback()
+        logger.error(f"Error importing Woo order {data.get('woo_order_id')}: {e}",
+                     exc_info=True)
+        getattr(g, 'db_session', db.session).rollback()
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
@@ -1319,38 +1173,23 @@ def api_import_order():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_delete_order():
-    """Delete an entire Pub League order and all its line items and claims."""
-    data = request.get_json(silent=True) or {}
-    order_id = data.get('order_id')
+    """Delete an entire Pub League order and all its line items and claims.
 
-    if not order_id:
-        return jsonify({'success': False, 'error': 'Missing order_id'}), 400
+    Body in `pub_league_order_admin.delete_order` — including the 409 refusal
+    while a line item still holds a live wallet pass, which this route did NOT
+    have before: it would happily delete the row behind a pass already sitting
+    in someone's Apple Wallet.
+
+    `require_confirm=False` because this page runs its own two-step Swal confirm.
+    The phone passes True and must echo the order number back.
+    """
+    from app.services import pub_league_order_admin as order_admin
+    data = request.get_json(silent=True) or {}
 
     try:
-        order = db.session.query(PubLeagueOrder).filter_by(id=order_id).first()
-
-        if not order:
-            return jsonify({'success': False, 'error': 'Order not found'}), 404
-
-        woo_order_id = order.woo_order_id
-
-        # Delete all claims for this order
-        db.session.query(PubLeagueOrderClaim).filter_by(order_id=order_id).delete()
-
-        # Delete all line items for this order
-        db.session.query(PubLeagueOrderLineItem).filter_by(order_id=order_id).delete()
-
-        # Delete the order itself
-        db.session.delete(order)
-        db.session.commit()
-
-        logger.info(f"Admin {current_user.id} deleted pub league order {order_id} (WooCommerce #{woo_order_id})")
-
-        return jsonify({
-            'success': True,
-            'message': f'Order #{woo_order_id} deleted successfully'
-        })
-
+        payload, status = order_admin.delete_order(
+            order_id=data.get('order_id'), actor_id=current_user.id)
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error deleting order: {e}", exc_info=True)
         db.session.rollback()
@@ -1382,47 +1221,24 @@ def api_unassign_pass():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_update_line_item():
-    """Update a line item's division or jersey size."""
-    data = request.get_json(silent=True) or {}
-    line_item_id = data.get('line_item_id')
-    division = data.get('division')
-    jersey_size = data.get('jersey_size')
+    """Update a line item's division or jersey size.
 
-    if not line_item_id:
-        return jsonify({'success': False, 'error': 'Missing line_item_id'}), 400
+    Body in `pub_league_order_admin.update_line_item`. The division whitelist
+    there is REGISTRY-driven; this route used to validate against a literal
+    `['Classic', 'Premier', '']`, which predates ECS FC and Summer Sprint and so
+    rejected any attempt to re-division a line item to a newer program.
+    """
+    from app.services import pub_league_order_admin as order_admin
+    data = request.get_json(silent=True) or {}
 
     try:
-        line_item = db.session.query(PubLeagueOrderLineItem).filter_by(id=line_item_id).first()
-
-        if not line_item:
-            return jsonify({'success': False, 'error': 'Line item not found'}), 404
-
-        changes = []
-
-        if division is not None and division != line_item.division:
-            if division not in ['Classic', 'Premier', '']:
-                return jsonify({'success': False, 'error': 'Invalid division'}), 400
-            old_division = line_item.division
-            line_item.division = division if division else None
-            changes.append(f"division: {old_division} → {division or 'None'}")
-
-        if jersey_size is not None and jersey_size != line_item.jersey_size:
-            old_size = line_item.jersey_size
-            line_item.jersey_size = jersey_size if jersey_size else None
-            changes.append(f"size: {old_size} → {jersey_size or 'None'}")
-
-        if not changes:
-            return jsonify({'success': True, 'message': 'No changes made'})
-
-        db.session.commit()
-
-        logger.info(f"Admin {current_user.id} updated line item {line_item_id}: {', '.join(changes)}")
-
-        return jsonify({
-            'success': True,
-            'message': f'Updated: {", ".join(changes)}'
-        })
-
+        payload, status = order_admin.update_line_item(
+            line_item_id=data.get('line_item_id'),
+            division=data.get('division'),
+            jersey_size=data.get('jersey_size'),
+            actor_id=current_user.id,
+        )
+        return jsonify(payload), status
     except Exception as e:
         logger.error(f"Error updating line item: {e}", exc_info=True)
         db.session.rollback()

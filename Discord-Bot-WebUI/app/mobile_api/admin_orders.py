@@ -7,6 +7,12 @@ The order desk on a phone: find the order someone is quoting at the door, link
 their pass to the right person, unassign a mis-link, chase a claim email, and
 clear the limbo a paid-but-unapproved buyer sits in.
 
+Also the Player Hub's Orders section: ``GET /admin/players/<id>/orders`` answers
+"what did this person buy, and which pass do they hold?" by ID — the desk's
+free-text search matches customer_name, so it returns same-named strangers, and
+presenting THAT as an order history is how a pass gets linked to the wrong
+person.
+
 Every handler is a thin shell: parse the body, resolve the JWT actor, call
 ``app/services/pub_league_order_admin.py``, jsonify. That service holds the ONLY
 copy of each mutation — the web handlers in ``app/admin/pub_league_orders_routes.py``
@@ -131,6 +137,93 @@ def admin_orders_search_players():
         return _fail('order player search', exc)
 
 
+@mobile_api_v2.route('/admin/players/<int:player_id>/orders', methods=['GET'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_player_orders(player_id: int):
+    """Every order this person is on, as BUYER or as pass HOLDER.
+
+    Resolved by id, NOT by the desk's free-text search. That search matches
+    customer_name / customer_email / woo_order_id, so it will happily return a
+    different human with the same name — presenting that as "their orders" is
+    how a pass gets linked to the wrong person.
+
+    Each order carries ``relationship``: 'buyer' | 'holder' | 'buyer_and_holder'.
+    "She paid for her partner" and "she holds this pass" lead to opposite actions
+    at the desk, so the client must be able to tell them apart.
+
+    ⚠️ NOT season-scoped, unlike the desk list. On one person, last season's
+    order is exactly what an admin is asking about.
+
+    A person with no orders is 200 with ``orders: []`` — never a 404, which the
+    client would read as "this endpoint isn't deployed" and hide the section.
+    """
+    try:
+        with managed_session() as session:
+            payload, status = order_admin.player_orders(session, player_id)
+        return jsonify(payload), status
+    except Exception as exc:
+        return _fail(f'player orders {player_id}', exc)
+
+
+@mobile_api_v2.route('/admin/pub-league/orders/import', methods=['POST'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_order_import():
+    """Pull one WooCommerce order in by its number. Body: {"woo_order_id": "10421"}.
+
+    The recovery path for a sale the webhook never ingested at all. Idempotent —
+    ``imported`` says whether a row was actually created, so a re-run is not
+    reported as an import.
+
+    Declared BEFORE the ``<int:order_id>`` routes so the literal path wins.
+
+    ⚠️ Calls out to WooCommerce over HTTP inside the request.
+    """
+    data = _body()
+    try:
+        payload, status = order_admin.import_order(
+            woo_order_id=data.get('woo_order_id'), actor_id=_actor_id())
+        return jsonify(payload), status
+    except Exception as exc:
+        try:
+            from flask import g
+            getattr(g, 'db_session', db.session).rollback()
+        except Exception:
+            pass
+        return _fail('import order', exc)
+
+
+@mobile_api_v2.route('/admin/pub-league/orders/scan-missing', methods=['POST'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_orders_scan_missing():
+    """Paid Woo orders with league passes that are NOT here. Body: {"days": 180}.
+
+    READ-ONLY. It writes nothing and imports nothing — the admin recognises the
+    names and imports deliberately, because a scan that silently bulk-created
+    orders would be very hard to undo if the parser were ever wrong.
+
+    ``days`` is clamped to 1-730. ``truncated`` means the page ceiling was hit
+    and there may be more further back; the client MUST show it, or "nothing
+    missing" reads as all-clear when we simply stopped looking.
+
+    ⚠️ Several WooCommerce round trips inside one request — the slowest endpoint
+    in this module. Explicit action, never a poll.
+    """
+    data = _body()
+    try:
+        payload, status = order_admin.scan_missing_orders(
+            days=data.get('days'), actor_id=_actor_id())
+        return jsonify(payload), status
+    except Exception as exc:
+        logger.error(f"[MOBILE_API] scan missing orders failed: {exc}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': 'Could not reach WooCommerce or read its response.',
+        }), 502
+
+
 @mobile_api_v2.route('/admin/pub-league/orders/<int:order_id>', methods=['GET'])
 @jwt_required()
 @jwt_role_required(ADMIN_ROLES)
@@ -198,6 +291,75 @@ def admin_order_unassign(order_id: int):
     except Exception as exc:
         db.session.rollback()
         return _fail(f'unassign on order {order_id}', exc)
+
+
+@mobile_api_v2.route('/admin/pub-league/orders/<int:order_id>/line-item',
+                     methods=['POST'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_order_update_line_item(order_id: int):
+    """Change a line item's division / jersey size.
+
+    Body: {"line_item_id": 901, "division": "Classic", "jersey_size": "M"}
+
+    Both fields are OPTIONAL and the two empty values mean different things:
+    omitting a key leaves that field alone, sending ``""`` clears it. A client
+    that sends ``""`` for "unchanged" will wipe the value.
+
+    ``division`` is validated against the program REGISTRY, not a hardcoded
+    Classic/Premier pair — a 400 lists the valid names in ``valid_divisions``.
+
+    A no-op is ``200 {"success": true, "changed": false, "message": "No changes
+    made"}``. The app must not report that as a change.
+    """
+    data = _body()
+    try:
+        payload, status = order_admin.update_line_item(
+            line_item_id=data.get('line_item_id'),
+            # Passed through untouched: `None` (absent) and `''` (clear) are
+            # different instructions and the service depends on telling them apart.
+            division=data.get('division'),
+            jersey_size=data.get('jersey_size'),
+            actor_id=_actor_id(),
+            order_id=order_id,
+        )
+        return jsonify(payload), status
+    except Exception as exc:
+        db.session.rollback()
+        return _fail(f'update line item on order {order_id}', exc)
+
+
+@mobile_api_v2.route('/admin/pub-league/orders/<int:order_id>', methods=['DELETE'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_order_delete(order_id: int):
+    """Delete an order and ALL its line items and claims. NO UNDO.
+
+    Body: {"confirm_order_number": "10421"} — REQUIRED, and it must match this
+    order's WooCommerce number. A mistap on a phone must not be able to destroy
+    an order, so the number is typed back rather than merely tapped through.
+
+    Refuses with 409 while any line item still holds a live wallet pass:
+    deleting the row behind a pass leaves it sitting in someone's Apple Wallet
+    with nothing backing it. Unassign first.
+
+    On success ``deleted`` states what actually went, so an admin who expected
+    one pass and destroyed three finds out now.
+    """
+    data = _body()
+    try:
+        payload, status = order_admin.delete_order(
+            order_id=order_id,
+            actor_id=_actor_id(),
+            confirm_order_number=data.get('confirm_order_number'),
+            # The web page runs a two-step Swal confirm; a phone gets the typed
+            # echo instead.
+            require_confirm=True,
+        )
+        return jsonify(payload), status
+    except Exception as exc:
+        db.session.rollback()
+        return _fail(f'delete order {order_id}', exc)
 
 
 # ==================== claim mutations (keyed on claim_id) ====================
