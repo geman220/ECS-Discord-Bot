@@ -45,8 +45,22 @@ def init_pii_encryption():
     def email_getter(self):
         if self.encrypted_email:
             return get_decrypted_email(self)
-        return self._email
-    
+        # None, NOT `self._email`.
+        #
+        # There is no `_email` attribute on User -- there never was; the column
+        # is `encrypted_email`. So this branch raised
+        # `AttributeError: 'User' object has no attribute '_email'` for every
+        # user with no email on file, and this getter REPLACES the model's own
+        # hybrid property (init_pii_encryption runs from app/init/services.py on
+        # every startup), which returns None correctly. Any code doing the
+        # obvious `if user.email:` therefore blew up on exactly the users the
+        # test is meant to catch -- a guest checkout never linked to an account,
+        # a Discord signup that never supplied one.
+        #
+        # Returns what the property it shadows returns. Nothing else here needs
+        # to change.
+        return None
+
     def email_setter(self, value):
         set_encrypted_email(self, value)
     
