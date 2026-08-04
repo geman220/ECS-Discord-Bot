@@ -496,3 +496,66 @@ class TestDeleteOrder:
                           json={'confirm_order_number': '1'})
         assert r.status_code == 404
         assert r.get_json()['error'] == 'Order not found'
+
+    def test_cross_pointers_are_nulled_before_either_table_is_deleted(
+            self, client, db, app, admin):
+        """⚠️ `pub_league_order_line_item.claim_id` and
+        `pub_league_order_claim.line_item_id` point at EACH OTHER and NEITHER
+        foreign key declares an ondelete. On PostgreSQL there is therefore no
+        delete order that works: claims-first violates the first FK,
+        line-items-first violates the second. The web route this replaced deleted
+        claims first and so 500'd on every order that had a claim.
+
+        This asserts on the SQL actually emitted rather than on the outcome,
+        because SQLite runs with `PRAGMA foreign_keys` OFF by default — the
+        broken ordering passes here and fails in production, which is exactly how
+        it survived. Statement order is backend-independent.
+        """
+        order = _order(db)
+        li = _line_item(db, order)
+        claim = PubLeagueOrderClaim(
+            order_id=order.id, line_item_id=li.id, claim_token='claim-tok-fk',
+            recipient_email='friend@example.com',
+            status=PubLeagueClaimStatus.PENDING.value,
+            expires_at=datetime.utcnow() + timedelta(days=7))
+        db.session.add(claim)
+        db.session.flush()
+        li.claim_id = claim.id          # the cycle, both directions
+        db.session.flush()
+
+        from sqlalchemy import event
+        statements = []
+
+        def _record(conn, cursor, statement, params, context, executemany):
+            statements.append(' '.join(statement.split()).lower())
+
+        engine = db.session.get_bind()
+        event.listen(engine, 'before_cursor_execute', _record)
+        try:
+            r = client.delete(f'/api/v1/admin/pub-league/orders/{order.id}',
+                              headers=_auth(app, admin),
+                              json={'confirm_order_number': str(order.woo_order_id)})
+        finally:
+            event.remove(engine, 'before_cursor_execute', _record)
+
+        assert r.status_code == 200
+
+        def _first(pred):
+            return next((i for i, s in enumerate(statements) if pred(s)), None)
+
+        null_claim_id = _first(lambda s: s.startswith('update pub_league_order_line_item')
+                               and 'claim_id' in s)
+        null_line_item_id = _first(lambda s: s.startswith('update pub_league_order_claim')
+                                   and 'line_item_id' in s)
+        del_claims = _first(lambda s: s.startswith('delete from pub_league_order_claim'))
+        del_items = _first(lambda s: s.startswith('delete from pub_league_order_line_item'))
+
+        assert None not in (null_claim_id, null_line_item_id, del_claims, del_items), (
+            f'expected both nulling UPDATEs and both DELETEs; got {statements}')
+        # Both pointers released before EITHER table loses a row.
+        assert null_claim_id < del_claims
+        assert null_line_item_id < del_items
+        assert null_claim_id < del_items
+        assert null_line_item_id < del_claims
+
+        assert db.session.query(PubLeagueOrder).filter_by(id=order.id).first() is None

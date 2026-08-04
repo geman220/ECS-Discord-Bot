@@ -402,7 +402,12 @@ def get_player_events(player_id: int):
             # endpoint isn't deployed" and hides the whole section.
             return jsonify({"msg": "Player not found"}), 404
 
-        total = session.query(PlayerEvent).filter_by(player_id=player_id).count()
+        # Counted over the SAME inner join the list uses. Counting without it
+        # would let an event whose match is missing inflate `total`, so the
+        # client would render "showing 12 of 13" with a 13th nobody can reach.
+        total = (session.query(PlayerEvent)
+                 .join(Match, PlayerEvent.match_id == Match.id)
+                 .filter(PlayerEvent.player_id == player_id).count())
 
         # ⚠️ The eager chain has to reach the TEAMS, not stop at the match.
         # Stopping at PlayerEvent.match left both teams to lazy-load once per

@@ -801,6 +801,12 @@ def update_line_item(line_item_id, division=None, jersey_size=None,
     if err:
         return err
 
+    # A list/dict here would otherwise be str()'d and STORED — "['Premier']" as
+    # a division. Malformed input is a 400, never a silent write.
+    for field, value in (('division', division), ('jersey_size', jersey_size)):
+        if value is not None and not isinstance(value, (str, int, float)):
+            return _err(f'{field} must be text')
+
     changes = []
 
     if division is not None:
@@ -886,6 +892,33 @@ def delete_order(order_id, actor_id, confirm_order_number=None, require_confirm=
             f"{'them' if len(live_passes) != 1 else 'it'} first — deleting now "
             f"would leave a wallet pass with nothing behind it.",
             409, wallet_pass_line_item_ids=[li.id for li in live_passes])
+
+    # ⚠️ THESE TWO TABLES POINT AT EACH OTHER, and NEITHER foreign key declares
+    # an ondelete:
+    #
+    #     pub_league_order_line_item.claim_id -> pub_league_order_claim.id
+    #     pub_league_order_claim.line_item_id -> pub_league_order_line_item.id
+    #
+    # So on PostgreSQL there is no delete order that works: claims-first
+    # violates the first FK, line-items-first violates the second. The web route
+    # this replaces deleted claims first and therefore 500'd on exactly the
+    # orders that HAVE a claim — i.e. every gift order.
+    #
+    # Break the cycle by nulling both pointers first. Scoped by the ids we are
+    # about to delete rather than by order_id, so a claim or line item in
+    # ANOTHER order that references one of these rows is released too.
+    line_item_ids = [li.id for li in line_items]
+    claim_ids = [cid for (cid,) in db.session.query(PubLeagueOrderClaim.id)
+                 .filter_by(order_id=order_id).all()]
+    if claim_ids:
+        (db.session.query(PubLeagueOrderLineItem)
+         .filter(PubLeagueOrderLineItem.claim_id.in_(claim_ids))
+         .update({'claim_id': None}, synchronize_session=False))
+    if line_item_ids:
+        (db.session.query(PubLeagueOrderClaim)
+         .filter(PubLeagueOrderClaim.line_item_id.in_(line_item_ids))
+         .update({'line_item_id': None}, synchronize_session=False))
+    db.session.flush()
 
     claim_count = (db.session.query(PubLeagueOrderClaim)
                    .filter_by(order_id=order_id).delete(synchronize_session=False))
