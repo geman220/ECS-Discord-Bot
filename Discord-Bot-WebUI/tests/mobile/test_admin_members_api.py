@@ -876,3 +876,271 @@ class TestQuickProfilePreapproval:
         assert r.status_code == 400
         assert 'atlantis' in r.get_json()['message']
         assert 'valid_league_types' in r.get_json()
+
+
+# ---------------------------------------------------------------------------
+# §6.1 the program registry exposes its Flask role names
+#
+# The client used to decide "is this role a league membership?" by CONVENTION:
+# 'pl-' + the slugified display name. The seeded fourth program is exactly the
+# counter-example — 'Summer Sprint' would slugify to 'pl-summer-sprint', while
+# the role it actually grants is 'pl-third'. Convention gets that wrong, and the
+# failure is silent: the role falls out of League Memberships and reappears in
+# the generic Roles chips.
+# ---------------------------------------------------------------------------
+
+class TestProgramsExposeRoleNames:
+    def _programs(self, client, app, admin):
+        r = client.get('/api/v1/programs', headers=_auth(app, admin))
+        assert r.status_code == 200, r.get_json()
+        return {p['key']: p for p in r.get_json()['programs']}
+
+    def test_flask_role_names_are_present_for_every_program(self, client, db, app, admin):
+        db.session.commit()
+        progs = self._programs(client, app, admin)
+        assert progs, 'the registry returned no programs'
+        for key, p in progs.items():
+            assert 'flask_league_role' in p, key
+            assert 'flask_coach_role' in p, key
+            assert 'flask_sub_role' in p, key
+
+    def test_the_role_name_is_not_derivable_from_the_display_name(
+            self, client, db, app, admin):
+        db.session.commit()
+        third = self._programs(client, app, admin)['pl_third']
+        # What the convention would have produced, and what is actually true.
+        assert 'pl-' + third['display_name'].lower().replace(' ', '-') == 'pl-summer-sprint'
+        assert third['flask_league_role'] == 'pl-third'
+
+    def test_role_names_match_the_registry_verbatim(self, client, db, app, admin):
+        from app.services import program_registry
+        db.session.commit()
+        progs = self._programs(client, app, admin)
+        payload_roles = {p['flask_league_role'] for p in progs.values()
+                         if p['flask_league_role']}
+        assert payload_roles == set(program_registry.league_role_names())
+
+
+# ---------------------------------------------------------------------------
+# §6.2 deactivate and deny report their side effects
+#
+# `message` is the only string the app shows. Both writes reach well past the
+# switch the admin flipped, and both deliberately leave things alone that an
+# admin would reasonably assume they clear.
+# ---------------------------------------------------------------------------
+
+class TestLifecycleSideEffects:
+    def test_deactivate_names_what_it_changed_and_what_it_did_not(
+            self, client, db, app, admin, roles, leagues):
+        u = _pending(db, roles)
+        uid = u.id
+        team = TeamFactory(name='Buzzards', league=leagues['classic'])
+        db.session.flush()
+        tid = team.id
+        db.session.commit()
+        h = _auth(app, admin)
+
+        client.post(f'/api/v1/admin/members/{uid}/place',
+                    json={'action': 'add', 'team_id': tid}, headers=h)
+        client.post(f'/api/v1/admin/members/{uid}/sub-assign',
+                    json={'league_type': 'classic'}, headers=h)
+
+        r = client.post(f'/api/v1/admin/members/{uid}/deactivate',
+                        json={'reason': 'moved away'}, headers=h)
+        assert r.status_code == 200, r.get_json()
+        fx = r.get_json()['side_effects']
+
+        # is_current_player is the paywall flag mobile check-in reads.
+        assert 'check-in' in fx['season_status']
+        # Deactivation removes nobody from a team, and silence would read as
+        # "removed".
+        assert 'Buzzards' in fx['still_rostered']
+        assert 'Classic' in fx['sub_pools_kept']
+        # An already-issued JWT is not revoked by this. Nothing here writes the
+        # blocklist -- see reference_mobile_jwt_survives_deny_deactivate.
+        assert 'not revoked' in fx['app_access']
+
+    def test_activate_reports_the_paywall_flag_it_sets(
+            self, client, db, app, admin, roles, leagues):
+        u = _pending(db, roles)
+        uid = u.id
+        db.session.commit()
+        h = _auth(app, admin)
+        client.post(f'/api/v1/admin/members/{uid}/deactivate', json={}, headers=h)
+
+        r = client.post(f'/api/v1/admin/members/{uid}/activate', headers=h)
+        assert r.status_code == 200, r.get_json()
+        fx = r.get_json()['side_effects']
+        assert 'paid current player' in fx['season_status']
+        # Activation does not strip an app session, so there is nothing to say.
+        assert 'app_access' not in fx
+
+    def test_deny_names_the_access_it_revokes_and_the_access_it_does_not(
+            self, client, db, app, admin, roles, leagues):
+        u = _pending(db, roles)
+        u.is_approved = True            # a Discord signup arrives approved
+        u.approval_league = 'Premier'
+        uid = u.id
+        db.session.commit()
+
+        r = client.post(f'/api/v1/admin/members/{uid}/deny',
+                        json={'notes': 'no thanks'}, headers=_auth(app, admin))
+        assert r.status_code == 200, r.get_json()
+        fx = r.get_json()['side_effects']
+        assert fx['roles_removed'] == 'pl-unverified'
+        assert fx['approval_league_cleared'] == 'Premier'
+        assert 'sign in' in fx['sign_in_blocked']
+        assert 'not revoked' in fx['app_access']
+
+    def test_side_effects_never_report_something_that_did_not_happen(
+            self, client, db, app, admin, roles, leagues):
+        """Presence must mean "this changed", never "we looked and it hadn't"."""
+        u = UserFactory(is_approved=False, approval_status='pending')
+        PlayerFactory(user=u)           # no pl-unverified role, no league on record
+        db.session.flush()
+        uid = u.id
+        db.session.commit()
+
+        r = client.post(f'/api/v1/admin/members/{uid}/deny', json={},
+                        headers=_auth(app, admin))
+        assert r.status_code == 200, r.get_json()
+        fx = r.get_json()['side_effects']
+        assert 'roles_removed' not in fx
+        assert 'approval_league_cleared' not in fx
+        assert 'sign_in_blocked' not in fx     # they could not sign in to begin with
+        assert 'still_rostered' not in fx      # on no teams
+        assert 'sub_pools_kept' not in fx
+
+
+# ---------------------------------------------------------------------------
+# §6.4 per-person audit read
+# ---------------------------------------------------------------------------
+
+class TestMemberAudit:
+    def _entry(self, db, actor, resource_type, resource_id, action='x'):
+        from app.models.admin_config import AdminAuditLog
+        row = AdminAuditLog(user_id=actor.id, action=action,
+                            resource_type=resource_type,
+                            resource_id=str(resource_id))
+        db.session.add(row)
+        db.session.flush()
+        return row
+
+    def test_matches_on_the_user_id_and_the_player_id(
+            self, client, db, app, admin, roles, leagues):
+        u = _pending(db, roles)
+        other = _pending(db, roles)
+        uid, pid = u.id, u.player.id
+        # Keyed on the USER, keyed on the PLAYER, and the composite role form.
+        self._entry(db, admin, 'user_approval', uid, action='deny_user')
+        self._entry(db, admin, 'substitute_pools', pid, action='pool_remove')
+        self._entry(db, admin, 'user_role', f'{uid}:7', action='grant')
+        # Somebody else's, and a bulk row that names no individual.
+        self._entry(db, admin, 'user_approval', other.id)
+        self._entry(db, admin, 'user_approval', 'bulk')
+        db.session.commit()
+
+        r = client.get(f'/api/v1/admin/members/{uid}/audit', headers=_auth(app, admin))
+        assert r.status_code == 200, r.get_json()
+        body = r.get_json()
+        assert body['total'] == 3
+        assert {e['matched_on'] for e in body['entries']} == {'user', 'player', 'role'}
+        assert body['player_id'] == pid
+        assert all(e['actor']['username'] == admin.username for e in body['entries'])
+
+    def test_the_singular_plural_sub_pool_pair_is_not_conflated(
+            self, client, db, app, admin, roles, leagues):
+        """'substitute_pool' holds a USER id; 'substitute_pools' holds a PLAYER id.
+
+        Two different writers picked near-identical names. Treating them alike
+        drops half a person's sub-pool history or attributes someone else's.
+        """
+        u = _pending(db, roles)
+        uid, pid = u.id, u.player.id
+        assert uid != pid, 'this test needs the two ids to differ'
+        self._entry(db, admin, 'substitute_pool', uid, action='member_sub_assign')
+        self._entry(db, admin, 'substitute_pools', pid, action='pool_remove')
+        # The same numbers under the WRONG type must not be picked up.
+        self._entry(db, admin, 'substitute_pool', pid)
+        self._entry(db, admin, 'substitute_pools', uid)
+        db.session.commit()
+
+        r = client.get(f'/api/v1/admin/members/{uid}/audit', headers=_auth(app, admin))
+        assert r.status_code == 200
+        actions = sorted(e['action'] for e in r.get_json()['entries'])
+        assert actions == ['member_sub_assign', 'pool_remove']
+
+    def test_bulk_exclusion_is_stated_not_silent(
+            self, client, db, app, admin, roles, leagues):
+        u = _pending(db, roles)
+        uid = u.id
+        db.session.commit()
+        r = client.get(f'/api/v1/admin/members/{uid}/audit', headers=_auth(app, admin))
+        body = r.get_json()
+        assert body['entries'] == []
+        # An empty list must not read as "nobody has touched this person".
+        assert body['omits_bulk_actions'] is True
+        assert 'bulk' in body['note'].lower()
+
+    def test_limit_is_capped_and_the_cap_is_reported(
+            self, client, db, app, admin, roles, leagues):
+        u = _pending(db, roles)
+        uid = u.id
+        for i in range(5):
+            self._entry(db, admin, 'user_management', uid, action=f'edit_{i}')
+        db.session.commit()
+        h = _auth(app, admin)
+
+        r = client.get(f'/api/v1/admin/members/{uid}/audit?limit=5000', headers=h)
+        body = r.get_json()
+        assert body['limit'] == 200
+        assert body['limit_cap'] == 200
+
+        r = client.get(f'/api/v1/admin/members/{uid}/audit?limit=2', headers=h)
+        body = r.get_json()
+        assert len(body['entries']) == 2
+        # total counts the WHOLE history, so the client can say "2 of 5".
+        assert body['total'] == 5
+
+    def test_newest_first(self, client, db, app, admin, roles, leagues):
+        from datetime import datetime, timedelta
+        u = _pending(db, roles)
+        uid = u.id
+        old = self._entry(db, admin, 'user_management', uid, action='older')
+        new = self._entry(db, admin, 'user_management', uid, action='newer')
+        old.timestamp = datetime.utcnow() - timedelta(days=3)
+        new.timestamp = datetime.utcnow()
+        db.session.commit()
+
+        r = client.get(f'/api/v1/admin/members/{uid}/audit', headers=_auth(app, admin))
+        assert [e['action'] for e in r.get_json()['entries']] == ['newer', 'older']
+
+    def test_a_real_denial_shows_up(self, client, db, app, admin, roles, leagues):
+        """End-to-end: the write path and the read path agree on the key."""
+        u = _pending(db, roles)
+        uid = u.id
+        db.session.commit()
+        h = _auth(app, admin)
+        client.post(f'/api/v1/admin/members/{uid}/deny', json={}, headers=h)
+
+        r = client.get(f'/api/v1/admin/members/{uid}/audit', headers=h)
+        assert r.status_code == 200, r.get_json()
+        entry = next(e for e in r.get_json()['entries'] if e['action'] == 'deny_user')
+        assert entry['old_value'] == 'pending'
+        assert entry['new_value'] == 'denied'
+        assert entry['timestamp'] is not None
+
+    def test_unknown_user_is_404_with_a_body(self, client, db, app, admin):
+        db.session.commit()
+        r = client.get('/api/v1/admin/members/98765432/audit', headers=_auth(app, admin))
+        assert r.status_code == 404
+        # A bodyless 404 is read by the client as "endpoint not deployed".
+        assert r.get_json()['message']
+
+    def test_non_admin_is_refused(self, client, db, app, roles):
+        plain = UserFactory()
+        db.session.flush()
+        db.session.commit()
+        r = client.get(f'/api/v1/admin/members/{plain.id}/audit',
+                       headers=_auth(app, plain))
+        assert r.status_code == 403

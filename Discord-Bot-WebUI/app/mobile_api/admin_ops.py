@@ -12,7 +12,12 @@ Two small desk jobs that were web-only:
   none is wanted, so nothing here builds one.
 
 * ``GET/POST /admin/wallet/pass`` — the gate lookup. When someone at the door
-  says "my pass doesn't work", this is what answers it.
+  says "my pass doesn't work", this is what answers it, plus the two actions it
+  can tell you to take. They are NOT interchangeable: ``/resend`` re-delivers
+  the download link to a pass that never arrived; ``/reissue`` rebuilds the
+  artifacts of a pass that arrived and renders wrong. Reaching for reissue on an
+  undelivered pass rebuilds files nobody has and changes nothing the person can
+  see.
 
 Gate: ``@jwt_required()`` + ``@jwt_role_required(ADMIN_ROLES)`` — the same
 ``['Global Admin', 'Pub League Admin']`` pair the web pages and the app's own
@@ -316,6 +321,10 @@ def admin_wallet_pass_lookup():
                     item['diagnosis'] = (
                         "Issued but never downloaded — it never reached their "
                         "phone. Resend the download link rather than reissuing.")
+                    # Machine-readable twin of the sentence above, so the client
+                    # can offer the button without parsing English. Matches the
+                    # last path segment of POST /admin/wallet/pass/<action>.
+                    item['suggested_action'] = 'resend'
                 elif wp.status == 'voided':
                     item['diagnosis'] = (
                         f"Voided{f' — {wp.voided_reason}' if wp.voided_reason else ''}. "
@@ -343,6 +352,208 @@ def admin_wallet_pass_lookup():
                      f"failed: {exc}", exc_info=True)
         return jsonify({'success': False,
                         'error': 'Could not look up the pass.'}), 500
+
+
+def _mask_email(address):
+    """'gecourville@gmail.com' -> 'g**********e@gmail.com'.
+
+    Enough for an admin to confirm WHICH address the link went to and read the
+    domain back to the person standing in front of them, without printing a full
+    address into a response body or a log line. The member worklist deliberately
+    carries no email at all (it is PII-encrypted at rest); this is the smallest
+    thing that still answers "where did it go?".
+    """
+    address = (address or '').strip()
+    if '@' not in address:
+        return None
+    local, _, domain = address.partition('@')
+    if len(local) <= 2:
+        return f"{local[:1]}*@{domain}"
+    return f"{local[0]}{'*' * (len(local) - 2)}{local[-1]}@{domain}"
+
+
+def _pass_division(session, wallet_pass, player):
+    """Division label for the pass-ready email, best available source.
+
+    The order line item is the authority (it is what the buyer paid for and what
+    minted the pass); the player's league is the fallback; the pass type name is
+    the floor. Never guessed from the team name — a player is moved between
+    teams within a division all season.
+    """
+    try:
+        from app.models.pub_league_order import PubLeagueOrder, PubLeagueOrderLineItem
+        if wallet_pass.woo_order_id and player is not None:
+            row = (session.query(PubLeagueOrderLineItem)
+                   .join(PubLeagueOrder,
+                         PubLeagueOrderLineItem.order_id == PubLeagueOrder.id)
+                   .filter(PubLeagueOrder.woo_order_id == wallet_pass.woo_order_id,
+                           PubLeagueOrderLineItem.assigned_player_id == player.id)
+                   .first())
+            if row is not None and row.division:
+                return row.division
+    except Exception as exc:
+        logger.warning(f"division lookup for pass {wallet_pass.id} failed: {exc}")
+    league = getattr(player, 'league', None) if player is not None else None
+    if league is not None and getattr(league, 'name', None):
+        return league.name
+    pass_type = getattr(wallet_pass, 'pass_type', None)
+    return getattr(pass_type, 'name', None) or 'ECS FC'
+
+
+@mobile_api_v2.route('/admin/wallet/pass/resend', methods=['POST'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_wallet_pass_resend():
+    """Email the pass download link again. Body: {"player_id": 908}
+
+    This is the action `GET /admin/wallet/pass` tells the admin to take. Its
+    ``diagnosis`` for a ``download_count`` of 0 reads "Resend the download link
+    rather than reissuing" — and until now there was no endpoint to do it, so
+    the app printed an instruction it could not follow.
+
+    ⚠️ RESEND IS NOT REISSUE, and the difference is the whole point.
+    ``/reissue`` rebuilds the Apple/Google artifacts and pushes a refresh to
+    devices that already hold the pass — it fixes a pass that renders wrong. It
+    does nothing whatsoever for a pass that never arrived, because there is no
+    device registered to push to. This re-DELIVERS: it sends the same
+    pass-ready email, with the same ``download_token``, that
+    ``generate_wallet_pass_for_line_item`` sends when the pass is first created.
+
+    Nothing about the pass changes — no new token, no rotated barcode, no
+    version bump — so a copy already on someone's phone keeps working. That also
+    means ``download_count`` stays 0 until they actually tap the link, which is
+    what makes it a truthful delivery signal afterwards.
+
+    Repeat sends are allowed on purpose: "I still didn't get it" is the normal
+    second call, and a cooldown that silently swallowed the retry would look
+    exactly like the original failure. Every send is audit-logged.
+    """
+    from app.models import Player
+    from app.models.wallet import WalletPass
+
+    data = _body()
+    player_id = data.get('player_id')
+    try:
+        player_id = int(player_id)
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'player_id is required'}), 400
+
+    try:
+        with managed_session() as session:
+            player = session.query(Player).get(player_id)
+            if player is None:
+                return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+            wallet_pass = (session.query(WalletPass)
+                           .filter(WalletPass.player_id == player_id,
+                                   WalletPass.status == 'active')
+                           .order_by(WalletPass.created_at.desc()).first())
+            if wallet_pass is None:
+                # Same wording as reissue: no active pass is an entitlement
+                # question for the order desk, not something a gate button
+                # should manufacture.
+                return jsonify({
+                    'success': False,
+                    'error': f'{player.name} has no active pass to send. If they '
+                             f'paid, link their order line item on the order desk — '
+                             f'that is what issues a pass.',
+                }), 409
+
+            # Same precedence generate_wallet_pass_for_line_item uses, plus the
+            # address stamped on the pass itself as a last resort. Reported back
+            # so the admin can say WHICH inbox to check rather than "an email".
+            source, recipient = None, None
+            if player.user and player.user.email:
+                source, recipient = 'account', player.user.email
+            elif wallet_pass.member_email:
+                source, recipient = 'pass', wallet_pass.member_email
+            else:
+                try:
+                    from app.models.pub_league_order import PubLeagueOrder
+                    order = (session.query(PubLeagueOrder)
+                             .filter(PubLeagueOrder.woo_order_id ==
+                                     wallet_pass.woo_order_id).first()
+                             if wallet_pass.woo_order_id else None)
+                    if order is not None and order.customer_email:
+                        source, recipient = 'order', order.customer_email
+                except Exception as exc:
+                    logger.warning(f"order email lookup for pass {wallet_pass.id} "
+                                   f"failed: {exc}")
+
+            if not recipient:
+                # A dead end stated plainly beats a success nobody receives.
+                return jsonify({
+                    'success': False,
+                    'error': f'No email address on file for {player.name} — not on '
+                             f'their account, the pass, or the order. There is '
+                             f'nowhere to send the link.',
+                    'player_id': player_id,
+                    'pass_id': wallet_pass.id,
+                }), 409
+
+            from flask import url_for
+            download_url = url_for('public_wallet.download_pass_by_token',
+                                   token=wallet_pass.download_token, _external=True)
+
+            from app.pub_league.email_helpers import send_pass_ready_email
+            sent = send_pass_ready_email(
+                recipient_email=recipient,
+                recipient_name=player.name,
+                division=_pass_division(session, wallet_pass, player),
+                # No platform= — the template appends `&platform=...` per button.
+                download_url=download_url,
+            )
+            if not sent:
+                return jsonify({
+                    'success': False,
+                    'error': 'The mail server would not accept the message. The pass '
+                             'is fine — this is a delivery failure, so try again or '
+                             'send the link another way.',
+                    'player_id': player_id,
+                    'pass_id': wallet_pass.id,
+                }), 502
+
+            actor_id = int(get_jwt_identity())
+            already = (wallet_pass.download_count or 0)
+            try:
+                from app.models.admin_config import AdminAuditLog
+                AdminAuditLog.log_action(
+                    user_id=actor_id, action='WALLET_PASS_RESEND',
+                    resource_type='wallet_pass', resource_id=str(wallet_pass.id),
+                    new_value=(f'download link re-sent to the {source} address for '
+                               f'player {player_id}; download_count was {already}'),
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent'))
+            except Exception as exc:
+                logger.warning(f"audit log skipped for pass resend "
+                               f"{wallet_pass.id}: {exc}")
+
+            logger.info("Admin %s re-sent wallet pass %s download link for player %s "
+                        "(%s address, download_count=%s)",
+                        actor_id, wallet_pass.id, player_id, source, already)
+
+            return jsonify({
+                'success': True,
+                'message': f'Download link sent to {player.name}.',
+                'player_id': player_id,
+                'pass_id': wallet_pass.id,
+                # Masked; `sent_to_source` says which of the three it came from.
+                'sent_to': _mask_email(recipient),
+                'sent_to_source': source,
+                # Unchanged by a resend — it only moves when they actually tap
+                # the link, which is what makes it worth watching afterwards.
+                'download_count': already,
+                'previously_downloaded': already > 0,
+                # Nothing about the pass changed. Say so, so nobody reads this
+                # as having invalidated the copy on their phone.
+                'pass_changed': False,
+            }), 200
+
+    except Exception as exc:
+        logger.error(f"[MOBILE_API] wallet pass resend for player {player_id} "
+                     f"failed: {exc}", exc_info=True)
+        return jsonify({'success': False,
+                        'error': 'Could not send the download link.'}), 500
 
 
 @mobile_api_v2.route('/admin/wallet/pass/reissue', methods=['POST'])

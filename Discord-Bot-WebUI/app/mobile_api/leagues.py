@@ -311,6 +311,14 @@ def get_programs():
     endpoint exists to prevent: the third program launched as "Summer Sprint
     League" and is expected to be renamed.
 
+    The three `flask_*_role` names are here for the same reason. Without them a
+    client deciding "is this role a league membership, a coach role or a sub
+    role?" has to rebuild the name by CONVENTION -- 'pl-' + a slugified display
+    name -- which holds for the three legacy programs by coincidence, not by
+    contract. A program whose role breaks the pattern then shows up twice: once
+    as a league membership and again in the generic roles list. The registry
+    already stores the real names; they are the answer, not a guess.
+
     Response:
         {"programs": [{...}], "count": N}
     """
@@ -329,6 +337,13 @@ def get_programs():
                 # display name; it must survive a rename.
                 'draft_slug': p.membership_lane,
                 'membership_lane': p.membership_lane,
+                # Flask role names, verbatim from the registry. These are what
+                # `user.roles` actually contains -- match on them rather than
+                # deriving them from display_name. May be null for a program
+                # that has no such role.
+                'flask_league_role': p.flask_league_role,
+                'flask_coach_role': p.flask_coach_role,
+                'flask_sub_role': p.flask_sub_role,
                 'color': p.color,
                 'icon': p.icon,
                 'is_pub_league_like': bool(p.is_pub_league_like),

@@ -112,6 +112,70 @@ def _audit(action, resource_type, resource_id, actor_id,
         logger.warning(f"audit log skipped for {action}/{resource_id}: {exc}")
 
 
+def _roster_names(player):
+    """Team names this player is still rostered on, as a display string.
+
+    Returns None (not '') when there are none, so a caller can use it directly
+    as a `side_effects` value without having to test for emptiness twice.
+    """
+    if player is None:
+        return None
+    try:
+        names = sorted({t.name for t in (player.teams or []) if t and t.name})
+    except Exception:
+        # A broken relationship must not take a lifecycle write down with it,
+        # but it must not read as "no teams" either -- that is a different fact.
+        logger.warning(f"roster projection failed for player {getattr(player, 'id', '?')}",
+                       exc_info=True)
+        return 'could not be read'
+    return ', '.join(names) or None
+
+
+def _sub_pool_names(player, session=None):
+    """Sub pools this player sits in, e.g. 'Classic (active), ECS FC (resting)'.
+
+    Reads the SAME merged view the worklist does (`_sub_summary` folds the
+    SubstitutePool/EcsFcSubPool twin rows together), so an ECS FC sub is not
+    reported twice.
+    """
+    if player is None:
+        return None
+    try:
+        from app.admin_panel.routes.user_management.member_hub import _sub_summary
+        rows = _sub_summary(session or db.session, {player.id}).get(player.id, [])
+    except Exception:
+        logger.warning(f"sub pool projection failed for player {player.id}", exc_info=True)
+        return None
+    if not rows:
+        return None
+    return ', '.join(sorted(f"{r['lane']} ({r['status']})" for r in rows))
+
+
+def _app_session_survives():
+    """How long a already-issued mobile token keeps working after this write.
+
+    Neither denial nor deactivation revokes an outstanding JWT — nothing here
+    touches the blocklist, which only `/auth/logout` and refresh rotation write
+    to. So the person keeps app access until their access token expires on its
+    own. An admin who has just denied someone reasonably assumes the opposite,
+    which is exactly why this is reported rather than left implicit.
+
+    Read from config rather than hardcoded: the TTL has already moved once
+    (30d -> 90d in the co-expiry work) and a stale number here would be a
+    confidently wrong answer.
+    """
+    try:
+        from flask import current_app
+        delta = current_app.config.get('JWT_ACCESS_TOKEN_EXPIRES')
+        days = getattr(delta, 'days', None)
+        if days:
+            return (f'not revoked — an app session already signed in keeps '
+                    f'working for up to {days} days')
+    except Exception:
+        pass
+    return 'not revoked — an app session already signed in keeps working until it expires'
+
+
 def _discord_queued(player):
     """Did this mutation queue a Discord role change the client should surface?
 
@@ -476,7 +540,14 @@ def approve_member(user_id, league_type, actor_id, actor_username, notes=''):
 
 
 def deny_member(user_id, actor_id, actor_username, notes=''):
-    """Deny an application: revoke approval and strip the Discord footprint."""
+    """Deny an application: revoke approval and strip the Discord footprint.
+
+    Reports `side_effects` the same way `place_member` does. Denial reaches past
+    the approval flag — it clears sign-in, drops pl-unverified, forgets which
+    league they were on record for and queues a full Discord strip — while
+    deliberately NOT touching rosters, sub pools or an outstanding app session.
+    Both halves matter to whoever just tapped Deny.
+    """
     from app.models import User, Role
     from app.utils.user_locking import (
         lock_user_for_role_update, LockAcquisitionError, UserNotFoundError)
@@ -484,6 +555,7 @@ def deny_member(user_id, actor_id, actor_username, notes=''):
     from app.services.league_membership_sync import resync_player_memberships
 
     notes = _text(notes) or ''
+    side_effects = {}
 
     try:
         with lock_user_for_role_update(user_id, session=db.session) as user:
@@ -493,6 +565,16 @@ def deny_member(user_id, actor_id, actor_username, notes=''):
             unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
             if unverified_role and unverified_role in user.roles:
                 user.roles.remove(unverified_role)
+                side_effects['roles_removed'] = 'pl-unverified'
+
+            # Read BEFORE nulling it — it is the only record of which league they
+            # applied to, and the undeny path has to be able to say so.
+            _prior_league = user.approval_league
+            if _prior_league:
+                side_effects['approval_league_cleared'] = str(_prior_league)
+            if user.is_approved:
+                side_effects['sign_in_blocked'] = (
+                    'they were approved and could sign in; denial revokes that')
 
             # approval_status and is_approved move together: denied => not approved.
             # Denial used to leave is_approved alone, so a denied Discord signup
@@ -514,6 +596,21 @@ def deny_member(user_id, actor_id, actor_username, notes=''):
             if user.player and user.player.discord_id:
                 defer_discord_removal(user.player.id)
                 logger.info(f"Queued Discord role removal for denied user {user.id}")
+                side_effects['discord_roles'] = 'removal of every ECS FC role queued'
+
+            # What denial does NOT touch. A pending applicant sitting on a roster
+            # or in a sub pool is itself a misalignment worth naming — denial
+            # leaves both in place, and the live sub matcher keys on the role,
+            # not on approval status.
+            if user.player:
+                _teams = _roster_names(user.player)
+                if _teams:
+                    side_effects['still_rostered'] = (
+                        f'{_teams} — denial removes nobody from a team')
+                _pools = _sub_pool_names(user.player)
+                if _pools:
+                    side_effects['sub_pools_kept'] = _pools
+            side_effects['app_access'] = _app_session_survives()
 
             _audit(action='deny_user', resource_type='user_approval',
                    resource_id=user_id, actor_id=actor_id,
@@ -529,6 +626,8 @@ def deny_member(user_id, actor_id, actor_username, notes=''):
                 'denied_at': user.approved_at.isoformat(),
                 'discord_sync_queued': _discord_queued(user.player),
             }
+            if side_effects:
+                payload['side_effects'] = side_effects
         return payload, 200
 
     except UserNotFoundError:
@@ -668,6 +767,13 @@ def set_member_activation(user_id, active, actor_id, reason=None):
 
     Activating also clears the draft cache so the player shows up in the draft
     pool immediately instead of after the next TTL.
+
+    Reports `side_effects` for the same reason `place_member` does: `message` is
+    the only thing the app shows, and this write reaches well past the one
+    switch the admin flipped — it also moves `is_current_player` (the paid-this-
+    season paywall flag, which check-in reads), strips or restores every Discord
+    role, and leaves roster rows and sub-pool memberships exactly where they
+    were. An admin deactivating a rostered player was told none of that.
     """
     from app.utils.user_locking import (
         lock_user_for_role_update, LockAcquisitionError, UserNotFoundError)
@@ -675,6 +781,7 @@ def set_member_activation(user_id, active, actor_id, reason=None):
     from app.utils.deferred_cache import defer_clear_league_cache
 
     active = bool(active)
+    side_effects = {}
     try:
         league_name_for_cache = None
         with lock_user_for_role_update(user_id, session=db.session) as user:
@@ -686,13 +793,40 @@ def set_member_activation(user_id, active, actor_id, reason=None):
                 if active and user.player.primary_league:
                     league_name_for_cache = user.player.primary_league.name
 
+                # `is_current_player` is the paywall flag, not a display toggle:
+                # mobile check-in refuses anyone it is False for. Naming the
+                # consequence is the point -- see feedback_alerts_report_dont_prescribe.
+                side_effects['season_status'] = (
+                    'now counts as a paid current player — check-in will accept them'
+                    if active else
+                    'no longer counts as a paid current player — check-in will turn '
+                    'them away')
+
+                # DEACTIVATE ONLY. "Did that just take them off the team?" is a
+                # live question when switching someone off and silence reads as
+                # yes; on activation nobody is asking it, so saying it would be
+                # noise. Neither direction actually touches either.
+                if not active:
+                    _teams = _roster_names(user.player)
+                    if _teams:
+                        side_effects['still_rostered'] = (
+                            f'{_teams} — deactivating removes nobody from a team')
+                    _pools = _sub_pool_names(user.player)
+                    if _pools:
+                        side_effects['sub_pools_kept'] = _pools
+
             if user.player and user.player.discord_id:
                 if active:
                     defer_discord_sync(user.player.id, only_add=False)
                     logger.info(f"Queued Discord role sync for activated user {user.id}")
+                    side_effects['discord_roles'] = 'full re-sync queued'
                 else:
                     defer_discord_removal(user.player.id)
                     logger.info(f"Queued Discord role removal for deactivated user {user.id}")
+                    side_effects['discord_roles'] = 'removal of every ECS FC role queued'
+
+            if not active:
+                side_effects['app_access'] = _app_session_survives()
 
             # Reason is mobile-only (the web quick-toggle sends none), so the
             # audit value stays exactly 'True'/'False' for existing rows.
@@ -712,9 +846,13 @@ def set_member_activation(user_id, active, actor_id, reason=None):
                 defer_clear_league_cache(league_name_for_cache.lower())
 
         verb = 'activated' if active else 'deactivated'
+        # Same contract as place_member: omitted entirely when there was nothing
+        # else to report, so its presence always means "something else changed",
+        # never "we looked and found nothing".
+        extra = {'side_effects': side_effects} if side_effects else {}
         return _ok(f'User {username} {verb} successfully',
                    user_id=user_id, is_active=active,
-                   discord_sync_queued=discord_queued)
+                   discord_sync_queued=discord_queued, **extra)
 
     except UserNotFoundError:
         # lock_user_for_role_update raises this for an unknown id (its own
@@ -1798,3 +1936,153 @@ def get_member(session, user_id):
             logger.warning(f"sub summary skipped for user {user_id}", exc_info=True)
 
     return {'success': True, 'member': _serialize_member(user, sub_summary)}, 200
+
+
+# ---------------------------------------------------------------------------
+# 1.8 audit trail (read)
+#
+# `AdminAuditLog.resource_id` is a STRING with no foreign key and no single
+# meaning: which id it holds depends entirely on `resource_type`. There is no
+# way to derive that mapping at runtime, so it is spelled out here. Getting a
+# row into the wrong bucket does not error — it silently omits part of a
+# person's history, or attributes someone else's to them.
+#
+# ⚠️ THE SINGULAR/PLURAL PAIR IS NOT A TYPO. 'substitute_pool' (written by this
+# module) stores the USER id; 'substitute_pools' (written by the web
+# match-operations pages) stores the PLAYER id. They are two different writers
+# that happened to pick near-identical names, and treating them alike drops or
+# misattributes every sub-pool change.
+# ---------------------------------------------------------------------------
+
+_AUDIT_TYPES_BY_USER_ID = (
+    'user', 'users', 'user_management', 'user_approval', 'user_waitlist',
+    'waitlist', 'user_roles', 'role_management', 'user_analytics',
+    # place_member audits the ROSTER change against the user id, not the team.
+    'player_team',
+    'substitute_pool',
+    'duplicate_management',
+)
+
+_AUDIT_TYPES_BY_PLAYER_ID = (
+    'player', 'player_management', 'player_admin_notes',
+    'substitute_pools',
+)
+
+# resource_id is '<user_id>:<role_id>' — a prefix match, not an equality one.
+_AUDIT_TYPES_BY_USER_PREFIX = ('user_role',)
+
+AUDIT_LIMIT_DEFAULT = 50
+AUDIT_LIMIT_CAP = 200
+
+
+def _serialize_audit_entry(row, matched_on):
+    """One audit row, shaped for "who changed this, and when".
+
+    Deliberately no ip_address / user_agent. Those are staff metadata for a
+    security review, not an answer to the question this list is asked, and a
+    phone screen is the wrong place to leak either.
+    """
+    actor = getattr(row, 'user', None)
+    return {
+        'id': row.id,
+        'action': row.action,
+        'resource_type': row.resource_type,
+        'old_value': row.old_value,
+        'new_value': row.new_value,
+        'timestamp': row.timestamp.isoformat() if row.timestamp else None,
+        'actor': {
+            'user_id': row.user_id,
+            # username, NOT a name — see reference_username_is_not_a_name. The
+            # actor is an admin; Player.name may not exist for them at all.
+            'username': (actor.username if actor else None),
+        },
+        # Which key matched: 'user', 'player' or 'role'. Purely diagnostic —
+        # it makes a misattributed row visible instead of plausible.
+        'matched_on': matched_on,
+    }
+
+
+def get_member_audit(session, user_id, limit=AUDIT_LIMIT_DEFAULT):
+    """Admin actions recorded against ONE person, newest first.
+
+    The hub is where "who changed this, and when" gets asked, and until now
+    nothing exposed `AdminAuditLog` per person — the data was being written and
+    never read.
+
+    Matches on BOTH ids. A person is a User to the approval, role and waitlist
+    writers and a Player to the Discord, sub-pool and stat writers; keying on
+    only one of them silently halves the history, and which half you lose
+    depends on which writer touched them last.
+
+    ⚠️ BULK ACTIONS ARE NOT HERE, and cannot be. Every bulk handler writes a
+    literal ``resource_id='bulk'`` (or ``'scan'``, ``'all'``, or a comma-joined
+    list), so a bulk approve/deny/waitlist-clear leaves NO row attributable to
+    the individual it affected. That is a property of how those rows were
+    written, not a filter applied here. It is stated in the response as
+    ``omits_bulk_actions`` rather than left for someone to discover: "no audit
+    entries" would otherwise read as "nobody has touched this person", which is
+    a much stronger claim than the data supports.
+    """
+    from sqlalchemy import and_, or_
+    from sqlalchemy.orm import joinedload
+    from app.models import User
+
+    user = session.query(User).get(user_id)
+    if user is None:
+        # A body on the 404 — a bodyless one is read by the mobile client's
+        # feature-availability probe as "endpoint not deployed".
+        return _err('Member not found', 404)
+
+    try:
+        limit = int(limit)
+    except (TypeError, ValueError):
+        limit = AUDIT_LIMIT_DEFAULT
+    limit = max(1, min(limit, AUDIT_LIMIT_CAP))
+
+    player_id = user.player.id if user.player else None
+
+    clauses = [
+        and_(AdminAuditLog.resource_type.in_(_AUDIT_TYPES_BY_USER_ID),
+             AdminAuditLog.resource_id == str(user_id)),
+        and_(AdminAuditLog.resource_type.in_(_AUDIT_TYPES_BY_USER_PREFIX),
+             AdminAuditLog.resource_id.like(f'{int(user_id)}:%')),
+    ]
+    if player_id:
+        clauses.append(
+            and_(AdminAuditLog.resource_type.in_(_AUDIT_TYPES_BY_PLAYER_ID),
+                 AdminAuditLog.resource_id == str(player_id)))
+
+    predicate = or_(*clauses)
+    base = session.query(AdminAuditLog).filter(predicate)
+
+    # Counted across EVERYTHING, not just the page, so the client can say
+    # "showing 50 of 112" instead of implying the page is the whole history.
+    total = base.count()
+    rows = (base.options(joinedload(AdminAuditLog.user))
+            .order_by(AdminAuditLog.timestamp.desc(), AdminAuditLog.id.desc())
+            .limit(limit).all())
+
+    by_player = set(_AUDIT_TYPES_BY_PLAYER_ID)
+    by_prefix = set(_AUDIT_TYPES_BY_USER_PREFIX)
+    entries = [
+        _serialize_audit_entry(
+            r,
+            'player' if r.resource_type in by_player
+            else ('role' if r.resource_type in by_prefix else 'user'))
+        for r in rows
+    ]
+
+    return {
+        'success': True,
+        'user_id': user_id,
+        'player_id': player_id,
+        'entries': entries,
+        'total': total,
+        'limit': limit,
+        'limit_cap': AUDIT_LIMIT_CAP,
+        # True always — see the docstring. A constant with a name beats a
+        # silent gap: it tells the client to SAY so under an empty list.
+        'omits_bulk_actions': True,
+        'note': ('Bulk actions are recorded against the batch, not the person, '
+                 'so they cannot appear here.'),
+    }, 200

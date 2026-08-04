@@ -400,6 +400,36 @@ def admin_member_detail(user_id: int):
         return jsonify({'success': False, 'message': 'Could not load member'}), 500
 
 
+@mobile_api_v2.route('/admin/members/<int:user_id>/audit', methods=['GET'])
+@jwt_required()
+@jwt_role_required(ADMIN_ROLES)
+def admin_member_audit(user_id: int):
+    """"Who changed this, and when?" — the audit trail for ONE person.
+
+    Query: ``limit`` (default 50, capped at 200 and the cap is stated back).
+
+    Matches on the user id AND the player id, because the writers disagree about
+    which one a person is: approvals and roles key on the User, Discord and
+    sub-pool changes key on the Player. Keying on one silently halves the list.
+
+    ``omits_bulk_actions`` is always true and always sent. Bulk handlers record
+    ``resource_id='bulk'``, so a bulk deny leaves nothing attributable to the
+    individual — an empty list here means "no INDIVIDUAL action was recorded",
+    not "nobody has touched this person", and the client has to be able to tell
+    the difference.
+    """
+    try:
+        with managed_session() as session:
+            payload, status = lifecycle.get_member_audit(
+                session, user_id,
+                limit=request.args.get('limit', lifecycle.AUDIT_LIMIT_DEFAULT))
+        return jsonify(payload), status
+    except Exception as exc:
+        logger.error(f"[MOBILE_API] member audit {user_id} failed: {exc}", exc_info=True)
+        return jsonify({'success': False,
+                        'message': 'Could not load the audit trail'}), 500
+
+
 @mobile_api_v2.route('/admin/members/options', methods=['GET'])
 @jwt_required()
 @jwt_role_required(ADMIN_ROLES)
