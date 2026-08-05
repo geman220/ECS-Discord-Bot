@@ -21,8 +21,25 @@ logger = logging.getLogger(__name__)
 
 # Role constants
 ADMIN_ROLES = {'Global Admin', 'Pub League Admin'}
+# Fallback only — use coach_roles() so a newer program's coach role counts too.
 COACH_ROLES = {'Pub League Coach', 'ECS FC Coach'}
 REF_ROLES = {'Pub League Ref'}
+
+
+def coach_roles(session=None) -> Set[str]:
+    """Every program's coach role, from the registry.
+
+    The literal above predates the program registry and omits any newer
+    program's coach role, so those coaches were treated as ordinary users by
+    every is_coach() check on the calendar.
+    """
+    roles = set(COACH_ROLES)
+    try:
+        from app.services import program_registry
+        roles.update(program_registry.coach_role_names(session))
+    except Exception:
+        logger.debug("program_registry unavailable resolving coach roles", exc_info=True)
+    return roles
 
 
 class VisibilityService:
@@ -89,7 +106,7 @@ class VisibilityService:
             True if user is a coach
         """
         user_roles = self.get_user_roles(user)
-        return bool(user_roles & COACH_ROLES)
+        return bool(user_roles & coach_roles(self.session))
 
     def is_referee(self, user: User) -> bool:
         """
@@ -218,7 +235,9 @@ class VisibilityService:
             SQLAlchemy query for visible matches
         """
         query = self.session.query(Match).options(
-            joinedload(Match.home_team),
+            # home_team.league is what the DTO resolves the program from, so
+            # chain it in rather than lazy-loading a league per match.
+            joinedload(Match.home_team).joinedload(Team.league),
             joinedload(Match.away_team),
             joinedload(Match.ref)
         )
@@ -313,7 +332,12 @@ class VisibilityService:
         Returns:
             SQLAlchemy query for visible league events
         """
-        query = self.session.query(LeagueEvent).filter(
+        # joinedload(league): the DTO reads event.league to label the event's
+        # program, and the relationship is lazy='select' — one SELECT per event
+        # without this.
+        query = self.session.query(LeagueEvent).options(
+            joinedload(LeagueEvent.league)
+        ).filter(
             LeagueEvent.is_active == True
         )
 
@@ -379,7 +403,7 @@ class VisibilityService:
             SQLAlchemy query for visible ECS FC matches
         """
         query = self.session.query(EcsFcMatch).options(
-            joinedload(EcsFcMatch.team)
+            joinedload(EcsFcMatch.team).joinedload(Team.league)
         )
 
         # Filter to current season only via team's league
@@ -399,7 +423,21 @@ class VisibilityService:
 
         # Admins and ECS FC coaches see all ECS FC matches
         user_roles = self.get_user_roles(user)
-        if user_roles & (ADMIN_ROLES | {'ECS FC Coach'}):
+        # Deliberately ECS FC's own coach role, not every program's: these are
+        # ECS FC matches, and a Premier/Summer coach has no business seeing all
+        # of them.
+        # Union, not replace: if the registry row ever carries a different
+        # coach-role string, replacing would strip the view from everyone
+        # actually holding the 'ECS FC Coach' Flask role.
+        ecs_coach = {'ECS FC Coach'}
+        try:
+            from app.services import program_registry
+            _p = program_registry.by_key('ecs_fc', self.session)
+            if _p is not None and _p.flask_coach_role:
+                ecs_coach.add(_p.flask_coach_role)
+        except Exception:
+            pass
+        if user_roles & (ADMIN_ROLES | ecs_coach):
             return query.order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
 
         # Get user's teams

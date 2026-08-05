@@ -14,7 +14,9 @@ from typing import Any, Dict, List, Optional
 from .base import BaseDTO
 
 
-# Color constants for calendar events
+# Fallback colours only — the live colour comes from the program registry (see
+# _resolve_program below). These are what a league renders as when the registry
+# is unreachable, NOT a list of the divisions that exist.
 MATCH_COLORS = {
     'Premier': '#1976d2',      # Blue
     'Classic': '#388e3c',      # Green
@@ -64,6 +66,7 @@ class MatchExtendedProps(BaseDTO):
     awayTeamName: str = ''
     location: str = ''
     division: str = ''
+    programKey: Optional[str] = None
     refId: Optional[int] = None
     refName: Optional[str] = None
     homeScore: Optional[int] = None
@@ -85,6 +88,26 @@ class LeagueEventExtendedProps(BaseDTO):
     notifyDiscord: bool = False
 
 
+def _resolve_program(league_name: Optional[str]) -> tuple:
+    """(programKey, division label, colour) for a `League.name`.
+
+    `division` is a DISPLAY string and changes on any rebrand; `programKey` is
+    the stable identifier the client filters on. Emitting both is what lets the
+    calendar's division filter be built from the registry instead of from a
+    hardcoded three-name allow-list that silently discarded every match
+    belonging to a newer program.
+    """
+    try:
+        from app.services.calendar.programs import program_label_for_league_name
+        key, label, color = program_label_for_league_name(league_name)
+        if key:
+            return key, label, color
+    except Exception:
+        pass
+    name = league_name or ''
+    return None, name, MATCH_COLORS.get(name, MATCH_COLORS['default'])
+
+
 def match_to_fullcalendar(match, editable: bool = False) -> Dict[str, Any]:
     """
     Convert a Match model to FullCalendar event format.
@@ -101,12 +124,13 @@ def match_to_fullcalendar(match, editable: bool = False) -> Dict[str, Any]:
     away_team = match.away_team.name if match.away_team else 'TBD'
     title = f'{home_team} vs {away_team}'
 
-    # Determine color based on division
-    division = ''
+    # Division label + colour from the program registry, keyed off the home
+    # team's league name.
+    league_name = ''
     if match.home_team and hasattr(match.home_team, 'league') and match.home_team.league:
-        division = match.home_team.league.name if hasattr(match.home_team.league, 'name') else ''
+        league_name = getattr(match.home_team.league, 'name', '') or ''
 
-    color = MATCH_COLORS.get(division, MATCH_COLORS['default'])
+    program_key, division, color = _resolve_program(league_name)
 
     # Build start/end datetime
     start_dt = datetime.combine(match.date, match.time)
@@ -122,6 +146,9 @@ def match_to_fullcalendar(match, editable: bool = False) -> Dict[str, Any]:
         'awayTeamName': away_team,
         'location': match.location or '',
         'division': division,
+        # Stable program identifier. Clients must filter on this, never on the
+        # `division` label.
+        'programKey': program_key,
         'refId': match.ref_id,
         'refName': match.ref.name if match.ref else None,
         'homeScore': match.home_team_score,
@@ -166,6 +193,15 @@ def league_event_to_fullcalendar(event, editable: bool = False) -> Dict[str, Any
         # Default to 2 hours if no end time specified
         end = (event.start_datetime + timedelta(hours=2)).isoformat() if event.start_datetime else None
 
+    # An event scoped to one league belongs to that league's program; a
+    # league_id of None means "every program" and stays unlabelled so it is
+    # never filtered out by a program selection.
+    program_key = None
+    program_name = None
+    if event.league_id:
+        _league = getattr(event, 'league', None)
+        program_key, program_name, _ = _resolve_program(getattr(_league, 'name', None))
+
     # Build extended props
     extended_props = {
         'type': 'league_event',
@@ -174,6 +210,8 @@ def league_event_to_fullcalendar(event, editable: bool = False) -> Dict[str, Any
         'description': event.description,
         'location': event.location,
         'leagueId': event.league_id,
+        'programKey': program_key,
+        'programName': program_name,
         'seasonId': event.season_id,
         'notifyDiscord': event.notify_discord,
         'isActive': event.is_active,
@@ -221,8 +259,13 @@ def ecs_fc_match_to_fullcalendar(match, user_team_ids: List[int] = None) -> Dict
     start_dt = datetime.combine(match.match_date, match.match_time)
     end_dt = start_dt + timedelta(minutes=90)  # 90 minute match
 
-    # Use ECS FC color (purple)
-    color = MATCH_COLORS.get('ECS FC', '#7b1fa2')
+    # Resolve through the registry off the team's league rather than hardcoding
+    # ECS FC's label and purple: an EcsFcMatch belongs to whichever program its
+    # team's league maps to, and the registry owns that colour.
+    _league = getattr(getattr(match, 'team', None), 'league', None)
+    program_key, division, color = _resolve_program(getattr(_league, 'name', None))
+    if not division:
+        program_key, division, color = 'ecs_fc', 'ECS FC', MATCH_COLORS.get('ECS FC', '#7b1fa2')
 
     # Build extended props
     extended_props = {
@@ -233,7 +276,8 @@ def ecs_fc_match_to_fullcalendar(match, user_team_ids: List[int] = None) -> Dict
         'opponentName': match.opponent_name,
         'location': match.location or '',
         'fieldName': match.field_name,
-        'division': 'ECS FC',
+        'division': division,
+        'programKey': program_key,
         'isHomeMatch': match.is_home_match,
         'isMyTeam': is_my_team,
         'status': match.status,

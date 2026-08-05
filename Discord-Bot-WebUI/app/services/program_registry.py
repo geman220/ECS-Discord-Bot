@@ -641,6 +641,18 @@ def league_role_names(session=None):
     return names or ['pl-classic', 'pl-premier', 'pl-ecs-fc']
 
 
+def coach_role_names(session=None):
+    """Every program's Flask coach role name, e.g. 'Pub League Coach'.
+
+    The counterpart to sub_role_names/league_role_names. Gating surfaces on a
+    hardcoded ['Pub League Coach', 'ECS FC Coach'] locks a newer program's
+    coaches out of pages their peers can see — the calendar bounced them to the
+    stripped-down public view because their only role wasn't on that list.
+    """
+    names = [p.flask_coach_role for p in all_programs(session) if p.flask_coach_role]
+    return names or ['Pub League Coach', 'ECS FC Coach']
+
+
 def membership_lanes(session=None):
     """Every valid `LeagueMembership.league_type` value."""
     return tuple(p.membership_lane for p in all_programs(session))

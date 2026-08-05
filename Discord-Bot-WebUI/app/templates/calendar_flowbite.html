@@ -473,28 +473,22 @@
                                 <button type="button" id="filterClearAllDivisions" class="text-xs text-gray-500 hover:underline dark:text-gray-400">None</button>
                             </div>
                         </div>
+                        {# Rendered from the program registry. A hardcoded
+                           Premier/Classic/ECS FC list here was an allow-list,
+                           so a fourth program's matches were filtered out
+                           client-side with no checkbox to bring them back. #}
                         <div class="space-y-2">
+                            {% for p in calendar_programs %}
                             <label class="flex items-center">
-                                <input type="checkbox" value="Premier" id="filterDivPremier" checked class="filter-division w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <input type="checkbox" value="{{ p.label }}" data-program-key="{{ p.key }}" checked class="filter-division w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                                    Premier
+                                    <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ p.color }};"></span>
+                                    {{ p.label }}
                                 </span>
                             </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" value="Classic" id="filterDivClassic" checked class="filter-division w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                                    Classic
-                                </span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" value="ECS FC" id="filterDivEcsFc" checked class="filter-division w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                    <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                                    ECS FC
-                                </span>
-                            </label>
+                            {% else %}
+                            <p class="text-xs text-gray-400">No programs configured.</p>
+                            {% endfor %}
                         </div>
                     </div>
 
@@ -864,28 +858,19 @@
                                 <button type="button" id="filterClearAllDivisions" class="text-xs text-gray-500 hover:underline dark:text-gray-400">None</button>
                             </div>
                         </div>
+                        {# Registry-driven — see the console-shell copy above. #}
                         <div class="space-y-2">
+                            {% for p in calendar_programs %}
                             <label class="flex items-center">
-                                <input type="checkbox" value="Premier" id="filterDivPremier" checked class="filter-division w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                <input type="checkbox" value="{{ p.label }}" data-program-key="{{ p.key }}" checked class="filter-division w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded-sm focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
                                 <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                    <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                                    Premier
+                                    <span class="w-2 h-2 rounded-full mr-2" style="background-color: {{ p.color }};"></span>
+                                    {{ p.label }}
                                 </span>
                             </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" value="Classic" id="filterDivClassic" checked class="filter-division w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                    <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                                    Classic
-                                </span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" value="ECS FC" id="filterDivEcsFc" checked class="filter-division w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                    <span class="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                                    ECS FC
-                                </span>
-                            </label>
+                            {% else %}
+                            <p class="text-xs text-gray-400">No programs configured.</p>
+                            {% endfor %}
                         </div>
                     </div>
 
@@ -1228,6 +1213,21 @@
             <label for="eventLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
             <input type="text" id="eventLocation" placeholder="e.g., The Local Pub" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
         </div>
+    </div>
+
+    {# Program scope. The API has always accepted league_id, but nothing in the
+       UI ever sent it — so every event was created league-wide and no calendar
+       could tell a Summer Sprint event from a Premier one. Only programs whose
+       current season has a league are offered. #}
+    <div>
+        <label for="eventLeagueId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Program</label>
+        <select id="eventLeagueId" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+            <option value="">All programs</option>
+            {% for p in calendar_programs %}{% if p.league_id %}
+            <option value="{{ p.league_id }}">{{ p.label }}</option>
+            {% endif %}{% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-400">Leave on “All programs” for league-wide events. Scoping an event to one program lets people filter for it.</p>
     </div>
 
     <div class="grid grid-cols-2 gap-4">
@@ -1706,6 +1706,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Program colour for badges, from the server (registry-resolved) rather
+    // than a Premier-blue / else-green ternary that painted every newer
+    // program as Classic. The value lands in a style attribute, so only a
+    // literal colour token is accepted — never free text interpolated in CSS.
+    const SAFE_COLOR_RE = /^#[0-9a-fA-F]{3,8}$|^[a-zA-Z]{3,20}$/;
+    function programColor(event, fallback) {
+        const c = event && event.color;
+        return (typeof c === 'string' && SAFE_COLOR_RE.test(c)) ? c : (fallback || '#0288d1');
+    }
+
     // Transform events from API format to internal format
     function transformEvents(events, apiType) {
         return events.map(event => {
@@ -1715,11 +1725,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Determine event type
                 let eventType = extProps.type || event.type || 'match';
 
-                // Determine division
-                let division = extProps.division || event.division || '';
-                if (eventType === 'ecs_fc_match' || eventType === 'ecs_fc') {
-                    division = 'ECS FC';
-                }
+                // Determine division + program. Both come from the server
+                // (registry-resolved); this used to overwrite the division of
+                // anything ECS-FC-shaped with the literal 'ECS FC'.
+                const division = extProps.division || event.division || '';
+                const programKey = extProps.programKey || event.programKey || null;
 
                 // Extract team names
                 let homeTeam = extProps.homeTeamName || '';
@@ -1756,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     location: extProps.location || event.location || (event.description ? event.description.replace('Location: ', '') : ''),
                     time: timeStr,
                     division: division,
+                    programKey: programKey,
                     ref: refName || 'Unassigned',
                     eventType: extProps.eventType || event.eventType,
                     description: extProps.description || event.description || ''
@@ -1773,6 +1784,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     location: '',
                     time: '',
                     division: '',
+                    programKey: null,
                     ref: 'Unassigned',
                     eventType: '',
                     description: ''
@@ -1994,13 +2006,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // Apply filter checkboxes
         const showMatches = document.getElementById('filterShowMatches')?.checked ?? true;
         const showLeagueEvents = document.getElementById('filterShowLeagueEvents')?.checked ?? true;
-        const premierChecked = document.getElementById('filterDivPremier')?.checked ?? true;
-        const classicChecked = document.getElementById('filterDivClassic')?.checked ?? true;
-        const ecsFcChecked = document.getElementById('filterDivEcsFc')?.checked ?? true;
-        const divisions = [];
-        if (premierChecked) divisions.push('Premier');
-        if (classicChecked) divisions.push('Classic');
-        if (ecsFcChecked) divisions.push('ECS FC');
+
+        // Division filter, read from whatever checkboxes the registry rendered.
+        //
+        // This used to read three hardcoded ids and build ['Premier',
+        // 'Classic', 'ECS FC'], then drop any match whose division was not in
+        // that array. A Summer Sprint match carries division 'Summer Sprint',
+        // so every one of them was discarded at the DEFAULT checked state —
+        // fetched, transformed, then thrown away with no checkbox to restore
+        // them. Matching on the stable programKey (falling back to the display
+        // label for the legacy endpoint, which predates programKey) keeps this
+        // correct for whatever the registry holds.
+        const divisionBoxes = document.querySelectorAll('.filter-division');
+        const knownKeys = new Set(), knownLabels = new Set();
+        const checkedKeys = new Set(), checkedLabels = new Set();
+        divisionBoxes.forEach(cb => {
+            if (cb.dataset.programKey) knownKeys.add(cb.dataset.programKey);
+            if (cb.value) knownLabels.add(cb.value);
+            if (!cb.checked) return;
+            if (cb.dataset.programKey) checkedKeys.add(cb.dataset.programKey);
+            if (cb.value) checkedLabels.add(cb.value);
+        });
 
         // Get selected event types
         const selectedEventTypes = [];
@@ -2012,8 +2038,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // Filter matches (including ECS FC matches) by showMatches toggle
             if ((event.type === 'match' || event.type === 'ecs_fc') && !showMatches) return false;
             if (event.type === 'league_event' && !showLeagueEvents) return false;
-            // Filter matches and ECS FC by division
-            if ((event.type === 'match' || event.type === 'ecs_fc') && divisions.length > 0 && !divisions.includes(event.division)) return false;
+            // Filter matches and ECS FC by division/program.
+            //
+            // Only a program the filter can actually REPRESENT gets hidden. An
+            // event whose program has no checkbox (registry unreachable, or a
+            // league nobody registered) is always shown — hiding something the
+            // user has no control to bring back is the exact failure this
+            // filter just had. Unchecking every box does hide everything,
+            // because those programs are all representable.
+            if (event.type === 'match' || event.type === 'ecs_fc') {
+                const key = event.programKey;
+                if (key ? knownKeys.has(key) : knownLabels.has(event.division)) {
+                    if (!(key ? checkedKeys.has(key) : checkedLabels.has(event.division))) return false;
+                }
+            }
             // Filter league events by event type
             if (event.type === 'league_event' && selectedEventTypes.length > 0) {
                 const eventType = event.eventType || event.extendedProps?.eventType || 'other';
@@ -2153,7 +2191,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         // Match - show teams vs teams with referee status
                         const isAssigned = event.ref !== 'Unassigned';
-                        html += `<div class="month-event ${event.division === 'Premier' ? 'premier' : 'classic'}" data-event-id="${event.id}"><div class="month-event-time">${event.time}</div><div class="month-event-title">${event.homeTeam} vs ${event.awayTeam}</div><div class="month-event-ref ${isAssigned ? 'assigned' : 'unassigned'}"><i class="ti ti-user-circle"></i></div></div>`;
+                        // Full border shorthand, not just border-left-color: the
+                        // .premier/.classic classes this replaced were the only
+                        // rules declaring a border, so setting the colour alone
+                        // would have painted nothing.
+                        html += `<div class="month-event" style="border-left: 2px solid ${programColor(event)};" data-event-id="${event.id}"><div class="month-event-time">${event.time}</div><div class="month-event-title">${event.homeTeam} vs ${event.awayTeam}</div><div class="month-event-ref ${isAssigned ? 'assigned' : 'unassigned'}"><i class="ti ti-user-circle"></i></div></div>`;
                     }
                 });
                 if (dayEvents.length > 3) {
@@ -2362,14 +2404,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return renderLeagueEventCard(event, false);
         }
         const assignmentClass = (!isAssigned && isAssignmentMode) ? 'unassigned-match' : '';
-        // Division badge color: Premier=blue, Classic=green, ECS FC=purple
-        const divisionBadgeClass = event.division === 'Premier' ? 'bg-blue-500' :
-                                   event.division === 'ECS FC' ? 'bg-purple-500' : 'bg-green-500';
+        const divisionColor = programColor(event);
         const isEcsFc = event.type === 'ecs_fc';
         return `
             <div class="match-item p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-xs hover:shadow-md transition-shadow cursor-pointer ${assignmentClass}" data-event-id="${event.id}" data-event-type="${event.type || 'match'}">
                 <div class="flex justify-between items-center mb-3">
-                    <span class="px-2 py-0.5 text-xs font-medium text-white ${divisionBadgeClass} rounded-full">${event.division}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium text-white rounded-full" style="background-color: ${divisionColor};">${event.division}</span>
                     <div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                         ${event.time ? `<span><i class="ti ti-clock mr-1"></i>${event.time}</span>` : ''}
                         <span><i class="ti ti-map-pin mr-1"></i>${event.location}</span>
@@ -2407,15 +2447,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.type === 'league_event') {
             return renderLeagueEventCard(event, true);
         }
-        // Division badge color: Premier=blue, Classic=green, ECS FC=purple
-        const divisionBadgeClass = event.division === 'Premier' ? 'bg-blue-500' :
-                                   event.division === 'ECS FC' ? 'bg-purple-500' : 'bg-green-500';
+        const divisionColor = programColor(event);
         const isEcsFc = event.type === 'ecs_fc';
         return `
             <div class="match-item p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-2 cursor-pointer hover:shadow-xs transition-shadow" data-event-id="${event.id}" data-event-type="${event.type || 'match'}">
                 <div class="text-xs text-gray-500 dark:text-gray-400 mb-1"><i class="ti ti-clock mr-1"></i>${event.time}</div>
                 <div class="flex items-center gap-1 mb-1">
-                    <span class="px-1.5 py-0.5 text-[10px] font-medium text-white ${divisionBadgeClass} rounded-sm">${event.division}</span>
+                    <span class="px-1.5 py-0.5 text-[10px] font-medium text-white rounded-sm" style="background-color: ${divisionColor};">${event.division}</span>
                     <small class="text-gray-700 dark:text-gray-300 truncate">${event.homeTeam} vs ${event.awayTeam}</small>
                 </div>
                 <div class="flex justify-between items-center">
@@ -2914,7 +2952,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let html = '<div class="divide-y divide-gray-200 dark:divide-gray-700">';
         assignments.forEach(a => {
             const isUpcoming = new Date(a.start) > new Date();
-            html += `<div class="p-3"><div class="flex justify-between"><div><h6 class="font-semibold text-gray-900 dark:text-white mb-1">${a.title}</h6><div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400"><span><i class="ti ti-calendar mr-1"></i>${a.date}</span><span><i class="ti ti-clock mr-1"></i>${a.time}</span></div><div class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${a.location}</div></div><div class="text-right"><span class="px-2 py-0.5 text-xs font-medium text-white ${a.division === 'Premier' ? 'bg-blue-500' : 'bg-green-500'} rounded-full">${a.division}</span><br><span class="mt-1 inline-block px-2 py-0.5 text-xs font-medium ${isUpcoming ? 'text-blue-800 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400'} rounded-full">${isUpcoming ? 'Upcoming' : 'Completed'}</span></div></div></div>`;
+            html += `<div class="p-3"><div class="flex justify-between"><div><h6 class="font-semibold text-gray-900 dark:text-white mb-1">${a.title}</h6><div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400"><span><i class="ti ti-calendar mr-1"></i>${a.date}</span><span><i class="ti ti-clock mr-1"></i>${a.time}</span></div><div class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${a.location}</div></div><div class="text-right"><span class="px-2 py-0.5 text-xs font-medium text-white rounded-full" style="background-color: ${programColor(a)};">${a.division}</span><br><span class="mt-1 inline-block px-2 py-0.5 text-xs font-medium ${isUpcoming ? 'text-blue-800 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-600 bg-gray-100 dark:bg-gray-700 dark:text-gray-400'} rounded-full">${isUpcoming ? 'Upcoming' : 'Completed'}</span></div></div></div>`;
         });
         html += '</div>';
         assignmentsList.innerHTML = html;
@@ -3063,10 +3101,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Filter checkboxes
-    ['filterShowMatches', 'filterShowLeagueEvents', 'filterDivPremier', 'filterDivClassic', 'filterDivEcsFc'].forEach(id => {
+    // Filter checkboxes. The division boxes are bound by CLASS, not by id —
+    // they are rendered from the program registry, so there is no fixed set of
+    // ids to list here.
+    ['filterShowMatches', 'filterShowLeagueEvents'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('change', () => renderSchedule());
+    });
+    document.querySelectorAll('.filter-division').forEach(cb => {
+        cb.addEventListener('change', () => renderSchedule());
     });
 
     // Event type filter checkboxes
@@ -3083,22 +3126,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('filterSelectAllDivisions')?.addEventListener('click', () => {
-        const premier = document.getElementById('filterDivPremier');
-        const classic = document.getElementById('filterDivClassic');
-        const ecsFc = document.getElementById('filterDivEcsFc');
-        if (premier) premier.checked = true;
-        if (classic) classic.checked = true;
-        if (ecsFc) ecsFc.checked = true;
+        document.querySelectorAll('.filter-division').forEach(cb => cb.checked = true);
         renderSchedule();
     });
 
     document.getElementById('filterClearAllDivisions')?.addEventListener('click', () => {
-        const premier = document.getElementById('filterDivPremier');
-        const classic = document.getElementById('filterDivClassic');
-        const ecsFc = document.getElementById('filterDivEcsFc');
-        if (premier) premier.checked = false;
-        if (classic) classic.checked = false;
-        if (ecsFc) ecsFc.checked = false;
+        document.querySelectorAll('.filter-division').forEach(cb => cb.checked = false);
         renderSchedule();
     });
 
@@ -3116,15 +3149,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filterResetBtn')?.addEventListener('click', () => {
         const showMatches = document.getElementById('filterShowMatches');
         const showLeagueEvents = document.getElementById('filterShowLeagueEvents');
-        const premier = document.getElementById('filterDivPremier');
-        const classic = document.getElementById('filterDivClassic');
-        const ecsFc = document.getElementById('filterDivEcsFc');
 
         if (showMatches) showMatches.checked = true;
         if (showLeagueEvents) showLeagueEvents.checked = true;
-        if (premier) premier.checked = true;
-        if (classic) classic.checked = true;
-        if (ecsFc) ecsFc.checked = true;
+        document.querySelectorAll('.filter-division').forEach(cb => cb.checked = true);
 
         // Reset event type filters
         document.querySelectorAll('.filter-event-type').forEach(cb => cb.checked = true);
@@ -3383,6 +3411,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 setElementValue('eventType', eventData.eventType || eventData.extendedProps?.eventType || 'other');
                 setElementValue('eventLocation', eventData.location || eventData.extendedProps?.location || '');
                 setElementValue('eventDescription', eventData.description || eventData.extendedProps?.description || '');
+                // Load the program scope, or re-saving an event silently
+                // widens it back to league-wide.
+                //
+                // The <select> only lists the CURRENT season's leagues, so an
+                // event scoped to a past season's league (or to a league the
+                // registry no longer knows) has no matching option. Assigning
+                // an unmatched value to a <select> sets selectedIndex -1 and
+                // the getter then returns '' — so merely fixing a typo and
+                // hitting Save would have posted league_id: null and quietly
+                // unscoped the event. Keep the existing scope selectable.
+                const scopeSelect = document.getElementById('eventLeagueId');
+                const scopedLeagueId = eventData.extendedProps?.leagueId ?? eventData.leagueId ?? null;
+                if (scopeSelect) {
+                    scopeSelect.querySelectorAll('option[data-existing-scope]').forEach(o => o.remove());
+                    const wanted = scopedLeagueId ? String(scopedLeagueId) : '';
+                    const known = Array.from(scopeSelect.options).some(o => o.value === wanted);
+                    if (wanted && !known) {
+                        const label = eventData.extendedProps?.programName || eventData.programName;
+                        const opt = document.createElement('option');
+                        opt.value = wanted;
+                        opt.textContent = label ? `${label} (current scope)` : 'Current scope (other season)';
+                        opt.setAttribute('data-existing-scope', '1');
+                        scopeSelect.appendChild(opt);
+                    }
+                    scopeSelect.value = wanted;
+                }
 
                 const allDayEl = document.getElementById('eventAllDay');
                 if (allDayEl) allDayEl.checked = eventData.allDay || false;
@@ -3509,6 +3563,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 description: getElementValue('eventDescription') || null,
                 is_all_day: getElementChecked('eventAllDay'),
                 is_public: getElementChecked('eventPublic'),
+                league_id: parseInt(getElementValue('eventLeagueId'), 10) || null,
                 notify_discord: getElementChecked('eventNotifyDiscord'),
                 send_reminder: getElementChecked('eventSendReminder'),
                 reminder_days_before: parseInt(getElementValue('eventReminderDays')) || 2

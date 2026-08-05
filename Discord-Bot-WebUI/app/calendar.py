@@ -87,9 +87,17 @@ def get_schedule():
         total_matches = len(matches)
         assigned_refs = 0
 
+        from app.services.calendar.programs import program_label_for_league_name
+
         for match in matches:
-            # Determine division from league name
-            division = match.home_league_name or 'Classic'
+            # Division label + colour from the program registry. This used to
+            # default an unrecognised league to 'Classic' and colour anything
+            # that wasn't Premier green -- so a third program was mislabelled as
+            # Classic here while the client-side filter dropped it entirely.
+            program_key, division, color = program_label_for_league_name(
+                match.home_league_name, session_db)
+            if not division:
+                division = match.home_league_name or ''
             start_datetime = datetime.combine(match.date, match.time)
             ref_name = match.ref_name if match.ref_name else 'Unassigned'
 
@@ -101,10 +109,11 @@ def get_schedule():
                 'title': f"{division}: {match.home_team_name} vs {match.away_team_name}",
                 'start': start_datetime.isoformat(),
                 'description': f"Location: {match.location}",
-                'color': 'blue' if division == 'Premier' else 'green',
+                'color': color,
                 'url': f"/matches/{match.id}",
                 'ref': ref_name,
                 'division': division,
+                'programKey': program_key,
                 'teams': f"{match.home_team_name} vs {match.away_team_name}"
             })
 
@@ -112,7 +121,11 @@ def get_schedule():
 
         # Add league events to the calendar
         try:
-            league_events = session_db.query(LeagueEvent).filter(
+            # joinedload(league): the program label below reads event.league,
+            # which is lazy='select' — without this it is one SELECT per event.
+            league_events = session_db.query(LeagueEvent).options(
+                joinedload(LeagueEvent.league)
+            ).filter(
                 LeagueEvent.is_active == True
             ).all()
 
@@ -129,6 +142,12 @@ def get_schedule():
 
             for league_event in league_events:
                 event_color = event_type_colors.get(league_event.event_type, '#607d8b')
+                # league_id None means "every program" — left unlabelled so a
+                # program filter never hides a league-wide event.
+                ev_program_key = ev_program_name = None
+                if league_event.league_id:
+                    ev_program_key, ev_program_name, _ = program_label_for_league_name(
+                        getattr(getattr(league_event, 'league', None), 'name', None), session_db)
                 events.append({
                     'id': f'event-{league_event.id}',
                     'title': league_event.title,
@@ -147,6 +166,8 @@ def get_schedule():
                         'description': league_event.description,
                         'location': league_event.location,
                         'leagueId': league_event.league_id,
+                        'programKey': ev_program_key,
+                        'programName': ev_program_name,
                         'seasonId': league_event.season_id,
                     }
                 })
@@ -163,6 +184,10 @@ def get_schedule():
             for match in ecs_fc_matches:
                 start_datetime = datetime.combine(match.match_date, match.match_time)
                 team_name = match.team.name if match.team else 'ECS FC'
+                ecs_program_key, ecs_division, ecs_color = program_label_for_league_name(
+                    getattr(getattr(match.team, 'league', None), 'name', None), session_db)
+                if not ecs_division:
+                    ecs_program_key, ecs_division, ecs_color = 'ecs_fc', 'ECS FC', '#7b1fa2'
 
                 # Format title based on home/away
                 if match.is_home_match:
@@ -175,14 +200,17 @@ def get_schedule():
                     'title': title,
                     'start': start_datetime.isoformat(),
                     'description': f"Location: {match.location}",
-                    'color': '#7b1fa2',  # Purple for ECS FC
+                    'color': ecs_color,
                     'type': 'ecs_fc',
-                    'division': 'ECS FC',
+                    'division': ecs_division,
+                    'programKey': ecs_program_key,
                     'teams': f"{team_name} vs {match.opponent_name}",
                     'location': match.location,
                     'ref': 'N/A',  # ECS FC matches don't have refs assigned the same way
                     'extendedProps': {
                         'type': 'ecs_fc',
+                        'division': ecs_division,
+                        'programKey': ecs_program_key,
                         'matchId': match.id,
                         'teamId': match.team_id,
                         'isHomeMatch': match.is_home_match,
@@ -506,14 +534,23 @@ def my_assignments():
                    .order_by(Match.date, Match.time)
                    .all())
 
+        from app.services.calendar.programs import program_label_for_league_name
+
         assignments = []
         for match in matches:
-            division = match.home_league_name or 'Classic'
+            # Registry-resolved, not `... or 'Classic'` — an unrecognised league
+            # was being presented to the referee as a Classic assignment.
+            program_key, division, color = program_label_for_league_name(
+                match.home_league_name, session_db)
+            if not division:
+                division = match.home_league_name or ''
             start_datetime = datetime.combine(match.date, match.time)
-            
+
             assignments.append({
                 'id': match.id,
                 'title': f"{division}: {match.home_team_name} vs {match.away_team_name}",
+                'color': color,
+                'programKey': program_key,
                 'start': start_datetime.isoformat(),
                 'date': match.date.strftime('%Y-%m-%d'),
                 'time': match.time.strftime('%H:%M'),
@@ -620,8 +657,13 @@ def public_events():
     """
     Retrieve public league events for unauthenticated users.
 
-    This endpoint returns only league events (not matches) that are marked as active.
-    Used for the public calendar view.
+    This endpoint returns only league events (not matches) that are marked as
+    active AND public. Used for the public calendar view.
+
+    ⚠️ `is_public` is not optional here. This filtered on `is_active` alone,
+    so every internal event an admin had deliberately unchecked "Show on public
+    site calendar" for was served to anyone hitting /calendar logged out —
+    while /preview/calendar, reading the same rows, correctly hid them.
 
     Returns:
         JSON response containing the list of public events.
@@ -631,8 +673,11 @@ def public_events():
         events = []
 
         # Only fetch league events for public view
-        league_events = session_db.query(LeagueEvent).filter(
-            LeagueEvent.is_active == True
+        league_events = session_db.query(LeagueEvent).options(
+            joinedload(LeagueEvent.league)
+        ).filter(
+            LeagueEvent.is_active == True,
+            LeagueEvent.is_public == True
         ).all()
 
         # Color mapping for event types
@@ -646,8 +691,15 @@ def public_events():
             'other': '#607d8b',       # Blue-grey
         }
 
+        from app.services.calendar.programs import (
+            calendar_programs, program_label_for_league_name)
+
         for league_event in league_events:
             event_color = event_type_colors.get(league_event.event_type, '#607d8b')
+            ev_program_key = ev_program_name = ev_program_color = None
+            if league_event.league_id:
+                ev_program_key, ev_program_name, ev_program_color = program_label_for_league_name(
+                    getattr(getattr(league_event, 'league', None), 'name', None), session_db)
             events.append({
                 'id': f'event-{league_event.id}',
                 'title': league_event.title,
@@ -659,16 +711,23 @@ def public_events():
                 'eventType': league_event.event_type,
                 'description': league_event.description,
                 'location': league_event.location,
+                'programKey': ev_program_key,
+                'programName': ev_program_name,
+                'programColor': ev_program_color,
                 'extendedProps': {
                     'type': 'league_event',
                     'eventType': league_event.event_type,
                     'description': league_event.description,
                     'location': league_event.location,
+                    'programKey': ev_program_key,
+                    'programName': ev_program_name,
+                    'programColor': ev_program_color,
                 }
             })
 
         return jsonify({
             'events': events,
+            'programs': calendar_programs(session_db),
             'stats': {
                 'totalEvents': len(events)
             }
@@ -708,8 +767,13 @@ def calendar_view():
         from app.utils.user_helpers import safe_current_user
         user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
 
-    # Check if user has special roles for full calendar access
-    special_roles = ['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach']
+    # Check if user has special roles for full calendar access.
+    # The coach roles come from the program registry: a hardcoded
+    # 'Pub League Coach' bounced every newer program's coach (e.g. Summer
+    # Sprint's 'Summer Coach') to the stripped-down public template.
+    from app.services.calendar.visibility_service import coach_roles
+    special_roles = set(['Pub League Admin', 'Global Admin', 'Pub League Ref'])
+    special_roles |= coach_roles(session_db)
     has_special_role = any(role in special_roles for role in user_roles)
 
     # Check if user is a player with team associations (regular players can see their matches)
@@ -736,7 +800,7 @@ def calendar_view():
     # Pub League Admin and Global Admin have full calendar access
     # Pub League Coaches and Refs have limited access
     is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
-    is_coach = any(role in ['Pub League Coach', 'ECS FC Coach'] for role in user_roles)
+    is_coach = any(role in coach_roles(session_db) for role in user_roles)
     can_assign_referee = is_admin
     can_view_schedule_stats = is_admin
     can_view_available_referees = is_admin
@@ -744,6 +808,12 @@ def calendar_view():
 
     # Determine if this is a regular player (not admin, coach, or ref)
     is_regular_player = has_team and not is_admin and not is_coach and not is_referee
+
+    # Division filter checkboxes + the event-scope picker are rendered from the
+    # registry, never from a hardcoded Premier/Classic/ECS FC list — that list
+    # is what silently dropped every Summer Sprint match client-side.
+    from app.services.calendar.programs import calendar_programs
+    programs = calendar_programs(session_db, with_league_ids=can_edit_events)
 
     return render_template('calendar_flowbite.html',
                          title='Pub League Calendar',
@@ -753,4 +823,5 @@ def calendar_view():
                          can_view_schedule_stats=can_view_schedule_stats,
                          can_view_available_referees=can_view_available_referees,
                          can_edit_referee_matches=is_referee,
-                         can_edit_events=can_edit_events)
+                         can_edit_events=can_edit_events,
+                         calendar_programs=programs)

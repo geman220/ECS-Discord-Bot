@@ -831,11 +831,22 @@ def calendar():
     """Public calendar — Agenda (list) or Month (grid) view. Server-rendered
     (no JS needed). Shows PUBLIC league events only; never enters the portal."""
     from app.models.calendar import LeagueEvent
+    from app.services.calendar.programs import (
+        calendar_programs, league_ids_for_program, program_by_league_id_map)
     from datetime import timedelta
     import calendar as _calmod
     now = datetime.utcnow()
     view = 'month' if request.args.get('view') == 'month' else 'agenda'
     copy = _dynamic_copy('calendar')
+
+    # Program filter. Resolved against the registry up front so only a known
+    # key can reach the query OR the cache key — an unrecognised ?p is dropped
+    # rather than minting a cache entry per typo.
+    programs = calendar_programs()
+    program_keys = {p['key'] for p in programs}
+    active_program = (request.args.get('p') or '').strip().lower()
+    if active_program not in program_keys:
+        active_program = ''
 
     # Resolve the month up front so it can key the cache (invalid/absent ?m
     # falls back to the current month — one shared key, not one per typo).
@@ -849,8 +860,20 @@ def calendar():
             year, month = now.year, now.month
 
     def _q():
-        return LeagueEvent.query.filter(LeagueEvent.is_active.is_(True),
-                                        LeagueEvent.is_public.is_(True))
+        # league_ids_for_program() is resolved HERE, not up top, because _q is
+        # only ever called from _render — i.e. on a cache MISS. Hoisting it out
+        # would spend a League query on every cache hit and break
+        # _dynamic_page_cache's "a cache hit costs zero DB round-trips".
+        q = LeagueEvent.query.filter(LeagueEvent.is_active.is_(True),
+                                     LeagueEvent.is_public.is_(True))
+        if active_program:
+            from sqlalchemy import or_
+            # An event with league_id NULL is league-wide and belongs to every
+            # program, so it survives any selection.
+            q = q.filter(or_(LeagueEvent.league_id.is_(None),
+                             LeagueEvent.league_id.in_(
+                                 league_ids_for_program(active_program))))
+        return q
 
     def _render():
         seo = _seo(
@@ -877,12 +900,18 @@ def calendar():
             grid = {
                 'weeks': _calmod.Calendar(firstweekday=6).monthdatescalendar(year, month),
                 'by_day': by_day, 'month': month, 'label': first.strftime('%B %Y'),
+                # 'self' so links that only change the program filter can stay
+                # on the month being viewed instead of jumping to today.
+                'self': first.strftime('%Y-%m'),
                 'prev': prev_first.strftime('%Y-%m'), 'next': last.strftime('%Y-%m'),
                 'today': now.date(),
             }
             return render_template('public/calendar.html', active_page='calendar', seo=seo,
                                    view='month', grid=grid, grouped={}, total=len(evs),
-                                   copy=copy)
+                                   copy=copy, programs=programs,
+                                   active_program=active_program,
+                                   program_of=program_by_league_id_map(
+                                       [e.league_id for e in evs]))
 
         # ---- Agenda (default) ----
         try:
@@ -896,7 +925,10 @@ def calendar():
             grouped.setdefault(e.start_datetime.strftime('%B %Y'), []).append(e)
         return render_template('public/calendar.html', active_page='calendar', seo=seo,
                                view='agenda',
-                               grouped=grouped, total=len(events), copy=copy)
+                               grouped=grouped, total=len(events), copy=copy,
+                               programs=programs, active_program=active_program,
+                               program_of=program_by_league_id_map(
+                                   [e.league_id for e in events]))
 
     if view == 'month':
         # Only months near "now" are cached (people paging around the current
@@ -906,6 +938,12 @@ def calendar():
         suffix = f'?m={year}-{month:02d}' if near else None
     else:
         suffix = ''
+    # The program filter MUST key the cache: without it the first request to
+    # land would bake one program's filtered page in and serve it to everyone.
+    # active_program is already validated against the registry, so the key
+    # space stays bounded by the number of programs.
+    if suffix is not None and active_program:
+        suffix = f'{suffix}{"&" if suffix else "?"}p={active_program}'
     return _dynamic_page_cache('calendar', suffix, _render)
 
 
@@ -914,10 +952,20 @@ def calendar_ics():
     """Public iCal feed of public events, so anyone can subscribe/sync it into
     Google/Apple/Outlook calendars (like WordPress's export links)."""
     from app.models.calendar import LeagueEvent
+    from app.services.calendar.programs import calendar_programs, league_ids_for_program
+    # Same ?p= filter as the page, so "Subscribe" from a filtered view gives
+    # you the calendar you were looking at rather than everything.
+    active_program = (request.args.get('p') or '').strip().lower()
+    if active_program not in {p['key'] for p in calendar_programs()}:
+        active_program = ''
     try:
-        events = (LeagueEvent.query
-                  .filter(LeagueEvent.is_active.is_(True), LeagueEvent.is_public.is_(True))
-                  .order_by(LeagueEvent.start_datetime.asc()).all())
+        q = (LeagueEvent.query
+             .filter(LeagueEvent.is_active.is_(True), LeagueEvent.is_public.is_(True)))
+        if active_program:
+            from sqlalchemy import or_
+            q = q.filter(or_(LeagueEvent.league_id.is_(None),
+                             LeagueEvent.league_id.in_(league_ids_for_program(active_program))))
+        events = q.order_by(LeagueEvent.start_datetime.asc()).all()
     except Exception:
         events = []
 

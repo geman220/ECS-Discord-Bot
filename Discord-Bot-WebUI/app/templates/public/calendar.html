@@ -11,6 +11,11 @@
     'other': ('ti-calendar-event', 'Event', 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'),
 } %}
 
+{# Defaults so the page still renders if a caller omits the program context. #}
+{% set programs = programs | default([], true) %}
+{% set program_of = program_of | default({}, true) %}
+{% set active_program = active_program | default('', true) %}
+
 {% block content %}
 {{ hero(copy.hero_title, copy.hero_subtitle) }}
 
@@ -19,27 +24,56 @@
     <div class="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center gap-3">
         <div class="flex-1 text-sm font-medium text-gray-700 dark:text-gray-200"><i class="ti ti-calendar-plus text-ecs-green"></i> Add this calendar to your phone or computer</div>
         <div class="flex flex-wrap gap-2">
-            <a href="webcal://{{ request.host }}{{ url_for('public.calendar_ics') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-brand-apple"></i> Subscribe</a>
-            <a href="https://calendar.google.com/calendar/render?cid={{ ('webcal://' ~ request.host ~ url_for('public.calendar_ics')) | urlencode }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-brand-google"></i> Google</a>
-            <a href="{{ url_for('public.calendar_ics') }}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-download"></i> .ics</a>
+            {# The feed links carry the active program so subscribing from a
+               filtered view gives you that program's calendar, not everything. #}
+            {% set ics_url = url_for('public.calendar_ics', p=active_program or None) %}
+            <a href="webcal://{{ request.host }}{{ ics_url }}" class="inline-flex items-center gap-1.5 rounded-lg bg-ecs-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-ecs-green-dark"><i class="ti ti-brand-apple"></i> Subscribe</a>
+            <a href="https://calendar.google.com/calendar/render?cid={{ ('webcal://' ~ request.host ~ ics_url) | urlencode }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-brand-google"></i> Google</a>
+            <a href="{{ ics_url }}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-download"></i> .ics</a>
         </div>
     </div>
 </div>
 
 <section class="py-14 sm:py-16">
     <div class="mx-auto {{ 'max-w-5xl' if view == 'month' else 'max-w-3xl' }} px-4 sm:px-6 lg:px-8">
-        {# View toggle: Agenda | Month #}
-        <div class="mb-6 inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
-            <a href="{{ url_for('public.calendar') }}" class="px-4 py-2 inline-flex items-center gap-1.5 {{ 'bg-ecs-green text-white' if view != 'month' else 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"><i class="ti ti-list"></i> Agenda</a>
-            <a href="{{ url_for('public.calendar', view='month') }}" class="px-4 py-2 inline-flex items-center gap-1.5 {{ 'bg-ecs-green text-white' if view == 'month' else 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"><i class="ti ti-calendar-month"></i> Month</a>
+        {# View toggle: Agenda | Month — carries the active program through #}
+        <div class="mb-4 flex flex-wrap items-center gap-3">
+            <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-sm">
+                <a href="{{ url_for('public.calendar', p=active_program or None) }}" class="px-4 py-2 inline-flex items-center gap-1.5 {{ 'bg-ecs-green text-white' if view != 'month' else 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"><i class="ti ti-list"></i> Agenda</a>
+                <a href="{{ url_for('public.calendar', view='month', p=active_program or None) }}" class="px-4 py-2 inline-flex items-center gap-1.5 {{ 'bg-ecs-green text-white' if view == 'month' else 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"><i class="ti ti-calendar-month"></i> Month</a>
+            </div>
         </div>
+
+        {# Program filter. Rendered from the program registry, so a new program
+           appears here the moment it goes active — no template edit, and no
+           hardcoded division list to fall behind and hide it. #}
+        {% if programs %}
+        {# Changing the program keeps you on the month you were looking at. #}
+        {% set month_arg = grid.self if view == 'month' else None %}
+        <div class="mb-6 flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-400">Program</span>
+            <a href="{{ url_for('public.calendar', view='month' if view == 'month' else None, m=month_arg) }}"
+               class="rounded-full px-3 py-1 text-xs font-semibold border {{ 'bg-ecs-green text-white border-ecs-green' if not active_program else 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}">All</a>
+            {% for p in programs %}
+            <a href="{{ url_for('public.calendar', view='month' if view == 'month' else None, m=month_arg, p=p.key) }}"
+               class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border {{ 'text-white border-transparent' if active_program == p.key else 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800' }}"
+               {% if active_program == p.key %}style="background-color: {{ p.color }};"{% endif %}>
+                {% if active_program != p.key %}<span class="w-2 h-2 rounded-full" style="background-color: {{ p.color }};"></span>{% endif %}
+                {{ p.label }}
+            </a>
+            {% endfor %}
+        </div>
+        {% if active_program %}
+        <p class="-mt-3 mb-6 text-xs text-gray-400">Showing {{ (programs | selectattr('key', 'equalto', active_program) | first).label }} events plus league-wide events.</p>
+        {% endif %}
+        {% endif %}
 
         {% if view == 'month' %}
         {# ---------------- MONTH GRID ---------------- #}
         <div class="flex items-center justify-between mb-4">
-            <a href="{{ url_for('public.calendar', view='month', m=grid.prev) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-chevron-left"></i> Prev</a>
+            <a href="{{ url_for('public.calendar', view='month', m=grid.prev, p=active_program or None) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"><i class="ti ti-chevron-left"></i> Prev</a>
             <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ grid.label }}</h2>
-            <a href="{{ url_for('public.calendar', view='month', m=grid.next) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Next <i class="ti ti-chevron-right"></i></a>
+            <a href="{{ url_for('public.calendar', view='month', m=grid.next, p=active_program or None) }}" class="inline-flex items-center gap-1 rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Next <i class="ti ti-chevron-right"></i></a>
         </div>
         {# The 7-column grid needs ~640px to stay legible; below that it scrolls
            sideways instead of crushing the day cells (full-bleed on phones). #}
@@ -54,22 +88,31 @@
                   <div class="text-xs {{ 'font-bold text-ecs-green dark:text-ecs-blue-400' if day == grid.today else 'text-gray-400' }}">{{ day.day }}</div>
                   {% for e in grid.by_day.get(day, []) %}
                   {% set meta = type_meta.get(e.event_type, ('ti-calendar-event', '', 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200')) %}
-                  <div class="mt-1 rounded-sm px-1 py-0.5 text-[10px] leading-tight truncate {{ meta[2] }}" title="{{ e.title }} · {{ e.start_datetime.strftime('%-I:%M %p') }}{% if e.location %} · {{ e.location }}{% endif %}">{{ e.start_datetime.strftime('%-I%p')|lower }} {{ e.title }}</div>
+                  {% set prog = program_of.get(e.league_id) %}
+                  <div class="mt-1 rounded-sm px-1 py-0.5 text-[10px] leading-tight truncate {{ meta[2] }}{% if prog %} border-l-2{% endif %}"
+                       {% if prog %}style="border-left-color: {{ prog.color }};"{% endif %}
+                       title="{{ e.title }} · {{ e.start_datetime.strftime('%-I:%M %p') }}{% if e.location %} · {{ e.location }}{% endif %}{% if prog %} · {{ prog.label }}{% endif %}">{{ e.start_datetime.strftime('%-I%p')|lower }} {{ e.title }}</div>
                   {% endfor %}
               </div>
               {% endfor %}
             {% endfor %}
         </div>
         </div>
-        {% if total == 0 %}<p class="mt-4 text-center text-sm text-gray-400">No public events this month.</p>{% endif %}
+        {% if total == 0 %}<p class="mt-4 text-center text-sm text-gray-400">No public events this month{% if active_program %} for this program — <a href="{{ url_for('public.calendar', view='month', m=grid.self) }}" class="text-ecs-green dark:text-ecs-blue-400 font-semibold">see all programs</a>{% endif %}.</p>{% endif %}
 
         {% else %}
         {# ---------------- AGENDA ---------------- #}
         {% if total == 0 %}
         <div class="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 p-10 text-center text-gray-500 dark:text-gray-400">
             <i class="ti ti-calendar-off text-4xl"></i>
+            {% if active_program %}
+            <p class="mt-3">No upcoming public events for this program right now —
+               <a href="{{ url_for('public.calendar') }}" class="text-ecs-green dark:text-ecs-blue-400 font-semibold">see all programs</a>, or
+               <a href="{{ url_for('public.contact') }}" class="text-ecs-green dark:text-ecs-blue-400 font-semibold">reach out</a>.</p>
+            {% else %}
             <p class="mt-3">No upcoming public events are posted right now — check back soon, or
                <a href="{{ url_for('public.contact') }}" class="text-ecs-green dark:text-ecs-blue-400 font-semibold">reach out</a>.</p>
+            {% endif %}
         </div>
         {% else %}
         {% for month, events in grouped.items() %}
@@ -87,6 +130,11 @@
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {{ meta[2] }}"><i class="ti {{ meta[0] }}"></i> {{ meta[1] }}</span>
+                            {# Which program this event belongs to. Absent for
+                               league-wide events (league_id NULL), which are
+                               for everyone and need no badge. #}
+                            {% set prog = program_of.get(e.league_id) %}
+                            {% if prog %}<span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-white" style="background-color: {{ prog.color }};">{{ prog.label }}</span>{% endif %}
                             {% if not e.is_all_day %}<span class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-clock"></i> {{ e.start_datetime.strftime('%-I:%M %p') }}{% if e.end_datetime %} – {{ e.end_datetime.strftime('%-I:%M %p') }}{% endif %}</span>{% endif %}
                         </div>
                         <h3 class="mt-1 font-semibold text-gray-900 dark:text-white">{{ e.title }}</h3>
