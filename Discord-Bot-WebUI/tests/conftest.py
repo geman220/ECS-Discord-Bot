@@ -264,6 +264,17 @@ def db(_database, app):
             # order assigned to player_id 1 in one test came back as "this
             # person's order history" in the next one.
             'pub_league_order_claim', 'pub_league_order_line_item', 'pub_league_order',
+            # Wallet passes and their children. Exactly the same leak, and a
+            # nasty one: a pass issued to player_id 1 survived into the next
+            # test, where a BRAND NEW player reusing id 1 was then found to
+            # "already have an active pass". A resend/reissue refusal test
+            # therefore passed alone and failed in file order, which reads as a
+            # flaky endpoint rather than a dirty table.
+            #
+            # `wallet_pass_type` is deliberately NOT here: its `code` is UNIQUE
+            # and fixtures get-or-create it, so wiping it between tests buys
+            # nothing and its rows carry no player identity.
+            'wallet_pass_checkin', 'wallet_pass_device', 'wallet_pass',
             'match_events', 'sub_requests', 'availability', 'match_predictions',
             'mls_matches', 'match_dates',
             'points_event_award', 'points_event_type',

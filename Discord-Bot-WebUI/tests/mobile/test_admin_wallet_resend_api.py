@@ -152,7 +152,7 @@ class TestResend:
         assert body['sent_to_source'] == 'account'
         # Masked: enough to confirm WHICH inbox, without putting a full address
         # in a response body.
-        assert body['sent_to'] == 'g**********e@gmail.com'
+        assert body['sent_to'] == 'g*********e@gmail.com'   # 11-char local part
         assert 'gecourville' not in body['sent_to']
 
     def test_falls_back_to_the_address_on_the_pass(
