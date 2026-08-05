@@ -133,6 +133,61 @@ class TestMatchPayloadCarriesItsProgram:
         assert props['programKey'] is None
 
 
+class TestInactiveProgramStillRenders:
+    """Production seeds `pl_third` with is_active=FALSE and flips it by hand at
+    launch (SUMMER_SPRINT_LAUNCH_RUNBOOK step 7). Registry lookups are
+    active-only, so while that flag is off a Summer Sprint match resolves to NO
+    program.
+
+    That must degrade to "unlabelled but VISIBLE", never to "filtered out" —
+    otherwise this fix would appear to do nothing on the very deploy it was
+    written for. The client-side half of the guarantee is that the filter only
+    hides a program it can represent with a checkbox; this pins the server half
+    that feeds it.
+    """
+
+    @pytest.fixture
+    def third_program_inactive(self, db):
+        from app.models.program import Program
+        from app.services import program_registry
+        from tests.conftest import seed_program_registry
+
+        (db.session.query(Program)
+         .filter(Program.key == 'pl_third')
+         .update({'is_active': False}))
+        db.session.flush()
+        program_registry.invalidate()
+        yield
+        # Restore, or every later test in the session runs without the program.
+        seed_program_registry(db.session)
+        db.session.commit()
+
+    def test_match_keeps_its_own_name_and_is_not_dropped(self, db, third_program_inactive):
+        from app.dto.calendar_dto import match_to_fullcalendar
+
+        season, league = _make_program_league(
+            db, season_name='Summer Sprint 2026', league_type='PL Third',
+            league_name='Summer Sprint')
+        match = _make_match(db, season, league)
+
+        props = match_to_fullcalendar(match)['extendedProps']
+        # No program resolved...
+        assert props['programKey'] is None
+        # ...but the match still carries its real league name, so it renders
+        # and reads correctly rather than being relabelled or blanked.
+        assert props['division'] == 'Summer Sprint'
+
+    def test_inactive_program_gets_no_filter_checkbox(self, db, third_program_inactive):
+        """The other half of the invariant: because there is no checkbox for
+        it, the client-side filter has nothing to match it against — and the
+        filter only hides programs it can represent."""
+        from app.services.calendar.programs import calendar_programs
+
+        keys = {p['key'] for p in calendar_programs(db.session)}
+        assert 'pl_third' not in keys
+        assert 'premier' in keys  # the others are unaffected
+
+
 class TestCalendarProgramsList:
     """The filter checkboxes are rendered from this list, so a program missing
     here is a program that cannot be filtered for — the original bug."""
@@ -213,6 +268,72 @@ class TestPublicCalendarProgramFilter:
         body = resp.data.decode('utf-8', 'ignore')
         assert 'Summer Sprint Kickoff Party' in body
         assert 'Premier Season Opener' not in body
+
+
+class TestAdminSeesProgramScopedEvents:
+    """Scoping an event to a program must not hide it from admins.
+
+    `get_visible_league_events_query` derives league scope from
+    `player.teams` and — unlike the match and ECS FC queries beside it — had no
+    admin bypass. A Global Admin with no Player row resolved to league_ids ==
+    [] and saw only league-wide events. That was harmless while nothing in the
+    UI could scope an event to a league; adding the Program picker made it
+    reachable, and the admin's own event would vanish from their own calendar
+    the moment they saved it.
+    """
+
+    def test_admin_without_a_player_row_sees_a_scoped_event(self, db):
+        from app.models import Role, User
+        from app.services.calendar import create_visibility_service
+
+        role = db.session.query(Role).filter_by(name='Global Admin').first()
+        if not role:
+            role = Role(name='Global Admin', description='Global Admin')
+            db.session.add(role)
+            db.session.flush()
+        admin = User(username='cal_admin', email='cal_admin@example.com',
+                     is_approved=True, approval_status='approved')
+        admin.set_password('x')
+        admin.roles.append(role)
+        db.session.add(admin)
+        db.session.flush()
+
+        _, league = _make_program_league(
+            db, season_name='Summer Sprint 2026', league_type='PL Third',
+            league_name='Summer Sprint')
+        _make_event(db, admin, title='Summer Sprint Team Meeting',
+                    league_id=league.id)
+        db.session.flush()
+
+        visible = create_visibility_service(db.session).get_visible_league_events(admin)
+        assert 'Summer Sprint Team Meeting' in [e.title for e in visible]
+
+
+class TestDegradedProgramLookupIsNotSilent:
+    """A DB failure resolving a program's leagues must RAISE.
+
+    Returning [] is indistinguishable from "this program has no leagues", so a
+    transient failure rendered a successful, EMPTY program page — which
+    _dynamic_page_cache then stored for its full TTL and served site-wide.
+    Raising is what lets the caller's guard mark the render degraded and keep
+    it out of the cache.
+    """
+
+    def test_db_error_propagates_rather_than_returning_empty(self, db):
+        from app.services.calendar.programs import league_ids_for_program
+
+        class _BoomSession:
+            def query(self, *a, **kw):
+                raise RuntimeError('connection pool exhausted')
+
+        with pytest.raises(RuntimeError):
+            league_ids_for_program('premier', session=_BoomSession())
+
+    def test_unknown_program_still_returns_empty_quietly(self, db):
+        """An unknown program is a legitimate empty answer, not an error."""
+        from app.services.calendar.programs import league_ids_for_program
+
+        assert league_ids_for_program('no-such-program', session=db.session) == []
 
 
 class TestPublicEventsRespectsIsPublic:

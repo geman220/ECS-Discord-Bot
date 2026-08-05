@@ -115,6 +115,17 @@ def league_ids_for_program(program_key: str, session=None) -> List[int]:
     it, so a league that had drifted to e.g. "Premier Division" would render a
     Premier badge yet be excluded by the Premier filter. `league` is a small
     table and the registry is request-cached, so this costs one query.
+
+    ⚠️ A DB failure here RAISES rather than returning []. That is deliberate
+    and load-bearing for the public page cache: `[]` is a perfectly valid
+    answer that renders "no events for this program", and returning it on a
+    transient error produced a SUCCESSFUL empty render, which
+    _dynamic_page_cache then stored for TTL_HTML (and as :stale for an hour)
+    and served to everyone. One pool blip would bake an empty program page in
+    site-wide — exactly the failure that wrapper's docstring promises it
+    prevents. Callers run this inside their own degraded-render guard, so
+    letting it propagate is what marks the render degraded and keeps it
+    uncached.
     """
     if not program_key:
         return []
@@ -124,14 +135,11 @@ def league_ids_for_program(program_key: str, session=None) -> List[int]:
     except Exception:
         program = None
     if program is None:
+        # Genuinely unknown program (not a DB error) — it owns no leagues.
         return []
-    try:
-        from app.models import League
-        q = (session.query(League) if session is not None else League.query)
-        rows = q.with_entities(League.id, League.name).all()
-    except Exception:
-        logger.debug("Could not load league ids for program %r", program_key, exc_info=True)
-        return []
+    from app.models import League
+    q = (session.query(League) if session is not None else League.query)
+    rows = q.with_entities(League.id, League.name).all()
     return [lid for lid, lname in rows
             if getattr(program_for_league_name(lname, session), 'key', None) == program.key]
 

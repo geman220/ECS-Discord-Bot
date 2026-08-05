@@ -843,10 +843,11 @@ def calendar():
     # key can reach the query OR the cache key — an unrecognised ?p is dropped
     # rather than minting a cache entry per typo.
     programs = calendar_programs()
-    program_keys = {p['key'] for p in programs}
-    active_program = (request.args.get('p') or '').strip().lower()
-    if active_program not in program_keys:
-        active_program = ''
+    # Compare case-insensitively on BOTH sides: nothing constrains Program.key
+    # to lowercase, and lowering only the request value would make a
+    # mixed-case program's own filter chip resolve to "" and show everything.
+    program_keys = {(p['key'] or '').lower(): p['key'] for p in programs}
+    active_program = program_keys.get((request.args.get('p') or '').strip().lower(), '')
 
     # Resolve the month up front so it can key the cache (invalid/absent ?m
     # falls back to the current month — one shared key, not one per typo).
@@ -890,8 +891,12 @@ def calendar():
                 evs = (_q().filter(LeagueEvent.start_datetime >= first,
                                    LeagueEvent.start_datetime < last)
                        .order_by(LeagueEvent.start_datetime.asc()).all())
+                # Inside the guard: a failure here would otherwise render a
+                # badge-less page successfully and cache it.
+                prog_map = program_by_league_id_map([e.league_id for e in evs])
             except Exception:
                 evs = []
+                prog_map = {}
                 g.public_render_degraded = True   # never cache this empty page
             by_day = {}
             for e in evs:
@@ -910,15 +915,16 @@ def calendar():
                                    view='month', grid=grid, grouped={}, total=len(evs),
                                    copy=copy, programs=programs,
                                    active_program=active_program,
-                                   program_of=program_by_league_id_map(
-                                       [e.league_id for e in evs]))
+                                   program_of=prog_map)
 
         # ---- Agenda (default) ----
         try:
             events = (_q().filter(LeagueEvent.start_datetime >= (now - timedelta(hours=18)))
                       .order_by(LeagueEvent.start_datetime.asc()).limit(80).all())
+            prog_map = program_by_league_id_map([e.league_id for e in events])
         except Exception:
             events = []
+            prog_map = {}
             g.public_render_degraded = True   # never cache this empty page
         grouped = {}
         for e in events:
@@ -927,8 +933,7 @@ def calendar():
                                view='agenda',
                                grouped=grouped, total=len(events), copy=copy,
                                programs=programs, active_program=active_program,
-                               program_of=program_by_league_id_map(
-                                   [e.league_id for e in events]))
+                               program_of=prog_map)
 
     if view == 'month':
         # Only months near "now" are cached (people paging around the current
@@ -955,9 +960,9 @@ def calendar_ics():
     from app.services.calendar.programs import calendar_programs, league_ids_for_program
     # Same ?p= filter as the page, so "Subscribe" from a filtered view gives
     # you the calendar you were looking at rather than everything.
-    active_program = (request.args.get('p') or '').strip().lower()
-    if active_program not in {p['key'] for p in calendar_programs()}:
-        active_program = ''
+    # Same case-insensitive resolution as the page, so the two agree exactly.
+    _keys = {(p['key'] or '').lower(): p['key'] for p in calendar_programs()}
+    active_program = _keys.get((request.args.get('p') or '').strip().lower(), '')
     try:
         q = (LeagueEvent.query
              .filter(LeagueEvent.is_active.is_(True), LeagueEvent.is_public.is_(True)))

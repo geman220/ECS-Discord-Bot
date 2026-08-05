@@ -347,6 +347,19 @@ class VisibilityService:
         if end_date:
             query = query.filter(LeagueEvent.start_datetime <= end_date)
 
+        # Admins see every event, exactly as they do for matches.
+        #
+        # ⚠️ This bypass was missing while get_visible_match_query and
+        # get_visible_ecs_fc_matches_query both had it, and league scoping is
+        # derived from `player.teams` — so a Global Admin with no Player row
+        # (or one rostered only in Premier) resolved to league_ids == [] and
+        # saw ONLY league-wide events. Harmless while nothing could scope an
+        # event to a league; the moment the calendar grew a Program picker it
+        # meant an admin could scope an event and watch it vanish from their
+        # own calendar with no way to get it back.
+        if self.can_view_all_matches(user):
+            return query.order_by(LeagueEvent.start_datetime)
+
         # Get user's leagues
         league_ids = self.get_user_league_ids(user)
 
