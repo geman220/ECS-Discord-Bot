@@ -414,6 +414,9 @@ class SecurityMiddleware:
             details=details
         )
 
+        # Tell the 404 handler this request is already fully logged above so it
+        # doesn't emit a second, less-informative "404 error: <path>" line.
+        g._waf_classified_404 = True
         abort(404)
     
     def _store_security_ban(self, ip, duration_seconds, reason):

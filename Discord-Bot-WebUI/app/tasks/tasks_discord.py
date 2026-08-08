@@ -966,6 +966,12 @@ def _update_players_after_batch_role_sync(session, result):
             if synced:
                 player.discord_last_verified = datetime.utcnow()
                 player.discord_needs_update = False
+            else:
+                # A failed player must BECOME flagged, not merely stay flagged:
+                # batches dispatched by callers that never set the flag (e.g.
+                # defer_discord_sync after an admin role edit) would otherwise
+                # fail with no durable signal and never be retried by the drain.
+                player.discord_needs_update = True
 
             if not player_result.get('success'):
                 player.sync_error = player_result.get('error')

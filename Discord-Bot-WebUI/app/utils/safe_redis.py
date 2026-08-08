@@ -8,6 +8,7 @@ connection failures and provides consistent behavior when Redis is unavailable.
 """
 
 import logging
+import time
 from typing import Any, Optional, Union, List, Dict
 from contextlib import contextmanager
 
@@ -40,6 +41,11 @@ class SafeRedisClient:
         "Redis raw client is not available",
     )
 
+    # This check runs per safe_operation, i.e. on the request hot path. During
+    # an outage the failure repeats hundreds of times a minute — warn once per
+    # interval, not per call; re-arm when a ping succeeds again.
+    _AVAILABILITY_WARN_INTERVAL = 60  # seconds
+
     @property
     def is_available(self) -> bool:
         """Check if Redis is actually available (not a fallback client)."""
@@ -50,11 +56,21 @@ class SafeRedisClient:
 
             # Try to ping - this should always work in our Docker environment
             result = client.ping()
+            if result:
+                self._last_availability_warn = 0.0
             return bool(result)
         except Exception as e:
             msg = str(e)
             if not any(s in msg for s in self._BENIGN_ERROR_SUBSTRINGS):
-                logger.warning(f"Redis availability check failed: {e}")
+                now = time.monotonic()
+                if now - getattr(self, '_last_availability_warn', 0.0) >= self._AVAILABILITY_WARN_INTERVAL:
+                    self._last_availability_warn = now
+                    logger.warning(
+                        f"Redis availability check failed (repeats suppressed for "
+                        f"{self._AVAILABILITY_WARN_INTERVAL}s): {e}"
+                    )
+                else:
+                    logger.debug(f"Redis availability check failed: {e}")
             return False
     
     def _warn_once(self, operation: str):

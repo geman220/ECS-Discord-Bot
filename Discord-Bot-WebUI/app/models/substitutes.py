@@ -223,7 +223,10 @@ class SubstitutePoolHistory(db.Model):
     action = db.Column(db.String(50), nullable=False)
     previous_status = db.Column(db.JSON, nullable=True)
     new_status = db.Column(db.JSON, nullable=True)
-    performed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    # NULL = automated/system action (e.g. the weekly stale-pool expiration
+    # task) — there is no "system" users row to attribute it to. Requires the
+    # matching ALTER TABLE ... DROP NOT NULL to have been run in the DB.
+    performed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     performed_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     notes = db.Column(db.Text, nullable=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)

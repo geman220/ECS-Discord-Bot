@@ -543,8 +543,7 @@ Complete inventory of all JavaScript files in the codebase.
 | File | Description |
 |------|-------------|
 | `main.js` | Asset main entry |
-| `calendar/calendar-filters.js` | Calendar filtering |
-| `calendar/calendar-league-events.js` | League event display |
+| `calendar/calendar-league-events.js` | ⚠️ DEAD — not imported, not bundled. Nothing under `assets/js/` is a Vite entry, and no module imports this. The live league-event CRUD is the inline script in `app/templates/calendar_flowbite.html`. Delete it or wire it up; do not edit it expecting the calendar to change. |
 
 ---
 

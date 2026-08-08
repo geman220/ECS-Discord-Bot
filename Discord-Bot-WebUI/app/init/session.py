@@ -101,6 +101,13 @@ def _make_session_resilient(app):
     if interface is None:
         return
 
+    # Outage-scoped warning state, shared by all three guards (per process):
+    # WARN once when the store first fails, stay at DEBUG while the outage
+    # lasts, INFO once on recovery. Without this every request emitted up to
+    # three WARNINGs for the whole duration of a Redis restart — the loudest
+    # single noise source in errors.log during deploys.
+    degraded = {'active': False}
+
     def guard(method_name, fallback):
         original = getattr(interface, method_name, None)
         if not callable(original):
@@ -108,12 +115,23 @@ def _make_session_resilient(app):
 
         def wrapper(*args, **kwargs):
             try:
-                return original(*args, **kwargs)
+                result = original(*args, **kwargs)
+                if degraded['active']:
+                    degraded['active'] = False
+                    logger.info("Session store recovered (%s succeeded)", method_name)
+                return result
             except redis_errors as e:
-                logger.warning(
-                    "Session store unavailable in %s; degrading gracefully (%s)",
-                    method_name, e,
-                )
+                if not degraded['active']:
+                    degraded['active'] = True
+                    logger.warning(
+                        "Session store unavailable in %s; degrading gracefully "
+                        "until it recovers (repeats logged at DEBUG) (%s)",
+                        method_name, e,
+                    )
+                else:
+                    logger.debug(
+                        "Session store still unavailable in %s (%s)", method_name, e,
+                    )
                 return fallback
 
         setattr(interface, method_name, wrapper)

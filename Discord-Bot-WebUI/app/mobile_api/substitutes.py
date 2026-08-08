@@ -54,6 +54,52 @@ DISCORD_POLL_CHANNELS = {
 }
 
 
+def _pl_subs_tag_role_names(session=None):
+    """Discord sub-role names to ping in #pl-subs — one per ACTIVE pub-league
+    program (Classic, Premier, Summer Sprint, ...), derived from the program
+    registry so a new program's subs get pinged without editing this file.
+    ECS FC is excluded (is_pub_league_like=False; its subs flow through the
+    ECS FC sub system, not this poll). Falls back to the static registry
+    entry when the registry is unavailable."""
+    try:
+        from app.services import program_registry
+        names = [p.sub_role_name for p in program_registry.pub_league_like(session)
+                 if p.sub_role_name]
+        if names:
+            return names
+    except Exception:
+        logger.debug("program_registry unavailable; using static tag_role_names",
+                     exc_info=True)
+    return DISCORD_POLL_CHANNELS['pl_subs']['tag_role_names']
+
+
+def _resolve_tag_role_ids(session, tag_role_names):
+    """Map the registry's DISCORD role names to Discord role IDs via the roles table.
+
+    The Flask rows for these roles are named 'Classic Sub'/'Premier Sub' and carry
+    the Discord-side name in Role.discord_role_name (populated by the role
+    auto-mapper), so matching Role.name against the Discord-style names finds
+    nothing — that made the weekly availability poll fail on every run. Match
+    both columns so either naming resolves.
+
+    Returns (tag_role_ids, matched_names): the deduped Discord role IDs and the
+    subset of tag_role_names that resolved to a row WITH a discord_role_id.
+    """
+    role_rows = session.query(Role).filter(
+        or_(
+            Role.discord_role_name.in_(tag_role_names),
+            Role.name.in_(tag_role_names),
+        )
+    ).all()
+    ids, matched = [], set()
+    for r in role_rows:
+        if not r.discord_role_id:
+            continue
+        ids.append(str(r.discord_role_id))
+        matched.add(r.discord_role_name if r.discord_role_name in tag_role_names else r.name)
+    return list(dict.fromkeys(ids)), matched
+
+
 # ============================================================================
 # Authorization Helpers
 # ============================================================================
@@ -1301,19 +1347,12 @@ def post_discord_availability_poll():
         if session is None:
             logger.error("No DB session available for role lookup")
             return jsonify({"msg": "Internal error posting poll"}), 500
-        role_rows = session.query(Role).filter(
-            Role.name.in_(cfg['tag_role_names'])
-        ).all()
-        found_names = {r.name for r in role_rows}
-        for r in role_rows:
-            if r.discord_role_id:
-                tag_role_ids.append(str(r.discord_role_id))
-        missing = [n for n in cfg['tag_role_names'] if n not in found_names]
-        without_id = [r.name for r in role_rows if not r.discord_role_id]
+        tag_names = (_pl_subs_tag_role_names(session) if channel_key == 'pl_subs'
+                     else cfg['tag_role_names'])
+        tag_role_ids, found_names = _resolve_tag_role_ids(session, tag_names)
+        missing = [n for n in tag_names if n not in found_names]
         if missing:
-            logger.warning("Mention roles missing from DB: %s", missing)
-        if without_id:
-            logger.warning("Mention roles without discord_role_id: %s", without_id)
+            logger.warning("Mention roles missing or lacking a discord_role_id: %s", missing)
         if not tag_role_ids:
             return jsonify({"msg": "No mention roles configured"}), 500
     except Exception:
@@ -2140,15 +2179,15 @@ def post_availability_poll(session, *, target_date=None, user_id=None,
     # Admin-selected ping roles (Settings, live-picked from the bot) override the
     # role-name registry when set.
     cfg_role_ids = (AdminConfig.get_setting('sub_poll_role_ids', '') or '').strip()
+    tag_names = (_pl_subs_tag_role_names(session) if channel_key == 'pl_subs'
+                 else cfg['tag_role_names'])
     if cfg_role_ids:
         tag_role_ids = [r.strip() for r in cfg_role_ids.split(',') if r.strip()]
     else:
-        role_rows = session.query(Role).filter(Role.name.in_(cfg['tag_role_names'])).all()
-        tag_role_ids = [str(r.discord_role_id) for r in role_rows if r.discord_role_id]
+        tag_role_ids, _ = _resolve_tag_role_ids(session, tag_names)
     if not tag_role_ids:
-        role_rows = session.query(Role).filter(Role.name.in_(cfg['tag_role_names'])).all()
-        found_names = {r.name for r in role_rows if r.discord_role_id}
-        missing = [n for n in cfg['tag_role_names'] if n not in found_names]
+        _, found_names = _resolve_tag_role_ids(session, tag_names)
+        missing = [n for n in tag_names if n not in found_names]
         return {
             "msg": f"Mention roles missing or lacking a discord_role_id: {', '.join(missing)}"
         }, 500

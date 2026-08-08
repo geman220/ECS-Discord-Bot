@@ -268,8 +268,16 @@ def install_error_handlers(app):
 
         if any(path == p or path.startswith(p) for p in QUIET_404_PATHS):
             logger.debug(f"404 (suppressed): {path}")
+        elif getattr(g, '_waf_classified_404', False):
+            # The WAF already logged this probe with IP/method/UA/patterns/score
+            # ("SECURITY VIOLATION DETECTED") — a second bare "404 error: <path>"
+            # line carries strictly less information.
+            logger.debug(f"404 (WAF-classified): {path}")
         else:
-            logger.warning(f"404 error: {path}")
+            # INFO, not WARNING: an anonymous 404 is a client-side condition
+            # (scanners, stale links) and not actionable. API 404s are still
+            # surfaced at WARNING by app.mobile_api.middleware's response log.
+            logger.info(f"404 error: {path}")
 
         # Return JSON for API requests
         if _is_api_request():

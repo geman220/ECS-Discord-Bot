@@ -332,7 +332,10 @@ class SMSLog(db.Model):
         try:
             log_entry = cls.query.filter_by(twilio_sid=twilio_sid).first()
             if not log_entry:
-                logger.warning(f"SMS log not found for Twilio SID: {twilio_sid}")
+                # INFO: Twilio status callbacks arrive (and retry) for messages
+                # some send paths never persisted (admin sends create no SMSLog
+                # row) — driven by an external caller, not fixable from a log line.
+                logger.info(f"SMS log not found for Twilio SID: {twilio_sid}")
                 return None
 
             log_entry.twilio_status = status

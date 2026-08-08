@@ -701,6 +701,10 @@ class SyncDiscordClient:
         except Exception as e:
             error_msg = f"Error checking member status: {str(e)}"
             logger.error(error_msg)
+            # Open the circuit breaker for unexpected failure modes too —
+            # without this, a non-ConnectionError failure never trips it and
+            # logs at ERROR on every call with no cooldown.
+            _record_failure()
             return {
                 'success': False,
                 'message': error_msg,

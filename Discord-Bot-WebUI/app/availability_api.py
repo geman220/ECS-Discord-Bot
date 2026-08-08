@@ -832,7 +832,11 @@ def get_message_ids(match_id):
         logger.debug(f"🔵 [AVAILABILITY_API] Getting message data for match {match_id}")
         message_data = get_message_data(match_id, session=session_db)
         if not message_data:
-            logger.warning(f"🟡 [AVAILABILITY_API] No scheduled message found for match_id {match_id}")
+            # INFO: a match with no Discord RSVP embed is a normal state (past
+            # match, non-Discord league, created before scheduling ran); the 404
+            # already tells the caller. The bot retries this 3x per lookup, so
+            # at WARNING it flooded errors.log with non-actionable lines.
+            logger.info(f"🟡 [AVAILABILITY_API] No scheduled message found for match_id {match_id}")
             return jsonify({'error': 'No scheduled message found'}), 404
             
         logger.info(f"🟢 [AVAILABILITY_API] Returning message data for match_id {match_id}: {message_data}")
@@ -1256,13 +1260,7 @@ def get_message_info(message_id):
             ).first()
             
             if not scheduled_msg:
-                # Let's log all message IDs for debugging
-                all_msgs = session_db.query(
-                    ScheduledMessage.id, 
-                    ScheduledMessage.home_message_id, 
-                    ScheduledMessage.away_message_id
-                ).all()
-                logger.warning(f"🟡 [AVAILABILITY_API] No scheduled message found for message ID {message_id}. Available IDs: {all_msgs}")
+                logger.info(f"🟡 [AVAILABILITY_API] No scheduled message found for message ID {message_id}")
                 return jsonify({'error': 'Message not found'}), 404
                 
             # Determine if this is a home or away message

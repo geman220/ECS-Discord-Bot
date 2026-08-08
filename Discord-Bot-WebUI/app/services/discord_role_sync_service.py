@@ -212,6 +212,7 @@ class DiscordRoleSyncService:
             logger.info(f"Synced Flask role '{role.name}' to Discord for user {user.username}")
         else:
             logger.error(f"Failed to sync role '{role.name}' to Discord for user {user.username}: {message}")
+            self._flag_player_needs_sync(user)
 
         return success
 
@@ -245,6 +246,7 @@ class DiscordRoleSyncService:
             logger.info(f"Removed Discord role for Flask role '{role.name}' from user {user.username}")
         else:
             logger.error(f"Failed to remove Discord role for '{role.name}' from user {user.username}: {message}")
+            self._flag_player_needs_sync(user)
 
         return success
 
@@ -508,6 +510,16 @@ class DiscordRoleSyncService:
     # -------------------------------------------------------------------------
     # Helper Methods
     # -------------------------------------------------------------------------
+
+    def _flag_player_needs_sync(self, user: User) -> None:
+        """Durably record a failed immediate sync so the drain-discord-role-updates
+        beat task retries it. Without this, a grant/removal made while the bot is
+        unreachable is discarded — the caller only gets False back and nothing
+        else re-attempts until the user's next Discord login. The flag is flushed
+        with the caller's transaction; the drain clears it on a successful sync."""
+        player = getattr(user, 'player', None)
+        if player is not None:
+            player.discord_needs_update = True
 
     def _get_user_discord_id(self, user: User) -> Optional[str]:
         """Get the Discord ID for a user via their player profile."""

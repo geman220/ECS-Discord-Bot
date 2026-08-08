@@ -90,6 +90,15 @@ LOGGING_CONFIG = {
             'maxBytes': 26214400,   # 25MB
             'backupCount': 3,       # ~100MB max on disk
             'encoding': 'utf-8'
+        },
+        'mobile_client_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/mobile_client.log',
+            'formatter': 'detailed',
+            'level': 'INFO',
+            'maxBytes': 26214400,   # 25MB
+            'backupCount': 3,
+            'encoding': 'utf-8'
         }
     },
 
@@ -201,6 +210,41 @@ LOGGING_CONFIG = {
         'app.utils.sync_espn_client': {
             'handlers': ['live_reporting_file', 'errors_file'],
             'level': 'INFO',
+            'propagate': False
+        },
+        # Forwarded Flutter client logs (POST /api/v1/logs/mobile[,/batch],
+        # re-emitted via logging.getLogger('mobile_app')). A phone's ERROR is a
+        # CLIENT fault, not a server one — before this entry it propagated to
+        # root and dominated errors.log/stdout. Own file, higher fidelity
+        # (client INFO now kept), and no propagation into server error sinks.
+        # The admin System Center log viewer picks the file up automatically.
+        'mobile_app': {
+            'handlers': ['mobile_client_file'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        # python-socketio's Redis message-queue manager logs its reconnect loop
+        # ("Cannot receive from redis... retrying in Ns") at ERROR on the PARENT
+        # 'socketio' logger during every Redis restart. It retries forever and
+        # self-heals; Redis health is already reported by app.utils.redis_manager.
+        'socketio': {
+            'handlers': ['console'],
+            'level': 'CRITICAL',
+            'propagate': False
+        },
+        # Configuring these two before SocketIO() initializes also stops the
+        # libraries bolting on their own bare StreamHandler (they only touch
+        # loggers still at NOTSET). engineio's "Invalid session" bursts are
+        # ordinary client reconnects after a deploy/worker recycle — keep
+        # library errors on stdout but out of errors.log.
+        'socketio.server': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False
+        },
+        'engineio.server': {
+            'handlers': ['console'],
+            'level': 'ERROR',
             'propagate': False
         }
     },
