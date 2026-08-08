@@ -118,14 +118,19 @@ def _make_session_resilient(app):
                 result = original(*args, **kwargs)
                 if degraded['active']:
                     degraded['active'] = False
-                    logger.info("Session store recovered (%s succeeded)", method_name)
+                    # WARNING, not INFO: this logger has no dictConfig entry, so
+                    # anything below the root WARNING threshold reaches no sink —
+                    # and the recovery line is the closing bracket operators need
+                    # to tell an ongoing outage from a long-recovered one. It
+                    # fires at most once per outage, so it cannot flood.
+                    logger.warning("Session store recovered (%s succeeded)", method_name)
                 return result
             except redis_errors as e:
                 if not degraded['active']:
                     degraded['active'] = True
                     logger.warning(
-                        "Session store unavailable in %s; degrading gracefully "
-                        "until it recovers (repeats logged at DEBUG) (%s)",
+                        "Session store unavailable in %s; degrading gracefully — "
+                        "further failures suppressed until recovery (%s)",
                         method_name, e,
                     )
                 else:

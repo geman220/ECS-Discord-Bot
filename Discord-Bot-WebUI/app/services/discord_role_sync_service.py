@@ -245,8 +245,13 @@ class DiscordRoleSyncService:
         if success:
             logger.info(f"Removed Discord role for Flask role '{role.name}' from user {user.username}")
         else:
+            # Deliberately NOT flagged for the drain: the drain runs add-only
+            # (celery_config 'drain-discord-role-updates', only_add=True), so it
+            # cannot service a pending REMOVAL — it would trivially "succeed",
+            # clear the flag and stamp discord_last_verified, converting a
+            # dropped removal into a false "verified" assertion. Removal
+            # durability is the post-commit defer_discord_revoke path.
             logger.error(f"Failed to remove Discord role for '{role.name}' from user {user.username}: {message}")
-            self._flag_player_needs_sync(user)
 
         return success
 
@@ -512,11 +517,15 @@ class DiscordRoleSyncService:
     # -------------------------------------------------------------------------
 
     def _flag_player_needs_sync(self, user: User) -> None:
-        """Durably record a failed immediate sync so the drain-discord-role-updates
-        beat task retries it. Without this, a grant/removal made while the bot is
+        """Durably record a failed immediate GRANT so the drain-discord-role-updates
+        beat task retries it. Without this, a grant made while the bot is
         unreachable is discarded — the caller only gets False back and nothing
         else re-attempts until the user's next Discord login. The flag is flushed
-        with the caller's transaction; the drain clears it on a successful sync."""
+        with the caller's transaction; the drain clears it on a successful sync.
+
+        GRANTS ONLY: never call this for a failed removal. The drain is add-only,
+        so it cannot perform the removal — it would clear the flag and stamp the
+        player verified with the stale role still on them."""
         player = getattr(user, 'player', None)
         if player is not None:
             player.discord_needs_update = True

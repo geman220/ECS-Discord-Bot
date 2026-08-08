@@ -17,6 +17,14 @@ LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
 
+    # Filters (classes in app/log_config/filters.py) attachable to loggers.
+    'filters': {
+        'drop_retry_noise': {
+            '()': 'app.log_config.filters.DropMessagesContaining',
+            'substrings': ['retrying'],
+        }
+    },
+
     # Formatters define the layout of the log messages.
     'formatters': {
         'detailed': {
@@ -223,13 +231,16 @@ LOGGING_CONFIG = {
             'level': 'INFO',
             'propagate': False
         },
-        # python-socketio's Redis message-queue manager logs its reconnect loop
-        # ("Cannot receive from redis... retrying in Ns") at ERROR on the PARENT
-        # 'socketio' logger during every Redis restart. It retries forever and
-        # self-heals; Redis health is already reported by app.utils.redis_manager.
+        # python-socketio's Redis message-queue manager logs on the PARENT
+        # 'socketio' logger: its reconnect loop ("... retrying in Ns" — endless,
+        # self-healing noise during every Redis restart) AND the one line that
+        # records a permanently DROPPED broadcast ("Cannot publish to redis...
+        # giving up"). Filter out only the retry chatter; keep the data-loss
+        # record visible on stdout.
         'socketio': {
             'handlers': ['console'],
-            'level': 'CRITICAL',
+            'level': 'ERROR',
+            'filters': ['drop_retry_noise'],
             'propagate': False
         },
         # Configuring these two before SocketIO() initializes also stops the
