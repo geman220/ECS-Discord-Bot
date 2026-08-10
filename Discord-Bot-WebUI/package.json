@@ -25,10 +25,10 @@
     "@tailwindcss/typography": "^0.5.15",
     "autoprefixer": "^10.4.23",
     "cropperjs": "^1.6.0",
-    "datatables.net": "3.0.0",
-    "datatables.net-dt": "3.0.0",
-    "datatables.net-responsive": "4.0.0",
-    "datatables.net-responsive-dt": "4.0.0",
+    "datatables.net": "3.0.1",
+    "datatables.net-dt": "3.0.1",
+    "datatables.net-responsive": "4.0.1",
+    "datatables.net-responsive-dt": "4.0.1",
     "flatpickr": "^4.6.13",
     "flowbite": "^4.0.1",
     "hammerjs": "^2.0.8",
@@ -54,7 +54,7 @@
     "glob": "^10.5.0",
     "happy-dom": "^20.1.0",
     "madge": "^8.0.0",
-    "vite": "8.1.5",
+    "vite": "8.2.1",
     "vitest": "^4.0.17"
   }
 }
