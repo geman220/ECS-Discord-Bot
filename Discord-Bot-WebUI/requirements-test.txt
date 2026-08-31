@@ -26,10 +26,10 @@ factory-boy==3.3.3
 faker==30.8.1
 
 # Coverage reporting
-coverage==7.15.2
+coverage==7.15.4
 
 # HTTP mocking
-responses==0.26.2
+responses==0.26.3
 
 # Time mocking
 freezegun==1.5.5
@@ -44,8 +44,8 @@ pytest-benchmark==4.0.0
 # pytest-playwright 0.4.4 pinned `pytest<9.0.0`; 0.8.0 lifts it and drags
 # playwright forward with it. No workflow runs these, so the bump only affects
 # local browser runs.
-playwright==1.61.0
-pytest-playwright==0.8.0
+playwright==1.62.0
+pytest-playwright==0.9.0
 pillow>=12.3.0              # Screenshot comparison
 pixelmatch==0.4.0           # Visual diff
 cssutils==2.15.0            # CSS parsing and analysis
