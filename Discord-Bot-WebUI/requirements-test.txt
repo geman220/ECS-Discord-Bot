@@ -38,7 +38,7 @@ freezegun==1.5.5
 # pytest-postgresql==6.0.0  # Disabled due to psycopg dependency issues
 
 # Performance testing
-pytest-benchmark==4.0.0
+pytest-benchmark==5.2.3
 
 # Browser automation & visual testing
 # pytest-playwright 0.4.4 pinned `pytest<9.0.0`; 0.8.0 lifts it and drags
