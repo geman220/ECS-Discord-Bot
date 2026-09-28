@@ -34,6 +34,16 @@ async def test_send_async_http_request_success(mock_aiohttp_session):
     )
 
 @pytest.mark.asyncio
+async def test_send_async_http_request_accepts_created_status(mock_aiohttp_session):
+    mock_session, mock_response = mock_aiohttp_session
+    mock_response.status = 201
+    mock_response.json.return_value = {"id": 1}
+
+    result = await send_async_http_request("https://api.example.com/test")
+
+    assert result == {"id": 1}
+
+@pytest.mark.asyncio
 async def test_send_async_http_request_failure(mock_aiohttp_session):
     mock_session, mock_response = mock_aiohttp_session
     mock_response.status = 404

@@ -11,6 +11,8 @@ def get_env_variable(var_name, default=None):
 BOT_CONFIG = {
     'wc_key': get_env_variable('WC_KEY'),
     'wc_secret': get_env_variable('WC_SECRET'),
+    'wc_key_rw': get_env_variable('WC_KEY_RW'),
+    'wc_secret_rw': get_env_variable('WC_SECRET_RW'),
     'bot_token': get_env_variable('BOT_TOKEN'),
     'wc_url': get_env_variable('URL'),
     'team_name': get_env_variable('TEAM_NAME'),
@@ -28,5 +30,5 @@ BOT_CONFIG = {
     'wp_app_password': get_env_variable('WP_APP_PASSWORD'),
     'match_channel_id': get_env_variable('MATCH_CHANNEL_ID'),
     'league_announcements_channel_id': get_env_variable('LEAGUE_ANNOUNCEMENTS_CHANNEL_ID'),
-    'bot_version': "1.8.1"
+    'bot_version': "1.8.2"
 }

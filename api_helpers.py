@@ -14,6 +14,8 @@ from database import (
 wc_url = BOT_CONFIG["wc_url"]
 wc_key = BOT_CONFIG["wc_key"]
 wc_secret = BOT_CONFIG["wc_secret"]
+wc_key_rw = BOT_CONFIG["wc_key_rw"]
+wc_secret_rw = BOT_CONFIG["wc_secret_rw"]
 openweather_api = BOT_CONFIG["openweather_api"]
 serpapi_api = BOT_CONFIG["serpapi_api"]
 
@@ -26,7 +28,7 @@ async def send_async_http_request(
             async with session.request(
                 method, url, headers=headers, auth=auth, data=data, params=params
             ) as response:
-                if response.status == 200:
+                if 200 <= response.status < 300:
                     return await response.json()
                 else:
                     print(f"Request failed with status code: {response.status}")
@@ -39,9 +41,21 @@ async def send_async_http_request(
             return None
 
 
-async def call_woocommerce_api(url):
-    auth = aiohttp.BasicAuth(wc_key, wc_secret)
-    return await send_async_http_request(url, auth=auth)
+async def call_woocommerce_api(url, method="GET", data=None, params=None):
+    if method in ["POST", "PUT"]:
+        if "/wc/v3/orders/" in url or "/wc/v3/memberships/members" in url:
+            # limit use of the POST and PUT keys to only these endpoints to reduce risk of unintended data changes
+            auth = aiohttp.BasicAuth(wc_key_rw, wc_secret_rw)
+        else:
+            auth = aiohttp.BasicAuth(wc_key, wc_secret)
+        # Without Content-Type: application/json, aiohttp sends the JSON string as
+        # an untyped body and WooCommerce silently ignores it, returning the
+        # unchanged resource with HTTP 200.
+        headers = {"Content-Type": "application/json"}
+    else:
+        auth = aiohttp.BasicAuth(wc_key, wc_secret)
+        headers = None
+    return await send_async_http_request(url, method=method, auth=auth, data=data, params=params, headers=headers)
 
 
 async def fetch_espn_data(endpoint):

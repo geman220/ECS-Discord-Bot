@@ -12,6 +12,7 @@ import csv
 import io
 import json
 import datetime
+import re
 import urllib
 import difflib
 from dateutil import parser
@@ -22,9 +23,15 @@ from common import (
 )
 from match_utils import wc_url
 from utils import (
+    extract_subgroup_designation_from_line_item,
     find_customer_info_in_order, 
     extract_base_product_title, 
     extract_variation_detail,
+    find_membership_in_order,
+    find_membership_item_in_order,
+    find_membership_plan_for_year,
+    find_subgroup_in_order,
+    normalize_string,
 )
 from api_helpers import (
     call_woocommerce_api, 
@@ -46,21 +53,125 @@ debug = False
 
 logger = logging.getLogger(__name__)
 
-SUBGROUPS = [
-    "253 Defiance",
-    "Anchor 'n' Rose 48",
-    "Armed Services Group",
-    "Barra Fuerza Verde",
-    "Bellingham Night Watch",
-    "Dry Side Supporters",
-    "European Sounders Federation",
-    "Fog City Faithful",
-    "Heartland Horde",
-    "Pride of the Sound",
-    "Seattle Sounders East",
-    "Tropic Sound",
-    "West Sound Armada",
-]
+# init_subgroups
+# This function pulls the subgroup items from the API and creates a list of the name and item ID
+# Returns list of name and item id for the standalone subgroup products.
+# refactor from the hardcoded initialization of subgroup list
+async def init_subgroups():
+    base_wc_url = wc_url.replace("/orders/", "/")
+    category_url = f"{base_wc_url}products/categories?per_page=100"
+    categories = await call_woocommerce_api(category_url)
+    if not categories:
+        logger.error("Could not fetch WooCommerce product categories.")
+        return []
+
+    subgroup_category_id = None
+    for category in categories:
+        if category.get("name", "").lower() == "subgroup":
+            subgroup_category_id = category
+            break
+    
+    if subgroup_category_id is None:
+        logger.error("Subgroup category not found in WooCommerce.")
+        return []
+    
+    product_url = f"{base_wc_url}products?category={subgroup_category_id['id']}&per_page=100"
+    products = await call_woocommerce_api(product_url)
+    if not products:
+        return []
+
+    subgroup_list = []
+    for product in products:
+        subgroup_list.append({
+            "name": product.get("name", ""),
+            "name_normalized": normalize_string(product.get("name", "")),
+            "id": product.get("id", "")
+        })
+    return subgroup_list
+
+
+async def get_customers_by_ids(customer_url, customer_ids, batch_size=100):
+    customer_ids = [str(customer_id) for customer_id in customer_ids if str(customer_id) not in ("", "Unknown")]
+    customers = {}
+
+    for start in range(0, len(customer_ids), batch_size):
+        batch = customer_ids[start:start + batch_size]
+        response = await call_woocommerce_api(
+            customer_url,
+            params={"include": ",".join(batch), "per_page": len(batch)},
+        )
+        for customer in response or []:
+            customers[str(customer.get("id", ""))] = customer
+
+        if start + batch_size < len(customer_ids):
+            await asyncio.sleep(1)
+
+    return customers
+
+
+async def find_member_id_from_customer_product(customer_id, product_name):
+    """
+    Checks if the customer has a membership associated with the specified product_name.
+
+    Returns:
+        member_id if criteria are met.
+        None otherwise.
+    """
+    wc_base_url = wc_url.replace("/orders/", "/memberships/members/")
+    api_url = f"{wc_base_url}?customer={customer_id}"
+    
+    memberships = await call_woocommerce_api(api_url)
+    if memberships:
+        for membership in memberships:
+            if membership.get('plan_name', '').strip().lower() == product_name.strip().lower():
+                logger.debug(f"Found member ID {membership.get('id', 'Unknown')} for customer ID {customer_id} and product name {product_name}.")
+                return membership.get('id', None)
+
+    logger.debug(f"No membership found for customer ID {customer_id} and product name {product_name}.")
+    return None
+
+
+async def update_customer_profile_field(member_id, field_name, field_value):
+    """
+    Updates a customer profile field in WooCommerce using the API.
+
+    Args:
+        member_id: The ID of the member to update.
+        field_name: The name of the profile field to update.
+        field_value: The value to set for the profile field.
+    
+    Returns:
+        True if the update was successful, False otherwise.
+    """
+    try:
+        # Construct the API endpoint URL for updating the customer profile field
+        wc_base_url = wc_url.replace("/orders/", "/memberships/members/")
+        api_url = f"{wc_base_url}{member_id}"
+        
+        # Prepare the payload for the API request
+        payload = {
+            "profile_fields": [
+                {
+                    "slug": field_name,
+                    "value": field_value
+                }
+            ]
+        }
+        
+        # Make the API request to update the customer profile field
+        response = await call_woocommerce_api(api_url, method="PUT", data=json.dumps(payload))
+        
+        # The API returns the updated membership object on success, not a success flag
+        if response and response.get("id"):
+            logger.info(f"Successfully updated profile field '{field_name}' for member ID {member_id}.")
+            return True
+        else:
+            logger.error(f"Failed to update profile field '{field_name}' for member ID {member_id}. Response: {response}")
+            return False
+    except Exception as e:
+        logger.exception(f"Exception occurred while updating profile field '{field_name}' for member ID {member_id}: {str(e)}")
+        return False
+
 
 async def get_product_by_name(product_name: str):
     """
@@ -342,7 +453,9 @@ class WooCommerceCommands(commands.Cog):
     @app_commands.command(name="ticketlist", description="List all tickets for sale")
     @app_commands.guilds(discord.Object(id=server_id))
     async def list_tickets(self, interaction: discord.Interaction):
-        if not await has_required_wg_role(interaction):
+        if not await has_required_wg_role(
+            interaction, ["WG: Travel", "WG: Home Tickets"]
+        ):
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -354,76 +467,55 @@ class WooCommerceCommands(commands.Cog):
         decoration = ""
         compare_date = datetime.datetime.now()
         current_year = datetime.datetime.now().year
+        iteration = 1
+        message_content = ""
+        category_id = None
 
-        home_tickets = []
-        home_tickets_url = wc_url.replace("orders/", f"products?category={home_tickets_category}&per_page=50&search={current_year}")
-        home_tickets = await call_woocommerce_api(home_tickets_url)
-        if home_tickets is not None:
-            try:
-                home_tickets.sort(
-                    key=lambda x: parser.parse(x['name'], fuzzy=True)
-                    if 'name' in x else datetime.datetime.min
-                )
-            except ValueError:
-                # Skip sorting if any invalid date is encountered
-                pass
+        while iteration <= 2:
+            if iteration == 1:
+                category_id = home_tickets_category
+                message_content = "🏠 **Home Tickets:** (sold, remaining)\n"
+            elif iteration == 2:
+                category_id = away_tickets_category
+                message_content += "\n🚗 **Away Tickets:** (sold, remaining)\n"
 
-        message_content = "🏠 **Home Tickets:** (sold, remaining)\n"
-        if home_tickets:
-            for product in home_tickets:
+            tickets = []
+            tickets_url = wc_url.replace("orders/", f"products?category={category_id}&per_page=50&search={current_year}")
+            tickets = await call_woocommerce_api(tickets_url)
+
+            if tickets is not None:
                 try:
-                    compare_date = parser.parse(product['name'], fuzzy=True)
-                    offset = compare_date - datetime.datetime.now()
-
-                    # Clamp offset to the allowed range
-                    if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
-                        continue
-
-                    decoration = "**" if offset <= datetime.timedelta(days=14) else ""
-                    message_content += (
-                        f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"
+                    tickets.sort(
+                        key=lambda x: parser.parse(x['name'], fuzzy=True)
+                        if 'name' in x else datetime.datetime.min
                     )
-                except (ValueError, TypeError):
-                    # Skip products with invalid dates
-                    continue
-        else:
-            message_content += ("No home tickets found.\n")
+                except ValueError:
+                    # Skip sorting if any invalid date is encountered
+                    pass
 
-        away_tickets = []
-        away_tickets_url = wc_url.replace("orders/", f"products?category={away_tickets_category}&per_page=50&search={current_year}")
-        away_tickets = await call_woocommerce_api(away_tickets_url)
-        if away_tickets is not None:
-            try:
-                away_tickets.sort(
-                    key=lambda x: parser.parse(x['name'], fuzzy=True)
-                    if 'name' in x else datetime.datetime.min
-                )
-            except ValueError:
-                # Skip sorting if any invalid date is encountered
-                pass
+            if tickets:
+                for product in tickets:
+                    try:
+                        compare_date = parser.parse(product['name'], fuzzy=True)
+                        offset = compare_date - datetime.datetime.now()
 
-        message_content += "\n🚗 **Away Tickets:** (sold, remaining)\n"
-        if away_tickets:
-            for product in away_tickets:
-                try:
-                    compare_date = parser.parse(product['name'], fuzzy=True)
-                    offset = compare_date - datetime.datetime.now()
+                        # Clamp offset to the allowed range
+                        if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
+                            continue
 
-                    # Clamp offset to the allowed range; only show six months of tickets to avoid too many characters
-                    if not (datetime.timedelta(days=-1) < offset < datetime.timedelta(days=180)):
+                        decoration = "**" if offset <= datetime.timedelta(days=14) else ""
+                        message_content += (
+                            f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"
+                        )
+                    except (ValueError, TypeError):
+                        # Skip products with invalid dates
                         continue
+            else:
+                message_content += ("No tickets found.\n")
 
-                    decoration = "**" if offset <= datetime.timedelta(days=14) else ""
-                    message_content += (
-                        f"{decoration}{product['name']}{decoration} ({product['total_sales']}, {product['stock_quantity']})\n"
-                    )
-                except (ValueError, TypeError):
-                    # Skip products with invalid dates
-                    continue
-        else:
-            message_content += ("No away tickets found.\n")
+            iteration += 1
 
-        await interaction.followup.send(message_content, ephemeral=True)
+        await interaction.followup.send(message_content[:2000], ephemeral=True)
         
     @app_commands.command(
         name="getorderinfo", description="Retrieve order details for a specific product"
@@ -433,7 +525,9 @@ class WooCommerceCommands(commands.Cog):
     async def get_product_orders(self, interaction: discord.Interaction, product_title: str):
         if debug: print(f"[DEBUG] Received command for product_title: {product_title}")
 
-        if not await has_required_wg_role(interaction):
+        if not await has_required_wg_role(
+            interaction, ["WG: Travel", "WG: Home Tickets"]
+        ):
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -490,7 +584,9 @@ class WooCommerceCommands(commands.Cog):
     )
     @app_commands.guilds(discord.Object(id=server_id))
     async def update_orders(self, interaction: discord.Interaction):
-        if not await has_required_wg_role(interaction):
+        if not await has_required_wg_role(
+            interaction, ["WG: Travel", "WG: Home Tickets"]
+        ):
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -531,11 +627,15 @@ class WooCommerceCommands(commands.Cog):
         name="subgrouplist",
         description="Create a CSV list of members in each subgroup for a specified year"
     )
-    @app_commands.describe(year="The year for which to generate the CSV list (e.g., 2024, 2025)")
+    @app_commands.describe(
+        year="The year for which to generate the CSV list (e.g., 2024, 2025)"
+    )
     @app_commands.guilds(discord.Object(id=server_id))
     async def subgrouplist(self, interaction: discord.Interaction, year: int):
         try:
-            if not await has_admin_role(interaction):
+            if not await has_required_wg_role(
+                interaction, ["ECS Leadership"] 
+            ):
                 await interaction.response.send_message(
                     "You do not have the necessary permissions.", ephemeral=True
                 )
@@ -543,66 +643,55 @@ class WooCommerceCommands(commands.Cog):
 
             await interaction.response.defer(ephemeral=True, thinking=True)
 
-            now = datetime.datetime.now()
-            current_year = now.year
-
-            # Do not allow future years
-            if year > current_year:
+            base_wc_url = wc_url.replace("/orders/", "/memberships/")
+            plans_url = f"{base_wc_url}plans?per_page=100"
+            plans = await call_woocommerce_api(plans_url)
+            plan_id = await find_membership_plan_for_year(plans, year)
+            
+            if not plan_id:
                 await interaction.followup.send(
-                    f"You cannot search for a future year ({year}).", ephemeral=True
+                    f"A membership plan for the year {year} could not be found.", ephemeral=True
                 )
                 return
-
-            # Define the date range for the query.
-            start_date = datetime.datetime(year, 1, 1, 0, 0, 0)
-            if year < current_year:
-                # For past years, use the full year.
-                end_date = datetime.datetime(year, 12, 31, 23, 59, 59)
-            else:
-                # For the current year, use up to now.
-                end_date = now
-
-            start_of_time = start_date.strftime("%Y-%m-%dT%H:%M:%S")
-            end_of_time = end_date.strftime("%Y-%m-%dT%H:%M:%S")
 
             page = 1
             per_page = 100
             member_info_by_subgroup = defaultdict(list)
+            #subgroup_list = await init_subgroups()
 
             # Continue paging until no orders are returned.
             while True:
-                orders_url = (
-                    f"{wc_url}?order=desc&page={page}&per_page={per_page}"
-                    f"&status=any&after={start_of_time}&before={end_of_time}"
-                )
-                logger.info(f"Fetching orders from page {page}.")
-                fetched_orders = await call_woocommerce_api(orders_url)
+                # changing to use the membership REST API - https://godaddy-wordpress.github.io/woocommerce-memberships-rest-api-docs/#the-user-membership
 
-                if not fetched_orders:
-                    logger.info(f"No orders fetched from page {page}. Ending pagination.")
+                membership_url = f"{base_wc_url}members?plan={plan_id}&page={page}&per_page={per_page}"
+                fetched_memberships = await call_woocommerce_api(membership_url)
+
+                if not fetched_memberships:
+                    logger.info(f"No memberships fetched from page {page}. Ending pagination.")
                     break
 
-                # Process each order.
-                for order in fetched_orders:
-                    order_id = order.get("id", "Unknown")
-                    # Pass the specified 'year' as membership_year to the customer info lookup.
-                    subgroup_info = await find_customer_info_in_order(order, SUBGROUPS, membership_year=year)
-                    if subgroup_info:
-                        matched_subgroups, customer_info = subgroup_info
+                # Process each membership.
+                for membership in fetched_memberships:
+                    subgroup_designation = ""
+                    customer_id = str(membership.get("customer_id", "Unknown"))
+                    profile_fields = membership.get("profile_fields", {})
+                    for field in profile_fields:
+                        if field.get("name") == "ECS Subgroup":
+                            subgroup_designation = field.get("value", "").strip()
+                            break
 
-                        if not isinstance(matched_subgroups, list):
-                            logger.error(f"'matched_subgroups' is not a list for Order ID {order_id}.")
-                            continue
+                    if subgroup_designation != "":
+                        logger.info(f"On page {page} found subgroup {subgroup_designation} for customer {customer_id}.")
+                        member_info_by_subgroup[subgroup_designation].append({
+                            "customer_id": customer_id,
+                            "first_name": "N/A",
+                            "last_name": "N/A",
+                            "email": "N/A"
+                        })
 
-                        for subgroup in matched_subgroups:
-                            if not isinstance(subgroup, str):
-                                logger.error(f"Subgroup is not a string for Order ID {order_id}: {subgroup}")
-                                continue
-                            member_info_by_subgroup[subgroup].append(customer_info)
-
-                # If fewer orders than requested are returned, we assume it's the last page.
-                if len(fetched_orders) < per_page:
-                    logger.info(f"Fetched {len(fetched_orders)} orders on page {page}. Assuming this is the last page.")
+                # If fewer memberships than requested are returned, we assume it's the last page.
+                if len(fetched_memberships) < per_page:
+                    logger.info(f"Fetched {len(fetched_memberships)} memberships on page {page}. Assuming this is the last page.")
                     break
 
                 page += 1
@@ -617,6 +706,25 @@ class WooCommerceCommands(commands.Cog):
                     ephemeral=True
                 )
                 return
+
+            base_wc_url = wc_url.replace("/orders/", "/customers")
+
+            # Collect all unique customer IDs across all subgroups
+            all_customer_ids = set()
+            for subgroup, member_list in member_info_by_subgroup.items():
+                for member_dict in member_list:
+                    all_customer_ids.add(member_dict["customer_id"])
+            
+            logger.info(f"Collected all unique customer IDs: {len(all_customer_ids)} customers to query for details.")
+
+            customer_details = await get_customers_by_ids(base_wc_url, all_customer_ids)
+            for member_list in member_info_by_subgroup.values():
+                for member_dict in member_list:
+                    customer = customer_details.get(member_dict["customer_id"])
+                    if customer:
+                        member_dict["first_name"] = customer.get("first_name", "N/A")
+                        member_dict["last_name"] = customer.get("last_name", "N/A")
+                        member_dict["email"] = customer.get("email", "N/A")
 
             # Generate CSV output.
             csv_output = io.StringIO()
@@ -666,12 +774,212 @@ class WooCommerceCommands(commands.Cog):
                 except discord.HTTPException as response_error:
                     logger.error(f"Failed to send response message: {response_error}")
 
+    #
+    # reviewmemberships
+    # examine purchases for the prior seven days and identify any membership purchases not attached to a customer
+    # record bearing the appropriate membership.
+    #
+    @app_commands.command(
+        name="reviewmemberships",
+        description="Create a list of membership purchases requiring manual review for missing membership records"
+    )
+    @app_commands.describe(
+        days="Number of days to go back (default = 7)"
+    )
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def reviewmemberships(self, interaction: discord.Interaction, days: int = 7):
+        try:
+            if not await has_required_wg_role(
+                interaction, ["ECS Leadership", "mod"]
+            ):
+                await interaction.response.send_message(
+                    "You do not have the necessary permissions.", ephemeral=True
+                )
+                return
+
+            await interaction.response.defer(ephemeral=True, thinking=True)
+
+            start = datetime.datetime.now()-datetime.timedelta(days=days)
+
+            start_of_time = start.strftime("%Y-%m-%dT%H:%M:%S")
+
+            page = 1
+            per_page = 100
+            membership_purchases = defaultdict(list)
+
+            # Continue paging until no orders are returned.
+            while True:
+                orders_url = (
+                    f"{wc_url}?order=desc&page={page}&per_page={per_page}"
+                    f"&status=any&after={start_of_time}"
+                )
+                logger.info(f"Fetching orders from page {page}.")
+                fetched_orders = await call_woocommerce_api(orders_url)
+
+                if not fetched_orders:
+                    logger.info(f"No orders fetched from page {page}. Ending pagination.")
+                    break
+
+                # Process each order.
+                for order in fetched_orders:
+                    order_id = order.get("id", "Unknown")
+                    # find_membership_in_order will return a value if the order contains a membership product but the customer does not have a corresponding membership record.
+                    customer_info = await find_membership_in_order(order)
+                    if customer_info:
+                        membership_purchases[order_id].append((order.get("status", ""), customer_info))
+
+                # If fewer orders than requested are returned, we assume it's the last page.
+                if len(fetched_orders) < per_page:
+                    logger.info(f"Fetched {len(fetched_orders)} orders on page {page}. Assuming this is the last page.")
+                    break
+
+                page += 1
+                # Respect API rate limits.
+                await asyncio.sleep(1)
+
+            # If no members were found, inform the user.
+            if not membership_purchases:
+                logger.info("No membersship purchases found matching the criteria.")
+                message_content = f"No membership purchases found missing a membership record in the past {days} days."
+            else:
+                message_content = "**Membership reconciliation:**\n"
+                for product in membership_purchases.items():
+                    order_url = (
+                        f"https://weareecs.com/wp-admin/admin.php?page=wc-orders&action=edit&id={product[0]}"
+                    )
+                    message_content += (
+                        f"Order number **{product[0]}** status (**{product[1][0][0]}**) {order_url}\n"
+                    )
+
+            await interaction.followup.send(message_content[:2000], ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
+            if interaction.response.is_done():
+                try:
+                    await interaction.followup.send(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as followup_error:
+                    logger.error(f"Failed to send followup message: {followup_error}")
+            else:
+                try:
+                    await interaction.response.send_message(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as response_error:
+                    logger.error(f"Failed to send response message: {response_error}")
+
+
+    #
+    # reviewsubgroups
+    # examine purchases for the prior seven days and identify any membership purchases with a disconnected
+    # subgroup purchase (i.e., subgroup purchase not attached to a customer record bearing the appropriate subgroup).
+    #
+    @app_commands.command(
+        name="reviewsubgroups",
+        description="Create a list of membership purchases requiring manual review for missing subgroup records"
+    )
+    @app_commands.describe(
+        days="Number of days to go back (default = 7)"
+    )
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def reviewsubgroups(self, interaction: discord.Interaction, days: int = 7):
+        try:
+            if not await has_required_wg_role(
+                interaction, ["ECS Leadership", "mod"]
+            ):
+                await interaction.response.send_message(
+                    "You do not have the necessary permissions.", ephemeral=True
+                )
+                return
+
+            await interaction.response.defer(ephemeral=True, thinking=True)
+
+            start = datetime.datetime.now()-datetime.timedelta(days=days)
+
+            start_of_time = start.strftime("%Y-%m-%dT%H:%M:%S")
+
+            page = 1
+            per_page = 100
+            subgroup_updates = []
+            subgroups = await init_subgroups()
+
+            # Continue paging until no orders are returned.
+            while True:
+                orders_url = (
+                    f"{wc_url}?order=desc&page={page}&per_page={per_page}"
+                    f"&status=any&after={start_of_time}"
+                )
+                logger.info(f"Fetching orders from page {page}.")
+                fetched_orders = await call_woocommerce_api(orders_url)
+
+                if not fetched_orders:
+                    logger.info(f"No orders fetched from page {page}. Ending pagination.")
+                    break
+
+                # Process each order.
+                for order in fetched_orders:
+                    order_id = order.get("id", "Unknown")
+                    # Pass the specified 'year' as membership_year to the customer info lookup.
+                    result = await find_subgroup_in_order(order, subgroups)
+                    if result:
+                        customer_id, order_id, product_id, line_item_id, subgroup_designation = result
+                        subgroup_updates.append([customer_id, order_id, product_id, line_item_id, subgroup_designation])
+
+                # If fewer orders than requested are returned, we assume it's the last page.
+                if len(fetched_orders) < per_page:
+                    logger.info(f"Fetched {len(fetched_orders)} orders on page {page}. Assuming this is the last page.")
+                    break
+
+                page += 1
+                # Respect API rate limits.
+                await asyncio.sleep(1)
+
+            # If no eligible purchases were found, inform the user.
+            if not subgroup_updates:
+                logger.info("No subgroup item purchases found matching the criteria.")
+                message_content = f"No subgroup item purchases found in the past {days} days."
+            else:
+                message_content = "**Subgroup reconciliation:**\n"
+                for customer_id, order_id, product_id, line_item_id, subgroup_designation in subgroup_updates:
+                    message_content += (
+                        f"Line item **{line_item_id}**: customer {customer_id}, order {order_id}, "
+                        f"product {product_id}, subgroup {subgroup_designation}\n"
+                    )
+
+            await interaction.followup.send(message_content[:2000], ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
+            if interaction.response.is_done():
+                try:
+                    await interaction.followup.send(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as followup_error:
+                    logger.error(f"Failed to send followup message: {followup_error}")
+            else:
+                try:
+                    await interaction.response.send_message(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as response_error:
+                    logger.error(f"Failed to send response message: {response_error}")
+
+
     @app_commands.command(
         name="refreshorders", description="Refresh Woo Commerce order cache"
     )
     @app_commands.guilds(discord.Object(id=server_id))
     async def refreshorders(self, interaction: discord.Interaction):
-        if not await has_required_wg_role(interaction):
+        if not await has_required_wg_role(
+            interaction, ["WG: Travel", "WG: Home Tickets"]
+        ):
             await interaction.response.send_message(
                 "You do not have the necessary permissions.", ephemeral=True
             )
@@ -682,7 +990,121 @@ class WooCommerceCommands(commands.Cog):
         reset = reset_woo_orders_db() 
         message = f"Orders database reset. Please run updateorders now."
         await interaction.followup.send(message, ephemeral=True)
+
+
+    @app_commands.command(
+        name="proliferate",
+        description="Push subgroup information to customer-membership records based on order history"
+    )
+    @app_commands.describe(
+        days="Number of days to go back (default = 7)"
+    )
+    @app_commands.guilds(discord.Object(id=server_id))
+    async def proliferate(self, interaction: discord.Interaction, days: int = 7):
+        try:
+            if not await has_required_wg_role(
+                interaction, ["ECS Leadership", "mod"]
+            ):
+                await interaction.response.send_message(
+                    "You do not have the necessary permissions.", ephemeral=True
+                )
+                return
+
+            await interaction.response.defer(ephemeral=True, thinking=True)
+
+            start = datetime.datetime.now()-datetime.timedelta(days=days)
+            start_of_time = start.strftime("%Y-%m-%dT%H:%M:%S")
+
+            page = 1
+            per_page = 100
+
+            base_wc_url = wc_url
+            processed_any_orders = False
+
+            while True:
+                orders_url = f"{base_wc_url}?order=desc&page={page}&per_page={per_page}&after={start_of_time}"
+                orders = await call_woocommerce_api(orders_url)
+
+                if not orders:
+                    logger.info("No orders fetched. Ending process.")
+                    if not processed_any_orders:
+                        await interaction.followup.send(
+                            "No orders found to process for subgroup proliferation.",
+                            ephemeral=True,
+                        )
+                        return
+                    break
+
+                processed_any_orders = True
+                for order in orders:
+                    membership_product_name = await find_membership_item_in_order(order)
+                    if not membership_product_name:
+                        continue
+
+                    year_match = re.search(r"\d{4}", membership_product_name)
+                    if not year_match:
+                        continue
+                    year = year_match.group()
+
+                    for line_item in order.get("line_items", []):
+                        if line_item.get("name", "") not in (f"ECS Member {year}", f"ECS Membership {year}"):
+                            continue
+
+                        subgroup_designation = await extract_subgroup_designation_from_line_item(line_item)
+                        if not subgroup_designation:
+                            continue
+
+                        customer_id = order.get("customer_id", "Unknown")
+                        product_name = line_item.get("name", "")
+                        member_id = await find_member_id_from_customer_product(customer_id, product_name)
+                        if not member_id:
+                            logger.warning(
+                                f"No membership record found for customer {customer_id} and product {product_name}."
+                            )
+                            continue
+
+                        update_success = await update_customer_profile_field(
+                            member_id, "ecs-subgroup", subgroup_designation
+                        )
+                        if update_success:
+                            logger.info(
+                                f"Updated member {member_id} with subgroup {subgroup_designation}."
+                            )
+                        else:
+                            logger.error(
+                                f"Failed to update member {member_id} with subgroup {subgroup_designation}."
+                            )
+
+                if len(orders) < per_page:
+                    logger.info(f"Fetched {len(orders)} orders on page {page}. Assuming it's the last page.")
+                    break
+
+                page += 1
+                await asyncio.sleep(1)
+
+            await interaction.followup.send(
+                "Subgroup proliferation completed.",
+                ephemeral=True,
+            )
+        except Exception as e:
+            logger.error(f"An error occurred: {str(e)}")
+            if interaction.response.is_done():
+                try:
+                    await interaction.followup.send(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as followup_error:
+                    logger.error(f"Failed to send followup message: {followup_error}")
+            else:
+                try:
+                    await interaction.response.send_message(
+                        f"An error occurred while generating the list: {str(e)}",
+                        ephemeral=True
+                    )
+                except discord.HTTPException as response_error:
+                    logger.error(f"Failed to send response message: {response_error}")
+
         
 async def setup(bot):
     await bot.add_cog(WooCommerceCommands(bot))
-

@@ -133,8 +133,9 @@ async def has_admin_role(interaction: discord.Interaction):
     return any(role.name == discord_admin_role for role in interaction.user.roles)
 
 
-async def has_required_wg_role(interaction: discord.Interaction):
-    required_roles = ["WG: Travel", "WG: Home Tickets", discord_admin_role]
+async def has_required_wg_role(interaction: discord.Interaction, permitted_roles):
+    required_roles = set(permitted_roles)
+    required_roles.add(discord_admin_role)
     return any(role.name in required_roles for role in interaction.user.roles)
 
 

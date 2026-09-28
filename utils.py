@@ -8,6 +8,7 @@ import pytz
 import re
 import json
 import logging
+from api_helpers import call_woocommerce_api, wc_url
 
 logger = logging.getLogger(__name__)
 
@@ -96,10 +97,12 @@ def extract_customer_info(order_dict):
     first_name = order_dict.get('billing', {}).get('first_name', '')
     last_name = order_dict.get('billing', {}).get('last_name', '')
     email = order_dict.get('billing', {}).get('email', '')
+    customer_id = order_dict.get('customer_id', '')
     return {
         'first_name': first_name,
         'last_name': last_name,
-        'email': email
+        'email': email,
+        'customer_id': customer_id
     }
 
 async def find_customer_info_in_order(order, subgroups, membership_year=None):
@@ -112,42 +115,16 @@ async def find_customer_info_in_order(order, subgroups, membership_year=None):
         Tuple of (list_of_subgroups, customer_info) if criteria are met.
         None otherwise.
     """
-    if membership_year is None:
-        membership_year = datetime.datetime.now().year
 
-    membership_year_str = str(membership_year)
-    pattern = re.compile(rf"ecs membership(?:\s+\w+)*\s+{membership_year_str}\b")
-
-    has_ecs_membership = False
-    subgroup_designations = []
-
-    normalized_subgroups = [normalize_string(s) for s in subgroups]
-
-    line_items = order.get('line_items', [])
-    for item in line_items:
-        product_name = item.get('name', '')
-        product_name_norm = normalize_string(product_name)
-        if pattern.search(product_name_norm):
-            has_ecs_membership = True
-            logger.debug(f"Order ID {order.get('id', 'Unknown')} has ECS Membership: {product_name}")
-            break  # Found the required membership
-
-    if not has_ecs_membership:
-        logger.debug(f"Order ID {order.get('id', 'Unknown')} does not have ECS Membership for {membership_year}.")
+    if not await find_membership_item_in_order(order, membership_year):
         return None
 
-    for item in line_items:
-        item_meta_data = item.get('meta_data', [])
-        logger.debug(f"Order ID {order.get('id', 'Unknown')} - Processing Line Item ID: {item.get('id', 'Unknown')}")
-        for meta in item_meta_data:
-            key = normalize_string(meta.get('key', ''))
-            value = meta.get('value', '')
-            logger.debug(f"Order ID {order.get('id', 'Unknown')} - Line Item Meta Key: {meta.get('key', '')}, Meta Value: {value} (type: {type(value)})")
-            if key == 'subgroup designation':
-                designation = extract_designation(value)
-                if designation:
-                    subgroup_designations.append(designation)
-                    logger.debug(f"Order ID {order.get('id', 'Unknown')} - Extracted Subgroup Designation: {designation} (type: {type(designation)})")
+    subgroup_designations = []
+
+    for item in order.get('line_items', []):
+        designation = await extract_subgroup_designation_from_line_item(item)
+        if designation:
+            subgroup_designations.append(designation)
 
     if not subgroup_designations:
         logger.debug(f"Order ID {order.get('id', 'Unknown')} has no subgroup designation.")
@@ -155,12 +132,11 @@ async def find_customer_info_in_order(order, subgroups, membership_year=None):
 
     normalized_designations = [normalize_string(desig) for desig in subgroup_designations]
 
-    matched_subgroups = set()
-    for subgroup_norm, original_subgroup in zip(normalized_subgroups, subgroups):
-        for desig_norm in normalized_designations:
-            if subgroup_norm in desig_norm:
-                matched_subgroups.add(original_subgroup)
-                logger.debug(f"Order ID {order.get('id', 'Unknown')} matched subgroup: {original_subgroup}")
+    matched_subgroups = {
+        subgroup
+        for subgroup in subgroups
+        if any(normalize_string(subgroup) in designation for designation in normalized_designations)
+    }
 
     if not matched_subgroups:
         for desig in subgroup_designations:
@@ -169,6 +145,191 @@ async def find_customer_info_in_order(order, subgroups, membership_year=None):
 
     customer_info = extract_customer_info(order)
     return list(matched_subgroups), customer_info
+
+
+async def find_membership_plan_for_year(plans, year):
+    membership_year_str = str(year)
+    pattern = re.compile(rf"ecs member(?:ship)?(?:\s+\w+)*\s+{membership_year_str}\b")
+
+    for plan in plans:
+        plan_name = plan.get('name', '')
+        plan_name_norm = normalize_string(plan_name)
+        if pattern.search(plan_name_norm):
+            logger.debug(f"Found membership plan for year {year}: {plan_name} (ID: {plan.get('id', 'Unknown')})")
+            return plan.get('id', None)
+
+    logger.debug(f"No membership plan found for year {year}.")
+    return None
+
+
+async def extract_subgroup_designation_from_line_item(line_item):
+    """
+    Checks if the line_item contains:
+    1. A metadata key of 'subgroup designation' and extracts the subgroup designation value.
+
+    Returns:
+        Subgroup designation string if criteria are met.
+        None otherwise.
+    """
+
+    item_meta_data = line_item.get('meta_data', [])
+    for meta in item_meta_data:
+        key = normalize_string(meta.get('key', ''))
+        value = meta.get('value', '')
+        logger.debug(f"Processing Line Item ID: {line_item.get('id', 'Unknown')} - Meta Key: {meta.get('key', '')}, Meta Value: {value} (type: {type(value)})")
+        if key == 'subgroup designation':
+            designation = extract_designation(value)
+            if designation:
+                logger.debug(f"Extracted Subgroup Designation: {designation} (type: {type(designation)})")
+                return designation
+
+    logger.debug(f"Line Item ID {line_item.get('id', 'Unknown')} has no subgroup designation.")
+    return None
+
+
+async def find_membership_item_in_order(order, membership_year=None):
+    """
+    Checks if the order contains:
+    1. An ECS Membership for the specified membership_year (defaults to current year if not provided).
+
+    Returns:
+        product_name if criteria are met.
+        None otherwise.
+    """
+    if membership_year is None:
+        pattern = re.compile(r"ecs member(?:ship)?(?:\s+\w+)*\s+\d{4}\b")
+    else:
+        membership_year_str = str(membership_year)
+        pattern = re.compile(rf"ecs member(?:ship)?(?:\s+\w+)*\s+{membership_year_str}\b")
+
+    line_items = order.get('line_items', [])
+    for item in line_items:
+        product_name = item.get('name', '')
+        product_name_norm = normalize_string(product_name)
+        if pattern.search(product_name_norm):
+            logger.debug(f"Order ID {order.get('id', 'Unknown')} has ECS Membership: {product_name} at line item ID: {item.get('id', 'Unknown')}")
+            return product_name
+
+    if membership_year is None:
+        logger.debug(f"Order ID {order.get('id', 'Unknown')} does not have an ECS Membership item.")
+    else:
+        logger.debug(f"Order ID {order.get('id', 'Unknown')} does not have ECS Membership for {membership_year}.")
+    return None
+
+
+async def find_subgroup_item_in_order(order, subgroups):
+    """
+    Checks if the order contains:
+    1. A subgroup designation from the specified subgroups list as a standalone item
+
+    Returns:
+        line_item_id, subgroup designation if criteria are met.
+        None otherwise.
+    """
+
+    line_items = order.get('line_items', [])
+    for item in line_items:
+        product_name = item.get('name', '')
+        product_name_norm = normalize_string(product_name)
+
+        for subgroup in subgroups:
+            subgroup_name_norm = normalize_string(subgroup["name"])
+            if subgroup_name_norm == product_name_norm:
+                logger.debug(f"Order ID {order.get('id', 'Unknown')} has subgroup designation in product name: {item.get('name', '')} at line item ID: {item.get('id', 'Unknown')}")
+                return item.get('id', 'Unknown'), extract_designation(item.get('name', ''))
+                # Found a matching subgroup designation
+
+    return None
+
+
+async def find_membership_in_order(order, membership_year=None):
+    """
+    Checks if the order contains:
+    1. An ECS Membership for the specified membership_year (defaults to current year if not provided).
+
+    Returns:
+        Tuple of (customer_info) if the membership item is not associated to a membership grant.
+        None otherwise.
+    """
+
+    if not await find_membership_item_in_order(order, membership_year):
+        return None
+
+    for order_meta in order.get('meta_data', []):
+        key = normalize_string(order_meta.get('key', ''))
+        if key == "_wc_memberships_access_granted":
+            logger.debug(f"Order ID {order.get('id', 'Unknown')} has membership access granted meta key.")
+            return None
+
+    customer_info = extract_customer_info(order)
+    return customer_info
+
+
+async def find_subgroup_in_order(order, subgroups):
+    """
+    Checks if the order contains:
+    1. A subgroup designation from the specified subgroups list as a standalone item
+
+    Returns:
+        Tuple of (customer_id, order_id, subgroup_product_id, subgroup_line_item_id, subgroup designation).
+        None otherwise.
+    """
+    result = await find_subgroup_item_in_order(order, subgroups)
+    if not result:
+        return None
+    
+    # a disconnected subgoup item found; now look for a membership item in the order to confirm it's a valid subgroup purchase
+    membership_product_name = await find_membership_item_in_order(order)
+    if not membership_product_name:
+        logger.debug(f"Order ID {order.get('id', 'Unknown')} has subgroup designation but no membership item.")
+        return None
+
+    subgroup_line_item_id, subgroup_designation = result
+    subgroup_line_item = next(
+        item for item in order.get('line_items', [])
+        if item.get('id') == subgroup_line_item_id
+    )
+    customer_id = order.get('customer_id', 'Unknown')
+    year_match = re.search(r"\d{4}", membership_product_name)
+    if customer_id not in ("", "Unknown", None, 0, "0") and year_match:
+        memberships_url = f"{wc_url.replace('/orders/', '/memberships/members/')}?customer={customer_id}"
+        memberships = await call_woocommerce_api(memberships_url)
+        if memberships:
+            membership_year = year_match.group()
+            plan_names = {
+                normalize_string(f"ECS Member {membership_year}"),
+                normalize_string(f"ECS Membership {membership_year}"),
+            }
+            matching_membership = next(
+                (
+                    membership for membership in memberships
+                    if normalize_string(membership.get("plan_name", "")) in plan_names
+                ),
+                None,
+            )
+            if matching_membership:
+                existing_subgroup = next(
+                    (
+                        extract_designation(field.get("value", ""))
+                        for field in matching_membership.get("profile_fields", [])
+                        if field.get("slug") == "ecs-subgroup"
+                        or normalize_string(field.get("name", "")) == "ecs subgroup"
+                    ),
+                    "",
+                )
+                if normalize_string(existing_subgroup) == normalize_string(subgroup_designation):
+                    logger.debug(
+                        f"Order ID {order.get('id', 'Unknown')} member already has subgroup '{existing_subgroup}'."
+                    )
+                    return None
+    return (
+        customer_id,
+        order.get('id', 'Unknown'),
+        subgroup_line_item.get('product_id', 'Unknown'),
+        subgroup_line_item_id,
+        subgroup_designation,
+    )
+
 
 def extract_base_product_title(full_title: str) -> str:
     base_title = full_title.split(" - ")[0]

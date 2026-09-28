@@ -51,10 +51,18 @@ class CustomHelpCommand(commands.HelpCommand):
         try:
             if command.name in ["update", "version", "createschedule"]:
                 return await is_admin_or_owner(self.context)
-            elif command.name in ["newmatch", "awaymatch", "checkorder", "newseason", "addmatchdate", "updatematchdate", "deletematchdate", "subgrouplist", "newpubleague", "clearleague", "invite"]:
-                return await has_admin_role(self.context)
+            elif command.name == "subgrouplist":
+                return await has_required_wg_role(
+                    self.context, ["ECS Leadership"]
+                )
+            elif command.name in ["newmatch", "awaymatch", "checkorder", "newseason", "addmatchdate", "updatematchdate", "deletematchdate", "newpubleague", "clearleague", "invite", "reviewmemberships", "reviewsubgroups", "proliferate"  ]:
+                return await has_required_wg_role(
+                    self.context, ["ECS Leadership", "mod"]
+                ) 
             elif command.name in ["ticketlist", "updateorders", "refreshorders", "getorderinfo"]:
-                return await has_required_wg_role(self.context)
+                return await has_required_wg_role(
+                    self.context, ["WG: Travel", "WG: Home Tickets"]
+                )
             return True
         except commands.CommandError:
             return False

@@ -51,17 +51,49 @@ This section describes commands available for managing WooCommerce orders in the
 
 ## Command: `/subgrouplist`
 
-- **Description:** Create a CSV list of members in each subgroup.
-- **Usage:** `/subgrouplist`
-- **Permissions:** Admin
+- **Description:** Create a CSV list of members in each subgroup for a given membership year.
+- **Usage:** `/subgrouplist <year>`
+- **Permissions:** ECS Leadership role
 - **Details:**
-  - Generates a CSV list of members belonging to various subgroups.
-  - Fetches and processes WooCommerce orders to compile the member information.
+  - Looks up the membership plan for the provided year.
+  - Pulls member records from WooCommerce Memberships and groups them by the `ECS Subgroup` profile field.
+  - Generates and returns a CSV file: subgroup, first name, last name, and email.
 - **Example:**
-  - `/subgrouplist`
+  - `/subgrouplist 2026`
 - **Error Messages:**
   - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "A membership plan for the year <year> could not be found." (If no yearly plan matches)
   - "Failed to generate subgroup members list." (If there is an error generating the list)
+
+## Command: `/reviewmemberships`
+
+- **Description:** Review recent orders for membership purchases that may be missing matching membership records.
+- **Usage:** `/reviewmemberships`
+- **Permissions:** Leadership roles
+- **Details:**
+  - Scans orders from the last 7 days.
+  - Uses reconciliation logic to identify orders requiring manual membership review.
+  - Returns a "Membership reconciliation" report in Discord.
+- **Example:**
+  - `/reviewmemberships`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "An error occurred while generating the list: ..." (If reconciliation fails)
+
+## Command: `/reviewsubgroups`
+
+- **Description:** Review recent orders for subgroup purchases that may be disconnected from membership profile data.
+- **Usage:** `/reviewsubgroups`
+- **Permissions:** Leadership roles
+- **Details:**
+  - Scans orders from the last 7 days.
+  - Detects subgroup purchases that require manual reconciliation.
+  - Returns a "Subgroup reconciliation" report in Discord.
+- **Example:**
+  - `/reviewsubgroups`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "An error occurred while generating the list: ..." (If reconciliation fails)
 
 ## Command: `/refreshorders`
 
@@ -76,5 +108,21 @@ This section describes commands available for managing WooCommerce orders in the
 - **Error Messages:**
   - "You do not have the necessary permissions." (If the user lacks the required permissions)
   - "Failed to reset orders database." (If there is an error resetting the database)
+
+## Command: `/proliferate`
+
+- **Description:** Push subgroup information to WooCommerce membership profile fields based on order history.
+- **Usage:** `/proliferate`
+- **Permissions:** Leadership roles
+- **Details:**
+  - Pages through membership-related orders.
+  - Finds the member record for each customer and updates profile field `ecs-subgroup` when subgroup data exists in order line items.
+  - Intended as an operational reconciliation tool for membership/subgroup alignment.
+- **Example:**
+  - `/proliferate`
+- **Error Messages:**
+  - "You do not have the necessary permissions." (If the user lacks the required permissions)
+  - "No orders found to process for subgroup proliferation." (If no matching orders are found)
+  - "An error occurred while generating the list: ..." (If processing fails)
 
 *For more assistance or queries regarding these commands, please contact the bot administrators.*
