@@ -1,24 +1,24 @@
 aiohttp>=3.10.5
-alembic==1.18.5
+alembic==1.20.0
 celery==5.6.3
 discord.py==2.7.1
-fastapi==0.140.7
+fastapi==0.142.2
 itsdangerous==2.2.0
-psycopg2-binary==2.9.12
-pydantic==2.13.4
+psycopg2-binary==2.9.13
+pydantic==2.13.5
 # pytest 9 closes CVE-2025-71176 (insecure temp directory). It needs Python >=3.10,
 # which was previously read as a blocker because bot-core-ci.yml pinned 3.9 — but
 # that pin was stale: Dockerfile.bot has always run python:3.11-slim, and the CI
 # workflow never actually executed (its trigger listed branches main/develop, which
 # do not exist here; the default branch is master). Both are fixed now, so CI tests
 # the version the bot really runs and this bump is safe.
-pytest==9.0.3
-python-dotenv==1.2.2
+pytest==9.1.1
+python-dotenv==1.2.4
 python-engineio>=4.9.0
 python-multipart==0.0.32
 python-socketio>=5.11.0
 python_dateutil==2.9.0.post0
 pytz==2024.1
 Requests==2.34.2
-SQLAlchemy==2.0.51
-uvicorn==0.51.0
+SQLAlchemy==2.1.2
+uvicorn==0.54.0
